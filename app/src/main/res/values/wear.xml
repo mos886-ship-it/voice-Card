@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 让手表能通过 CapabilityClient 找到手机 -->
+    <string-array name="android_wear_capabilities" translatable="false">
+        <item>wristai_phone</item>
+    </string-array>
+</resources>

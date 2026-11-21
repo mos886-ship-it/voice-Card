@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 系統語音辨識服務要求呼叫方持有麥克風權限（即使只是讀檔案） -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <!-- 手機麥克風錄音（前台服務） -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- 录音的 GPS 戳记（开始录音时的位置）；不给权限也能录音 -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <!-- 手表录音时由手机定位（App 在背景）需要「一律允許」；使用者在设定里自己开 -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <!-- 手錶遙控開始手機錄音：允許從背景開啟透明畫面（Android 14 起背景不能直接開麥克風） -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <!-- 手機鎖屏時：像鬧鐘 / 來電一樣用全螢幕通知直接開啟錄音畫面，不用解鎖或點通知 -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <!-- 自動整理通話錄音：讀取電話 App 存的通話錄音檔 -->
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!-- Android 11+ 要能找到系统语音识别服务 -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+        <!-- 三星錄音機（Galaxy AI 轉錄 / 摘要） -->
+        <package android:name="com.sec.android.app.voicenote" />
+    </queries>
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.WristAI_Project">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.WristAI_Project"
+            android:launchMode="singleTop"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- 從錄音機等 App 分享音檔進來 -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="audio/*" />
+            </intent-filter>
+        </activity>
+
+        <!-- 手錶遙控開始手機錄音的透明跳板畫面 -->
+        <activity
+            android:name=".RemoteRecordActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:theme="@style/Theme.WristAI_Project.Transparent" />
+
+        <!-- 開機後重新監看通話錄音 -->
+        <receiver
+            android:name=".BootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- 手機麥克風錄音 -->
+        <service
+            android:name=".PhoneRecordingService"
+            android:exported="false"
+            android:foregroundServiceType="microphone|location" />
+
+        <!-- 接收手表传来的录音（App 没开着也会被系统唤起） -->
+        <service
+            android:name=".AudioReceiverService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.CHANNEL_EVENT" />
+                <data
+                    android:host="*"
+                    android:pathPrefix="/wristai/audio"
+                    android:scheme="wear" />
+                <!-- 长会议边录边传的分段 -->
+                <data
+                    android:host="*"
+                    android:pathPrefix="/wristai/seg"
+                    android:scheme="wear" />
+            </intent-filter>
+            <!-- 手錶遙控手機錄音 -->
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
+                <data
+                    android:host="*"
+                    android:pathPrefix="/wristai/phone_rec"
+                    android:scheme="wear" />
+            </intent-filter>
+            <!-- 手錶傳來錄音的 GPS 戳記 -->
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
+                <data
+                    android:host="*"
+                    android:pathPrefix="/wristai/geo"
+                    android:scheme="wear" />
+            </intent-filter>
+            <!-- 手錶要某筆錄音的完整報告 -->
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
+                <data
+                    android:host="*"
+                    android:pathPrefix="/wristai/detail"
+                    android:scheme="wear" />
+            </intent-filter>
+        </service>
+
+        <!-- WorkManager 在 Android 11 及以下用前台服务跑加急任务 -->
+        <service
+            android:name="androidx.work.impl.foreground.SystemForegroundService"
+            android:foregroundServiceType="dataSync"
+            tools:node="merge" />
+    </application>
+
+</manifest>
