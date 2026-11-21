@@ -28,6 +28,7 @@ final class Recorder: ObservableObject {
     private var observers: [NSObjectProtocol] = []
 
     var isRecording: Bool { if case .recording = state { return true } else { return false } }
+    var isFood: Bool { if case let .recording(id, _) = state { return id.hasPrefix("food_") } else { return false } }
 
     init() {
         let nc = NotificationCenter.default
@@ -50,7 +51,8 @@ final class Recorder: ObservableObject {
         isRecording ? stop() : start()
     }
 
-    func start() {
+    /// food = 飲食記錄（錄音 id 以 food_ 開頭，照 Android FoodLog.ID_PREFIX）。
+    func start(food: Bool = false) {
         guard !isRecording, !starting else { return }
         guard Self.freeBytes() > 100_000_000 else {
             state = .failed("手錶空間不足")
@@ -59,20 +61,20 @@ final class Recorder: ObservableObject {
         starting = true
         AVAudioApplication.requestRecordPermission { granted in
             Task { @MainActor in
-                if granted { self.begin() } else { self.state = .denied }
+                if granted { self.begin(food: food) } else { self.state = .denied }
                 self.starting = false
             }
         }
     }
 
-    private func begin() {
+    private func begin(food: Bool) {
         guard !isRecording else { return }
         do {
             let session = AVAudioSession.sharedInstance()
             try session.setCategory(.record, mode: .default)
             try session.setActive(true)
 
-            let id = RecordingID.make()
+            let id = (food ? "food_" : "") + RecordingID.make()
             let link = WatchLink.shared
             closedSegments = 0
             sending = false

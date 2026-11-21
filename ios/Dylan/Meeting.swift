@@ -37,12 +37,23 @@ struct Meeting: Codable, Identifiable, Equatable {
     var processEndedAt: Date?
     /// AI 分析目前在哪一步（上傳錄音中 / AI 聆聽整理中），完整的步驟視覺化在里程碑 5。
     var aiStep: String?
+    /// 飲食記錄的營養估算（照 Android Meeting.nutrition）。
+    var nutrition: AppleAI.Nutrition?
+    /// 逐字稿目前是 Apple 的即時預覽（不分說話者），Gemini 完成後會換掉。
+    var transcriptPreview: Bool?
+    /// 這次為什麼用 Apple（隱私模式 / Gemini 失敗改用 Apple）。
+    var engineNote: String?
     /// 使用者自己改過標題：AI 報告不再覆蓋。
     var titleEdited: Bool?
 
+    /// 飲食記錄的錄音 id 開頭（照 Android FoodLog.ID_PREFIX）。
+    static let foodPrefix = "food_"
+    var isFood: Bool { id.hasPrefix(Self.foodPrefix) }
+
     static func new(id: String, source: String) -> Meeting {
         let start = RecordingID.date(of: id) ?? Date()
-        return Meeting(id: id, title: "錄音 " + Fmt.stamp(start, "M/d HH:mm"), createdAt: start,
+        let kind = id.hasPrefix(foodPrefix) ? "飲食 " : "錄音 "
+        return Meeting(id: id, title: kind + Fmt.stamp(start, "M/d HH:mm"), createdAt: start,
                        durationSec: 0, status: .recording, source: source, segments: [:], lastSeq: nil, error: nil,
                        updatedAt: Date())
     }
@@ -77,6 +88,17 @@ struct Meeting: Codable, Identifiable, Equatable {
     /// AI 模型代號 → 好讀的名字（照 Android aiModelLabel）：gemini-3.8-flash → Google Gemini 3.8 Flash。
     static func aiModelLabel(_ model: String?) -> String {
         guard let model, !model.isEmpty else { return "未記錄" }
+        // Apple：「apple-speech|apple-pcc」= 語音辨識 ＋ 整理
+        if model.hasPrefix("apple-") {
+            return model.split(separator: "|").map {
+                switch $0 {
+                case "apple-speech": return "Apple 語音辨識"
+                case "apple-pcc": return "Apple 私有雲運算"
+                case "apple-ondevice": return "Apple 裝置端模型"
+                default: return String($0)
+                }
+            }.joined(separator: " ＋ ")
+        }
         let m = model.lowercased()
         if m.hasPrefix("gemini-") {
             let p = m.dropFirst(7).split(separator: "-").map(String.init)

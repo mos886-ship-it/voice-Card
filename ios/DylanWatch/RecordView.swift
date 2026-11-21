@@ -32,7 +32,7 @@ struct RecordView: View {
                 TabView(selection: $page) {
                     RecordPage(hero: hero, sending: showSending, locked: recorder.finalizing,
                                onRecord: { recorder.start() },
-                               onFood: { note = "飲食記錄下一版加上" },
+                               onFood: { recorder.start(food: true) },
                                onPhone: { note = "手機錄音下一版加上" })
                         .tag(0)
                     ReportBookPage(pending: link.pendingCount) { link.resendAll(force: true) }
@@ -45,11 +45,11 @@ struct RecordView: View {
         // 回到前景：錄音中但收音停了（被打斷 / 系統暫停）就接著錄
         .onChange(of: scenePhase) { _, phase in if phase == .active { recorder.checkAlive() } }
         #if DEBUG
-        // 測試用：simctl launch <watch> com.example.dylan.watchkitapp -autoRecordSeconds 12
+        // 測試用：simctl launch <watch> com.example.dylan.watchkitapp -autoRecordSeconds 12 [-autoRecordFood YES]
         .task {
             let sec = UserDefaults.standard.double(forKey: "autoRecordSeconds")
             guard sec > 0, !recorder.isRecording else { return }
-            recorder.start()
+            recorder.start(food: UserDefaults.standard.bool(forKey: "autoRecordFood"))
             try? await Task.sleep(for: .seconds(sec))
             recorder.stop()
         }
@@ -236,7 +236,7 @@ private struct RecordingScreen: View {
         VStack(spacing: 2) {
             HStack(spacing: 5) {
                 PulseRing().frame(width: 12, height: 12)
-                Text("錄音中").font(.system(size: 12, weight: .semibold)).foregroundStyle(Brand.recording)
+                Text(recorder.isFood ? "飲食記錄中" : "錄音中").font(.system(size: 12, weight: .semibold)).foregroundStyle(Brand.recording)
             }
             if case let .recording(_, since) = recorder.state {
                 TimelineView(.periodic(from: since, by: 1)) { ctx in
@@ -257,6 +257,7 @@ private struct RecordingScreen: View {
 
     private var syncLine: String {
         if recorder.interrupted { return "收音中斷，恢復中…" }
+        if recorder.isFood { return "說出吃了什麼，說完按停止" }
         if waiting > 0 { return "\(waiting) 段待傳" }
         if recorder.closedSegments > 0 { return "已同步 \(recorder.closedSegments) 段" }
         return "每 5 分鐘同步到手機"

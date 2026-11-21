@@ -77,8 +77,7 @@ struct DetailView: View {
                                         }
                                     }
                                 }
-                                Text(m.aiStep == "AI 聆聽整理中" ? "Gemini 正在聆聽錄音，整理成報告與逐字稿。"
-                                     : "正在把錄音上傳給 Gemini。")
+                                Text(Self.stepText(m.aiStep))
                                     .font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 6)
                                 Text("可以關掉螢幕或切到別的 App，分析會在背景繼續，完成後手錶會收到通知。")
                                     .font(.bodySmall).foregroundStyle(Brand.textFaint).padding(.top, 4)
@@ -97,14 +96,24 @@ struct DetailView: View {
                         if m.status == .received {
                             GlassCard(highlight: true) {
                                 Text("還沒有 AI 報告").font(.titleMedium).foregroundStyle(Brand.text)
-                                Text(MeetingStore.canReport ? "按下面的按鈕，用 Gemini 整理出重點、待辦與逐字稿。"
-                                     : "到「設定」貼上 Gemini API Key，就能自動整理出重點、待辦與逐字稿。")
+                                Text(MeetingStore.hasGeminiKey && !MeetingStore.privacyMode
+                                     ? "按下面的按鈕，用 Gemini 整理出重點、待辦與分說話者的逐字稿。"
+                                     : "沒有 Gemini 金鑰或開著隱私模式：會用 Apple 在手機上產生逐字稿與重點（不分說話者，需要 iOS 26 以上）。")
                                     .font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 4)
-                                if MeetingStore.canReport {
-                                    GradientButton(text: "產生報告", systemImage: "sparkles") { Task { await store.process(m.id) } }
-                                        .padding(.top, 12)
-                                }
+                                GradientButton(text: "產生報告", systemImage: "sparkles") { Task { await store.process(m.id) } }
+                                    .padding(.top, 12)
                             }
+                        }
+
+                        // ---------- 飲食：這一餐的熱量與營養素 ----------
+                        if let n = m.nutrition { NutritionCard(n: n) }
+
+                        // ---------- 這次為什麼用 Apple ----------
+                        if let note = m.engineNote, m.status == .done || m.status == .summarizing {
+                            Label(note, systemImage: "apple.logo")
+                                .font(.bodySmall).foregroundStyle(Brand.textMuted)
+                                .padding(12).frame(maxWidth: .infinity, alignment: .leading)
+                                .background(RoundedRectangle(cornerRadius: 14).fill(Brand.surfaceHigh))
                         }
 
                         // ---------- 播放器（錄音中不播放，檔案還在寫） ----------
@@ -113,7 +122,7 @@ struct DetailView: View {
                         }
 
                         // ---------- 報告 / 逐字稿 ----------
-                        if m.status == .done || m.aiModel != nil {   // 有過報告（重新產生中 / 失敗時也保留舊報告）
+                        if m.status == .done || m.aiModel != nil || m.transcriptPreview == true {   // 有過報告（重新產生中 / 失敗時也保留舊報告）
                             ReportSection(meeting: m, player: player) { Task { await store.process(m.id) } }
                         }
                     }
@@ -145,6 +154,16 @@ struct DetailView: View {
             }
         }
         .onDisappear { player.stop() }
+    }
+
+    static func stepText(_ step: String?) -> String {
+        switch step {
+        case "AI 聆聽整理中": return "Gemini 正在聆聽錄音，整理成報告與逐字稿。"
+        case "上傳錄音中": return "正在把錄音上傳給 Gemini。"
+        case "Apple 語音辨識中": return "Apple 正在手機上把錄音轉成文字（不上傳）。"
+        case "Apple 整理中": return "Apple 正在整理重點。"
+        default: return "處理中…"
+        }
     }
 
     private func hasAudio(_ m: Meeting) -> Bool {
@@ -279,6 +298,28 @@ final class PlayerState: ObservableObject {
         if !player.isPlaying {
             playing = false
             timer?.invalidate()
+        }
+    }
+}
+
+/// 飲食記錄：這一餐的熱量（大字）與三大營養素（照 Android NutritionHeader）。
+struct NutritionCard: View {
+    let n: AppleAI.Nutrition
+    var body: some View {
+        GlassCard(highlight: true) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text(String(n.kcal)).font(.system(size: 34, weight: .bold)).foregroundStyle(Brand.text)
+                Text("大卡").font(.titleSmall).foregroundStyle(Brand.textMuted)
+                Spacer()
+                if !n.meal.isEmpty { StatusChip(style: StatusStyle(label: n.meal, color: Brand.success, busy: false)) }
+            }
+            HStack(spacing: 10) {
+                StatTile(value: "\(n.protein)g", label: "蛋白質")
+                StatTile(value: "\(n.carbs)g", label: "碳水")
+                StatTile(value: "\(n.fat)g", label: "脂肪")
+            }
+            .padding(.top, 10)
+            Text("AI 依口述估算，不是精確值").font(.bodySmall).foregroundStyle(Brand.textFaint).padding(.top, 8)
         }
     }
 }

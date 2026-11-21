@@ -11,7 +11,7 @@ struct RecordsView: View {
     @State private var origin: String?
 
     var body: some View {
-        let meetings = store.meetings.filter { $0.source != "food" }
+        let meetings = store.meetings.filter { !$0.isFood }
         let terms = debounced.lowercased().split(whereSeparator: \.isWhitespace).map(String.init)
         let shown = meetings
             .filter { origin == nil || $0.source == origin }

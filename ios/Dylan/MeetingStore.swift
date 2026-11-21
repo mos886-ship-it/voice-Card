@@ -141,44 +141,149 @@ final class MeetingStore: ObservableObject {
         m.updatedAt = Date()
         save(m)
         // 直接接著開始 AI（在同一段背景時間內把上傳交給系統，App 暗著也能繼續）
-        if m.status == .received, Self.canReport { await process(m.id) }
+        if m.status == .received, await Self.canReport() { await process(m.id) }
         return m
     }
 
-    // MARK: - AI 報告（里程碑 2：Gemini；Apple 裝置端 / 私有雲在里程碑 4）
+    // MARK: - AI 報告
+    //
+    // 路由（2026-11-22 使用者決定）：
+    // - 隱私模式（設定頁）→ 一律 Apple（不上傳）。
+    // - 飲食 → Apple 優先（一個人說話、不需要分人）；沒有 Apple 模型才用 Gemini。
+    // - 錄音 → Gemini（分說話者）；同時先用 Apple 秒出「預覽逐字稿」。
+    //   沒金鑰 / Gemini 失敗（連不上、額度用完…）→ Apple 輔助。
 
     private var processing: Set<String> = []
 
-    /// 目前能不能自動產生報告：有 Gemini 金鑰（Apple 引擎還沒做，先一律用 Gemini）。
-    static var canReport: Bool { !(Keychain.get(Keychain.geminiKey) ?? "").isEmpty }
+    static let privacyKey = "privacy_mode"
+    static var privacyMode: Bool { UserDefaults.standard.bool(forKey: privacyKey) }
+    static var hasGeminiKey: Bool { !(Keychain.get(Keychain.geminiKey) ?? "").isEmpty }
+
+    /// 能不能自動產生報告 / 逐字稿：有 Gemini 金鑰，或這支 iPhone 有 Apple 語音辨識。
+    static func canReport() async -> Bool {
+        if hasGeminiKey && !privacyMode { return true }
+        return await AppleAI.speechAvailable()
+    }
 
     func report(_ id: String) -> String? { try? String(contentsOf: Self.reportURL(id), encoding: .utf8) }
     func transcript(_ id: String) -> String? { try? String(contentsOf: Self.transcriptURL(id), encoding: .utf8) }
 
-    /// 產生（或重新產生）報告：交給 GeminiJobs 在背景跑（App 暗了也會完成），結果回到 aiFinished / aiFailed。
+    /// 產生（或重新產生）報告。
     func process(_ id: String) async {
-        guard !processing.contains(id), var m = load(id), FileManager.default.fileExists(atPath: Self.audioURL(id).path) else { return }
-        let key = Keychain.get(Keychain.geminiKey) ?? ""
-        guard !key.isEmpty else {
-            m.status = .failed
-            m.error = "還沒設定 Gemini API Key，請到「設定」貼上後按「重試」"
-            save(m)
+        guard !processing.contains(id), let m = load(id), FileManager.default.fileExists(atPath: Self.audioURL(id).path) else { return }
+        let useApple = Self.privacyMode || !Self.hasGeminiKey || (m.isFood && AppleAI.availableModel != nil)
+        if useApple {
+            await runApple(id, note: Self.privacyMode ? "隱私模式：只在手機上處理" : nil)
+        } else {
+            await runGemini(id)
+        }
+    }
+
+    /// Gemini：交給 GeminiJobs 在背景跑（App 暗了也會完成），結果回到 geminiReplied / geminiFailed。
+    private func runGemini(_ id: String) async {
+        guard var m = load(id) else { return }
+        processing.insert(id)
+        defer { processing.remove(id) }
+        begin(&m, step: "上傳錄音中")
+        PhoneLink.shared.sendStatus(id: id, text: "AI 分析中…")
+        // 即時預覽：Gemini 在跑的同時，先用 Apple 秒出逐字稿（不分說話者），Gemini 完成後換掉
+        if !m.isFood {
+            Task { await self.preview(id) }
+        }
+        do {
+            try await GeminiJobs.shared.start(meetingId: id, key: Keychain.get(Keychain.geminiKey) ?? "")
+        } catch {
+            await geminiFailed(id, message: error.localizedDescription)
+        }
+    }
+
+    private func preview(_ id: String) async {
+        guard await AppleAI.speechAvailable(),
+              let lines = try? await AppleAI.transcribe(Self.audioURL(id)), !lines.isEmpty,
+              var m = load(id), m.status == .summarizing else { return }   // Gemini 已經完成就不要蓋掉
+        try? AppleAI.transcriptText(lines).write(to: Self.transcriptURL(id), atomically: true, encoding: .utf8)
+        m.transcriptPreview = true
+        save(m)
+    }
+
+    /// Apple：逐字稿（必有）＋整理 / 飲食估算（有 Apple 模型時）。在手機上跑，用背景時間撐住。
+    private func runApple(_ id: String, note: String?) async {
+        guard var m = load(id) else { return }
+        guard await AppleAI.speechAvailable() else {
+            aiFailed(id, message: Self.hasGeminiKey
+                     ? "這支 iPhone 沒有 Apple 語音辨識（需要 iOS 26 以上），隱私模式無法使用；請關掉隱私模式改用 Gemini"
+                     : "還沒設定 Gemini API Key，而這支 iPhone 沒有 Apple 語音辨識；請到「設定」貼上金鑰後按「重試」")
             return
         }
         processing.insert(id)
         defer { processing.remove(id) }
+        begin(&m, step: "Apple 語音辨識中")
+        m.engineNote = note
+        save(m)
+        PhoneLink.shared.sendStatus(id: id, text: "AI 分析中…")
+        await withCheckedContinuation { (done: CheckedContinuation<Void, Never>) in
+            GeminiJobs.withBackgroundTime("apple-\(id)") {
+                await self.appleWork(id)
+                done.resume()
+            }
+        }
+    }
+
+    private func appleWork(_ id: String) async {
+        do {
+            let lines = try await AppleAI.transcribe(Self.audioURL(id))
+            let text = AppleAI.transcriptText(lines)
+            guard var m = load(id) else { return }
+            try text.write(to: Self.transcriptURL(id), atomically: true, encoding: .utf8)
+            m.transcriptPreview = false
+            var model = "apple-speech"
+            var report: GeneratedReport?
+            if AppleAI.availableModel != nil, !lines.isEmpty {
+                setAiStep(id, "Apple 整理中")
+                let recordedAt = Fmt.stamp(m.createdAt, "yyyy/MM/dd HH:mm")
+                if m.isFood {
+                    let (r, n, mdl) = try await AppleAI.food(transcript: text, recordedAt: recordedAt)
+                    report = r; m.nutrition = n; model += "|" + mdl
+                } else {
+                    let (r, mdl) = try await AppleAI.report(transcript: text, durationSec: m.durationSec, recordedAt: recordedAt)
+                    report = r; model += "|" + mdl
+                }
+            }
+            guard var latest = load(id) else { return }   // 處理中被刪掉
+            if let report {
+                try report.markdown.write(to: Self.reportURL(id), atomically: true, encoding: .utf8)
+                if latest.titleEdited != true { latest.title = report.title }
+                latest.summary = report.shortSummary
+            } else {
+                try? FileManager.default.removeItem(at: Self.reportURL(id))
+                latest.summary = lines.first?.text
+            }
+            latest.nutrition = m.nutrition
+            latest.transcriptPreview = false
+            latest.speakerNames = [:]
+            latest.aiModel = model
+            finish(&latest)
+            PhoneLink.shared.sendStatus(id: id, text: "報告完成：\(latest.title)")
+        } catch {
+            aiFailed(id, message: "Apple 處理失敗：\(error.localizedDescription)")
+        }
+    }
+
+    private func begin(_ m: inout Meeting, step: String) {
         m.status = .summarizing
         m.error = nil
-        m.aiStep = "上傳錄音中"
+        m.aiStep = step
         m.processStartedAt = Date()
         m.processEndedAt = nil
         save(m)
-        PhoneLink.shared.sendStatus(id: id, text: "AI 分析中…")
-        do {
-            try await GeminiJobs.shared.start(meetingId: id, key: key)
-        } catch {
-            aiFailed(id, message: error.localizedDescription)
-        }
+    }
+
+    private func finish(_ m: inout Meeting) {
+        m.status = .done
+        m.error = nil
+        m.aiStep = nil
+        m.processEndedAt = Date()
+        save(m)
     }
 
     /// 背景傳輸被取消（強制關閉 App）→ 重新分析。
@@ -193,17 +298,20 @@ final class MeetingStore: ObservableObject {
         save(m)
     }
 
-    /// Gemini 完成（可能是 App 在背景被叫醒時）：存報告 / 逐字稿，更新標題、摘要、說話者，回報手錶。
-    func aiFinished(_ id: String, report: GeneratedReport, transcript: String, model: String, truncated: Bool) {
-        // 分析期間錄音被刪掉了：不要再寫檔（不然會把刪掉的錄音又建回來）
-        guard var m = load(id) else { return }
-        var text = transcript
+    /// Gemini 完成（可能是 App 在背景被叫醒時）：存報告 / 逐字稿，更新標題、摘要、說話者、營養，回報手錶。
+    func geminiReplied(_ id: String, text: String, model: String, truncated: Bool) {
+        guard var m = load(id) else { return }   // 分析期間被刪掉了：不要寫檔
+        var (report, transcript) = GeminiClient.split(text)
+        if m.isFood {
+            m.nutrition = GeminiClient.parseNutrition(text)
+            report.markdown = GeminiClient.stripNutrition(report.markdown)
+        }
         if truncated {
-            text += "\n\n（錄音太長，Gemini 一次輸出不完，後面的逐字稿被截斷；長錄音分段分析在之後的版本加上）"
+            transcript += "\n\n（錄音太長，Gemini 一次輸出不完，後面的逐字稿被截斷；長錄音分段分析在之後的版本加上）"
         }
         do {
             try report.markdown.write(to: Self.reportURL(id), atomically: true, encoding: .utf8)
-            try text.write(to: Self.transcriptURL(id), atomically: true, encoding: .utf8)
+            try transcript.write(to: Self.transcriptURL(id), atomically: true, encoding: .utf8)
         } catch {
             aiFailed(id, message: "報告存檔失敗：\(error.localizedDescription)")
             return
@@ -211,14 +319,23 @@ final class MeetingStore: ObservableObject {
         if m.titleEdited != true { m.title = report.title }
         m.summary = report.shortSummary
         m.aiModel = model
-        // 每次重新產生，說話者代號可能重編 → 名字一律用這次報告的表格（使用者手動改名在之後的版本加上）
+        // 每次重新產生，說話者代號可能重編 → 名字一律用這次報告的表格
         m.speakerNames = Speakers.names(fromReport: report.markdown)
-        m.status = .done
-        m.error = nil
-        m.aiStep = nil
-        m.processEndedAt = Date()
-        save(m)
+        m.transcriptPreview = false
+        m.engineNote = nil
+        finish(&m)
         PhoneLink.shared.sendStatus(id: id, text: "報告完成：\(m.title)")
+    }
+
+    /// Gemini 失敗（連不上、額度用完…）：這支 iPhone 有 Apple 語音辨識就改用 Apple 輔助，否則標失敗。
+    func geminiFailed(_ id: String, message: String) async {
+        guard load(id) != nil else { return }
+        if await AppleAI.speechAvailable() {
+            NSLog("[MeetingStore] Gemini failed (\(message)), falling back to Apple")
+            await runApple(id, note: "Gemini 沒有完成（\(message)），改用 Apple 在手機上整理，沒有分說話者")
+        } else {
+            aiFailed(id, message: message)
+        }
     }
 
     func aiFailed(_ id: String, message: String) {

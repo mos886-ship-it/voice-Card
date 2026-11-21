@@ -35,7 +35,7 @@ struct SettingsView: View {
                 SectionLabel(text: "AI 引擎")
                 GlassCard {
                     Text("自動（依這支 iPhone）").font(.titleMedium).foregroundStyle(Brand.text)
-                    Text("新的 iPhone 用 Apple 內建的 AI（免費、不需金鑰）；舊的 iPhone 用 Google Gemini（需要金鑰）。")
+                    Text("錄音報告用 Google Gemini（能分出不同的說話者）。Apple 內建的 AI 不分說話者，用來當輔助，以及整理飲食記錄（免費、不上傳）。")
                         .font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 4)
                     if let c = ai.capability {
                         VStack(spacing: 8) {
@@ -48,13 +48,20 @@ struct SettingsView: View {
                         .padding(.top, 12)
                         DividerLine().padding(.vertical, 12)
                         Text("這支 iPhone 會用：").font(.labelMedium).foregroundStyle(Brand.textMuted)
-                        Text(ai.engine?.title ?? "").font(.titleSmall).foregroundStyle(Brand.text).padding(.top, 2)
-                        Text("飲食熱量一律用 Gemini。Apple 引擎還在開發中：目前有 Gemini 金鑰時一律用 Gemini。")
-                            .font(.bodySmall).foregroundStyle(Brand.textFaint).padding(.top, 6)
+                        VStack(alignment: .leading, spacing: 8) {
+                            UseRow(task: "錄音報告", engine: ai.engine?.title ?? "")
+                            UseRow(task: "輔助", engine: ai.helper?.title ?? "無（這支 iPhone 沒有 Apple 語音辨識）")
+                            UseRow(task: "飲食", engine: ai.foodEngine?.title ?? "")
+                        }
+                        .padding(.top, 6)
+                        Text("輔助：沒有 Gemini 金鑰、連不上或額度用完時，改用 Apple 先產生逐字稿與重點。Apple 引擎還在開發中，目前只有 Gemini 會實際執行。")
+                            .font(.bodySmall).foregroundStyle(Brand.textFaint).padding(.top, 8)
                     } else {
                         ProgressView().padding(.top, 12)
                     }
                 }
+                SectionLabel(text: "隱私模式")
+                PrivacyCard()
                 SectionLabel(text: "Gemini API Key")
                 GeminiKeyCard { Task { await ai.refresh() } }
                 SectionLabel(text: "外觀")
@@ -147,6 +154,23 @@ private struct ThemeChip: View {
     }
 }
 
+/// 隱私模式：錄音只在手機上處理（Apple 語音辨識＋Apple 整理），不上傳 Gemini。
+private struct PrivacyCard: View {
+    @AppStorage(MeetingStore.privacyKey) private var on = false
+    var body: some View {
+        GlassCard {
+            Toggle(isOn: $on) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("只在手機上處理").font(.titleMedium).foregroundStyle(Brand.text)
+                    Text("開啟後錄音不上傳 Gemini，一律用 Apple 在手機上轉文字與整理（不分說話者，需要 iOS 26 以上）。適合醫療、法律、人事等敏感談話。")
+                        .font(.bodySmall).foregroundStyle(Brand.textMuted)
+                }
+            }
+            .tint(Brand.success)
+        }
+    }
+}
+
 /// Gemini 金鑰：使用者自己貼上，存 Keychain。畫面上只顯示末 4 碼。
 private struct GeminiKeyCard: View {
     let onChange: () -> Void
@@ -194,6 +218,18 @@ private struct GeminiKeyCard: View {
                 }
                 .padding(.top, 10)
             }
+        }
+    }
+}
+
+/// 「這支 iPhone 會用」一列：用途 ＋ 引擎。
+private struct UseRow: View {
+    let task: String
+    let engine: String
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            Text(task).font(.labelMedium).foregroundStyle(Brand.textMuted).frame(width: 56, alignment: .leading)
+            Text(engine).font(.titleSmall).foregroundStyle(Brand.text)
         }
     }
 }

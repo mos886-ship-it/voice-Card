@@ -24,6 +24,7 @@ final class GeminiJobs: NSObject, URLSessionDataDelegate {
         var model: Int = 0          // GeminiClient.models 的索引
         var fileName: String?       // files/xxx（上傳完才有）
         var fileURI: String?
+        var food: Bool? = nil       // 飲食記錄：用飲食提示詞
     }
 
     /// AppDelegate 交來的「背景事件處理完要呼叫」的 handler。
@@ -66,7 +67,7 @@ final class GeminiJobs: NSObject, URLSessionDataDelegate {
         r.setValue("0", forHTTPHeaderField: "X-Goog-Upload-Offset")
         r.setValue("upload, finalize", forHTTPHeaderField: "X-Goog-Upload-Command")
         let task = session.uploadTask(with: r, fromFile: audio)
-        task.taskDescription = Self.encode(Job(meetingId: meetingId, stage: .upload))
+        task.taskDescription = Self.encode(Job(meetingId: meetingId, stage: .upload, food: meetingId.hasPrefix(Meeting.foodPrefix)))
         task.resume()
         NSLog("[GeminiJobs] \(meetingId) upload handed to system")
     }
@@ -80,7 +81,8 @@ final class GeminiJobs: NSObject, URLSessionDataDelegate {
         let prompt = GeminiClient.prompt(durationSec: m.durationSec, recordedAt: Fmt.stamp(m.createdAt, "yyyy/MM/dd HH:mm"))
         // 背景上傳任務只能從檔案上傳 → 請求內容先寫成暫存檔
         let body = FileManager.default.temporaryDirectory.appendingPathComponent("gemini-\(job.meetingId)-\(job.model).json")
-        try GeminiClient.generateBody(fileURI: uri, prompt: prompt).write(to: body)
+        try GeminiClient.generateBody(fileURI: uri, prompt: prompt,
+                                      system: job.food == true ? GeminiClient.foodPrompt : GeminiClient.systemPrompt).write(to: body)
         var r = client.request("\(GeminiClient.base)/v1beta/models/\(model):generateContent", "POST", timeout: 600)
         r.setValue("application/json", forHTTPHeaderField: "Content-Type")
         let task = session.uploadTask(with: r, fromFile: body)
@@ -135,11 +137,10 @@ final class GeminiJobs: NSObject, URLSessionDataDelegate {
                     try await self.generate(job, key: key)
                 case .generate:
                     let (text, truncated) = try GeminiClient.parseGenerated(data)
-                    let (report, transcript) = GeminiClient.split(text)
                     NSLog("[GeminiJobs] \(job.meetingId) \(GeminiClient.models[job.model]) replied \(text.count) chars")
                     await self.cleanup(job, key: key)
-                    await MeetingStore.shared.aiFinished(job.meetingId, report: report, transcript: transcript,
-                                                         model: GeminiClient.models[job.model], truncated: truncated)
+                    await MeetingStore.shared.geminiReplied(job.meetingId, text: text,
+                                                            model: GeminiClient.models[job.model], truncated: truncated)
                 }
             } catch let e as GeminiClient.Failure {
                 // generate 步驟：額度用完 / 下架 / 太忙 / 逾時 → 換下一個模型（照 Android）
@@ -170,7 +171,7 @@ final class GeminiJobs: NSObject, URLSessionDataDelegate {
     private func fail(_ job: Job, key: String, message: String) async {
         NSLog("[GeminiJobs] \(job.meetingId) failed: \(message)")
         await cleanup(job, key: key)
-        await MeetingStore.shared.aiFailed(job.meetingId, message: message)
+        await MeetingStore.shared.geminiFailed(job.meetingId, message: message)
     }
 
     /// 上傳給 Gemini 的錄音用完立刻刪除。

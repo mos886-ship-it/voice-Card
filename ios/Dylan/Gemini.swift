@@ -74,6 +74,57 @@ struct GeminiClient {
     - 整段只有一個人說話時，就全部用說話者A，並在說話者表格只列一位。
     """
 
+    /// 飲食記錄（照抄 Android `FoodLog.PROMPT`）：第 3 行 NUTRITION 機讀行。
+    static let nutritionPrefix = "NUTRITION:"
+    static let foodPrompt = """
+    你是營養記錄助理。使用者會用口語描述剛吃（或喝）了什麼，請整理成飲食記錄，並估算熱量與三大營養素。
+    - 依台灣常見的份量與做法估算（便當、小吃、麵店、手搖飲、便利商店等）。
+    - 使用者明確說出的份量、杯型、甜度、冰塊、加料一定照用，不可以改成別的（例如說「大杯半糖」就是大杯、半糖），只有沒說的部分才用預設。
+    - 沒說清楚的地方（份量、甜度、加料、烹調方式）用常見預設，並在「假設與待確認」寫出來。
+    - 數字一律取整數；熱量單位大卡（kcal），營養素單位公克（g）。
+    - 餐別依描述與錄音時間判斷：早餐、午餐、晚餐、點心、宵夜、飲料。
+    - 若錄音內容不是在描述飲食，TITLE 寫「非飲食內容」，NUTRITION 全部填 0，並照實摘要內容。
+    - 一律使用繁體中文（台灣用語）。這是估算，不要做醫療診斷。
+
+    輸出格式（嚴格遵守，不要加其他前言）：
+    第 1 行：TITLE: <餐別：主要食物，15 字內，例如「午餐：牛肉麵＋燙青菜」>
+    第 2 行：SUMMARY: <一句話，含總熱量與蛋白質，例如「午餐約 780 大卡，蛋白質 35g」>
+    第 3 行：\(nutritionPrefix) meal=<餐別>; kcal=<整數>; protein=<整數>; carbs=<整數>; fat=<整數>
+    第 4 行起：Markdown，依序包含：
+    ## 飲食內容
+    （用表格：食物 | 份量 | 熱量(kcal) | 蛋白質(g) | 碳水(g) | 脂肪(g)；每樣食物一列）
+    ## 合計
+    （一行：約 X 大卡；蛋白質 Xg、碳水 Xg、脂肪 Xg）
+    ## 營養小提醒
+    （1～3 點，針對這一餐的簡短、實際建議）
+    ## 假設與待確認
+
+    之後單獨一行輸出 \(transcriptMarker)
+    之後是逐字稿，每段一行：[mm:ss] 內容
+    """
+
+    /// 從模型輸出找出 NUTRITION 行（照 Android `FoodLog.parseNutrition`）。
+    static func parseNutrition(_ text: String) -> AppleAI.Nutrition? {
+        guard let line = text.components(separatedBy: "\n").map({ $0.trimmingCharacters(in: .whitespaces) })
+            .first(where: { $0.uppercased().hasPrefix(nutritionPrefix) }) else { return nil }
+        var kv: [String: String] = [:]
+        for part in line.dropFirst(nutritionPrefix.count).split(whereSeparator: { $0 == ";" || $0 == "；" }) {
+            let pair = part.split(separator: "=", maxSplits: 1).map { $0.trimmingCharacters(in: .whitespaces) }
+            if pair.count == 2 { kv[pair[0].lowercased()] = pair[1] }
+        }
+        func num(_ k: String) -> Int {
+            guard let v = kv[k], let r = v.range(of: #"\d+"#, options: .regularExpression) else { return 0 }
+            return Int(v[r]) ?? 0
+        }
+        return AppleAI.Nutrition(meal: kv["meal"] ?? "", kcal: num("kcal"), protein: num("protein"), carbs: num("carbs"), fat: num("fat"))
+    }
+
+    /// 報告裡不顯示機讀行。
+    static func stripNutrition(_ markdown: String) -> String {
+        markdown.components(separatedBy: "\n").filter { !$0.trimmingCharacters(in: .whitespaces).uppercased().hasPrefix(nutritionPrefix) }
+            .joined(separator: "\n")
+    }
+
     // MARK: - 主流程
 
     /// 上傳 → 等 ACTIVE → 依序試模型 → 刪除上傳的檔案。onListening：上傳完、AI 開始聆聽時呼叫。
@@ -142,9 +193,9 @@ struct GeminiClient {
     }
 
     /// generateContent（非串流）的請求內容。
-    static func generateBody(fileURI: String, prompt: String) throws -> Data {
+    static func generateBody(fileURI: String, prompt: String, system: String = systemPrompt) throws -> Data {
         let body: [String: Any] = [
-            "systemInstruction": ["parts": [["text": systemPrompt]]],
+            "systemInstruction": ["parts": [["text": system]]],
             "contents": [["role": "user", "parts": [
                 ["file_data": ["mime_type": uploadMime, "file_uri": fileURI]],
                 ["text": prompt],

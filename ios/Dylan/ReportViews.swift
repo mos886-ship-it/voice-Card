@@ -14,20 +14,31 @@ struct ReportSection: View {
         let names = meeting.speakerNames ?? [:]
         VStack(alignment: .leading, spacing: 14) {
             SegmentTabs(selection: $tab, labels: ["報告", "逐字稿"])
-            if tab == 0 {
+            if tab == 0 && report == nil && !lines.isEmpty && meeting.status != .done || tab == 0 && meeting.transcriptPreview == true {
+                Text("報告還在整理中，可以先看逐字稿。").font(.bodySmall).foregroundStyle(Brand.textMuted)
+            } else if tab == 0 {
                 ReportFacts(meeting: meeting)
                 if let report {
                     ReportView(markdown: Speakers.apply(report, names))
+                } else if meeting.status == .done {
+                    GlassCard {
+                        Text("這筆只有逐字稿：這支 iPhone 沒有可用的 Apple 整理模型。到「設定」貼上 Gemini 金鑰後可以按「重新產生報告」。")
+                            .font(.bodySmall).foregroundStyle(Brand.textMuted)
+                    }
                 }
                 if meeting.status == .done {
                     GhostButton(text: "重新產生報告", systemImage: "arrow.clockwise", tint: Brand.cyan, action: onRegenerate)
                         .frame(maxWidth: .infinity)
                 }
             } else {
+                if meeting.transcriptPreview == true {
+                    Label("預覽：Apple 在手機上產生的逐字稿，沒有分說話者；Gemini 報告完成後會換成完整版。", systemImage: "bolt.fill")
+                        .font(.bodySmall).foregroundStyle(Brand.textMuted)
+                }
                 TranscriptView(lines: lines, names: names, player: player)
             }
         }
-        .task(id: "\(meeting.id)|\(meeting.processEndedAt?.timeIntervalSince1970 ?? 0)") {
+        .task(id: "\(meeting.id)|\(meeting.processEndedAt?.timeIntervalSince1970 ?? 0)|\(meeting.transcriptPreview == true)") {
             report = try? String(contentsOf: MeetingStore.reportURL(meeting.id), encoding: .utf8)
             let text = (try? String(contentsOf: MeetingStore.transcriptURL(meeting.id), encoding: .utf8)) ?? ""
             lines = TranscriptView.parse(text)
@@ -226,7 +237,9 @@ struct TranscriptView: View {
                     Button { if let t = l.time { player.play(at: t) } } label: {
                         VStack(alignment: .leading, spacing: 4) {
                             HStack(spacing: 8) {
-                                Text(names[l.speaker] ?? l.speaker).font(.labelLarge).foregroundStyle(color)
+                                if !l.speaker.isEmpty {
+                                    Text(names[l.speaker] ?? l.speaker).font(.labelLarge).foregroundStyle(color)
+                                }
                                 Text(l.stamp).font(.labelSmall).foregroundStyle(Brand.textFaint)
                             }
                             Text(Speakers.apply(l.content, names)).font(.bodyMedium).foregroundStyle(Brand.text)
@@ -247,7 +260,8 @@ struct TranscriptView: View {
 
     /// 「[mm:ss] 說話者A：內容」或「[h:mm:ss] …」；格式不符的整行當內容。
     static func parse(_ text: String) -> [Line] {
-        let re = try! NSRegularExpression(pattern: #"^\[(\d{1,2}(?::\d{2}){1,2})\]\s*([^：:]{1,20})[：:]\s*(.*)$"#)
+        // 「[mm:ss] 說話者A：內容」（Gemini）或「[mm:ss] 內容」（Apple，沒有說話者）
+        let re = try! NSRegularExpression(pattern: #"^\[(\d{1,2}(?::\d{2}){1,2})\]\s*(?:(說話者[A-Z?]{1,2}|[^：:\s]{1,8})[：:])?\s*(.*)$"#)
         var out: [Line] = []
         for raw in text.components(separatedBy: "\n") {
             let t = raw.trimmingCharacters(in: .whitespaces)
@@ -255,8 +269,9 @@ struct TranscriptView: View {
             let ns = t as NSString
             if let m = re.firstMatch(in: t, range: NSRange(location: 0, length: ns.length)) {
                 let stamp = ns.substring(with: m.range(at: 1))
+                let sp = m.range(at: 2).location == NSNotFound ? "" : ns.substring(with: m.range(at: 2))
                 out.append(Line(id: out.count, time: seconds(stamp), stamp: stamp,
-                                speaker: ns.substring(with: m.range(at: 2)).trimmingCharacters(in: .whitespaces),
+                                speaker: sp.trimmingCharacters(in: .whitespaces),
                                 content: ns.substring(with: m.range(at: 3))))
             } else {
                 out.append(Line(id: out.count, time: nil, stamp: "", speaker: "", content: t))

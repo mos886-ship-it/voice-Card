@@ -227,7 +227,11 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 | 手錶被打斷 / 收音停住自動恢復、熄屏續錄 | 🟡 已寫，要真機驗證 |
 | UI 照 Android：手機四分頁、主頁、錄音清單、詳情（播放器、報告 / 逐字稿）、設定；手錶三鍵正三角＋報告書頁 | ✅ 模擬器 |
 | 外觀：深色 / 淺色 / 水墨 / 自動；手錶跟手機的水墨（applicationContext `/wristai/theme`） | ✅ 模擬器 |
-| AI 自動依 iPhone 選引擎（`AiCapability`）：iOS 27+ Apple 私有雲、iOS 26 Apple 裝置端、其他 Gemini | 偵測 ✅；Apple 引擎還沒做，目前有金鑰一律 Gemini |
+| AI 引擎依用途選（`AiCapability`，2026-11-22 使用者決定）：錄音報告 Gemini（分說話者）；Apple 不分說話者 → 當輔助、即時預覽、隱私模式、飲食 | 偵測 ✅（設定頁分「錄音報告 / 輔助 / 飲食」顯示） |
+| Apple 引擎（`AppleAI`）：SpeechTranscriber 逐字稿；私有雲 / 裝置端模型整理（長的分段）；飲食用 `@Generable` 結構化營養 | 語音 ✅ Mac 實測（53 秒 1.3 秒）；整理與飲食 ❌ 這台 Mac 與模擬器都沒有 Apple 模型，要真機 |
+| 飲食記錄：手錶「飲食」鍵（id `food_`）→ Apple 優先、Gemini 備援（照抄 Android FoodLog.PROMPT）→ 飲食分頁、主頁熱量格、詳情營養卡 | ✅ 模擬器（Gemini：牛肉麵＋燙青菜＋大杯半糖珍奶 → 1150 大卡；手錶飲食鍵整條流程） |
+| 即時預覽（Gemini 跑的同時先出 Apple 逐字稿）、Apple 輔助（沒金鑰 / Gemini 失敗改用 Apple） | 🟡 已寫；模擬器沒有語音模型不會觸發，要真機 |
+| 隱私模式（設定頁「只在手機上處理」，一律 Apple、不上傳） | ✅ 模擬器（沒有 Apple 語音時清楚報錯，不會上傳） |
 | 里程碑 2：Gemini 報告（提示詞照抄 Android，3.8-flash → 3.5-flash-lite 備援），金鑰存 Keychain | ✅ 模擬器（53 秒兩人對話 → 7 秒出報告，說話者名字正確） |
 | 背景處理：上傳與 generateContent 交給系統背景傳輸（`GeminiJobs`），鎖屏 / App 在背景 / 被系統關掉都會完成 | ✅ 模擬器（鎖屏、殺 App 都測過） |
 | 完整流程：手錶錄音 → 手機（鎖屏、App 沒開）→ 背景 Gemini → 手錶「✓ 報告完成」 | ✅ 模擬器 25 秒 |
@@ -239,4 +243,5 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 - **模擬器沒有語音辨識模型**（`SpeechTranscriber.supportedLocales` 是空的），設定頁顯示「繁中語音辨識：不支援」是正常的；Mac 上實測 zh-TW 支援。
 - 測試用開關（只在 Debug）：手錶 `-autoRecordSeconds N` 自動錄 N 秒；手機 `-processId <錄音id>` 啟動就分析；手錶分段長度可用 UserDefaults `segment_seconds` 改短（測完刪掉）。
 - 強制關閉 App（在 App 切換器滑掉）時 iOS 會取消背景傳輸，下次開 App 會自動重新分析。
-- 還沒做：手錶報告書清單 / 明細、長錄音分段分析（目前太長只會提示逐字稿被截斷）、GPS、搜尋、飲食、組合式引擎、Apple 引擎、處理步驟視覺化、說話者改名。
+- 測試用開關（只在 Debug）另有：手錶 `-autoRecordFood YES` 讓自動錄音變成飲食記錄。
+- 還沒做：手機錄音（「記錄這一餐」「開始錄音」目前提示用手錶）、手錶報告書清單 / 明細、手錶今日熱量環（`/wristai/food_today`）、長錄音分段分析（目前太長只會提示逐字稿被截斷）、GPS、搜尋、組合式引擎、處理步驟視覺化、說話者改名。

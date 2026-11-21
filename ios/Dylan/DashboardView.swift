@@ -9,7 +9,7 @@ struct DashboardView: View {
     @EnvironmentObject private var link: PhoneLink
 
     var body: some View {
-        let recordings = store.meetings.filter { $0.source != "food" }
+        let recordings = store.meetings.filter { !$0.isFood }
         let todayRec = recordings.filter { Calendar.current.isDateInToday($0.createdAt) }
         let busy = store.meetings.filter { $0.statusStyle.busy && $0.status != .recording }
 
@@ -34,7 +34,7 @@ struct DashboardView: View {
                         toast = "手機錄音下一版加上，請先用手錶錄音"
                     }
                     QuickTile(title: "記錄飲食", sub: "說出吃了什麼", filled: false) {
-                        toast = "飲食記錄下一版加上"
+                        toast = "請用手錶的「飲食」鍵記錄（手機錄音下一版加上）"
                     }
                 }
 
@@ -46,6 +46,10 @@ struct DashboardView: View {
                             .onTapGesture { select(.records) }
                         StatTile(value: Self.minutes(todayRec.reduce(0) { $0 + $1.durationSec }), label: "錄音時長")
                             .onTapGesture { select(.records) }
+                        if store.meetings.contains(where: \.isFood) {
+                            StatTile(value: "\(FoodView.todayKcal(store.meetings))/\(FoodView.goal)", label: "大卡")
+                                .onTapGesture { select(.food) }
+                        }
                     }
                     .padding(.top, 10)
                 }

@@ -4,14 +4,24 @@ import Speech
 
 /// 這支 iPhone 能用哪些 Apple AI，並依此自動選 AI 引擎（使用者要求：不同 iPhone 用不同的）。
 ///
-/// | 這支 iPhone                                    | 語音 → 逐字稿                     | 逐字稿 → 報告                           |
-/// |-----------------------------------------------|----------------------------------|----------------------------------------|
-/// | iOS 27+、有 Apple Intelligence                 | Apple 裝置端（SpeechTranscriber） | Apple 私有雲運算（PCC，模型較大、免金鑰），不能用時改裝置端模型 |
-/// | iOS 26、有 Apple Intelligence                  | Apple 裝置端                      | Apple 裝置端模型（SystemLanguageModel）  |
-/// | iOS 26+、沒有 Apple Intelligence（舊機型 / 未開啟） | Apple 裝置端                  | Gemini（有金鑰時），否則只有逐字稿         |
-/// | iOS 17–25                                     | Gemini 一站式（有金鑰時，聽錄音直接出報告），否則系統語音辨識只出逐字稿 |
+/// 2026-11-22 使用者決定：Apple 的語音辨識**不分說話者**，所以錄音報告以 Gemini 為主，
+/// Apple 只當「輔助」，以及負責「飲食」（一個人說吃了什麼，不需要分人）。
 ///
-/// 飲食熱量一律用 Gemini（裝置端小模型估熱量不可靠）。繁中支援依 Apple 的語言清單即時判斷，不寫死。
+/// 錄音（會議、課堂、訪談…）：
+/// | 情況                         | 用什麼                                                    |
+/// |-----------------------------|-----------------------------------------------------------|
+/// | 有 Gemini 金鑰               | Gemini（聽錄音、分說話者）                                   |
+/// | 沒金鑰、有 Apple 語音＋模型    | 輔助：Apple 裝置端逐字稿＋Apple 整理（沒有分說話者），iOS 27+ 用私有雲 |
+/// | 沒金鑰、只有 Apple 語音        | 輔助：只有 Apple 逐字稿                                     |
+/// | 都沒有（iOS 17–25 沒金鑰）    | 不能產生報告                                               |
+/// Gemini 連不上 / 額度用完時也用 Apple 輔助（Apple 引擎做好後接上）。
+///
+/// 飲食（說出吃了什麼 → 熱量、營養素）：
+/// | 有 Apple 語音＋模型（iOS 27+ 私有雲優先） | Apple（免金鑰、不上傳）       |
+/// | 否則有 Gemini 金鑰                     | Gemini                      |
+/// | 只有 Apple 語音                        | 只有逐字稿，沒有熱量          |
+///
+/// 繁中支援依 Apple 的語言清單即時判斷，不寫死。
 struct AiCapability: Equatable {
     enum ModelState: Equatable {
         case available
@@ -52,11 +62,11 @@ struct AiCapability: Equatable {
 
         var detail: String {
             switch self {
-            case .applePCC: return "免費、不需金鑰；語音在手機上轉文字，報告交給 Apple 私有雲運算（不保留資料）"
-            case .appleOnDevice: return "免費、不需金鑰、不上傳；長錄音會分段整理，沒有分說話者"
+            case .applePCC: return "免費、不需金鑰；語音在手機上轉文字，交給 Apple 私有雲運算整理（不保留資料）；沒有分說話者"
+            case .appleOnDevice: return "免費、不需金鑰、不上傳；語音和整理都在手機上；沒有分說話者"
             case .appleSpeechGemini: return "語音在手機上轉文字，報告由 Gemini 整理"
             case .gemini: return "Gemini 直接聽錄音，產出報告與分說話者逐字稿"
-            case .transcriptOnly: return "這支 iPhone 沒有可用的 Apple 語言模型；填入 Gemini 金鑰即可產生報告"
+            case .transcriptOnly: return "只有 Apple 裝置端逐字稿；填入 Gemini 金鑰即可產生分說話者的報告"
             case .none: return "這支 iPhone 需要 Gemini 金鑰才能產生報告"
             }
         }
@@ -72,12 +82,29 @@ struct AiCapability: Equatable {
     var modelZhTW: Bool
     var pcc: ModelState
 
-    /// 自動選擇（hasGeminiKey：使用者有沒有填 Gemini 金鑰，里程碑 2 加上設定欄位）。
-    func autoEngine(hasGeminiKey: Bool) -> Engine {
-        if speechZhTW && modelZhTW && pcc == .available { return .applePCC }
-        if speechZhTW && modelZhTW && onDeviceModel == .available { return .appleOnDevice }
-        if speechZhTW { return hasGeminiKey ? .appleSpeechGemini : .transcriptOnly }
-        return hasGeminiKey ? .gemini : .none
+    /// 這支 iPhone 能用的 Apple 整理方式（私有雲優先）；沒有就 nil。
+    private var appleModel: Engine? {
+        guard speechZhTW && modelZhTW else { return nil }
+        if pcc == .available { return .applePCC }
+        if onDeviceModel == .available { return .appleOnDevice }
+        return nil
+    }
+
+    /// 錄音報告：Gemini 為主（分說話者）；沒金鑰才用 Apple 輔助。
+    func recordingEngine(hasGeminiKey: Bool) -> Engine {
+        if hasGeminiKey { return .gemini }
+        if let apple = appleModel { return apple }
+        return speechZhTW ? .transcriptOnly : .none
+    }
+
+    /// 輔助：Gemini 不能用（沒金鑰、連不上、額度用完）時改用的 Apple 方式；nil = 沒有可用的輔助。
+    var helperEngine: Engine? { appleModel ?? (speechZhTW ? .transcriptOnly : nil) }
+
+    /// 飲食：Apple 優先（一個人說話，不需要分人；免金鑰、不上傳），否則 Gemini。
+    func foodEngine(hasGeminiKey: Bool) -> Engine {
+        if let apple = appleModel { return apple }
+        if hasGeminiKey { return .gemini }
+        return speechZhTW ? .transcriptOnly : .none
     }
 
     static let zhTW = Locale(identifier: "zh-TW")
@@ -124,7 +151,10 @@ final class AiStatus: ObservableObject {
     @Published private(set) var capability: AiCapability?
     var hasGeminiKey: Bool { !(Keychain.get(Keychain.geminiKey) ?? "").isEmpty }
 
-    var engine: AiCapability.Engine? { capability?.autoEngine(hasGeminiKey: hasGeminiKey) }
+    /// 錄音報告用的引擎。
+    var engine: AiCapability.Engine? { capability?.recordingEngine(hasGeminiKey: hasGeminiKey) }
+    var helper: AiCapability.Engine? { capability?.helperEngine }
+    var foodEngine: AiCapability.Engine? { capability?.foodEngine(hasGeminiKey: hasGeminiKey) }
 
     func refresh() async {
         capability = await AiCapability.detect()
