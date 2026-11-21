@@ -24,3 +24,7 @@ build/
 *.keystore
 
 .idea/
+
+# --- iOS (Xcode) ---
+xcuserdata/
+*.xcuserstate

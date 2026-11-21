@@ -9,10 +9,18 @@ Android 版是**參考設計**：功能、畫面、提示詞都照它做，程�
 - 先在模擬器驗證（iPhone + 配對的 Watch 模擬器），真機之後再說。
 - **不移植（三星 / Android 專屬）**：存進三星錄音機（`VoiceRecorderExporter`、`SamsungRecordingTag` 的 `saut` 標記）、Galaxy AI、通話錄音自動匯入（`CallRecordingWatcher`、`BootReceiver`）、手錶遙控手機錄音的透明跳板畫面（`RemoteRecordActivity`、全螢幕通知）、Galaxy Watch 支援。
 - **手錶「用手機錄音」**：v1 不做（iOS App 在背景不能啟動麥克風）。之後可考慮：iPhone 先在前台開好 audio session 再由手錶遙控開始 / 停止。
-- **AI 引擎三種模式**（Android `ai/AiConfig.kt` 的「只用 Galaxy AI」改成裝置端 Apple）：
-  1. Gemini 一站式（照 Android）。
-  2. 組合式：語音辨識 + 報告模型可混搭（照 Android）。
-  3. **裝置端（Apple）**：`SFSpeechRecognizer` + `requiresOnDeviceRecognition = true` 產生逐字稿；裝置支援 Apple Foundation Models 時用它寫摘要 / 報告，不支援就只顯示逐字稿。沒有說話者分離、沒有熱量估算（飲食記錄提示改用雲端 AI）。
+- **AI 引擎：預設「自動（依這支 iPhone）」**（2026-11-22 使用者決定：不同 iPhone 用不同的；Apple Intelligence 有開放給第三方 App，不像 Galaxy AI 只能交給三星錄音機）。偵測在 `ios/Dylan/AiCapability.swift`，開 App 時跑，設定頁「AI 引擎」顯示偵測結果與選到的引擎：
+
+  | 這支 iPhone | 語音 → 逐字稿 | 逐字稿 → 報告 |
+  |---|---|---|
+  | iOS 27+、有 Apple Intelligence | Apple 裝置端 `SpeechAnalyzer` / `SpeechTranscriber` | Apple 私有雲運算 `PrivateCloudComputeLanguageModel`（模型較大、免金鑰、有額度 `quotaUsage`），不能用時改裝置端模型 |
+  | iOS 26、有 Apple Intelligence | Apple 裝置端 | 裝置端 `SystemLanguageModel`（一次能讀的字數有限 → 長錄音分段整理再合併） |
+  | iOS 26+、沒有 Apple Intelligence（機型不支援 / 未開啟） | Apple 裝置端 | Gemini（有金鑰時），否則只有逐字稿 |
+  | iOS 17–25 | Gemini 一站式（有金鑰時，聽錄音直接出報告＋分說話者），否則只有逐字稿（`SFSpeechRecognizer`） |
+
+  - 飲食熱量一律用 Gemini（裝置端小模型估熱量不可靠）。Apple 的語音辨識沒有分說話者。
+  - 繁中支援依 Apple 的語言清單即時判斷，不寫死。2026-11-22 在這台 Mac（macOS 27.2）實測：`SpeechTranscriber` / `DictationTranscriber` / `SFSpeechRecognizer` 都支援 zh-TW（也有 zh-HK、zh-CN、yue-CN），zh-TW 可離線辨識；`SystemLanguageModel` 支援 zh-TW。**模擬器沒有語音模型**（`supportedLocales` 是空的），所以模擬器上顯示「不支援」是正常的，要用真機測。
+  - 之後設定頁可手動改選：Gemini 一站式、組合式（語音辨識＋報告模型混搭，照 Android）、Apple 裝置端。
 
 ## v1 範圍 / 里程碑
 1. 手錶錄音 → `WatchConnectivity` 傳檔（分段、斷線補傳）→ 手機接成一筆錄音存檔。

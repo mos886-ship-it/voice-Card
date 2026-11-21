@@ -215,3 +215,28 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 - **多家 AI 引擎（2026-11-19）**：設定頁「AI 引擎」三種模式（`ai/AiConfig.kt`）：Gemini 一站式／組合式（語音辨識＋報告模型，可混搭）／只用 Galaxy AI。語音辨識（`ai/Stt.kt`）：①阿里百煉 Fun-ASR（getPolicy → 上傳 OSS 臨時空間 oss:// → 非同步任務 diarization_enabled → 查詢 → 下載結果 JSON；區域 intl 新加坡 / cn 北京，金鑰不通用；模型預設 fun-asr，可改）②科大訊飛錄音文件轉寫（raasr.xfyun.cn/v2/api upload＋getResult，signa = Base64(HmacSHA1(secret, MD5(appId+ts)))，roleType=1）③OpenAI（gpt-4o-transcribe-diarize、diarized_json、chunking_strategy=auto，25MB 上限 → 每段 85 分）。報告模型（`ai/Llm.kt`）：OpenAI 相容 chat/completions 一套搞定 通義千問（dashscope(-intl)/compatible-mode/v1，qwen-plus）、訊飛星火（spark-api-open.xf-yun.com/v1，Bearer APIPassword，4.0Ultra）、Meta Llama（api.llama.com/compat/v1，端點可改）、OpenAI GPT（gpt-5-mini）；Claude 走官方 Java SDK（`ReportGenerator.chat`）。模型名稱都可在設定改。流程（`ai/Pipeline.kt`）：依服務上限切段（Fun-ASR 110 分、OpenAI 85 分、訊飛 4.5 小時）→ 進度與排隊中的任務編號存 `stt_state.json`（WorkManager 10 分鐘上限，下次接著做；重新產生時同家同模型沿用逐字稿）→ 逐字稿「[mm:ss] 說話者A：…」（每段代號重編並提示 AI 合併）→ 報告（`GeminiReportGenerator.TEXT_REPORT_PROMPT`，跟 Gemini 同章節；超過模型字數上限就先分段筆記再合併）。飲食記錄也支援（`FoodLog.TEXT_PROMPT`）。Meeting.aiModel 存「語音辨識模型|報告模型」，報告 AI 欄位顯示兩段。單元測試 `AiProvidersTest`（依官方文件範例格式解析）；測試加 `org.json:json`。尚未用真實金鑰實測任何新服務商（需使用者自行申請金鑰）；訊飛 getResult 文件寫 GET/POST 不一致，程式先 POST、405 再 GET。
 - **手機 UI 檢查修正（2026-11-21，封面螢幕 904×2316）**：AI 引擎選項改 FlowRow 換行（原本橫捲，第三個選項看不到）；模型欄標籤改「模型（留空用預設）」＋灰色預設值提示；Gemini / Claude 金鑰打了就存；報告表格只有「無」時顯示一行淡色「無」不再是空卡片；今天錄音時長不到 1 分鐘顯示秒（21s）；熱量格改「0/2000」＋「大卡」、StatTile 標籤一行、長數字縮小字；清單日期今年省略年份（`shortWhen`）；飲食清單營養素不在數字中間斷行。手錶也檢查過：錄音頁、報告書（清單、日期分組、搜尋輸入）、明細頁都正常；報告書類別膠囊縮小，「飲食」不再被圓形螢幕切掉。
 - **AI 處理步驟視覺化＋中斷（2026-11-21）**：Meeting 加 `steps`、`step`、`stepDetail`、`stepStartedAt`、`processStartedAt`、`processEndedAt`。Worker 開始時 `plan()` 依模式排出步驟：Gemini 短錄音「接收錄音→(存入錄音機)→上傳音檔→AI 聆聽整理」、Gemini 長錄音「…→分段分析→整合報告」、組合式「…→語音辨識→報告整理」、飲食「接收錄音→上傳音檔/語音辨識→估算熱量」；各步 `stepTo()`、完成 `finishSteps()`。Gemini `generate(onListening=)` 在上傳完成後回呼。詳情頁 `ProcessSteps`（ui/ProcessSteps.kt）：完成打勾、進行中閃爍＋這步秒數＋說明、失敗打叉、中斷黃色停止方塊；標題列總經過時間；清單狀態膠囊顯示目前步驟名；基本資料加「耗時」。「中斷處理」按鈕：`ProcessMeetingWorker.cancel()` 取消 unique work、標 FAILED＋error = `CANCELED`（「已手動中斷處理」），顯示「已中斷」、按「重試」接著做；worker 的 catch 遇到 isStopped 不覆寫狀態。實機驗證：步驟即時更新、中斷後維持已中斷、失敗卡顯示「「AI 聆聽整理」這一步失敗」。完成狀態與耗時列因當時 Gemini 連線逾時未驗證。
+
+## iOS 版（iPhone + Apple Watch，2026-11-22，Mac mini）
+
+計畫與 Android 對照見 `交接/IOS_PORT.md`。程式在 `ios/`（Xcode 27.2，iOS 17+ / watchOS 10+）：`Dylan`（iPhone）、`DylanWatch`（手錶）、`Shared`（協議、配色、logo）。用 Xcode 開 `ios/Dylan.xcodeproj`：跑 iPhone 選 scheme **Dylan**，跑手錶選 **DylanWatch**（選錯 scheme，另一種裝置會顯示「平台不符」）。
+
+| 項目 | 狀態 |
+|---|---|
+| 里程碑 1：手錶錄音（16kHz AAC，每 5 分鐘一段）→ 手機收齊接成 audio.m4a | ✅ 模擬器 |
+| 手錶等手機「存好」的確認才刪檔（`/wristai/seg/ack`）；沒確認會重送 | ✅ 模擬器 |
+| 手錶被打斷 / 收音停住自動恢復、熄屏續錄 | 🟡 已寫，要真機驗證 |
+| UI 照 Android：手機四分頁、主頁、錄音清單、詳情（播放器、報告 / 逐字稿）、設定；手錶三鍵正三角＋報告書頁 | ✅ 模擬器 |
+| 外觀：深色 / 淺色 / 水墨 / 自動；手錶跟手機的水墨（applicationContext `/wristai/theme`） | ✅ 模擬器 |
+| AI 自動依 iPhone 選引擎（`AiCapability`）：iOS 27+ Apple 私有雲、iOS 26 Apple 裝置端、其他 Gemini | 偵測 ✅；Apple 引擎還沒做，目前有金鑰一律 Gemini |
+| 里程碑 2：Gemini 報告（提示詞照抄 Android，3.8-flash → 3.5-flash-lite 備援），金鑰存 Keychain | ✅ 模擬器（53 秒兩人對話 → 7 秒出報告，說話者名字正確） |
+| 背景處理：上傳與 generateContent 交給系統背景傳輸（`GeminiJobs`），鎖屏 / App 在背景 / 被系統關掉都會完成 | ✅ 模擬器（鎖屏、殺 App 都測過） |
+| 完整流程：手錶錄音 → 手機（鎖屏、App 沒開）→ 背景 Gemini → 手錶「✓ 報告完成」 | ✅ 模擬器 25 秒 |
+| 真機 | ❌ 還沒有真機 |
+
+注意事項：
+- **模擬器的手錶傳檔是壞的**（Xcode 27.2）：`transferFile`、`transferUserInfo` 會被轉成沒附件的訊息、手機的 wcd 直接丟掉，只有 `sendMessage` 會到。所以模擬器上（`#if targetEnvironment(simulator)`）分段改成切 32KB 用 sendMessage 傳、手機拼回原檔；真機仍用 transferFile。
+- **這版 Xcode 沒有獨立的 Simulator App**，Claude 的模擬器面板也只顯示 iPhone；手錶畫面用 `xcrun simctl io <watch> screenshot` 看，或在 Xcode 用 DylanWatch scheme 執行。
+- **模擬器沒有語音辨識模型**（`SpeechTranscriber.supportedLocales` 是空的），設定頁顯示「繁中語音辨識：不支援」是正常的；Mac 上實測 zh-TW 支援。
+- 測試用開關（只在 Debug）：手錶 `-autoRecordSeconds N` 自動錄 N 秒；手機 `-processId <錄音id>` 啟動就分析；手錶分段長度可用 UserDefaults `segment_seconds` 改短（測完刪掉）。
+- 強制關閉 App（在 App 切換器滑掉）時 iOS 會取消背景傳輸，下次開 App 會自動重新分析。
+- 還沒做：手錶報告書清單 / 明細、長錄音分段分析（目前太長只會提示逐字稿被截斷）、GPS、搜尋、飲食、組合式引擎、Apple 引擎、處理步驟視覺化、說話者改名。

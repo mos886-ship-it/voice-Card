@@ -1,0 +1,233 @@
+import SwiftUI
+
+/// 「設定」分頁（照 Android `ui/SettingsScreen.kt` 的結構）：最上面系統狀態卡，沒有返回鍵。
+/// AI 引擎、錄音地點、外觀、飲食目標等設定在之後的里程碑加入。
+struct SettingsView: View {
+    @EnvironmentObject private var link: PhoneLink
+    @EnvironmentObject private var theme: ThemeStore
+    @ObservedObject private var ai = AiStatus.shared
+
+    private var themeNote: String {
+        switch theme.mode {
+        case .dark: return "深空藍底。手錶也是深色（OLED 省電）。"
+        case .light: return "白底，戶外 / 白天比較好讀。手錶維持深色。"
+        case .ink: return "宣紙底、墨黑字、朱紅點綴，跟 logo 同一套。手錶也會換成水墨。"
+        case .auto: return "跟著 iPhone 的深色 / 淺色模式。手錶維持深色。"
+        }
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                Text("設定").font(.headlineSmall).foregroundStyle(Brand.text)
+
+                // ---------- 系統狀態 ----------
+                GlassCard(highlight: true) {
+                    Text("系統狀態").font(.labelSmall).tracking(1.2).foregroundStyle(Brand.textMuted)
+                    StatusRow(label: "AI 報告引擎", value: ai.engine?.title ?? "偵測中…",
+                              detail: ai.engine?.detail ?? "",
+                              color: (ai.engine?.ready ?? false) ? Brand.success : Brand.warning)
+                        .padding(.top, 12)
+                    DividerLine().padding(.vertical, 12)
+                    StatusRow(label: "智慧手錶", value: watchValue, detail: watchDetail, color: watchColor)
+                }
+
+                SectionLabel(text: "AI 引擎")
+                GlassCard {
+                    Text("自動（依這支 iPhone）").font(.titleMedium).foregroundStyle(Brand.text)
+                    Text("新的 iPhone 用 Apple 內建的 AI（免費、不需金鑰）；舊的 iPhone 用 Google Gemini（需要金鑰）。")
+                        .font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 4)
+                    if let c = ai.capability {
+                        VStack(spacing: 8) {
+                            CapRow(name: "系統", value: c.osVersion, ok: true)
+                            CapRow(name: "Apple Intelligence", value: c.onDeviceModel.label, ok: c.onDeviceModel == .available)
+                            CapRow(name: "繁中語音辨識（裝置端）", value: c.speechZhTW ? "支援" : "不支援", ok: c.speechZhTW)
+                            CapRow(name: "繁中 Apple 模型", value: c.modelZhTW ? "支援" : "不支援", ok: c.modelZhTW)
+                            CapRow(name: "Apple 私有雲運算", value: c.pcc.label, ok: c.pcc == .available)
+                        }
+                        .padding(.top, 12)
+                        DividerLine().padding(.vertical, 12)
+                        Text("這支 iPhone 會用：").font(.labelMedium).foregroundStyle(Brand.textMuted)
+                        Text(ai.engine?.title ?? "").font(.titleSmall).foregroundStyle(Brand.text).padding(.top, 2)
+                        Text("飲食熱量一律用 Gemini。Apple 引擎還在開發中：目前有 Gemini 金鑰時一律用 Gemini。")
+                            .font(.bodySmall).foregroundStyle(Brand.textFaint).padding(.top, 6)
+                    } else {
+                        ProgressView().padding(.top, 12)
+                    }
+                }
+                SectionLabel(text: "Gemini API Key")
+                GeminiKeyCard { Task { await ai.refresh() } }
+                SectionLabel(text: "外觀")
+                GlassCard {
+                    HStack(spacing: 8) {
+                        ForEach(ThemeMode.allCases) { m in
+                            ThemeChip(mode: m, selected: theme.mode == m) { theme.mode = m }
+                        }
+                    }
+                    Text(themeNote).font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 10)
+                }
+                SectionLabel(text: "隱私")
+                placeholder("錄音存在這支 iPhone 與你的 Apple Watch。使用 Gemini 時，錄音會上傳到 Google 分析，分析完立刻刪除上傳的檔案；免費方案的內容可能被 Google 用來改進產品。金鑰只存在這支 iPhone 的鑰匙圈。")
+
+                Text("大D \(version)").font(.bodySmall).foregroundStyle(Brand.textFaint)
+                    .frame(maxWidth: .infinity).padding(.top, 8)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+        }
+        .task { await ai.refresh() }
+    }
+
+    private var watchValue: String {
+        switch link.watchState {
+        case .reachable, .connected: return "Apple Watch"
+        case .notInstalled: return "手錶 App 未安裝"
+        case .notPaired: return "沒有配對手錶"
+        case .unsupported: return "未連線"
+        }
+    }
+
+    private var watchDetail: String {
+        switch link.watchState {
+        case .reachable, .connected: return "在手錶按下錄音即可開始"
+        case .notInstalled: return "請在 iPhone 的「Watch」App 安裝大D"
+        default: return "請確認手錶已在「Watch」App 配對"
+        }
+    }
+
+    private var watchColor: Color {
+        switch link.watchState {
+        case .reachable, .connected: return Brand.success
+        case .notInstalled: return Brand.warning
+        default: return Brand.textFaint
+        }
+    }
+
+    private var version: String {
+        (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? ""
+    }
+
+    private func placeholder(_ text: String) -> some View {
+        GlassCard { Text(text).font(.bodySmall).foregroundStyle(Brand.textMuted) }
+    }
+}
+
+/// 外觀選項：選中的用漸層底，其他描邊（同篩選膠囊）；每個選項前面一個色票。
+private struct ThemeChip: View {
+    let mode: ThemeMode
+    let selected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 6) {
+                swatch.frame(width: 28, height: 28).clipShape(Circle())
+                    .overlay(Circle().stroke(Brand.outline, lineWidth: 1))
+                Text(mode.label).font(.labelLarge).foregroundStyle(selected ? Color.white : Brand.textMuted)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(selected ? AnyShapeStyle(Brand.accent) : AnyShapeStyle(Brand.surfaceHigh)))
+            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(selected ? Color.clear : Brand.outline, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+
+    @ViewBuilder private var swatch: some View {
+        switch mode {
+        case .dark: Palette.dark.bg.overlay(Circle().fill(Palette.dark.cyan).frame(width: 10, height: 10))
+        case .light: Palette.light.bg.overlay(Circle().fill(Palette.light.blue).frame(width: 10, height: 10))
+        case .ink: Palette.ink.bg.overlay(Circle().fill(Palette.ink.recording).frame(width: 10, height: 10))
+        case .auto:
+            HStack(spacing: 0) { Palette.light.bg; Palette.dark.bg }
+        }
+    }
+}
+
+/// Gemini 金鑰：使用者自己貼上，存 Keychain。畫面上只顯示末 4 碼。
+private struct GeminiKeyCard: View {
+    let onChange: () -> Void
+    @State private var saved = Keychain.get(Keychain.geminiKey) ?? ""
+    @State private var input = ""
+    @State private var editing = false
+
+    var body: some View {
+        GlassCard {
+            if !saved.isEmpty && !editing {
+                HStack {
+                    Image(systemName: "key.fill").foregroundStyle(Brand.success)
+                    Text("已設定（••••\(String(saved.suffix(4)))）").font(.titleSmall).foregroundStyle(Brand.text)
+                    Spacer()
+                    Button("更換") { input = ""; editing = true }.font(.labelLarge).foregroundStyle(Brand.cyan)
+                    Button("刪除") {
+                        Keychain.set("", for: Keychain.geminiKey)
+                        saved = ""
+                        onChange()
+                    }
+                    .font(.labelLarge).foregroundStyle(Brand.error).padding(.leading, 8)
+                }
+            } else {
+                Text("到 Google AI Studio 免費申請金鑰（不用信用卡），複製後貼在這裡。").font(.bodySmall).foregroundStyle(Brand.textMuted)
+                Link("aistudio.google.com/apikey", destination: URL(string: "https://aistudio.google.com/apikey")!)
+                    .font(.labelLarge).foregroundStyle(Brand.cyan).padding(.top, 4)
+                SecureField("", text: $input, prompt: Text("貼上 Gemini API Key").foregroundStyle(Brand.textFaint))
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .foregroundStyle(Brand.text)
+                    .padding(12)
+                    .background(RoundedRectangle(cornerRadius: 12).fill(Brand.surfaceHigh))
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Brand.outline, lineWidth: 1))
+                    .padding(.top, 10)
+                HStack(spacing: 10) {
+                    GradientButton(text: "儲存", enabled: !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) {
+                        let k = input.trimmingCharacters(in: .whitespacesAndNewlines)
+                        Keychain.set(k, for: Keychain.geminiKey)
+                        saved = k
+                        input = ""
+                        editing = false
+                        onChange()
+                    }
+                    if editing { GhostButton(text: "取消") { editing = false; input = "" } }
+                }
+                .padding(.top, 10)
+            }
+        }
+    }
+}
+
+/// AI 能力一列：名稱 ＋ 狀態（可用綠色、不可用灰色）。
+private struct CapRow: View {
+    let name: String
+    let value: String
+    let ok: Bool
+    var body: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(name).font(.bodySmall).foregroundStyle(Brand.textMuted)
+            Spacer(minLength: 8)
+            Image(systemName: ok ? "checkmark.circle.fill" : "minus.circle")
+                .font(.system(size: 12)).foregroundStyle(ok ? Brand.success : Brand.textFaint)
+            Text(value).font(.labelMedium).foregroundStyle(ok ? Brand.text : Brand.textFaint)
+                .multilineTextAlignment(.trailing)
+        }
+    }
+}
+
+private struct StatusRow: View {
+    let label: String
+    let value: String
+    let detail: String
+    let color: Color
+    var body: some View {
+        HStack(spacing: 12) {
+            Circle().fill(color).frame(width: 10, height: 10)
+            VStack(alignment: .leading, spacing: 0) {
+                Text(label).font(.labelMedium).foregroundStyle(Brand.textMuted)
+                Text(value).font(.titleMedium).foregroundStyle(Brand.text)
+                Text(detail).font(.bodySmall).foregroundStyle(Brand.textFaint)
+            }
+        }
+    }
+}
