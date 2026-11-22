@@ -110,7 +110,7 @@ struct DetailView: View {
 
                         // ---------- 這次為什麼用 Apple ----------
                         if let note = m.engineNote, m.status == .done || m.status == .summarizing {
-                            Label(note, systemImage: "apple.logo")
+                            Label(note, systemImage: note.contains("Gemini") ? "arrow.triangle.branch" : "apple.logo")
                                 .font(.bodySmall).foregroundStyle(Brand.textMuted)
                                 .padding(12).frame(maxWidth: .infinity, alignment: .leading)
                                 .background(RoundedRectangle(cornerRadius: 14).fill(Brand.surfaceHigh))
@@ -160,6 +160,7 @@ struct DetailView: View {
         switch step {
         case "AI 聆聽整理中": return "Gemini 正在聆聽錄音，整理成報告與逐字稿。"
         case "上傳錄音中": return "正在把錄音上傳給 Gemini。"
+        case "傳給這台 Mac 處理中": return "錄音已傳給你的 Mac，正在辨識說話者並整理報告（約錄音長度的一半到一倍時間）。"
         case "Apple 語音辨識中": return "Apple 正在手機上把錄音轉成文字（不上傳）。"
         case "Apple 整理中": return "Apple 正在整理重點。"
         default: return "處理中…"

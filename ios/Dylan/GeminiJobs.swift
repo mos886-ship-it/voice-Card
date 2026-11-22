@@ -16,9 +16,10 @@ import UIKit
 final class GeminiJobs: NSObject, URLSessionDataDelegate {
     static let shared = GeminiJobs()
     static let sessionID = "com.example.dylan.gemini"
+    static let localSessionID = "com.example.dylan.local"
 
     struct Job: Codable {
-        enum Stage: String, Codable { case upload, generate }
+        enum Stage: String, Codable { case upload, generate, local }   // local = 傳給自己的 Mac
         var meetingId: String
         var stage: Stage
         var model: Int = 0          // GeminiClient.models 的索引
@@ -39,19 +40,29 @@ final class GeminiJobs: NSObject, URLSessionDataDelegate {
         return URLSession(configuration: c, delegate: self, delegateQueue: nil)
     }()
 
+    /// 傳給自己的 Mac 用的背景 session：總時限 1 小時（Mac 不見了不會卡 3 小時）。
+    private lazy var localSession: URLSession = {
+        let c = URLSessionConfiguration.background(withIdentifier: Self.localSessionID)
+        c.sessionSendsLaunchEvents = true
+        c.isDiscretionary = false
+        c.timeoutIntervalForRequest = 1800      // Mac 處理長錄音時，回應前可能很久沒資料
+        c.timeoutIntervalForResource = 3600
+        return URLSession(configuration: c, delegate: self, delegateQueue: nil)
+    }()
+
     private var buffers: [Int: Data] = [:]
     /// 正在處理系統交回結果的錄音（處理期間 allTasks 裡看不到，要另外記）。
     private var active: Set<String> = []
     private let lock = NSLock()
 
     /// App 啟動 / 被叫醒時呼叫：重建背景 session，系統才會把還沒交的結果交回來。
-    func activate() { _ = session }
+    func activate() { _ = session; _ = localSession }
 
     /// 這筆錄音有沒有正在跑的系統任務（App 重開時判斷「分析中」是不是卡住了）。
     func hasTask(for meetingId: String) async -> Bool {
         let busy = lock.withLock { active.contains(meetingId) }
         if busy { return true }
-        let tasks = await session.allTasks
+        let tasks = await session.allTasks + localSession.allTasks
         return tasks.contains { Self.job(of: $0)?.meetingId == meetingId }
     }
 
@@ -70,6 +81,17 @@ final class GeminiJobs: NSObject, URLSessionDataDelegate {
         task.taskDescription = Self.encode(Job(meetingId: meetingId, stage: .upload, food: meetingId.hasPrefix(Meeting.foodPrefix)))
         task.resume()
         NSLog("[GeminiJobs] \(meetingId) upload handed to system")
+    }
+
+    /// 自架：錄音直接傳給這台 Mac 的服務，Mac 處理完回傳 Gemini 格式的結果（交給系統，App 暗了也會完成）。
+    func startLocal(meetingId: String, kind: String, recordedAt: String, durationSec: Double) throws {
+        guard let r = LocalAI.processRequest(kind: kind, recordedAt: recordedAt, durationSec: durationSec) else {
+            throw GeminiClient.Failure(message: "這台 Mac 的位址格式不對")
+        }
+        let task = localSession.uploadTask(with: r, fromFile: MeetingStore.audioURL(meetingId))
+        task.taskDescription = Self.encode(Job(meetingId: meetingId, stage: .local))
+        task.resume()
+        NSLog("[GeminiJobs] \(meetingId) handed to local Mac")
     }
 
     /// ② 上傳好了：等檔案 ACTIVE，再把 generateContent 交給系統（回應可能很久）。
@@ -119,6 +141,17 @@ final class GeminiJobs: NSObject, URLSessionDataDelegate {
                 await MeetingStore.shared.restartAI(job.meetingId)
                 return
             }
+            if job.stage == .local {
+                // 自架：成功就照 Gemini 的格式解析；失敗交給 MeetingStore 改用 Gemini / Apple
+                if error == nil, status == 200, let (text, model) = LocalAI.parse(data) {
+                    NSLog("[GeminiJobs] \(job.meetingId) local Mac replied \(text.count) chars")
+                    await MeetingStore.shared.geminiReplied(job.meetingId, text: text, model: model, truncated: false)
+                } else {
+                    let msg = error.map { "連不到這台 Mac（\($0.localizedDescription)）" } ?? LocalAI.error(data, status: status)
+                    await MeetingStore.shared.localFailed(job.meetingId, message: msg)
+                }
+                return
+            }
             do {
                 if let error {
                     // 斷線 / 逾時：當成太忙，換下一個模型（上傳步驟就直接失敗）
@@ -141,6 +174,8 @@ final class GeminiJobs: NSObject, URLSessionDataDelegate {
                     await self.cleanup(job, key: key)
                     await MeetingStore.shared.geminiReplied(job.meetingId, text: text,
                                                             model: GeminiClient.models[job.model], truncated: truncated)
+                case .local:
+                    break   // 上面已經處理
                 }
             } catch let e as GeminiClient.Failure {
                 // generate 步驟：額度用完 / 下架 / 太忙 / 逾時 → 換下一個模型（照 Android）
@@ -207,7 +242,7 @@ final class GeminiJobs: NSObject, URLSessionDataDelegate {
 final class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, handleEventsForBackgroundURLSession identifier: String,
                      completionHandler: @escaping () -> Void) {
-        guard identifier == GeminiJobs.sessionID else { completionHandler(); return }
+        guard identifier == GeminiJobs.sessionID || identifier == GeminiJobs.localSessionID else { completionHandler(); return }
         GeminiJobs.shared.backgroundCompletion = completionHandler
         GeminiJobs.shared.activate()
     }

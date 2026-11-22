@@ -18,6 +18,10 @@ struct DylanApp: App {
                 #if DEBUG
                 // 測試用：simctl launch <iPhone> com.example.dylan -processId 20261122_000000（背景分析測試）
                 .task {
+                    // 測試用：-localToken "$(讀 ~/dylan-local/config.json)"（模擬器的剪貼簿不能用，存取碼從這裡帶進來）
+                    if let t = UserDefaults.standard.string(forKey: "localToken"), !t.isEmpty {
+                        Keychain.set(t, for: LocalAI.tokenAccount)
+                    }
                     if let id = UserDefaults.standard.string(forKey: "processId") { await MeetingStore.shared.process(id) }
                 }
                 #endif

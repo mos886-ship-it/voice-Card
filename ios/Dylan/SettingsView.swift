@@ -24,8 +24,10 @@ struct SettingsView: View {
                 // ---------- 系統狀態 ----------
                 GlassCard(highlight: true) {
                     Text("系統狀態").font(.labelSmall).tracking(1.2).foregroundStyle(Brand.textMuted)
-                    StatusRow(label: "AI 報告引擎", value: ai.engine?.title ?? "偵測中…",
-                              detail: ai.engine?.detail ?? "",
+                    StatusRow(label: "AI 報告引擎",
+                              value: LocalAI.configured ? LocalAI.modelLabel : (ai.engine?.title ?? "偵測中…"),
+                              detail: LocalAI.configured ? "你自己的 Mac：分說話者、免費、不出你的設備；連不到時改用 " + (MeetingStore.hasGeminiKey ? "Gemini" : "Apple")
+                                                         : (ai.engine?.detail ?? ""),
                               color: (ai.engine?.ready ?? false) ? Brand.success : Brand.warning)
                         .padding(.top, 12)
                     DividerLine().padding(.vertical, 12)
@@ -35,7 +37,7 @@ struct SettingsView: View {
                 SectionLabel(text: "AI 引擎")
                 GlassCard {
                     Text("自動（依這支 iPhone）").font(.titleMedium).foregroundStyle(Brand.text)
-                    Text("錄音報告用 Google Gemini（能分出不同的說話者）。Apple 內建的 AI 不分說話者，用來當輔助，以及整理飲食記錄（免費、不上傳）。")
+                    Text("錄音報告用你的 Mac（有設定時）或 Google Gemini，兩者都能分出不同的說話者。Apple 內建的 AI 不分說話者，用來當輔助，以及整理飲食記錄（免費、不上傳）。")
                         .font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 4)
                     if let c = ai.capability {
                         VStack(spacing: 8) {
@@ -49,7 +51,7 @@ struct SettingsView: View {
                         DividerLine().padding(.vertical, 12)
                         Text("這支 iPhone 會用：").font(.labelMedium).foregroundStyle(Brand.textMuted)
                         VStack(alignment: .leading, spacing: 8) {
-                            UseRow(task: "錄音報告", engine: ai.engine?.title ?? "")
+                            UseRow(task: "錄音報告", engine: LocalAI.configured ? LocalAI.modelLabel + "（連不到時改用 Gemini）" : (ai.engine?.title ?? ""))
                             UseRow(task: "輔助", engine: ai.helper?.title ?? "無（這支 iPhone 沒有 Apple 語音辨識）")
                             UseRow(task: "飲食", engine: ai.foodEngine?.title ?? "")
                         }
@@ -60,6 +62,8 @@ struct SettingsView: View {
                         ProgressView().padding(.top, 12)
                     }
                 }
+                SectionLabel(text: "這台 Mac（自架）")
+                LocalMacCard { Task { await ai.refresh() } }
                 SectionLabel(text: "隱私模式")
                 PrivacyCard()
                 SectionLabel(text: "Gemini API Key")
@@ -74,7 +78,7 @@ struct SettingsView: View {
                     Text(themeNote).font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 10)
                 }
                 SectionLabel(text: "隱私")
-                placeholder("錄音存在這支 iPhone 與你的 Apple Watch。使用 Gemini 時，錄音會上傳到 Google 分析，分析完立刻刪除上傳的檔案；免費方案的內容可能被 Google 用來改進產品。金鑰只存在這支 iPhone 的鑰匙圈。")
+                placeholder("錄音存在這支 iPhone 與你的 Apple Watch。用你自己的 Mac 處理時，錄音只傳到你的 Mac，處理完不保留。使用 Gemini 時，錄音會上傳到 Google 分析，分析完立刻刪除上傳的檔案；免費方案的內容可能被 Google 用來改進產品。金鑰與存取碼只存在這支 iPhone 的鑰匙圈。")
 
                 Text("大D \(version)").font(.bodySmall).foregroundStyle(Brand.textFaint)
                     .frame(maxWidth: .infinity).padding(.top, 8)
@@ -150,6 +154,83 @@ private struct ThemeChip: View {
         case .ink: Palette.ink.bg.overlay(Circle().fill(Palette.ink.recording).frame(width: 10, height: 10))
         case .auto:
             HStack(spacing: 0) { Palette.light.bg; Palette.dark.bg }
+        }
+    }
+}
+
+/// 自架引擎：你自己的 Mac 跑 FunASR（分說話者）＋ Qwen（寫報告）。位址存 UserDefaults，存取碼存 Keychain。
+private struct LocalMacCard: View {
+    let onChange: () -> Void
+    @AppStorage(LocalAI.urlKey) private var url = ""
+    @State private var token = ""
+    @State private var hasToken = !(Keychain.get(LocalAI.tokenAccount) ?? "").isEmpty
+    @State private var result: (ok: Bool, text: String)?
+    @State private var testing = false
+
+    var body: some View {
+        GlassCard {
+            Text("用你自己的 Mac 跑 AI：會分說話者、免費、沒有額度，錄音不出你的設備。Mac 要開著，手機要連得到（同一個 Wi-Fi，或出門用 Tailscale）。")
+                .font(.bodySmall).foregroundStyle(Brand.textMuted)
+            field("位址", text: $url, prompt: LocalAI.defaultURL.isEmpty ? "http://Dylan-Mac-mini.local:8765" : LocalAI.defaultURL)
+                .padding(.top, 10)
+            if hasToken {
+                HStack {
+                    Image(systemName: "key.fill").foregroundStyle(Brand.success)
+                    Text("存取碼已設定").font(.titleSmall).foregroundStyle(Brand.text)
+                    Spacer()
+                    Button("更換") { hasToken = false }.font(.labelLarge).foregroundStyle(Brand.cyan)
+                    Button("刪除") {
+                        Keychain.set("", for: LocalAI.tokenAccount); hasToken = false; result = nil; onChange()
+                    }
+                    .font(.labelLarge).foregroundStyle(Brand.error).padding(.leading, 8)
+                }
+                .padding(.top, 10)
+            } else {
+                HStack(spacing: 8) {
+                    SecureField("", text: $token, prompt: Text("貼上存取碼（Mac 上 ~/dylan-local/config.json 的 token）").foregroundStyle(Brand.textFaint))
+                        .textInputAutocapitalization(.never).autocorrectionDisabled()
+                        .foregroundStyle(Brand.text)
+                        .padding(12)
+                        .background(RoundedRectangle(cornerRadius: 12).fill(Brand.surfaceHigh))
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Brand.outline, lineWidth: 1))
+                    GhostButton(text: "儲存", tint: Brand.cyan) {
+                        let t = token.trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard !t.isEmpty else { return }
+                        Keychain.set(t, for: LocalAI.tokenAccount); token = ""; hasToken = true; onChange()
+                    }
+                }
+                .padding(.top, 10)
+            }
+            GradientButton(text: testing ? "測試中…" : "測試連線", systemImage: "antenna.radiowaves.left.and.right",
+                           enabled: !testing && hasToken) {
+                testing = true
+                Task {
+                    do {
+                        let h = try await LocalAI.health(url: LocalAI.url, token: LocalAI.token)
+                        result = (true, "連線成功：\(h.asr ?? "")、\(h.llm ?? "")" + (h.busy == true ? "（正在處理別的錄音）" : ""))
+                    } catch {
+                        result = (false, error.localizedDescription)
+                    }
+                    testing = false
+                }
+            }
+            .padding(.top, 10)
+            if let result {
+                Label(result.text, systemImage: result.ok ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                    .font(.bodySmall).foregroundStyle(result.ok ? Brand.success : Brand.warning).padding(.top, 8)
+            }
+        }
+    }
+
+    private func field(_ label: String, text: Binding<String>, prompt: String) -> some View {
+        HStack(spacing: 10) {
+            Text(label).font(.labelMedium).foregroundStyle(Brand.textMuted).frame(width: 36, alignment: .leading)
+            TextField("", text: text, prompt: Text(prompt).foregroundStyle(Brand.textFaint))
+                .keyboardType(.URL).textInputAutocapitalization(.never).autocorrectionDisabled()
+                .foregroundStyle(Brand.text)
+                .padding(12)
+                .background(RoundedRectangle(cornerRadius: 12).fill(Brand.surfaceHigh))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Brand.outline, lineWidth: 1))
         }
     }
 }

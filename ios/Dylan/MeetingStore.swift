@@ -159,9 +159,9 @@ final class MeetingStore: ObservableObject {
     static var privacyMode: Bool { UserDefaults.standard.bool(forKey: privacyKey) }
     static var hasGeminiKey: Bool { !(Keychain.get(Keychain.geminiKey) ?? "").isEmpty }
 
-    /// 能不能自動產生報告 / 逐字稿：有 Gemini 金鑰，或這支 iPhone 有 Apple 語音辨識。
+    /// 能不能自動產生報告 / 逐字稿：設定了自架 Mac、有 Gemini 金鑰，或這支 iPhone 有 Apple 語音辨識。
     static func canReport() async -> Bool {
-        if hasGeminiKey && !privacyMode { return true }
+        if (LocalAI.configured || hasGeminiKey) && !privacyMode { return true }
         return await AppleAI.speechAvailable()
     }
 
@@ -171,11 +171,53 @@ final class MeetingStore: ObservableObject {
     /// 產生（或重新產生）報告。
     func process(_ id: String) async {
         guard !processing.contains(id), let m = load(id), FileManager.default.fileExists(atPath: Self.audioURL(id).path) else { return }
-        let useApple = Self.privacyMode || !Self.hasGeminiKey || (m.isFood && AppleAI.availableModel != nil)
-        if useApple {
-            await runApple(id, note: Self.privacyMode ? "隱私模式：只在手機上處理" : nil)
-        } else {
+        // 順序：隱私模式 → Apple；飲食 → Apple（有模型時）；有設定自架 Mac → Mac；有 Gemini 金鑰 → Gemini；都沒有 → Apple
+        if Self.privacyMode {
+            await runApple(id, note: "隱私模式：只在手機上處理")
+        } else if m.isFood && AppleAI.availableModel != nil {
+            await runApple(id, note: nil)
+        } else if LocalAI.configured {
+            await runLocal(id)
+        } else if Self.hasGeminiKey {
             await runGemini(id)
+        } else {
+            await runApple(id, note: nil)
+        }
+    }
+
+    /// 自架：錄音傳給這台 Mac（FunASR＋Qwen），結果回到 geminiReplied（同格式）/ localFailed。
+    private func runLocal(_ id: String) async {
+        guard var m = load(id) else { return }
+        processing.insert(id)
+        defer { processing.remove(id) }
+        begin(&m, step: "傳給這台 Mac 處理中")
+        PhoneLink.shared.sendStatus(id: id, text: "AI 分析中…")
+        // 先花幾秒確認 Mac 連得到：背景傳輸遇到連不到的主機不會失敗，只會一直等
+        do {
+            _ = try await LocalAI.health(url: LocalAI.url, token: LocalAI.token)
+        } catch {
+            await localFailed(id, message: error.localizedDescription)
+            return
+        }
+        if !m.isFood { Task { await self.preview(id) } }   // Mac 在跑的同時，Apple 先出預覽逐字稿
+        do {
+            try GeminiJobs.shared.startLocal(meetingId: id, kind: m.isFood ? "food" : "meeting",
+                                             recordedAt: Fmt.stamp(m.createdAt, "yyyy/MM/dd HH:mm"), durationSec: m.durationSec)
+        } catch {
+            await localFailed(id, message: error.localizedDescription)
+        }
+    }
+
+    /// 這台 Mac 連不到 / 失敗：有 Gemini 金鑰就改用 Gemini，否則 Apple 輔助。
+    func localFailed(_ id: String, message: String) async {
+        guard var m = load(id) else { return }
+        NSLog("[MeetingStore] local Mac failed (\(message)), falling back")
+        if Self.hasGeminiKey {
+            m.engineNote = "這台 Mac 沒有完成（\(message)），改用 Gemini"
+            save(m)
+            await runGemini(id)
+        } else {
+            await geminiFailed(id, message: message)   // 有 Apple 語音就改用 Apple，否則標失敗
         }
     }
 
@@ -322,7 +364,7 @@ final class MeetingStore: ObservableObject {
         // 每次重新產生，說話者代號可能重編 → 名字一律用這次報告的表格
         m.speakerNames = Speakers.names(fromReport: report.markdown)
         m.transcriptPreview = false
-        m.engineNote = nil
+        if !(m.engineNote ?? "").contains("改用 Gemini") { m.engineNote = nil }   // Mac 失敗改用 Gemini 的說明保留
         finish(&m)
         PhoneLink.shared.sendStatus(id: id, text: "報告完成：\(m.title)")
     }

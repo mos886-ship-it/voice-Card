@@ -88,6 +88,7 @@ struct Meeting: Codable, Identifiable, Equatable {
     /// AI 模型代號 → 好讀的名字（照 Android aiModelLabel）：gemini-3.8-flash → Google Gemini 3.8 Flash。
     static func aiModelLabel(_ model: String?) -> String {
         guard let model, !model.isEmpty else { return "未記錄" }
+        if model.hasPrefix("local-") { return LocalAI.modelLabel }
         // Apple：「apple-speech|apple-pcc」= 語音辨識 ＋ 整理
         if model.hasPrefix("apple-") {
             return model.split(separator: "|").map {

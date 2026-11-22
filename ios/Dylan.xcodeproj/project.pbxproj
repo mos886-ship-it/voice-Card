@@ -275,6 +275,8 @@
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Config/Phone-Info.plist";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "大D 要連到你自己的 Mac，用它的 AI 整理錄音。";
 				INFOPLIST_KEY_CFBundleDisplayName = "大D";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -303,6 +305,8 @@
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Config/Phone-Info.plist";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "大D 要連到你自己的 Mac，用它的 AI 整理錄音。";
 				INFOPLIST_KEY_CFBundleDisplayName = "大D";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

@@ -1,0 +1,7 @@
+funasr==1.4.28
+mlx==0.29.3
+mlx-lm==0.29.1
+modelscope==1.37.1
+opencc-python-reimplemented==0.1.7
+torch==2.8.0
+torchaudio==2.8.0
