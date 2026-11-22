@@ -16,7 +16,8 @@ bash local-ai/setup.sh
 ## 端點（埠 8765，都要 `Authorization: Bearer <token>`）
 
 - `GET /v1/health` → `{"ok": true, "asr": ..., "llm": ..., "busy": false}`
-- `POST /v1/process`：body 是錄音檔；標頭 `X-Kind: meeting|food`、`X-Recorded-At`、`X-Duration`（秒）→ `{"text": "<Gemini 格式>", "model": "local-funasr|qwen3-8b"}`
+- `POST /v1/process`：body 是錄音檔；標頭 `X-Kind: meeting|food`、`X-Recorded-At`、`X-Duration`（秒）→ `{"text": "<Gemini 格式>", "model": "local-funasr|qwen3-8b"}`，失敗回 `{"error": "..."}`。
+  處理中每 20 秒先送一個空白保持連線（6 小時的錄音估計要 30 分鐘以上，App 的連線閒置上限是 30 分鐘），所以狀態碼一律 200，成功或失敗看 JSON。
 
 ## 手機怎麼連到
 
@@ -30,6 +31,12 @@ bash local-ai/setup.sh
 - 53 秒兩人對話：辨識 3.6–7.8 秒、報告 34 秒，App 端全程約 45 秒；說話者分得正確。
 - FunASR 用 GPU（mps）反而比較慢（5.9 秒 vs 3.6 秒），所以用 CPU；Qwen 用 MLX 跑在 GPU。
 - 16 GB 記憶體下 8B 是實際上限。小模型不太會修同音錯字（例如「縣義區」沒改成「信義區」）。
+
+## 已知限制
+
+- Python 環境是用 Xcode 附的 Python 3.9 建的（這台 Mac 沒有 Homebrew）；Xcode 大改版後如果服務起不來，重跑 `bash local-ai/setup.sh`。
+- 服務聽所有網路介面（區網才連得到），靠存取碼保護；在公共 Wi-Fi 上可以先停用服務。
+- 8B 小模型偶爾會寫錯數字或不修同音錯字；報告前面的「基本資料」會標示是這台 Mac 產生的。
 
 ## 停用 / 移除
 

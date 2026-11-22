@@ -21,8 +21,16 @@ enum LocalAI {
     }
 
     static var url: String {
-        let v = UserDefaults.standard.string(forKey: urlKey) ?? ""
+        let v = normalize(UserDefaults.standard.string(forKey: urlKey) ?? "")
         return v.isEmpty ? defaultURL : v
+    }
+
+    /// 使用者打的位址整理成「http://主機:埠」：去掉空白與結尾的「/」，沒寫 http:// 就補上。
+    static func normalize(_ raw: String) -> String {
+        var v = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        while v.hasSuffix("/") { v.removeLast() }
+        if !v.isEmpty, !v.lowercased().hasPrefix("http://"), !v.lowercased().hasPrefix("https://") { v = "http://" + v }
+        return v
     }
 
     static var token: String { Keychain.get(tokenAccount) ?? "" }
@@ -39,7 +47,7 @@ enum LocalAI {
 
     /// 測試連線（設定頁用）：回傳 Mac 上的模型，或丟出看得懂的錯誤。
     static func health(url: String, token: String) async throws -> Health {
-        guard let u = URL(string: url.trimmingCharacters(in: .whitespaces) + "/v1/health") else {
+        guard let u = URL(string: normalize(url) + "/v1/health") else {
             throw GeminiClient.Failure(message: "位址格式不對，例如 http://Dylan-Mac-mini.local:8765")
         }
         var r = URLRequest(url: u, timeoutInterval: 5)

@@ -242,8 +242,8 @@ private struct PrivacyCard: View {
         GlassCard {
             Toggle(isOn: $on) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("只在手機上處理").font(.titleMedium).foregroundStyle(Brand.text)
-                    Text("開啟後錄音不上傳 Gemini，一律用 Apple 在手機上轉文字與整理（不分說話者，需要 iOS 26 以上）。適合醫療、法律、人事等敏感談話。")
+                    Text("不上傳到雲端").font(.titleMedium).foregroundStyle(Brand.text)
+                    Text("開啟後錄音不送 Gemini：有設定自己的 Mac 就用 Mac（分說話者），否則用 Apple 在手機上轉文字與整理（不分說話者，需要 iOS 26 以上）。適合醫療、法律、人事等敏感談話。")
                         .font(.bodySmall).foregroundStyle(Brand.textMuted)
                 }
             }

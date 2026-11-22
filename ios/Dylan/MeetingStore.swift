@@ -161,7 +161,7 @@ final class MeetingStore: ObservableObject {
 
     /// 能不能自動產生報告 / 逐字稿：設定了自架 Mac、有 Gemini 金鑰，或這支 iPhone 有 Apple 語音辨識。
     static func canReport() async -> Bool {
-        if (LocalAI.configured || hasGeminiKey) && !privacyMode { return true }
+        if LocalAI.configured || (hasGeminiKey && !privacyMode) { return true }
         return await AppleAI.speechAvailable()
     }
 
@@ -171,13 +171,14 @@ final class MeetingStore: ObservableObject {
     /// 產生（或重新產生）報告。
     func process(_ id: String) async {
         guard !processing.contains(id), let m = load(id), FileManager.default.fileExists(atPath: Self.audioURL(id).path) else { return }
-        // 順序：隱私模式 → Apple；飲食 → Apple（有模型時）；有設定自架 Mac → Mac；有 Gemini 金鑰 → Gemini；都沒有 → Apple
-        if Self.privacyMode {
-            await runApple(id, note: "隱私模式：只在手機上處理")
-        } else if m.isFood && AppleAI.availableModel != nil {
+        // 順序：飲食 → Apple（有模型時）；有設定自架 Mac → Mac；隱私模式 → Apple（不送第三方雲端）；
+        //       有 Gemini 金鑰 → Gemini；都沒有 → Apple。隱私模式下自己的 Mac 可以用（錄音不出你的設備），Gemini 不行。
+        if m.isFood && AppleAI.availableModel != nil {
             await runApple(id, note: nil)
         } else if LocalAI.configured {
             await runLocal(id)
+        } else if Self.privacyMode {
+            await runApple(id, note: "隱私模式：不上傳到雲端，在手機上處理")
         } else if Self.hasGeminiKey {
             await runGemini(id)
         } else {
@@ -212,12 +213,13 @@ final class MeetingStore: ObservableObject {
     func localFailed(_ id: String, message: String) async {
         guard var m = load(id) else { return }
         NSLog("[MeetingStore] local Mac failed (\(message)), falling back")
-        if Self.hasGeminiKey {
+        if Self.hasGeminiKey && !Self.privacyMode {
             m.engineNote = "這台 Mac 沒有完成（\(message)），改用 Gemini"
             save(m)
             await runGemini(id)
         } else {
-            await geminiFailed(id, message: message)   // 有 Apple 語音就改用 Apple，否則標失敗
+            // 隱私模式或沒有金鑰：有 Apple 語音就改用 Apple，否則標失敗（隱私模式絕不送 Gemini）
+            await geminiFailed(id, message: message)
         }
     }
 

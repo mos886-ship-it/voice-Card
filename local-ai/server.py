@@ -6,7 +6,8 @@ App 的報告解析、說話者名字、飲食 NUTRITION 解析都直接沿用�
 端點（都要 Authorization: Bearer <存取碼>，存取碼在 config.json）：
   GET  /v1/health   → {"ok": true, "asr": ..., "llm": ..., "busy": false}
   POST /v1/process  → body 是錄音檔（m4a / wav…）；標頭 X-Kind: meeting|food、X-Recorded-At、X-Duration（秒）
-                     回 {"text": "<Gemini 格式>", "model": "local-funasr|qwen3-8b"}
+                     回 {"text": "<Gemini 格式>", "model": "local-funasr|qwen3-8b"}，失敗回 {"error": "..."}
+                     （處理中每 20 秒先送一個空白保持連線，所以狀態碼一律 200，結果看 JSON）
 
 一次只處理一筆（同一顆 GPU），其他請求排隊。啟動：venv/bin/python server.py（launchd 會在登入時自動啟動）。
 """
@@ -35,6 +36,19 @@ def log(msg):
     print(time.strftime("%H:%M:%S"), msg, flush=True)
 
 
+# 紀錄檔超過 5 MB 就只留最後 1 MB（launchd 會一直往同一個檔寫）
+_LOG = os.path.join(HERE, "server.log")
+try:
+    if os.path.getsize(_LOG) > 5_000_000:
+        with open(_LOG, "rb") as f:
+            f.seek(-1_000_000, 2)
+            tail = f.read()
+        with open(_LOG, "wb") as f:
+            f.write(tail)
+except OSError:
+    pass
+
+
 def load_config():
     if os.path.exists(CONFIG):
         with open(CONFIG, encoding="utf-8") as f:
@@ -60,6 +74,12 @@ LLM, TOK = load(LLM_NAME)
 S2TW = opencc.OpenCC("s2twp")
 GPU = threading.Lock()
 BUSY = {"n": 0}
+BUSY_LOCK = threading.Lock()
+
+
+def busy(delta):
+    with BUSY_LOCK:
+        BUSY["n"] += delta
 log("models ready")
 
 # ---------------- 提示詞（照 Android；逐字稿版） ----------------
@@ -238,7 +258,9 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(404, {"error": "not found"})
         if not self._authorized():
             return
-        self._json(200, {"ok": True, "asr": "FunASR paraformer-zh + cam++", "llm": LLM_NAME, "busy": BUSY["n"] > 0})
+        with BUSY_LOCK:
+            n = BUSY["n"]
+        self._json(200, {"ok": True, "asr": "FunASR paraformer-zh + cam++", "llm": LLM_NAME, "busy": n > 0})
 
     def do_POST(self):
         if self.path != "/v1/process":
@@ -262,16 +284,40 @@ class Handler(BaseHTTPRequestHandler):
                     f.write(buf)
                     left -= len(buf)
             log(f"job {kind} {length // 1024} KB, {duration:.0f}s")
-            BUSY["n"] += 1
+            # 長錄音在這台 Mac 上可能要半小時以上：先回 200，處理期間每 20 秒送一個空白（JSON 前面的空白是合法的），
+            # App 的連線才不會因為太久沒資料而逾時；結果（或錯誤）最後用 JSON 送出。
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Connection", "close")
+            self.end_headers()
+            done = threading.Event()
+
+            def heartbeat():
+                while not done.wait(20):
+                    try:
+                        self.wfile.write(b" ")
+                        self.wfile.flush()
+                    except OSError:
+                        return   # App 斷線了；處理照常做完
+
+            hb = threading.Thread(target=heartbeat, daemon=True)
+            hb.start()
+            busy(1)
             try:
                 with GPU:   # 一次一筆
-                    text = process(path, kind, recorded_at, duration)
-                self._json(200, {"text": text, "model": MODEL_TAG})
+                    result = {"text": process(path, kind, recorded_at, duration), "model": MODEL_TAG}
             except Exception as e:  # noqa: BLE001
                 log(f"  failed: {e}")
-                self._json(500, {"error": f"這台 Mac 處理失敗：{e}"})
+                result = {"error": f"這台 Mac 處理失敗：{e}"}
             finally:
-                BUSY["n"] -= 1
+                busy(-1)
+                done.set()
+                hb.join()
+            try:
+                self.wfile.write(json.dumps(result, ensure_ascii=False).encode("utf-8"))
+                self.wfile.flush()
+            except OSError:
+                log("  client gone before result was sent")
 
     def log_message(self, fmt, *args):
         log("http " + fmt % args)

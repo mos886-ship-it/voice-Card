@@ -96,7 +96,8 @@ struct DetailView: View {
                         if m.status == .received {
                             GlassCard(highlight: true) {
                                 Text("還沒有 AI 報告").font(.titleMedium).foregroundStyle(Brand.text)
-                                Text(MeetingStore.hasGeminiKey && !MeetingStore.privacyMode
+                                Text(LocalAI.configured ? "按下面的按鈕，用你的 Mac 整理出重點、待辦與分說話者的逐字稿。"
+                                     : MeetingStore.hasGeminiKey && !MeetingStore.privacyMode
                                      ? "按下面的按鈕，用 Gemini 整理出重點、待辦與分說話者的逐字稿。"
                                      : "沒有 Gemini 金鑰或開著隱私模式：會用 Apple 在手機上產生逐字稿與重點（不分說話者，需要 iOS 26 以上）。")
                                     .font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 4)
