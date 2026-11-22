@@ -139,7 +139,7 @@ private struct SearchField: View {
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: "magnifyingglass").foregroundStyle(Brand.textMuted)
-            TextField("", text: $text, prompt: Text("搜尋：關鍵字、日期（空白分隔）").foregroundStyle(Brand.textFaint))
+            TextField("", text: $text, prompt: Text("搜尋：關鍵字、日期（空白分隔）").foregroundColor(Brand.textFaint))
                 .foregroundStyle(Brand.text)
                 .tint(Brand.cyan)
                 .submitLabel(.search)

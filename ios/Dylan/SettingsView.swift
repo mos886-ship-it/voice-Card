@@ -191,7 +191,7 @@ private struct LocalMacCard: View {
                 .padding(.top, 10)
             } else {
                 HStack(spacing: 8) {
-                    SecureField("", text: $token, prompt: Text("貼上存取碼（Mac 上 ~/dylan-local/config.json 的 token）").foregroundStyle(Brand.textFaint))
+                    SecureField("", text: $token, prompt: Text("貼上存取碼（Mac 上 ~/dylan-local/config.json 的 token）").foregroundColor(Brand.textFaint))
                         .textInputAutocapitalization(.never).autocorrectionDisabled()
                         .foregroundStyle(Brand.text)
                         .padding(12)
@@ -309,7 +309,7 @@ private struct LocalMacCard: View {
     private func field(_ label: String, text: Binding<String>, prompt: String) -> some View {
         HStack(spacing: 10) {
             Text(label).font(.labelMedium).foregroundStyle(Brand.textMuted).frame(width: 36, alignment: .leading)
-            TextField("", text: text, prompt: Text(prompt).foregroundStyle(Brand.textFaint))
+            TextField("", text: text, prompt: Text(prompt).foregroundColor(Brand.textFaint))
                 .keyboardType(.URL).textInputAutocapitalization(.never).autocorrectionDisabled()
                 .foregroundStyle(Brand.text)
                 .padding(12)
@@ -362,7 +362,7 @@ private struct GeminiKeyCard: View {
                 Text("到 Google AI Studio 免費申請金鑰（不用信用卡），複製後貼在這裡。").font(.bodySmall).foregroundStyle(Brand.textMuted)
                 Link("aistudio.google.com/apikey", destination: URL(string: "https://aistudio.google.com/apikey")!)
                     .font(.labelLarge).foregroundStyle(Brand.cyan).padding(.top, 4)
-                SecureField("", text: $input, prompt: Text("貼上 Gemini API Key").foregroundStyle(Brand.textFaint))
+                SecureField("", text: $input, prompt: Text("貼上 Gemini API Key").foregroundColor(Brand.textFaint))
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .foregroundStyle(Brand.text)
