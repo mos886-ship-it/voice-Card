@@ -1,6 +1,17 @@
 # 大D 自架 AI 服務（使用者自己的 Mac）
 
-錄音 → **FunASR**（繁中辨識＋分說話者，CPU）→ **Qwen3-8B 4-bit**（MLX，Apple 晶片 GPU）寫報告。
+錄音 → **語音辨識＋分說話者** → **語言模型**寫報告。模型可以在 App「設定 → 這台 Mac（自架）」切換（實測時比較用）：
+
+| | 選項 | 說明 |
+|---|---|---|
+| 語音辨識 | `funasr`（預設） | FunASR paraformer-zh＋cam++，CPU。國語最快（53 秒對話約 4–9 秒） |
+| | `breeze` | Breeze-ASR-26（聯發科／陽明交大，2026，Apache-2.0，台語＋國語，MLX 8bit `doggy8088/Breeze-ASR-26-MLX-8bit`）。輸出國語漢字；說話者用 FunASR cam++ 依時間對到每個字 |
+| 報告模型 | `mlx:mlx-community/Qwen3-8B-4bit`（預設） | MLX，約 5 GB，53 秒對話報告約 27–57 秒 |
+| | `gguf:Speech-AI-Research-Center/SARC-Taigi-LLM-12b-GGUF/SARC-Taigi-12b-Q4_K_M.gguf` | SARC 台語 12B（2026，Gemma 授權），llama.cpp＋Metal，7.3 GB，context 8k。寫法偏台語漢字（佮、矣），會自己補沒說過的內容，要實測再決定 |
+
+- 選擇存在 `~/dylan-local/config.json` 的 `asr`、`llm`；換模型時先放掉舊的語言模型（16 GB 放不下兩個），第一次選到時自動下載。
+- 自己加模型：在 `config.json` 加 `"extra_llm": {"mlx:<HF repo>": {"label": "顯示名稱", "tag": "短代號"}}`（或 `gguf:<repo>/<檔名>`），重啟服務後 App 選單就會出現。
+- 回傳的 `model` 代號是 `local-<辨識>|<報告>`（例如 `local-breeze|qwen3-8b`），每筆記錄都看得到是哪組模型做的。
 回傳跟 Gemini 一樣的格式，App 直接沿用 Gemini 的解析。App 端程式在 `ios/Dylan/LocalAI.swift`。
 
 ## 安裝
@@ -15,7 +26,9 @@ bash local-ai/setup.sh
 
 ## 端點（埠 8765，都要 `Authorization: Bearer <token>`）
 
-- `GET /v1/health` → `{"ok": true, "asr": ..., "llm": ..., "busy": false}`
+- `GET /v1/health` → `{"ok": true, "asr": 名稱, "llm": 名稱, "asr_id", "llm_id", "model", "state": "ready|loading|error", "error", "busy"}`
+- `GET /v1/models` → health 的內容＋`asr_options`、`llm_options`（`[{id, label}]`）
+- `POST /v1/config` `{"asr": id, "llm": id}` → 存進 config.json，等正在處理的那筆做完才在背景換（第一次會下載），回 202；用 health 的 `state` 看何時好
 - `POST /v1/process`：body 是錄音檔；標頭 `X-Kind: meeting|food`、`X-Recorded-At`、`X-Duration`（秒）→ `{"text": "<Gemini 格式>", "model": "local-funasr|qwen3-8b"}`，失敗回 `{"error": "..."}`。
   處理中每 20 秒先送一個空白保持連線（6 小時的錄音估計要 30 分鐘以上，App 的連線閒置上限是 30 分鐘），所以狀態碼一律 200，成功或失敗看 JSON。
 
@@ -31,6 +44,9 @@ bash local-ai/setup.sh
 - 53 秒兩人對話：辨識 3.6–7.8 秒、報告 34 秒，App 端全程約 45 秒；說話者分得正確。
 - FunASR 用 GPU（mps）反而比較慢（5.9 秒 vs 3.6 秒），所以用 CPU；Qwen 用 MLX 跑在 GPU。
 - 16 GB 記憶體下 8B 是實際上限。小模型不太會修同音錯字（例如「縣義區」沒改成「信義區」）。
+- Breeze-ASR-26：同一段國語對話分說話者正確，辨識約 30 秒（Mac 記憶體吃緊、在用 swap 時）；Whisper 偶爾在結尾重複同一個字，服務會把連續重複 4 次以上的壓成一次。
+- SARC 台語 12B：n_ctx 16k 時 Metal 配置不到記憶體（`llama_decode returned -3`），所以用 8k＋flash attention，逐字稿每段 4000 字。報告約 46 秒。
+- 台語錄音的準確度還沒測（需要真的台語錄音）。單獨測辨識：`venv/bin/python breeze_test.py <音檔> [repo]`。
 
 ## 已知限制
 

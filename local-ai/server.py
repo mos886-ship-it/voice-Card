@@ -1,12 +1,15 @@
-"""大D 自架 AI 服務（這台 Mac）：錄音 → FunASR 逐字稿＋分說話者 → Qwen（MLX，用 GPU）寫報告。
+"""大D 自架 AI 服務（這台 Mac）：錄音 → 語音辨識＋分說話者 → 語言模型寫報告。
+模型可以換（App 設定頁）：辨識 FunASR / Breeze-ASR-26（台語），報告 Qwen3-8B / SARC 台語 12B / 自己加的。
 
 回傳格式跟 Gemini 一樣（TITLE / SUMMARY / Markdown / ===TRANSCRIPT=== / [mm:ss] 說話者X：…），
 App 的報告解析、說話者名字、飲食 NUTRITION 解析都直接沿用。
 
 端點（都要 Authorization: Bearer <存取碼>，存取碼在 config.json）：
-  GET  /v1/health   → {"ok": true, "asr": ..., "llm": ..., "busy": false}
+  GET  /v1/health   → {"ok": true, "asr": 名稱, "llm": 名稱, "asr_id", "llm_id", "model", "state": ready|loading|error, "busy"}
+  GET  /v1/models   → health 的內容 ＋ asr_options / llm_options（[{id, label}]）
+  POST /v1/config   → {"asr": id, "llm": id}；存進 config.json，背景換模型（第一次會下載），回 202
   POST /v1/process  → body 是錄音檔（m4a / wav…）；標頭 X-Kind: meeting|food、X-Recorded-At、X-Duration（秒）
-                     回 {"text": "<Gemini 格式>", "model": "local-funasr|qwen3-8b"}，失敗回 {"error": "..."}
+                     回 {"text": "<Gemini 格式>", "model": "local-<asr>|<llm>"，例如 local-funasr|qwen3-8b}，失敗回 {"error": "..."}
                      （處理中每 20 秒先送一個空白保持連線，所以狀態碼一律 200，結果看 JSON）
 
 一次只處理一筆（同一顆 GPU），其他請求排隊。啟動：venv/bin/python server.py（launchd 會在登入時自動啟動）。
@@ -28,8 +31,22 @@ warnings.filterwarnings("ignore")
 HERE = os.path.dirname(os.path.abspath(__file__))
 CONFIG = os.path.join(HERE, "config.json")
 PORT = 8765
-LLM_NAME = "mlx-community/Qwen3-8B-4bit"
-MODEL_TAG = "local-funasr|qwen3-8b"
+
+# ---------------- 可選的模型（App 設定頁可以切換，選擇存在 config.json） ----------------
+# 語音辨識：tag 會放進回傳的 model 代號（local-<asr>|<llm>），App 用它顯示是哪個模型做的。
+ASR_OPTIONS = {
+    "funasr": {"label": "FunASR（國語，分說話者，最快）", "tag": "funasr"},
+    "breeze": {"label": "Breeze-ASR-26（台語＋國語，說話者用 FunASR 分）", "tag": "breeze",
+               "repo": "doggy8088/Breeze-ASR-26-MLX-8bit"}   # 8bit：記憶體省一半，準確度差不多,
+}
+# 報告模型：mlx:<HF repo>（MLX 格式）或 gguf:<HF repo>/<檔名>（llama.cpp，用 GPU）。第一次選到時才下載。
+LLM_OPTIONS = {
+    "mlx:mlx-community/Qwen3-8B-4bit": {"label": "Qwen3-8B（國語，預設，約 5 GB）", "tag": "qwen3-8b"},
+    "gguf:Speech-AI-Research-Center/SARC-Taigi-LLM-12b-GGUF/SARC-Taigi-12b-Q4_K_M.gguf":
+        {"label": "SARC 台語 12B（Q4，約 7 GB，較慢）", "tag": "sarc-taigi-12b"},
+}
+DEFAULT_ASR = "funasr"
+DEFAULT_LLM = "mlx:mlx-community/Qwen3-8B-4bit"
 
 
 def log(msg):
@@ -60,27 +77,103 @@ def load_config():
     return cfg
 
 
-# ---------------- 模型（啟動時載入一次） ----------------
+# ---------------- 模型 ----------------
+
+CFG = load_config()
+# config.json 可以再加自己的選項：{"extra_llm": {"mlx:<repo>": {"label": "...", "tag": "..."}}}
+LLM_OPTIONS.update(CFG.get("extra_llm", {}))
+ASR_OPTIONS.update(CFG.get("extra_asr", {}))
 
 log("loading models…")
+import gc  # noqa: E402
+
+import numpy as np  # noqa: E402
 import opencc  # noqa: E402
 from funasr import AutoModel  # noqa: E402
-from mlx_lm import generate, load  # noqa: E402
-from mlx_lm.sample_utils import make_sampler  # noqa: E402
 
-ASR = AutoModel(model="paraformer-zh", vad_model="fsmn-vad", punc_model="ct-punc", spk_model="cam++",
-                disable_update=True, device="cpu", log_level="ERROR")   # CPU 比 GPU 快（實測 3.6s vs 5.9s）
-LLM, TOK = load(LLM_NAME)
+# FunASR 一直載著：選 Breeze 時也用它的 cam++ 分說話者。CPU 比 GPU 快（實測 3.6s vs 5.9s）
+FUNASR = AutoModel(model="paraformer-zh", vad_model="fsmn-vad", punc_model="ct-punc", spk_model="cam++",
+                   disable_update=True, device="cpu", log_level="ERROR")
 S2TW = opencc.OpenCC("s2twp")
-GPU = threading.Lock()
+GPU = threading.Lock()   # 一次一筆；換模型也要拿這把鎖，處理到一半不會被換掉
 BUSY = {"n": 0}
 BUSY_LOCK = threading.Lock()
+# 目前用的模型與狀態（state: ready / loading / error）
+CUR = {"asr": None, "llm": None, "llm_obj": None, "state": "loading", "error": ""}
 
 
 def busy(delta):
     with BUSY_LOCK:
         BUSY["n"] += delta
-log("models ready")
+
+
+def unload_llm():
+    CUR["llm_obj"] = None
+    gc.collect()
+    try:
+        import mlx.core as mx
+        mx.metal.clear_cache()
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def load_llm(key):
+    """mlx:<repo> 或 gguf:<repo>/<檔名> → (種類, 物件)。"""
+    kind, _, ref = key.partition(":")
+    if kind == "mlx":
+        from mlx_lm import load
+        model, tok = load(ref)
+        return ("mlx", (model, tok))
+    if kind == "gguf":
+        from huggingface_hub import hf_hub_download
+        from llama_cpp import Llama
+        repo, _, fname = ref.rpartition("/")
+        path = hf_hub_download(repo, fname)
+        # n_ctx 8k＋flash attention：16 GB 的 Mac 放 12B 模型時，16k 會配置不到記憶體（llama_decode -3）。
+        # 所以 gguf 模型的逐字稿分段比較短（見 chunk_chars）。n_gpu_layers=-1 全放 GPU。
+        return ("gguf", Llama(model_path=path, n_gpu_layers=-1, n_ctx=8192, flash_attn=True, verbose=False))
+    raise ValueError(f"不認得的模型：{key}")
+
+
+def apply_models(asr, llm):
+    """換成指定的模型（拿著 GPU 鎖呼叫）。失敗就退回原本的。"""
+    CUR["state"], CUR["error"] = "loading", ""
+    try:
+        if asr == "breeze":   # 先下載／載入一次，第一筆才不會等很久
+            import mlx_whisper
+            mlx_whisper.transcribe(np.zeros(16000, dtype=np.float32), path_or_hf_repo=ASR_OPTIONS["breeze"]["repo"],
+                                   language="zh", verbose=None)
+        CUR["asr"] = asr
+        if llm != CUR["llm"]:
+            old = CUR["llm"]
+            unload_llm()   # 16 GB 記憶體放不下兩個語言模型，先放掉舊的
+            CUR["llm"] = None
+            try:
+                CUR["llm_obj"] = load_llm(llm)
+                CUR["llm"] = llm
+            except Exception:
+                if old and old != llm:
+                    log(f"  load {llm} failed, back to {old}")
+                    CUR["llm_obj"] = load_llm(old)
+                    CUR["llm"] = old
+                raise
+        CUR["state"] = "ready"
+        log(f"models ready: asr={CUR['asr']} llm={CUR['llm']}")
+    except Exception as e:  # noqa: BLE001
+        CUR["state"] = "ready" if CUR["llm"] else "error"
+        CUR["error"] = f"載入失敗：{e}"
+        log(f"  {CUR['error']}")
+
+
+def model_tag():
+    a = ASR_OPTIONS.get(CUR["asr"], {}).get("tag", CUR["asr"])
+    m = LLM_OPTIONS.get(CUR["llm"], {}).get("tag", (CUR["llm"] or "").rsplit("/", 1)[-1].lower())
+    return f"local-{a}|{m}"
+
+
+_asr = CFG.get("asr", DEFAULT_ASR)
+_llm = CFG.get("llm", DEFAULT_LLM)
+apply_models(_asr if _asr in ASR_OPTIONS else DEFAULT_ASR, _llm if _llm in LLM_OPTIONS else DEFAULT_LLM)
 
 # ---------------- 提示詞（照 Android；逐字稿版） ----------------
 
@@ -143,7 +236,12 @@ FOOD_SYSTEM = """你是營養記錄助理。使用者會給你一段口述的逐
 ## 假設與待確認"""
 
 TRANSCRIPT_MARKER = "===TRANSCRIPT==="
-CHUNK_CHARS = 9000   # 一次送給 8B 模型的逐字稿長度（16GB 記憶體下的安全值）
+CHUNK_CHARS = 9000   # 一次送給 MLX 8B 模型的逐字稿長度（16GB 記憶體下的安全值）
+GGUF_CHUNK_CHARS = 4000   # gguf（llama.cpp，n_ctx 8k）用的長度
+
+
+def chunk_chars():
+    return GGUF_CHUNK_CHARS if CUR["llm_obj"] and CUR["llm_obj"][0] == "gguf" else CHUNK_CHARS
 
 
 # ---------------- 處理 ----------------
@@ -156,18 +254,67 @@ def to_wav(src):
     return dst
 
 
+LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+
+def spk_name(spk):
+    return "說話者" + (LETTERS[spk] if spk < len(LETTERS) else str(spk))
+
+
+def funasr_segments(wav):
+    """FunASR → [(開始秒, 結束秒, 說話者編號, 文字)]。"""
+    res = FUNASR.generate(input=wav, batch_size_s=300)
+    return [(s["start"] / 1000, s["end"] / 1000, s.get("spk", 0), s["text"]) for s in res[0].get("sentence_info", [])]
+
+
+def breeze_segments(wav):
+    """Breeze-ASR-26（Whisper，MLX）辨識文字；每個字的說話者照 FunASR cam++ 的時間段（字的中點落在誰說話的時段）。"""
+    import mlx_whisper
+    import torchaudio
+    audio, _ = torchaudio.load(wav)   # afconvert 的 wav 是 extensible 格式，內建 wave 讀不了
+    r = mlx_whisper.transcribe(audio.mean(dim=0).numpy().astype(np.float32),
+                               path_or_hf_repo=ASR_OPTIONS["breeze"]["repo"], language="zh",
+                               condition_on_previous_text=False, word_timestamps=True,
+                               hallucination_silence_threshold=2.0, verbose=None)   # 靜音處不要亂生字
+    spans = funasr_segments(wav)
+
+    def who(t, prev):
+        best, spk = None, prev
+        for s0, s1, k, _ in spans:
+            d = 0 if s0 <= t <= s1 else min(abs(t - s0), abs(t - s1))
+            if best is None or d < best:
+                best, spk = d, k
+        return spk
+
+    out = []   # (開始, 結束, 說話者, 文字)
+    for seg in r["segments"]:
+        for w in seg.get("words") or [{"start": seg["start"], "end": seg["end"], "word": seg["text"]}]:
+            word = w["word"]
+            if not word.strip():
+                continue
+            spk = who((w["start"] + w["end"]) / 2, out[-1][2] if out else 0)
+            # Whisper 用空白分句：中文之間的空白改成逗號
+            word = re.sub(r"(?<=[\u4e00-\u9fff])\s+(?=[\u4e00-\u9fff])", "，", word)
+            if out and out[-1][2] == spk and w["start"] - out[-1][1] < 2:
+                a, _, k, t = out[-1]
+                lead = "，" if word[:1].isspace() and t[-1:] not in "，。！？" else ""
+                out[-1] = (a, w["end"], k, t + lead + word.strip())
+            else:
+                out.append((w["start"], w["end"], spk, word.strip()))
+    # Whisper 偶爾在結尾一直重複同一個字或詞（「走走走走…」），重複 4 次以上就只留一次
+    return [(a, b, k, re.sub(r"(.{1,4}?)\1{3,}", r"\1", t)) for a, b, k, t in out]
+
+
 def transcribe(wav):
-    """FunASR → [mm:ss] 說話者X：內容（同一人連續說的話合併成一行，最長約 30 秒一段）。"""
-    res = ASR.generate(input=wav, batch_size_s=300)
-    letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    """→ [mm:ss] 說話者X：內容（同一人連續說的話合併成一行，最長約 30 秒一段）。"""
+    segs = breeze_segments(wav) if CUR["asr"] == "breeze" else funasr_segments(wav)
     lines, cur = [], None
-    for s in res[0].get("sentence_info", []):
-        spk = s.get("spk", 0)
-        name = "說話者" + (letters[spk] if spk < len(letters) else str(spk))
-        text = tw(s["text"])
-        start = s["start"] / 1000
+    for start, _, spk, text in segs:
+        name = spk_name(spk)
+        text = tw(text)
         if cur and cur["name"] == name and start - cur["start"] < 30:
-            cur["text"] += text
+            sep = "" if re.search(r"[，。！？、,.!?]$", cur["text"]) else "，"
+            cur["text"] += (sep if CUR["asr"] == "breeze" else "") + text
         else:
             cur = {"start": start, "name": name, "text": text}
             lines.append(cur)
@@ -186,12 +333,22 @@ def tw(text):
 
 def chat(system, user, max_tokens=2500):
     messages = [{"role": "system", "content": system}, {"role": "user", "content": user}]
-    try:
-        prompt = TOK.apply_chat_template(messages, add_generation_prompt=True, enable_thinking=False, tokenize=False)
-    except TypeError:
-        prompt = TOK.apply_chat_template(messages, add_generation_prompt=True, tokenize=False)
-    out = generate(LLM, TOK, prompt=prompt, max_tokens=max_tokens, sampler=make_sampler(temp=0.2))
+    kind, obj = CUR["llm_obj"]
+    if kind == "gguf":
+        r = obj.create_chat_completion(messages=messages, temperature=0.2, max_tokens=max_tokens)
+        out = r["choices"][0]["message"]["content"] or ""
+    else:
+        from mlx_lm import generate
+        from mlx_lm.sample_utils import make_sampler
+        model, tok = obj
+        try:   # Qwen3：關掉「思考」模式，直接輸出
+            prompt = tok.apply_chat_template(messages, add_generation_prompt=True, enable_thinking=False, tokenize=False)
+        except TypeError:
+            prompt = tok.apply_chat_template(messages, add_generation_prompt=True, tokenize=False)
+        out = generate(model, tok, prompt=prompt, max_tokens=max_tokens, sampler=make_sampler(temp=0.2))
     out = re.sub(r"<think>.*?</think>", "", out, flags=re.S).strip()
+    # 有的模型寫成「TITLE : …」「**TITLE:** …」，統一成 App 認得的「TITLE: …」
+    out = re.sub(r"(?m)^[*#\s]*(TITLE|SUMMARY|NUTRITION)[*\s]*[:：][*\s]*", r"\1: ", out)
     # 小模型偶爾把「說話者」改寫成別的詞，改回來（App 靠這個找說話者表格）
     return tw(out).replace("語言者", "說話者").replace("發言者", "說話者")
 
@@ -218,11 +375,11 @@ def process(audio_path, kind, recorded_at, duration):
         report = "TITLE: 沒有聽到內容\nSUMMARY: 這段錄音沒有辨識到說話內容。\n## 摘要\n這段錄音沒有辨識到說話內容。"
     elif kind == "food":
         report = chat(FOOD_SYSTEM, f"{header}\n\n逐字稿：\n{transcript}", max_tokens=1500)
-    elif len(transcript) <= CHUNK_CHARS:
+    elif len(transcript) <= chunk_chars():
         report = chat(REPORT_SYSTEM, f"{header}\n\n<transcript>\n{transcript}\n</transcript>")
     else:
         # 長錄音：分段做筆記再合併（照 Android LongMeeting 的做法）
-        parts = chunks(transcript, CHUNK_CHARS)
+        parts = chunks(transcript, chunk_chars())
         notes = []
         for i, p in enumerate(parts):
             log(f"  notes {i + 1}/{len(parts)}")
@@ -235,7 +392,20 @@ def process(audio_path, kind, recorded_at, duration):
 
 # ---------------- HTTP ----------------
 
-CFG = load_config()
+
+def save_config():
+    with open(CONFIG, "w", encoding="utf-8") as f:
+        json.dump(CFG, f, indent=2, ensure_ascii=False)
+    os.chmod(CONFIG, 0o600)
+
+
+def status():
+    with BUSY_LOCK:
+        n = BUSY["n"]
+    return {"ok": True, "asr": ASR_OPTIONS.get(CUR["asr"], {}).get("label", CUR["asr"]),
+            "llm": LLM_OPTIONS.get(CUR["llm"], {}).get("label", CUR["llm"]),
+            "asr_id": CUR["asr"], "llm_id": CUR["llm"], "model": model_tag(),
+            "state": CUR["state"], "error": CUR["error"], "busy": n > 0}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -254,15 +424,39 @@ class Handler(BaseHTTPRequestHandler):
         return False
 
     def do_GET(self):
-        if self.path != "/v1/health":
+        if self.path not in ("/v1/health", "/v1/models"):
             return self._json(404, {"error": "not found"})
         if not self._authorized():
             return
-        with BUSY_LOCK:
-            n = BUSY["n"]
-        self._json(200, {"ok": True, "asr": "FunASR paraformer-zh + cam++", "llm": LLM_NAME, "busy": n > 0})
+        if self.path == "/v1/health":
+            return self._json(200, status())
+        opts = lambda d: [{"id": k, "label": v["label"]} for k, v in d.items()]  # noqa: E731
+        self._json(200, {**status(), "asr_options": opts(ASR_OPTIONS), "llm_options": opts(LLM_OPTIONS)})
+
+    def _config(self):
+        """POST /v1/config {"asr": id, "llm": id} → 存起來，背景換模型（可能要下載，先回 202，App 用 /v1/health 看進度）。"""
+        try:
+            body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", "0") or 0)) or b"{}")
+        except ValueError:
+            return self._json(400, {"error": "格式不對"})
+        asr, llm = body.get("asr", CUR["asr"]), body.get("llm", CUR["llm"])
+        if asr not in ASR_OPTIONS or llm not in LLM_OPTIONS:
+            return self._json(400, {"error": "沒有這個模型"})
+        CFG["asr"], CFG["llm"] = asr, llm
+        save_config()
+        if asr == CUR["asr"] and llm == CUR["llm"]:
+            return self._json(200, status())
+        CUR["state"] = "loading"
+
+        def work():
+            with GPU:   # 正在處理的那筆做完才換
+                apply_models(asr, llm)
+        threading.Thread(target=work, daemon=True).start()
+        self._json(202, status())
 
     def do_POST(self):
+        if self.path == "/v1/config":
+            return self._config() if self._authorized() else None
         if self.path != "/v1/process":
             return self._json(404, {"error": "not found"})
         if not self._authorized():
@@ -305,7 +499,9 @@ class Handler(BaseHTTPRequestHandler):
             busy(1)
             try:
                 with GPU:   # 一次一筆
-                    result = {"text": process(path, kind, recorded_at, duration), "model": MODEL_TAG}
+                    if not CUR["llm_obj"]:
+                        raise RuntimeError(CUR["error"] or "模型還沒載入")
+                    result = {"text": process(path, kind, recorded_at, duration), "model": model_tag()}
             except Exception as e:  # noqa: BLE001
                 log(f"  failed: {e}")
                 result = {"error": f"這台 Mac 處理失敗：{e}"}

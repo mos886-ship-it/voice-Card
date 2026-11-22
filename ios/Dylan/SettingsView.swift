@@ -158,7 +158,7 @@ private struct ThemeChip: View {
     }
 }
 
-/// 自架引擎：你自己的 Mac 跑 FunASR（分說話者）＋ Qwen（寫報告）。位址存 UserDefaults，存取碼存 Keychain。
+/// 自架引擎：你自己的 Mac 跑語音辨識（分說話者）＋ 語言模型（寫報告），模型可以在這裡換。位址存 UserDefaults，存取碼存 Keychain。
 private struct LocalMacCard: View {
     let onChange: () -> Void
     @AppStorage(LocalAI.urlKey) private var url = ""
@@ -166,6 +166,10 @@ private struct LocalMacCard: View {
     @State private var hasToken = !(Keychain.get(LocalAI.tokenAccount) ?? "").isEmpty
     @State private var result: (ok: Bool, text: String)?
     @State private var testing = false
+    @State private var models: LocalAI.Models?
+    @State private var asr = ""
+    @State private var llm = ""
+    @State private var switching: String?   // 換模型中的提示
 
     var body: some View {
         GlassCard {
@@ -208,6 +212,8 @@ private struct LocalMacCard: View {
                     do {
                         let h = try await LocalAI.health(url: LocalAI.url, token: LocalAI.token)
                         result = (true, "連線成功：\(h.asr ?? "")、\(h.llm ?? "")" + (h.busy == true ? "（正在處理別的錄音）" : ""))
+                        await loadModels()
+                        onChange()
                     } catch {
                         result = (false, error.localizedDescription)
                     }
@@ -218,6 +224,83 @@ private struct LocalMacCard: View {
             if let result {
                 Label(result.text, systemImage: result.ok ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                     .font(.bodySmall).foregroundStyle(result.ok ? Brand.success : Brand.warning).padding(.top, 8)
+            }
+            if let models {
+                // 實測時切換用：Mac 上有哪些模型就列哪些（Mac 的 config.json 可以再加）
+                picker("語音辨識", selection: $asr, options: models.asr_options)
+                    .padding(.top, 12)
+                picker("報告模型", selection: $llm, options: models.llm_options)
+                    .padding(.top, 8)
+                if let switching {
+                    HStack(spacing: 8) {
+                        ProgressView().tint(Brand.cyan)
+                        Text(switching).font(.bodySmall).foregroundStyle(Brand.textMuted)
+                    }
+                    .padding(.top, 8)
+                }
+            }
+        }
+        .task { if hasToken { await loadModels() } }
+    }
+
+    private func picker(_ label: String, selection: Binding<String>, options: [LocalAI.Option]) -> some View {
+        HStack(spacing: 10) {
+            Text(label).font(.labelMedium).foregroundStyle(Brand.textMuted).frame(width: 60, alignment: .leading)
+            Menu {
+                ForEach(options, id: \.id) { o in
+                    Button { choose(label == "語音辨識" ? o.id : asr, label == "語音辨識" ? llm : o.id) } label: {
+                        if o.id == selection.wrappedValue { Label(o.label, systemImage: "checkmark") } else { Text(o.label) }
+                    }
+                }
+            } label: {
+                HStack {
+                    Text(options.first { $0.id == selection.wrappedValue }?.label ?? "—")
+                        .font(.bodyMedium).foregroundStyle(Brand.text).lineLimit(2).multilineTextAlignment(.leading)
+                    Spacer()
+                    Image(systemName: "chevron.up.chevron.down").font(.caption).foregroundStyle(Brand.textMuted)
+                }
+                .padding(12)
+                .background(RoundedRectangle(cornerRadius: 12).fill(Brand.surfaceHigh))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Brand.outline, lineWidth: 1))
+            }
+            .disabled(switching != nil)
+        }
+    }
+
+    private func loadModels() async {
+        guard let m = try? await LocalAI.models() else { return }
+        models = m
+        asr = m.asr_id ?? ""
+        llm = m.llm_id ?? ""
+        if m.state == "loading", switching == nil { await waitReady() }
+    }
+
+    private func choose(_ newAsr: String, _ newLlm: String) {
+        guard newAsr != asr || newLlm != llm else { return }
+        asr = newAsr; llm = newLlm
+        Task {
+            do {
+                try await LocalAI.select(asr: newAsr, llm: newLlm)
+                await waitReady()
+            } catch {
+                result = (false, error.localizedDescription)
+                await loadModels()
+            }
+        }
+    }
+
+    /// Mac 換模型（第一次要下載好幾 GB）期間每 3 秒問一次，好了就更新顯示的模型名稱。
+    private func waitReady() async {
+        switching = "Mac 正在載入模型（第一次會先下載，可能要幾分鐘）…"
+        defer { switching = nil }
+        for _ in 0..<600 {
+            try? await Task.sleep(for: .seconds(3))
+            guard let h = try? await LocalAI.health(url: LocalAI.url, token: LocalAI.token) else { continue }
+            if h.state != "loading" {
+                if let e = h.error, !e.isEmpty { result = (false, e) } else { result = (true, "已換成：\(h.asr ?? "")、\(h.llm ?? "")") }
+                if let m = try? await LocalAI.models() { asr = m.asr_id ?? asr; llm = m.llm_id ?? llm }
+                onChange()
+                return
             }
         }
     }
