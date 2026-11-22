@@ -272,6 +272,7 @@ private struct LocalMacCard: View {
         models = m
         asr = m.asr_id ?? ""
         llm = m.llm_id ?? ""
+        onChange()   // 上方「AI 報告引擎」的模型名稱跟著更新
         if m.state == "loading", switching == nil { await waitReady() }
     }
 

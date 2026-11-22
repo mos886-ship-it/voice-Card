@@ -40,6 +40,7 @@ bash local-ai/setup.sh
   - 這樣整個網路都連得到這個埠，而且是 **http（不加密）**：錄音、報告、存取碼在網路上都是明文。要加密就改用 Tailscale 或前面加 HTTPS。
   - 服務的保護：存取碼用固定時間比對；同一個來源 IP 錯 10 次封 1 小時（回 429，存在記憶體，重啟服務就清掉）；紀錄檔會記來源 IP；閒置連線 2 分鐘斷線。
   - 在家裡用固定 IP 連（路由器回送），來源 IP 會是固定 IP 本身——在家打錯 10 次會把自己家封住，重啟服務即可。
+  - App 的 Info.plist 用 `NSAllowsArbitraryLoads`：iOS 預設擋 http 連公網 IP（ATS），例外清單又不能寫 IP，而且有 `NSAllowsLocalNetworking` 時 iOS 會忽略 `NSAllowsArbitraryLoads`，所以只留這一個。改用 HTTPS 網域後可以拿掉。
   - 存取碼外洩或懷疑被猜：重新產生（改 `config.json` 的 `token` 後重啟服務），再把新的貼到 App。
 - 模擬器：預設 `http://localhost:8765`。
 - Mac 要保持開機、不睡眠（系統設定 → 能源 → 防止自動進入睡眠，需要自己設定）。

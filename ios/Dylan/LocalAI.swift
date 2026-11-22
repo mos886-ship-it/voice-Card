@@ -71,6 +71,7 @@ enum LocalAI {
         let asr_id: String?
         let llm_id: String?
         let state: String?
+        let model: String?
         let asr_options: [Option]
         let llm_options: [Option]
     }
@@ -91,6 +92,7 @@ enum LocalAI {
         guard code == 200, let m = try? JSONDecoder().decode(Models.self, from: data) else {
             throw GeminiClient.Failure(message: error(data, status: code), code: code)
         }
+        if let tag = m.model, m.state != "loading" { UserDefaults.standard.set(tag, forKey: modelKey) }
         return m
     }
 
