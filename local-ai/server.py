@@ -14,6 +14,7 @@ App 的報告解析、說話者名字、飲食 NUTRITION 解析都直接沿用�
 
 一次只處理一筆（同一顆 GPU），其他請求排隊。啟動：venv/bin/python server.py（launchd 會在登入時自動啟動）。
 """
+import hmac
 import json
 import os
 import re
@@ -408,7 +409,16 @@ def status():
             "state": CUR["state"], "error": CUR["error"], "busy": n > 0}
 
 
+# 防猜存取碼：同一個來源 IP 錯 10 次就封 1 小時（服務透過固定 IP 對外開放，誰都連得到）
+MAX_FAILS = 10
+BLOCK_SECONDS = 3600
+FAILS = {}   # ip → [錯幾次, 封到何時]
+FAILS_LOCK = threading.Lock()
+
+
 class Handler(BaseHTTPRequestHandler):
+    timeout = 120   # 連上來卻不送資料的連線 2 分鐘後斷掉，不會一直佔著
+
     def _json(self, code, obj):
         body = json.dumps(obj, ensure_ascii=False).encode("utf-8")
         self.send_response(code)
@@ -418,8 +428,31 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def _authorized(self):
-        if self.headers.get("Authorization", "") == f"Bearer {CFG['token']}":
+        ip = self.client_address[0]
+        now = time.time()
+        with FAILS_LOCK:
+            rec = FAILS.get(ip)
+            if rec and rec[1] > now:
+                blocked = True
+            else:
+                blocked = False
+                if rec and rec[1] and rec[1] <= now:
+                    FAILS.pop(ip, None)   # 封鎖時間過了，重新計算
+        if blocked:
+            self._json(429, {"error": "存取碼錯太多次，請一小時後再試"})
+            return False
+        given = self.headers.get("Authorization", "").encode("utf-8")
+        # 固定時間比對：不能從回應快慢猜出存取碼
+        if hmac.compare_digest(given, f"Bearer {CFG['token']}".encode("utf-8")):
+            with FAILS_LOCK:
+                FAILS.pop(ip, None)
             return True
+        with FAILS_LOCK:
+            rec = FAILS.setdefault(ip, [0, 0])
+            rec[0] += 1
+            if rec[0] >= MAX_FAILS:
+                rec[1] = now + BLOCK_SECONDS
+                log(f"blocked {ip} for {BLOCK_SECONDS // 60} min after {rec[0]} wrong codes")
         self._json(401, {"error": "存取碼不對"})
         return False
 
@@ -436,7 +469,10 @@ class Handler(BaseHTTPRequestHandler):
     def _config(self):
         """POST /v1/config {"asr": id, "llm": id} → 存起來，背景換模型（可能要下載，先回 202，App 用 /v1/health 看進度）。"""
         try:
-            body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", "0") or 0)) or b"{}")
+            n = int(self.headers.get("Content-Length", "0") or 0)
+            if n > 10_000:
+                return self._json(400, {"error": "格式不對"})
+            body = json.loads(self.rfile.read(n) or b"{}")
         except ValueError:
             return self._json(400, {"error": "格式不對"})
         asr, llm = body.get("asr", CUR["asr"]), body.get("llm", CUR["llm"])
@@ -516,7 +552,7 @@ class Handler(BaseHTTPRequestHandler):
                 log("  client gone before result was sent")
 
     def log_message(self, fmt, *args):
-        log("http " + fmt % args)
+        log(f"http {self.client_address[0]} " + fmt % args)
 
 
 if __name__ == "__main__":
