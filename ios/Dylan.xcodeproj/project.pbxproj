@@ -226,6 +226,7 @@
 		AA0000000000000000000070 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				DYLAN_BUNDLE_ID = tw.dylan.wristai;
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ENABLE_MODULES = YES;
@@ -251,6 +252,7 @@
 		AA0000000000000000000071 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				DYLAN_BUNDLE_ID = tw.dylan.wristai;
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ENABLE_MODULES = YES;
@@ -289,7 +291,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.dylan;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(DYLAN_BUNDLE_ID)";
 				PRODUCT_NAME = Dylan;
 				SDKROOT = iphoneos;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -319,7 +321,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.dylan;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(DYLAN_BUNDLE_ID)";
 				PRODUCT_NAME = Dylan;
 				SDKROOT = iphoneos;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -338,14 +340,14 @@
 				INFOPLIST_FILE = "Config/Watch-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "大D";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "大D 需要使用麥克風來錄音。";
-				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.example.dylan;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = "$(DYLAN_BUNDLE_ID)";
 				INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = NO;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.dylan.watchkitapp;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(DYLAN_BUNDLE_ID).watchkitapp";
 				PRODUCT_NAME = DylanWatch;
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
@@ -366,14 +368,14 @@
 				INFOPLIST_FILE = "Config/Watch-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "大D";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "大D 需要使用麥克風來錄音。";
-				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.example.dylan;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = "$(DYLAN_BUNDLE_ID)";
 				INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = NO;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.dylan.watchkitapp;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(DYLAN_BUNDLE_ID).watchkitapp";
 				PRODUCT_NAME = DylanWatch;
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;

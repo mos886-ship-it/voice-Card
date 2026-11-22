@@ -45,7 +45,7 @@ struct RecordView: View {
         // 回到前景：錄音中但收音停了（被打斷 / 系統暫停）就接著錄
         .onChange(of: scenePhase) { _, phase in if phase == .active { recorder.checkAlive() } }
         #if DEBUG
-        // 測試用：simctl launch <watch> com.example.dylan.watchkitapp -autoRecordSeconds 12 [-autoRecordFood YES]
+        // 測試用：simctl launch <watch> tw.dylan.wristai.watchkitapp -autoRecordSeconds 12 [-autoRecordFood YES]
         .task {
             let sec = UserDefaults.standard.double(forKey: "autoRecordSeconds")
             guard sec > 0, !recorder.isRecording else { return }

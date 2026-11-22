@@ -16,7 +16,7 @@ struct DylanApp: App {
                 .environmentObject(PhoneLink.shared)
                 .task { await AiStatus.shared.refresh() } // 開 App 就偵測這支 iPhone 能用哪種 AI
                 #if DEBUG
-                // 測試用：simctl launch <iPhone> com.example.dylan -processId 20261122_000000（背景分析測試）
+                // 測試用：simctl launch <iPhone> tw.dylan.wristai -processId 20261122_000000（背景分析測試）
                 .task {
                     // 測試用：-localToken "$(讀 ~/dylan-local/config.json)"（模擬器的剪貼簿不能用，存取碼從這裡帶進來）
                     if let t = UserDefaults.standard.string(forKey: "localToken"), !t.isEmpty {
