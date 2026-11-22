@@ -7,6 +7,7 @@ struct DashboardView: View {
     @Binding var toast: String?
     @EnvironmentObject private var store: MeetingStore
     @EnvironmentObject private var link: PhoneLink
+    @ObservedObject private var rec = PhoneRecorder.shared
 
     var body: some View {
         let recordings = store.meetings.filter { !$0.isFood }
@@ -29,12 +30,13 @@ struct DashboardView: View {
                 // AI 設定只放在「設定」分頁（使用者要求），主頁不顯示提醒卡。
 
                 // ---------- 快捷動作 ----------
-                HStack(spacing: 12) {
-                    QuickTile(title: "開始錄音", sub: "會議、課堂、訪談、靈感", filled: true) {
-                        toast = "手機錄音下一版加上，請先用手錶錄音"
-                    }
-                    QuickTile(title: "記錄飲食", sub: "說出吃了什麼", filled: false) {
-                        toast = "請用手錶的「飲食」鍵記錄（手機錄音下一版加上）"
+                // 手機也能錄（手錶不在身邊、或這支手機沒配對手錶時）
+                if rec.isRecording, let since = rec.since {
+                    RecordingCard(food: rec.isFood, since: since, interrupted: rec.interrupted) { rec.stop() }
+                } else {
+                    HStack(spacing: 12) {
+                        QuickTile(title: "開始錄音", sub: "會議、課堂、訪談、靈感", filled: true) { rec.start() }
+                        QuickTile(title: "記錄飲食", sub: "說出吃了什麼", filled: false) { rec.start(food: true) }
                     }
                 }
 
@@ -88,7 +90,7 @@ struct DashboardView: View {
                 } else {
                     GlassCard {
                         Text("開始第一段錄音").font(.titleMedium).foregroundStyle(Brand.text)
-                        Text("在手錶按下錄音。錄完會自動傳到手機，整理出重點、待辦與逐字稿。")
+                        Text("按上面的「開始錄音」，或在手錶按下錄音。錄完會自動整理出重點、待辦與逐字稿。")
                             .font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 4)
                     }
                 }
@@ -97,6 +99,13 @@ struct DashboardView: View {
             .padding(.vertical, 12)
         }
         .refreshable { store.reload() }
+        .onChange(of: rec.state) { s in
+            switch s {
+            case .denied: toast = "沒有麥克風權限：到 iPhone 設定 → 大D → 麥克風 打開"; rec.clearMessage()
+            case .failed(let msg): toast = msg; rec.clearMessage()
+            default: break
+            }
+        }
     }
 
     private var greeting: String {
@@ -140,5 +149,39 @@ private struct QuickTile: View {
             .overlay(shape.stroke(filled ? Color.clear : Brand.outline, lineWidth: 1))
         }
         .buttonStyle(.plain)
+    }
+}
+
+/// 手機錄音中：計時、停止鍵。
+private struct RecordingCard: View {
+    let food: Bool
+    let since: Date
+    let interrupted: Bool
+    let stop: () -> Void
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: 22, style: .continuous)
+        HStack(spacing: 14) {
+            RecordDot(size: 20)
+                .frame(width: 44, height: 44)
+                .background(Circle().fill(Color.white.opacity(0.18)))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(food ? "正在記錄飲食" : "手機錄音中").font(.titleMedium).foregroundColor(.white)
+                TimelineView(.periodic(from: since, by: 1)) { ctx in
+                    Text(interrupted ? "收音中斷，正在恢復…" : Fmt.duration(ctx.date.timeIntervalSince(since)))
+                        .font(.bodySmall).monospacedDigit().foregroundColor(Color.white.opacity(0.85))
+                }
+                Text("可以鎖螢幕，會繼續錄").font(.bodySmall).foregroundColor(Color.white.opacity(0.7))
+            }
+            Spacer()
+            Button(action: stop) {
+                Text("停止").font(.labelLarge).foregroundColor(Brand.text)
+                    .padding(.horizontal, 18).padding(.vertical, 10)
+                    .background(Capsule().fill(Color.white))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(16)
+        .background(shape.fill(Brand.accent))
     }
 }
