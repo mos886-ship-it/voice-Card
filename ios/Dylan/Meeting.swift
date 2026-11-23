@@ -69,11 +69,15 @@ struct Meeting: Codable, Identifiable, Equatable {
     /// 來源＋裝置名字：「iPad · 會議室 iPad」、「通話 · iPhone 15 Pro Max」。
     var sourceLabel: String {
         let base = Self.label(source: source)
-        // 舊資料沒存裝置：錄音只存在錄的那台，所以就是這台
+        guard source != "watch" else { return base }
+        // 錄音只存在錄的那台：名字用這筆存的（舊資料存的是型號就不算），型號用這台的
         let saved = self.device.flatMap { DeviceInfo.isModel($0) ? nil : $0 }
-        let device = saved ?? (source == "watch" ? nil : DeviceInfo.name)
-        guard let device, !device.isEmpty, device != base else { return base }
-        return "\(base) · \(device)"
+        let name = saved ?? DeviceInfo.name
+        let model = DeviceInfo.modelShort
+        let who: String
+        if name.isEmpty { who = model == base ? "" : model }
+        else { who = model == base || model == name ? name : "\(name)（\(model)）" }
+        return who.isEmpty ? base : "\(base) · \(who)"
     }
 
     static let isPad = UIDevice.current.userInterfaceIdiom == .pad

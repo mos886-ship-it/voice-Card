@@ -22,6 +22,9 @@ enum DeviceInfo {
     /// 型號（iPad Pro 11 吋（第 2 代）、iPhone 15 Pro Max…）；認不得就用 iPhone / iPad。
     static var model: String { models[machine] ?? (UIDevice.current.userInterfaceIdiom == .pad ? "iPad" : "iPhone") }
 
+    /// 放在名字後面的型號：去掉括號，「iPad Pro 11 吋 第 2 代」。
+    static var modelShort: String { model.replacingOccurrences(of: "（", with: " ").replacingOccurrences(of: "）", with: "") }
+
     static var machine: String {
         if let sim = ProcessInfo.processInfo.environment["SIMULATOR_MODEL_IDENTIFIER"] { return sim }
         var info = utsname()

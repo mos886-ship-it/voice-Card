@@ -505,7 +505,7 @@ private struct DeviceNameCard: View {
                     .background(RoundedRectangle(cornerRadius: 12).fill(Brand.surfaceHigh))
                     .overlay(RoundedRectangle(cornerRadius: 12).stroke(Brand.outline, lineWidth: 1))
             }
-            Text("會顯示在錄音的「來源」，例如「\(Meeting.isPad ? "iPad" : "手機") · \(name.isEmpty ? "Dylan 的 iPad" : name)」。iOS 不讓 App 讀系統設定裡的裝置名稱，所以請在這裡填一次。")
+            Text("會顯示在錄音的「來源」，例如「\(Meeting.isPad ? "iPad" : "手機") · \(name.isEmpty ? (Meeting.isPad ? "Dylan 的 iPad" : "Dylan 的 iPhone") : name)（\(DeviceInfo.modelShort)）」。iOS 不讓 App 讀系統設定裡的裝置名稱，所以請在這裡填一次。")
                 .font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 8)
         }
     }
