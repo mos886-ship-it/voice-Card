@@ -19,7 +19,7 @@ final class GeminiJobs: NSObject, URLSessionDataDelegate {
     static let localSessionID = "com.example.dylan.local"
 
     struct Job: Codable {
-        enum Stage: String, Codable { case upload, generate, local }   // local = 傳給自己的 Mac
+        enum Stage: String, Codable { case upload, generate, local }   // local = 傳給大D的主機
         var meetingId: String
         var stage: Stage
         var model: Int = 0          // GeminiClient.models 的索引
@@ -87,7 +87,7 @@ final class GeminiJobs: NSObject, URLSessionDataDelegate {
     func startLocal(meetingId: String, kind: String, recordedAt: String, durationSec: Double) throws {
         let text = MeetingStore.isText(meetingId)
         guard let r = LocalAI.processRequest(kind: kind, recordedAt: recordedAt, durationSec: durationSec, text: text) else {
-            throw GeminiClient.Failure(message: "這台 Mac 的位址格式不對")
+            throw GeminiClient.Failure(message: "大D的主機 的位址格式不對")
         }
         let task = localSession.uploadTask(with: r, fromFile: text ? MeetingStore.textURL(meetingId) : MeetingStore.audioURL(meetingId))
         task.taskDescription = Self.encode(Job(meetingId: meetingId, stage: .local))
@@ -148,7 +148,7 @@ final class GeminiJobs: NSObject, URLSessionDataDelegate {
                     NSLog("[GeminiJobs] \(job.meetingId) local Mac replied \(text.count) chars")
                     await MeetingStore.shared.geminiReplied(job.meetingId, text: text, model: model, truncated: false)
                 } else {
-                    let msg = error.map { "連不到這台 Mac（\($0.localizedDescription)）" } ?? LocalAI.error(data, status: status)
+                    let msg = error.map { "連不到大D的主機（\($0.localizedDescription)）" } ?? LocalAI.error(data, status: status)
                     await MeetingStore.shared.localFailed(job.meetingId, message: msg)
                 }
                 return

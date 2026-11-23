@@ -99,7 +99,7 @@ struct DetailView: View {
                         if m.status == .received {
                             GlassCard(highlight: true) {
                                 Text("還沒有 AI 報告").font(.titleMedium).foregroundStyle(Brand.text)
-                                Text(LocalAI.configured ? "按下面的按鈕，用你的 Mac 整理出重點、待辦與分說話者的逐字稿。"
+                                Text(LocalAI.configured ? "按下面的按鈕，用大D的主機 整理出重點、待辦與分說話者的逐字稿。"
                                      : MeetingStore.hasGeminiKey && !MeetingStore.privacyMode
                                      ? "按下面的按鈕，用 Gemini 整理出重點、待辦與分說話者的逐字稿。"
                                      : "沒有 Gemini 金鑰或開著隱私模式：會用 Apple 在手機上產生逐字稿與重點（不分說話者，需要 iOS 26 以上）。")
@@ -165,7 +165,7 @@ struct DetailView: View {
         switch step {
         case "AI 聆聽整理中": return "Gemini 正在聆聽錄音，整理成報告與逐字稿。"
         case "上傳錄音中": return "正在把錄音上傳給 Gemini。"
-        case "傳給這台 Mac 處理中": return "錄音已傳給你的 Mac，正在辨識說話者並整理報告（約錄音長度的一半到一倍時間）。"
+        case "傳給大D的主機 處理中": return "錄音已傳給大D的主機，正在辨識說話者並整理報告（約錄音長度的一半到一倍時間）。"
         case "Apple 語音辨識中": return "Apple 正在手機上把錄音轉成文字（不上傳）。"
         case "Apple 整理中": return "Apple 正在整理重點。"
         default: return "處理中…"

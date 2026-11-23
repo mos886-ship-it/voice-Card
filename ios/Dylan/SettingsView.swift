@@ -41,7 +41,7 @@ struct SettingsView: View {
                     Text("系統狀態").font(.labelSmall).tracking(1.2).foregroundStyle(Brand.textMuted)
                     StatusRow(label: "AI 報告引擎",
                               value: LocalAI.configured ? LocalAI.modelLabel : (ai.engine?.title ?? "偵測中…"),
-                              detail: LocalAI.configured ? "你自己的 Mac：分說話者、免費、不出你的設備；連不到時改用 " + (MeetingStore.hasGeminiKey ? "Gemini" : "Apple")
+                              detail: LocalAI.configured ? "大D的主機：分說話者、免費、不出你的設備；連不到時改用 " + (MeetingStore.hasGeminiKey ? "Gemini" : "Apple")
                                                          : (ai.engine?.detail ?? ""),
                               color: LocalAI.configured || (ai.engine?.ready ?? false) ? Brand.success : Brand.warning)
                         .padding(.top, 12)
@@ -55,7 +55,7 @@ struct SettingsView: View {
                 SectionLabel(text: "AI 引擎")
                 GlassCard {
                     Text("自動（依這支 iPhone）").font(.titleMedium).foregroundStyle(Brand.text)
-                    Text("錄音報告用你的 Mac（有設定時）或 Google Gemini，兩者都能分出不同的說話者。Apple 內建的 AI 不分說話者，用來當輔助，以及整理飲食記錄（免費、不上傳）。")
+                    Text("錄音報告用大D的主機（有設定時）或 Google Gemini，兩者都能分出不同的說話者。Apple 內建的 AI 不分說話者，用來當輔助，以及整理飲食記錄（免費、不上傳）。")
                         .font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 4)
                     if let c = ai.capability {
                         VStack(spacing: 8) {
@@ -74,7 +74,7 @@ struct SettingsView: View {
                             UseRow(task: "飲食", engine: ai.foodEngine?.title ?? "")
                         }
                         .padding(.top, 6)
-                        Text("輔助：Mac 和 Gemini 都不能用時，改用 Apple 在手機上產生逐字稿與重點（不分說話者）。")
+                        Text("輔助：大D的主機和 Gemini 都不能用時，改用 Apple 在手機上產生逐字稿與重點（不分說話者）。")
                             .font(.bodySmall).foregroundStyle(Brand.textFaint).padding(.top, 8)
                     } else {
                         ProgressView().padding(.top, 12)
@@ -82,7 +82,7 @@ struct SettingsView: View {
                 }
                 }
                 } right: {
-                SectionLabel(text: "這台 Mac（自架）")
+                SectionLabel(text: "大D的主機")
                 LocalMacCard { Task { await ai.refresh() } }
                 SectionLabel(text: "隱私模式")
                 PrivacyCard()
@@ -98,7 +98,7 @@ struct SettingsView: View {
                     Text(themeNote).font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 10)
                 }
                 SectionLabel(text: "隱私")
-                placeholder("錄音存在這支 iPhone 與你的 Apple Watch。用你自己的 Mac 處理時，錄音只傳到你的 Mac，處理完不保留。使用 Gemini 時，錄音會上傳到 Google 分析，分析完立刻刪除上傳的檔案；免費方案的內容可能被 Google 用來改進產品。金鑰與存取碼只存在這支 iPhone 的鑰匙圈。")
+                placeholder("錄音存在這支 iPhone 與你的 Apple Watch。用大D的主機 處理時，錄音只傳到大D的主機，處理完不保留。使用 Gemini 時，錄音會上傳到 Google 分析，分析完立刻刪除上傳的檔案；免費方案的內容可能被 Google 用來改進產品。金鑰與存取碼只存在這支 iPhone 的鑰匙圈。")
 
                 }
 
@@ -203,7 +203,7 @@ private struct LocalMacCard: View {
 
     var body: some View {
         GlassCard {
-            Text("用你自己的 Mac 跑 AI：會分說話者、免費、沒有額度，錄音不出你的設備。Mac 要開著，手機要連得到（同一個 Wi-Fi，或出門用 Tailscale）。")
+            Text("用大D的主機 跑 AI：會分說話者、免費、沒有額度，錄音不出你的設備。主機要開著，手機要連得到（同一個 Wi-Fi，或出門用固定 IP）。")
                 .font(.bodySmall).foregroundStyle(Brand.textMuted)
             field("位址", text: $url, prompt: LocalAI.defaultURL.isEmpty ? "http://Dylan-Mac-mini.local:8765" : LocalAI.defaultURL)
                 .padding(.top, 10)
@@ -221,7 +221,7 @@ private struct LocalMacCard: View {
                 .padding(.top, 10)
             } else {
                 HStack(spacing: 8) {
-                    SecureField("", text: $token, prompt: Text("貼上存取碼（Mac 上 ~/dylan-local/config.json 的 token）").foregroundColor(Brand.textFaint))
+                    SecureField("", text: $token, prompt: Text("貼上存取碼（主機上 ~/dylan-local/config.json 的 token）").foregroundColor(Brand.textFaint))
                         .textInputAutocapitalization(.never).autocorrectionDisabled()
                         .foregroundStyle(Brand.text)
                         .padding(12)
@@ -322,7 +322,7 @@ private struct LocalMacCard: View {
 
     /// Mac 換模型（第一次要下載好幾 GB）期間每 3 秒問一次，好了就更新顯示的模型名稱。
     private func waitReady() async {
-        switching = "Mac 正在載入模型（第一次會先下載，可能要幾分鐘）…"
+        switching = "主機正在載入模型（第一次會先下載，可能要幾分鐘）…"
         defer { switching = nil }
         for _ in 0..<600 {
             try? await Task.sleep(for: .seconds(3))
@@ -357,7 +357,7 @@ private struct PrivacyCard: View {
             Toggle(isOn: $on) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("不上傳到雲端").font(.titleMedium).foregroundStyle(Brand.text)
-                    Text("開啟後錄音不送 Gemini：有設定自己的 Mac 就用 Mac（分說話者），否則用 Apple 在手機上轉文字與整理（不分說話者，需要 iOS 26 以上）。適合醫療、法律、人事等敏感談話。")
+                    Text("開啟後錄音不送 Gemini：有設定大D的主機 就用大D的主機（分說話者），否則用 Apple 在手機上轉文字與整理（不分說話者，需要 iOS 26 以上）。適合醫療、法律、人事等敏感談話。")
                         .font(.bodySmall).foregroundStyle(Brand.textMuted)
                 }
             }

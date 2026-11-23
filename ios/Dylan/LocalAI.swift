@@ -22,7 +22,7 @@ enum LocalAI {
             "funasr": "FunASR", "breeze": "Breeze-ASR-26",
             "qwen3-8b": "Qwen3-8B", "sarc-taigi-12b": "SARC 台語 12B", "text": "文字",
         ]
-        return "這台 Mac：" + parts.map { names[$0] ?? $0 }.joined(separator: " ＋ ")
+        return "大D的主機：" + parts.map { names[$0] ?? $0 }.joined(separator: " ＋ ")
     }
 
     /// 預設位址：模擬器跟 Mac 是同一台，用 localhost；真機要填 Mac 的區網名稱（例如 http://Dylan-Mac-mini.local:8765）或 Tailscale 位址。
@@ -112,12 +112,12 @@ enum LocalAI {
         r.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         let (data, resp): (Data, URLResponse)
         do { (data, resp) = try await URLSession.shared.data(for: r) } catch {
-            throw GeminiClient.Failure(message: "連不到這台 Mac（\(error.localizedDescription)）。請確認 Mac 開著、服務在跑、手機和 Mac 在同一個網路")
+            throw GeminiClient.Failure(message: "連不到大D的主機（\(error.localizedDescription)）。請確認主機開著、服務在跑、手機連得到主機（同一個 Wi-Fi 或固定 IP）")
         }
         let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
         if code == 401 { throw GeminiClient.Failure(message: "存取碼不對", code: 401) }
         guard code == 200, let h = try? JSONDecoder().decode(Health.self, from: data) else {
-            throw GeminiClient.Failure(message: "這台 Mac 回應錯誤 \(code)", code: code)
+            throw GeminiClient.Failure(message: "大D的主機 回應錯誤 \(code)", code: code)
         }
         if let m = h.model { UserDefaults.standard.set(m, forKey: modelKey) }
         return h
@@ -147,7 +147,7 @@ enum LocalAI {
 
     static func error(_ data: Data, status: Int) -> String {
         let msg = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String
-        if status == 401 { return "這台 Mac 的存取碼不對，請到設定重新貼上" }
-        return msg ?? "這台 Mac 回應錯誤 \(status)"
+        if status == 401 { return "大D的主機 的存取碼不對，請到設定重新貼上" }
+        return msg ?? "大D的主機 回應錯誤 \(status)"
     }
 }

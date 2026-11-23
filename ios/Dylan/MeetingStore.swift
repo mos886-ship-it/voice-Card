@@ -178,7 +178,7 @@ final class MeetingStore: ObservableObject {
         if Self.isText(id) {   // 匯入的文字：Mac → Gemini；Apple 不處理文字
             if LocalAI.configured { await runLocal(id) }
             else if Self.hasGeminiKey && !Self.privacyMode { await runGeminiText(id) }
-            else { aiFailed(id, message: "文字檔要用這台 Mac 或 Gemini 產生報告：請到設定填好其中一個") }
+            else { aiFailed(id, message: "文字檔要用大D的主機 或 Gemini 產生報告：請到設定填好其中一個") }
             return
         }
         // 順序：飲食 → Apple（有模型時）；有設定自架 Mac → Mac；隱私模式 → Apple（不送第三方雲端）；
@@ -201,7 +201,7 @@ final class MeetingStore: ObservableObject {
         guard var m = load(id) else { return }
         processing.insert(id)
         defer { processing.remove(id) }
-        begin(&m, step: "傳給這台 Mac 處理中")
+        begin(&m, step: "傳給大D的主機 處理中")
         PhoneLink.shared.sendStatus(id: id, text: "AI 分析中…")
         // 先花幾秒確認 Mac 連得到：背景傳輸遇到連不到的主機不會失敗，只會一直等
         do {
@@ -225,7 +225,7 @@ final class MeetingStore: ObservableObject {
         NSLog("[MeetingStore] local Mac failed (\(message)), falling back")
         if Self.isText(id) {
             if Self.hasGeminiKey && !Self.privacyMode {
-                if var m = load(id) { m.engineNote = "這台 Mac 連不到（\(message)），改用 Gemini"; save(m) }
+                if var m = load(id) { m.engineNote = "大D的主機 連不到（\(message)），改用 Gemini"; save(m) }
                 await runGeminiText(id)
             } else {
                 aiFailed(id, message: message)
@@ -233,7 +233,7 @@ final class MeetingStore: ObservableObject {
             return
         }
         if Self.hasGeminiKey && !Self.privacyMode {
-            m.engineNote = "這台 Mac 沒有完成（\(message)），改用 Gemini"
+            m.engineNote = "大D的主機 沒有完成（\(message)），改用 Gemini"
             save(m)
             await runGemini(id)
         } else {

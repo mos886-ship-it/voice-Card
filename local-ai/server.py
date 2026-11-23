@@ -550,7 +550,7 @@ class Handler(BaseHTTPRequestHandler):
                     result = {"text": process(path, kind, recorded_at, duration, text_input), "model": tag}
             except Exception as e:  # noqa: BLE001
                 log(f"  failed: {e}")
-                result = {"error": f"這台 Mac 處理失敗：{e}"}
+                result = {"error": f"大D的主機處理失敗：{e}"}
             finally:
                 busy(-1)
                 done.set()
