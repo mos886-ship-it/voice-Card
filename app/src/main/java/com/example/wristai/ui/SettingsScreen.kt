@@ -121,6 +121,18 @@ fun SettingsScreen(onBack: (() -> Unit)? = null) {
             Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            // ---------- 介面模式：商用（简洁）/ 科技（细节） ----------
+            SectionLabel("介面模式")
+            GlassCard {
+                Chips(listOf("商用", "科技"), if (UiMode.tech) 1 else 0) { i -> UiMode.set(context, i == 1) }
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    if (UiMode.tech) "科技：顯示 AI 模型、耗時、編號、引擎切換原因與主機模型選單"
+                    else "商用：簡潔，只顯示結果與重點",
+                    style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted,
+                )
+            }
+
             SystemStatusCard()
 
             // ---------- 外观 ----------
@@ -158,6 +170,9 @@ fun SettingsScreen(onBack: (() -> Unit)? = null) {
                     )
                 }
             }
+
+            // ---------- 大D的主機（使用者自己的电脑跑 AI） ----------
+            LocalHostSection()
 
             // ---------- AI 引擎：Gemini 一站式 / 组合式（百炼、讯飞、OpenAI、Meta、Claude）/ 只用 Galaxy AI ----------
             AiEngineSection(

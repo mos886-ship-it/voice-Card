@@ -87,6 +87,11 @@ import java.util.concurrent.TimeUnit
 data class EngineInfo(val name: String, val detail: String, val ready: Boolean, val color: Color)
 
 fun currentEngine(context: Context): EngineInfo = when {
+    // 大D的主機（使用者自己的电脑）：有设定就优先
+    com.example.wristai.ai.LocalHost.configured(context) -> EngineInfo(
+        com.example.wristai.ai.LocalHost.label(com.example.wristai.ai.LocalHost.lastTag(context)),
+        "你自己的電腦 · 免費、錄音不出你的設備；連不到時自動改用其他引擎", true, Brand.Success,
+    )
     com.example.wristai.ai.AiConfig.mode(context) == com.example.wristai.ai.AiConfig.MODE_PIPELINE -> {
         val missing = com.example.wristai.ai.AiConfig.pipelineMissing(context)
         EngineInfo(
@@ -154,6 +159,8 @@ fun recordingRange(m: Meeting): String {
  */
 fun aiModelLabel(model: String?): String {
     if (model.isNullOrBlank()) return "未記錄（舊報告）"
+    // 大D的主機（使用者自己的电脑）："local-funasr|qwen3-8b"
+    if (com.example.wristai.ai.LocalHost.isLocalTag(model)) return com.example.wristai.ai.LocalHost.label(model)
     // 组合式："语音辨识模型|报告模型"
     if ('|' in model) {
         val (stt, llm) = model.split('|', limit = 2)
@@ -239,9 +246,12 @@ fun HomeScreen(onOpen: (String) -> Unit, onOpenSettings: () -> Unit, onImport: (
         if (terms.isEmpty()) emptyMap()
         else shown.mapNotNull { m -> docs[m.id]?.let { d -> com.example.wristai.SearchIndex.snippet(d, terms)?.let { m.id to it } } }.toMap()
     }
-    // 依月份分组（上百笔也好找）
-    val ym = remember { java.text.SimpleDateFormat("yyyy年M月", java.util.Locale.TAIWAN) }
-    val groups = remember(shown) { shown.groupBy { ym.format(java.util.Date(it.createdAt)) }.toList() }
+    // 一行摘要（报告的「摘要」段，从搜寻索引拿，不另外读档）
+    val summaries = remember(docs) {
+        docs.mapValues { (_, d) -> summaryOf(d.parts.firstOrNull { it.first == "報告" }?.second) }
+    }
+    // 依日期分组：今天 / 昨天 / 11月20日 週四
+    val groups = remember(shown) { shown.groupBy { dayLabel(it.createdAt) }.toList() }
 
     LazyColumn(
         Modifier.fillMaxSize(),
@@ -253,7 +263,7 @@ fun HomeScreen(onOpen: (String) -> Unit, onOpenSettings: () -> Unit, onImport: (
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 4.dp)) {
                 Column(Modifier.weight(1f)) {
                     Text("錄音", style = MaterialTheme.typography.headlineSmall, color = Brand.Text)
-                    Text(if (meetings.isEmpty()) "會議、課堂、訪談、通話、靈感筆記" else "共 ${meetings.size} 段 · ${formatDuration(meetings.sumOf { it.durationSec })}",
+                    Text(if (meetings.isEmpty()) "會議、課堂、訪談、通話、靈感筆記" else "共 ${meetings.size} 段 · ${humanDuration(meetings.sumOf { it.durationSec })}",
                         style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
                 }
                 GhostButton("匯入", { picker.launch(arrayOf("audio/*")) }, icon = Icons.Filled.Add, tint = Brand.Cyan)
@@ -290,16 +300,18 @@ fun HomeScreen(onOpen: (String) -> Unit, onOpenSettings: () -> Unit, onImport: (
                 Text("找到 ${shown.size} 筆", style = MaterialTheme.typography.labelLarge, color = Brand.Cyan)
             }
         }
-        for ((month, list) in groups) {
-            // 月份标题（只有一个月、又没在搜寻时就不显示，避免多余）
-            if (groups.size > 1 || terms.isNotEmpty()) item(key = "m_$month") {
+        for ((day, list) in groups) {
+            item(key = "d_$day") {
                 Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(month, style = MaterialTheme.typography.titleSmall, color = Brand.Text)
+                    Text(day, style = MaterialTheme.typography.titleSmall, color = Brand.Text)
                     Spacer(Modifier.width(8.dp))
                     Text("${list.size} 筆", style = MaterialTheme.typography.labelMedium, color = Brand.TextFaint)
                 }
             }
-            items(list, key = { it.id }) { m -> MeetingRow(m, snippets[m.id], terms) { onOpen(m.id) } }
+            items(list, key = { it.id }) { m ->
+                val sn = snippets[m.id]?.let { highlight(if (it.text.isEmpty()) "符合：${it.where}" else "${it.where}：${it.text}", terms) }
+                RecordRow(m, summaries[m.id], sn, onOpen = { onOpen(m.id) }, onDelete = { MeetingStore.delete(context, m.id) })
+            }
         }
         item { Spacer(Modifier.height(24.dp)) }
     }
@@ -325,20 +337,24 @@ internal fun WatchPill(watch: String?, onClick: () -> Unit) {
 @Composable
 fun SystemStatusCard() {
     val context = LocalContext.current
-    val engine = remember { currentEngine(context) }
+    // 设定页改了金钥 / 主机，状态马上跟着变
+    val engine by produceState(currentEngine(context)) { while (true) { delay(2_000); value = currentEngine(context) } }
     val watch = rememberWatchName()
     GlassCard(highlight = true) {
         Text("系統狀態", style = MaterialTheme.typography.labelSmall, color = Brand.TextMuted)
         Spacer(Modifier.height(12.dp))
         StatusRow("AI 報告引擎", engine.name, engine.detail, if (engine.ready) Brand.Success else engine.color)
-        Spacer(Modifier.height(12.dp))
-        Divider()
-        Spacer(Modifier.height(12.dp))
-        StatusRow(
-            "智慧手錶", watch ?: "未連線",
-            if (watch != null) "在手錶按下錄音即可開始" else "請確認手錶已透過 Galaxy Wearable 配對",
-            if (watch != null) Brand.Success else Brand.TextFaint,
-        )
+        // 商用模式：手表只在有连线时显示；科技模式一律显示
+        if (watch != null || UiMode.tech) {
+            Spacer(Modifier.height(12.dp))
+            Divider()
+            Spacer(Modifier.height(12.dp))
+            StatusRow(
+                "智慧手錶", watch ?: "未連線",
+                if (watch != null) "在手錶按下錄音即可開始" else "請確認手錶已透過 Galaxy Wearable 配對",
+                if (watch != null) Brand.Success else Brand.TextFaint,
+            )
+        }
     }
 }
 
@@ -351,41 +367,6 @@ private fun StatusRow(label: String, value: String, detail: String, color: Color
             Text(label, style = MaterialTheme.typography.labelMedium, color = Brand.TextMuted)
             Text(value, style = MaterialTheme.typography.titleMedium, color = Brand.Text)
             Text(detail, style = MaterialTheme.typography.bodySmall, color = Brand.TextFaint)
-        }
-    }
-}
-
-@Composable
-private fun MeetingRow(
-    m: Meeting, snippet: com.example.wristai.SearchIndex.Snippet? = null, terms: List<String> = emptyList(), onClick: () -> Unit,
-) {
-    val style = m.statusStyle()
-    GlassCard(onClick = onClick, contentPadding = 14.dp) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            GlyphTile({ Waveform(Modifier.size(20.dp), if (style.busy) Brand.Cyan else Brand.Text) })
-            Spacer(Modifier.width(12.dp))
-            Column(Modifier.weight(1f)) {
-                Text(meetingTitle(m), style = MaterialTheme.typography.titleMedium, color = Brand.Text,
-                    maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Spacer(Modifier.height(2.dp))
-                Text("${m.origin().label} · ${shortWhen(m.createdAt)} · ${formatDuration(m.durationSec)}",
-                    style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
-                // 搜寻时：在哪里找到＋前后文（关键字标亮）
-                if (snippet != null) {
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        highlight((if (snippet.text.isEmpty()) "符合：${snippet.where}" else "${snippet.where}：${snippet.text}"), terms),
-                        style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted, maxLines = 3, overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                Spacer(Modifier.height(8.dp))
-                StatusChip(style)
-            }
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = Brand.TextFaint)
-        }
-        if (style.busy) {
-            Spacer(Modifier.height(12.dp))
-            ScanningBar()
         }
     }
 }

@@ -249,3 +249,13 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 - 測試用開關（只在 Debug）另有：手錶 `-autoRecordFood YES` 讓自動錄音變成飲食記錄；手機 `-localToken <存取碼>` 直接存自架 Mac 的存取碼（模擬器剪貼簿不能用）。
 - **自架 Mac**：安裝 `bash local-ai/setup.sh`，說明見 `local-ai/README.md`。服務登入時自動啟動（LaunchAgent `com.dylan.localai`），存取碼在 `~/dylan-local/config.json`（不進 repo）。背景傳輸遇到連不到的主機不會失敗、只會一直等，所以送出前先做 5 秒的 health 檢查；Mac 用自己的背景 session，總時限 1 小時。
 - 還沒做：手錶報告書清單 / 明細、手錶今日熱量環（`/wristai/food_today`）、長錄音分段分析（目前太長只會提示逐字稿被截斷）、GPS、搜尋、組合式引擎、處理步驟視覺化、說話者改名。
+
+## Android 跟上 iOS（2026-11-23，依 `交接/IOS_TO_ANDROID.md` 的高優先項目）
+
+- **大D的主機**（`ai/LocalHost.kt`）：跟 iOS `LocalAI.swift` 同一組 API（`/v1/health`、`/v1/models`、`/v1/config`、`/v1/process`）。位址存設定檔，存取碼用 Android Keystore（AES-GCM）加密後才存；`usesCleartextTraffic=true`（主機只有 http）。路由（`ProcessMeetingWorker.tryLocalHost`）：有設定就優先（錄音、飲食都是），先做 5 秒 health；回應格式跟 Gemini 一樣，直接用 `GeminiReportGenerator.parse`。失敗時：有別的引擎（組合式 / Gemini / 錄音機）就把原因寫進 `Meeting.engineNote`（「…。這次改用 X。」）再交給原本的路由；沒有就標失敗。處理中升成前台工作（長錄音可能超過 10 分鐘）。步驟「上傳到大D的主機 → 大D的主機整理」。`aiModelLabel` 認 `local-` 開頭：「大D的主機：FunASR ＋ Qwen3-8B」。`AiConfig.canReport` 有主機就算可以產生報告（被改用錄音機的記錄可以按「產生 AI 報告」再給主機）。
+- **設定頁**：最上面「介面模式」商用 / 科技（`ui/UiMode.kt`，存 `ui_mode`）；「大D的主機」卡（`ui/LocalHostSettings.kt`）：位址、存取碼（畫面只顯示「已設定」）、測試連線、清除；科技模式多主機模型選單（選了打 `/v1/config`，每 3 秒查 `/v1/models` 直到載入完）。系統狀態：有主機就是綠燈；手錶那行商用模式只在有連線時顯示。
+- **錄音清單改版**（`ui/RecordRow.kt`）：來源圖示（手錶 / 手機 / 通話 / 匯入）、標題＋右上 HH:mm、一行摘要（報告「摘要」段，`summaryOf`）；沒報告時「來源 · 長度」；狀態膠囊只在處理中 / 失敗；依「今天 / 昨天 / 11月20日 週五」分組（不是今年加年份）；長按 → 打開 / 刪除（確認「刪除後無法復原」）；長度「16 秒 / 2 分 / 1 小時 5 分」（`humanDuration`）。科技模式：摘要兩行＋細節行（來源 · 長度 · AI · 耗時）。
+- **主頁**：科技模式多一行「AI：目前的引擎」；手錶膠囊商用模式只在有連線時顯示。
+- **基本資料**：AI 兩種模式都顯示；耗時、編號、引擎切換原因只在科技模式。還沒有報告時，`engineNote` 兩種模式都顯示在詳情頁。
+- 測試：`ListFormatTest`（摘要、長度、日期分組）、`AiLabelTest` 加主機名稱與位址整理。模擬器用假主機（照 API 回固定報告，`adb reverse tcp:8765`）實測：設定 → 測試連線 → 換模型 → 手機錄音 → 主機出報告；主機關掉 → 改用錄音機並寫原因 → 主機開回來按「產生 AI 報告」成功；商用 / 科技切換；長按刪除。**還沒有接真正的大D的主機（Mac mini）測**，需要使用者在手機設定填位址與存取碼。
+- IOS_TO_ANDROID.md 的中優先項目（匯入文字檔、分享進來、錄線上通話、裝置名字＋型號、Fold5 展開兩欄、主機模型以外的 meta 欄位）還沒做。

@@ -101,8 +101,12 @@ fun DashboardScreen(
                     Text(greeting(), style = MaterialTheme.typography.headlineSmall, color = Brand.Text)
                     Text(SimpleDateFormat("M 月 d 日 EEEE", Locale.TAIWAN).format(Date()),
                         style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
+                    // 科技模式：目前会用的 AI 引擎
+                    if (UiMode.tech && engine.ready) Text("AI：${engine.name}", style = MaterialTheme.typography.labelSmall,
+                        color = Brand.TextFaint, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
-                WatchPill(watch, onOpenSettings)
+                // 商用模式：手表只在有连线时显示
+                if (watch != null || UiMode.tech) WatchPill(watch, onOpenSettings)
             }
         }
 
@@ -232,7 +236,7 @@ private fun LatestReportCard(m: Meeting, onClick: () -> Unit) {
     GlassCard(onClick = onClick) {
         Text(meetingTitle(m), style = MaterialTheme.typography.titleMedium, color = Brand.Text,
             maxLines = 2, overflow = TextOverflow.Ellipsis)
-        Text("${m.origin().label} · ${shortWhen(m.createdAt)} · ${formatDuration(m.durationSec)}",
+        Text("${m.origin().label} · ${shortWhen(m.createdAt)} · ${humanDuration(m.durationSec)}",
             style = MaterialTheme.typography.bodySmall, color = Brand.TextFaint)
         if (summary.isNotBlank()) {
             Spacer(Modifier.height(10.dp))

@@ -105,7 +105,7 @@ object AiConfig {
     }
 
     /** 现在能不能产生 AI 报告（详情页的「产生 AI 报告」按钮用）。 */
-    fun canReport(c: Context): Boolean = when (mode(c)) {
+    fun canReport(c: Context): Boolean = if (LocalHost.configured(c)) true else when (mode(c)) {
         MODE_GEMINI -> Settings.geminiKey(c).isNotBlank()
         MODE_PIPELINE -> pipelineMissing(c) == null
         else -> !explicit(c) && Settings.apiKey(c).isNotBlank()   // 旧版：只有 Claude 金钥

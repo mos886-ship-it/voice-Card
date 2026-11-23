@@ -206,6 +206,11 @@ fun DetailScreen(id: String, onBack: () -> Unit, onOpenSettings: () -> Unit) {
                 }
             }
 
+            // 这次为什么改用别的引擎（例：大D的主機连不到）；还没有报告时两种模式都显示
+            meeting.engineNote?.takeIf { report == null || UiMode.tech }?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall, color = Brand.Warning)
+            }
+
             // ---------- 操作 ----------
             if (!style.busy && canReport && meeting.status != MeetingStatus.FAILED) {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {

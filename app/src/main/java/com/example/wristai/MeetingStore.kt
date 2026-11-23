@@ -54,6 +54,8 @@ data class Meeting(
     /** 这次处理的开始 / 结束时间（算总耗时）。 */
     val processStartedAt: Long = 0,
     val processEndedAt: Long = 0,
+    /** 为什么改用别的引擎（例「大D的主機連不到（…），改用 Gemini」）；科技模式显示。 */
+    val engineNote: String? = null,
 ) {
     fun toJson(): String = JSONObject()
         .put("id", id).put("status", status.name).put("createdAt", createdAt)
@@ -69,6 +71,7 @@ data class Meeting(
         .put("aiModel", aiModel)
         .put("steps", org.json.JSONArray(steps)).put("step", step).put("stepDetail", stepDetail)
         .put("stepStartedAt", stepStartedAt).put("processStartedAt", processStartedAt).put("processEndedAt", processEndedAt)
+        .put("engineNote", engineNote)
         .toString(2)
 
     companion object {
@@ -102,6 +105,7 @@ data class Meeting(
                 stepStartedAt = j.optLong("stepStartedAt"),
                 processStartedAt = j.optLong("processStartedAt"),
                 processEndedAt = j.optLong("processEndedAt"),
+                engineNote = j.optStringOrNull("engineNote")?.takeIf { it.isNotBlank() },
             )
         }
     }

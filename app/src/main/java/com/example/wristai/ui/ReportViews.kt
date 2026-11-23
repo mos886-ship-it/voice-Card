@@ -349,10 +349,16 @@ fun ReportFacts(m: com.example.wristai.Meeting, geo: com.example.voiceai.shared.
             )
         } else FactRow("地點", "未記錄", faint = true)
         FactRow("來源", m.origin().label)
+        // AI 两种模式都显示（用了哪个模型）
         FactRow("AI", aiModelLabel(m.aiModel), faint = m.aiModel == null)
         m.importedAt?.let { FactRow("匯入", formatWhen(it)) }
-        if (m.processStartedAt > 0 && m.processEndedAt > m.processStartedAt)
-            FactRow("耗時", durationWords(m.processEndedAt - m.processStartedAt))
+        // 科技模式：耗时、编号、为什么改用别的引擎
+        if (UiMode.tech) {
+            if (m.processStartedAt > 0 && m.processEndedAt > m.processStartedAt)
+                FactRow("耗時", durationWords(m.processEndedAt - m.processStartedAt))
+            FactRow("編號", m.id, faint = true)
+            m.engineNote?.let { FactRow("引擎", it, faint = true) }
+        }
     }
 }
 

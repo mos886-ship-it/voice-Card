@@ -230,7 +230,7 @@ private fun Box2(selected: Boolean) {
 }
 
 @Composable
-private fun Chips(labels: List<String>, selected: Int, onSelect: (Int) -> Unit) {
+internal fun Chips(labels: List<String>, selected: Int, onSelect: (Int) -> Unit) {
     @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
     androidx.compose.foundation.layout.FlowRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -292,7 +292,7 @@ private fun ModelField(slot: String, @Suppress("UNUSED_PARAMETER") label: String
     PlainField("model_$slot", "模型（留空用預設）", AiConfig.DEFAULT_MODELS[slot], onChange)
 
 @Composable
-private fun engineFieldColors() = OutlinedTextFieldDefaults.colors(
+internal fun engineFieldColors() = OutlinedTextFieldDefaults.colors(
     focusedTextColor = Brand.Text, unfocusedTextColor = Brand.Text,
     focusedBorderColor = Brand.Cyan, unfocusedBorderColor = Brand.Outline, cursorColor = Brand.Cyan,
     focusedLabelColor = Brand.Cyan, unfocusedLabelColor = Brand.TextMuted,

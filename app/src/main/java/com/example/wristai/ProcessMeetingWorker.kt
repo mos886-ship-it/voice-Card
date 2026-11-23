@@ -42,6 +42,8 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
 
         /** 使用者按「中断处理」时记在 error 的文字（画面用它分辨「中断」与「失败」）。 */
         const val CANCELED = "已手動中斷處理"
+        const val STEP_HOST_UP = "上傳到大D的主機"
+        const val STEP_HOST_AI = "大D的主機整理"
 
         /** 中断处理：停掉背景任务，标成「已中断」（按「重试」可以接着做）。 */
         fun cancel(context: Context, meetingId: String) {
@@ -104,6 +106,7 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
 
         // ---------- 饮食记录：估算热量与营养素（需要云端 AI） ----------
         if (FoodLog.isFood(id)) {
+            tryLocalHost(id, meeting, food = true)?.let { return it }
             return if (mode == com.example.wristai.ai.AiConfig.MODE_PIPELINE) processPipeline(id, meeting, recordedAt, startedAt, food = true)
             else processFood(id, meeting, recordedAt)
         }
@@ -143,6 +146,9 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
 
             // ---------- 有 Gemini Key（免费）→ Gemini 直接听录音，出报告 + 逐字稿 ----------
             // ---------- 组合式：语音辨识 ＋ 报告模型（百炼、讯飞、OpenAI、Meta、Claude） ----------
+            // ---------- 大D的主機（使用者自己的电脑）：有设定就优先，连不到再走下面的引擎 ----------
+            tryLocalHost(id, meeting, food = false)?.let { return it }
+
             if (mode == com.example.wristai.ai.AiConfig.MODE_PIPELINE) return processPipeline(id, meeting, recordedAt, startedAt, food = false)
 
             val geminiKey = Settings.geminiKey(ctx).takeIf { mode == com.example.wristai.ai.AiConfig.MODE_GEMINI }.orEmpty()
@@ -396,6 +402,90 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
             MeetingStore.update(ctx, id) { it.copy(status = MeetingStatus.FAILED, error = msg) }
             WatchNotifier.sendStatus(ctx, node, "處理失敗：$msg（可在手機上重試）")
             Result.failure()
+        }
+    }
+
+    /**
+     * 大D的主機：有设定就优先（录音不出使用者的设备，隐私上等同装置端）。
+     * 回传 null = 这次没由主机处理（连不到 / 失败，而且还有别的引擎可用；原因写进 engineNote），交给后面的路由。
+     */
+    private suspend fun tryLocalHost(id: String, meeting: Meeting, food: Boolean): Result? {
+        val host = com.example.wristai.ai.LocalHost
+        val cfg = com.example.wristai.ai.AiConfig
+        if (!host.configured(ctx)) return null
+        val node = meeting.watchNodeId
+        val mode = cfg.mode(ctx)
+        val pipelineOk = mode == cfg.MODE_PIPELINE && cfg.pipelineMissing(ctx) == null
+        val geminiOk = Settings.geminiKey(ctx).isNotBlank()
+        val fallback = when {
+            pipelineOk -> "組合式 AI"
+            geminiOk && (food || mode == cfg.MODE_GEMINI) -> "Gemini"
+            // 录音：没有别的云端引擎时照旧交给三星录音机（Galaxy AI），之后可以按「重試」再给主机
+            !food -> "手機的錄音機（Galaxy AI）"
+            else -> null
+        }
+        val before = MeetingStore.get(ctx, id)?.steps.orEmpty()
+        val lastStep = if (food) "估算熱量" else STEP_HOST_AI
+        plan(id, before.filter { it == "接收錄音" || it == "存入錄音機" }.ifEmpty { listOf("接收錄音") } + listOf(STEP_HOST_UP, lastStep))
+        // 标头只能放 ASCII：录音时间用数字格式
+        val asciiAt = SimpleDateFormat("yyyy/MM/dd HH:mm", Locale.US).format(Date(meeting.createdAt))
+        return try {
+            MeetingStore.update(ctx, id) { it.copy(status = MeetingStatus.SUMMARIZING, error = null, engineNote = null) }
+            stepTo(id, STEP_HOST_UP, "大D的主機")
+            WatchNotifier.sendStatus(ctx, node, if (food) "大D的主機估算熱量中…" else "大D的主機整理報告中…")
+            // 长录音在主机上可能超过 10 分钟：升成前台工作，避免被系统中途停掉
+            runCatching { setForeground(getForegroundInfo()) }
+            val res = withContext(Dispatchers.IO) {
+                host.health(ctx)   // 5 秒：连不到就马上改用别的引擎，不要卡在上传
+                val compact = File(ctx.cacheDir, "local_$id.m4a")
+                try {
+                    VoiceRecorderExporter.encodeM4a(MeetingStore.audioFile(ctx, id), compact, outRate = 16_000, bitRate = 32_000)
+                    host.process(ctx, if (food) "food" else "meeting", asciiAt, meeting.durationSec, audio = compact,
+                        onUploaded = { stepTo(id, lastStep, "大D的主機") })
+                } finally {
+                    compact.delete()
+                }
+            }
+            val (report, transcript) = GeminiReportGenerator("").parse(res.text)
+            MeetingStore.transcriptFile(ctx, id).writeText(transcript)
+            if (food) {
+                val nutrition = FoodLog.parseNutrition(res.text)
+                MeetingStore.reportFile(ctx, id).writeText(FoodLog.stripNutrition(report.markdown))
+                MeetingStore.update(ctx, id) {
+                    it.copy(status = MeetingStatus.DONE, title = report.title, nutrition = nutrition, aiModel = res.model)
+                }
+                finishSteps(id)
+                WatchNotifier.sendSummary(ctx, node, MeetingSummary(id, report.title, report.shortSummary))
+                WatchNotifier.broadcastFoodToday(ctx)
+                ReadyNotification.showReport(ctx, id, report.title, report.shortSummary)
+            } else {
+                MeetingStore.reportFile(ctx, id).writeText(report.markdown)
+                val names = Speakers.namesFromReport(report.markdown)
+                MeetingStore.update(ctx, id) {
+                    it.copy(status = MeetingStatus.DONE, title = report.title, speakerNames = names, aiModel = res.model)
+                }
+                finishSteps(id)
+                val summary = Speakers.apply(report.shortSummary, names)
+                WatchNotifier.sendSummary(ctx, node, MeetingSummary(id, report.title, summary))
+                ReadyNotification.showReport(ctx, id, report.title, summary)
+            }
+            Log.d(TAG, "$id: report by ${res.model}")
+            Result.success()
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            if (isStopped) return Result.failure()   // 使用者按了「中断处理」
+            val why = e.message ?: e.javaClass.simpleName
+            Log.w(TAG, "$id: local host failed: $why")
+            if (fallback != null) {
+                MeetingStore.update(ctx, id) { it.copy(engineNote = why.trimEnd('。') + "。這次改用 $fallback。") }
+                if (before.isNotEmpty() && !food) plan(id, before)
+                null
+            } else {
+                MeetingStore.update(ctx, id) { it.copy(status = MeetingStatus.FAILED, error = why) }
+                WatchNotifier.sendStatus(ctx, node, "處理失敗：$why（可在手機上重試）")
+                Result.failure()
+            }
         }
     }
 
