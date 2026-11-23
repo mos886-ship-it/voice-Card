@@ -237,7 +237,8 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 | 里程碑 2：Gemini 報告（提示詞照抄 Android，3.8-flash → 3.5-flash-lite 備援），金鑰存 Keychain | ✅ 模擬器（53 秒兩人對話 → 7 秒出報告，說話者名字正確） |
 | 背景處理：上傳與 generateContent 交給系統背景傳輸（`GeminiJobs`），鎖屏 / App 在背景 / 被系統關掉都會完成 | ✅ 模擬器（鎖屏、殺 App 都測過） |
 | 完整流程：手錶錄音 → 手機（鎖屏、App 沒開）→ 背景 Gemini → 手錶「✓ 報告完成」 | ✅ 模擬器 25 秒 |
-| 真機 | ❌ 還沒有真機 |
+| 真機（2026-11-23）| ✅ iPad Pro 11 吋第 2 代（iPadOS 27.2）：安裝、手機錄音 → 固定 IP → 大D的主機出報告；iPhone 15 Pro Max（iOS 26.7）：安裝、手機錄音 → Gemini 報告。手錶真機未測 |
+| 手機 / iPad 錄音、匯入音檔 / 影片 / 文字、從別的 App 分享進來、錄通話（畫面廣播只留聲音）、商用 / 科技介面模式、iPad 全螢幕兩欄版面、來源顯示裝置名字＋型號 | ✅（通話錄音尚未實際通話測試）。**給 Android 的完整總結：`交接/IOS_TO_ANDROID.md`** |
 
 注意事項：
 - **模擬器的手錶傳檔是壞的**（Xcode 27.2）：`transferFile`、`transferUserInfo` 會被轉成沒附件的訊息、手機的 wcd 直接丟掉，只有 `sendMessage` 會到。所以模擬器上（`#if targetEnvironment(simulator)`）分段改成切 32KB 用 sendMessage 傳、手機拼回原檔；真機仍用 transferFile。
@@ -247,4 +248,4 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 - 強制關閉 App（在 App 切換器滑掉）時 iOS 會取消背景傳輸，下次開 App 會自動重新分析。
 - 測試用開關（只在 Debug）另有：手錶 `-autoRecordFood YES` 讓自動錄音變成飲食記錄；手機 `-localToken <存取碼>` 直接存自架 Mac 的存取碼（模擬器剪貼簿不能用）。
 - **自架 Mac**：安裝 `bash local-ai/setup.sh`，說明見 `local-ai/README.md`。服務登入時自動啟動（LaunchAgent `com.dylan.localai`），存取碼在 `~/dylan-local/config.json`（不進 repo）。背景傳輸遇到連不到的主機不會失敗、只會一直等，所以送出前先做 5 秒的 health 檢查；Mac 用自己的背景 session，總時限 1 小時。
-- 還沒做：手機錄音（「記錄這一餐」「開始錄音」目前提示用手錶）、手錶報告書清單 / 明細、手錶今日熱量環（`/wristai/food_today`）、長錄音分段分析（目前太長只會提示逐字稿被截斷）、GPS、搜尋、組合式引擎、處理步驟視覺化、說話者改名。
+- 還沒做：手錶報告書清單 / 明細、手錶今日熱量環（`/wristai/food_today`）、長錄音分段分析（目前太長只會提示逐字稿被截斷）、GPS、搜尋、組合式引擎、處理步驟視覺化、說話者改名。
