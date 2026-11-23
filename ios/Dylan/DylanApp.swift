@@ -16,7 +16,13 @@ struct DylanApp: App {
                 .environmentObject(MeetingStore.shared)
                 .environmentObject(PhoneLink.shared)
                 .task { await AiStatus.shared.refresh() } // 開 App 就偵測這支 iPhone 能用哪種 AI
-                .onChange(of: phase) { p in if p == .active { PhoneRecorder.shared.checkAlive() } }
+                .onChange(of: phase) { p in
+                    if p == .active {
+                        PhoneRecorder.shared.checkAlive()
+                        Task { await CallInbox.importFinished() }   // 通話錄音結束後回到大D：收進清單
+                    }
+                }
+                .task { await CallInbox.importFinished() }
                 #if DEBUG
                 // 測試用：simctl launch <iPhone> tw.dylan.wristai -processId 20261122_000000（背景分析測試）
                 .task {

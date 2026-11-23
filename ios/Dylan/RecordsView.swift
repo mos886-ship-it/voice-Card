@@ -18,7 +18,7 @@ struct RecordsView: View {
             .filter { m in terms.allSatisfy { m.searchText.contains($0) } }
         let groups = Dictionary(grouping: shown) { Fmt.stamp($0.createdAt, "yyyy年M月") }
             .sorted { ($0.value.first?.createdAt ?? .distantPast) > ($1.value.first?.createdAt ?? .distantPast) }
-        let origins = ["watch", "phone", "import"].filter { o in meetings.contains { $0.source == o } }
+        let origins = ["watch", "phone", "call", "import"].filter { o in meetings.contains { $0.source == o } }
 
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 12) {

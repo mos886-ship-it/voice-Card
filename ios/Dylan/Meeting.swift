@@ -70,6 +70,7 @@ struct Meeting: Codable, Identifiable, Equatable {
         case "watch": return "手錶"
         case "phone": return "手機"
         case "import": return "匯入"
+        case "call": return "通話"
         case "food": return "飲食"
         default: return source
         }

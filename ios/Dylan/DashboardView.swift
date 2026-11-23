@@ -41,6 +41,8 @@ struct DashboardView: View {
                         QuickTile(title: "記錄飲食", sub: "說出吃了什麼", filled: false) { rec.start(food: true) }
                     }
                 }
+                CallTile { BroadcastPicker.open() }
+                    .background(BroadcastPicker().frame(width: 1, height: 1))
 
                 // ---------- 今天 ----------
                 GlassCard {
@@ -188,5 +190,32 @@ private struct RecordingCard: View {
         }
         .padding(16)
         .background(shape.fill(Brand.accent))
+    }
+}
+
+/// 錄通話：LINE / Zoom / Teams 等 App 裡雙方的聲音（iOS 畫面廣播，只留聲音）。
+private struct CallTile: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 14) {
+                Image(systemName: "phone.bubble.fill")
+                    .font(.system(size: 18)).foregroundStyle(Brand.cyan)
+                    .frame(width: 40, height: 40)
+                    .background(Circle().fill(Brand.surfaceHigh))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("錄通話 / 線上會議").font(.titleMedium).foregroundStyle(Brand.text)
+                    Text("LINE、Zoom、Teams 雙方的聲音，戴 AirPods 也可以。在面板選「大D」、打開麥克風，按「開始廣播」；結束時按紅色狀態列停止。")
+                        .font(.bodySmall).foregroundStyle(Brand.textMuted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(14)
+            .background(RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Brand.surface))
+            .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(Brand.outline, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
     }
 }
