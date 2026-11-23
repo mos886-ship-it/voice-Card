@@ -498,14 +498,14 @@ private struct DeviceNameCard: View {
         GlassCard {
             HStack(spacing: 10) {
                 Text("名稱").font(.labelMedium).foregroundStyle(Brand.textMuted).frame(minWidth: 36, alignment: .leading).fixedSize()
-                TextField("", text: $name, prompt: Text(DeviceInfo.model).foregroundColor(Brand.textFaint))
+                TextField("", text: $name, prompt: Text(Meeting.isPad ? "例如：Dylan 的 iPad" : "例如：Dylan 的 iPhone").foregroundColor(Brand.textFaint))
                     .autocorrectionDisabled()
                     .foregroundStyle(Brand.text)
                     .padding(12)
                     .background(RoundedRectangle(cornerRadius: 12).fill(Brand.surfaceHigh))
                     .overlay(RoundedRectangle(cornerRadius: 12).stroke(Brand.outline, lineWidth: 1))
             }
-            Text("會顯示在錄音的「來源」，例如「\(Meeting.isPad ? "iPad" : "手機") · \(name.isEmpty ? DeviceInfo.model : name)」。沒填就用型號。")
+            Text("會顯示在錄音的「來源」，例如「\(Meeting.isPad ? "iPad" : "手機") · \(name.isEmpty ? "Dylan 的 iPad" : name)」。iOS 不讓 App 讀系統設定裡的裝置名稱，所以請在這裡填一次。")
                 .font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 8)
         }
     }

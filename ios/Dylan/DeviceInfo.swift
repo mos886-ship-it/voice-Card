@@ -1,15 +1,23 @@
 import UIKit
 
-/// 這台 iPhone / iPad 的名字：顯示在錄音的「來源」（例如「iPad · 會議室 iPad」）。
-/// iOS 16 起 App 讀不到使用者在系統設定取的名字，所以預設用型號，使用者可以在設定頁自己取名。
+/// 這台 iPhone / iPad 的名字：顯示在錄音的「來源」（例如「iPad · Dylan 的 iPad」）。
+/// iOS 16 起 App 要 Apple 核准的權限（付費帳號才能申請）才讀得到使用者在系統設定取的名字，
+/// 所以第一次開 App 請使用者自己輸入一次；之後拿到權限時，系統名字會自動用上。
 enum DeviceInfo {
     static let key = "device_name"
 
-    /// 使用者取的名字；沒取就用型號。
+    static let askedKey = "device_name_asked"
+
+    /// 使用者取的名字；沒取就試系統名字（有權限時才是真的名字）；都沒有回傳空字串。
     static var name: String {
         let v = (UserDefaults.standard.string(forKey: key) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        return v.isEmpty ? model : v
+        if !v.isEmpty { return v }
+        let sys = UIDevice.current.name
+        return ["iPhone", "iPad", "iPod touch"].contains(sys) ? "" : sys
     }
+
+    /// 是不是型號（舊版存的是型號，不是名字）。
+    static func isModel(_ s: String) -> Bool { models.values.contains(s) || ["iPhone", "iPad"].contains(s) }
 
     /// 型號（iPad Pro 11 吋（第 2 代）、iPhone 15 Pro Max…）；認不得就用 iPhone / iPad。
     static var model: String { models[machine] ?? (UIDevice.current.userInterfaceIdiom == .pad ? "iPad" : "iPhone") }

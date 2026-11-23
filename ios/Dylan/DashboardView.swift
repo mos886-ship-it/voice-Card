@@ -10,6 +10,10 @@ struct DashboardView: View {
     @ObservedObject private var rec = PhoneRecorder.shared
     @Environment(\.pageWidth) private var width
     @AppStorage(UIMode.key) private var mode: UIMode = .business
+    @AppStorage(DeviceInfo.askedKey) private var askedName = false
+    @AppStorage(DeviceInfo.key) private var deviceName = ""
+    @State private var naming = false
+    @State private var nameInput = ""
 
     var body: some View {
         let recordings = store.meetings.filter { !$0.isFood }
@@ -112,6 +116,17 @@ struct DashboardView: View {
             .padding(.vertical, 12)
         }
         .refreshable { store.reload() }
+        .onAppear { if !askedName && DeviceInfo.name.isEmpty { naming = true } }
+        .alert(Meeting.isPad ? "這台 iPad 叫什麼名字？" : "這支手機叫什麼名字？", isPresented: $naming) {
+            TextField(Meeting.isPad ? "例如：Dylan 的 iPad" : "例如：Dylan 的 iPhone", text: $nameInput)
+            Button("儲存") {
+                deviceName = nameInput.trimmingCharacters(in: .whitespacesAndNewlines)
+                askedName = true
+            }
+            Button("以後再說", role: .cancel) { askedName = true }
+        } message: {
+            Text("會顯示在錄音的「來源」，分得出是哪一台錄的。之後可以在「設定 → 這台裝置」改。")
+        }
         .onChange(of: rec.state) { s in
             switch s {
             case .denied: toast = "沒有麥克風權限：到 iPhone 設定 → 大D → 麥克風 打開"; rec.clearMessage()
