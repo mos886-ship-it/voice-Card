@@ -79,8 +79,8 @@ struct ReportFacts: View {
             VStack(alignment: .leading, spacing: 6) {
                 fact("時間", meeting.recordingRange)
                 fact("來源", meeting.sourceLabel)
+                fact("AI", Meeting.aiModelLabel(meeting.aiModel))   // 兩種模式都顯示用了哪個 AI
                 if mode == .tech {
-                    fact("AI", Meeting.aiModelLabel(meeting.aiModel))
                     if let s = meeting.processStartedAt, let e = meeting.processEndedAt {
                         fact("耗時", "\(Int(e.timeIntervalSince(s).rounded())) 秒")
                     }
