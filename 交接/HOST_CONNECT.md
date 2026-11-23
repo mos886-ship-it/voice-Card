@@ -35,7 +35,8 @@
 | 對外埠 | **48765**（路由器轉到 192.168.0.23:8765） |
 | 服務程式 | `~/dylan-local/server.py`（repo 裡的副本：`local-ai/server.py`，改了要兩邊一致） |
 | Python 環境 | `~/dylan-local/venv` |
-| 設定 | `~/dylan-local/config.json`：`token`（存取碼）、`asr`、`llm`（目前選的模型）；權限 600 |
+| 設定 | `~/dylan-local/config.json`：`token`（主存取碼）、`password`（配對密碼的雜湊）、`devices`（配對過的裝置，存取碼只存雜湊）、`public_url`（對外位址，放進配對 QR 碼）、`asr`、`llm`；權限 600 |
+| 配對 | `~/dylan-local/pairing.py`（repo：`local-ai/pairing.py`） |
 | 紀錄 | `~/dylan-local/server.log`（每次請求、來源 IP、處理耗時、錯誤） |
 | 預設模型 | 語音辨識 FunASR、報告 Qwen3-8B（MLX 4bit） |
 
@@ -102,26 +103,39 @@ App「設定 → 大D的主機」：
 | 欄位 | 在家 | 出門 |
 |---|---|---|
 | 位址 | `http://Dylan-Mac-mini.local:8765`（或 `http://192.168.0.23:8765`） | `http://<固定 IP>:48765` |
-| 存取碼 | 見下面 | 同一個 |
+| 連線方式 | 配對（見下面：掃 QR 碼或配對密碼） | 同一台配對一次就好 |
 
 - 位址沒打 `http://` 會自動補上。一個位址同時適合在家和出門的話，就填固定 IP 那個（在家靠路由器回送也通）。
 - 第一次連區網時 iPhone / iPad 會問「允許尋找區域網路上的裝置」，要按**允許**（拒絕過就到 iPhone 設定 → 大D → 區域網路 打開）。
 - 填好按 **測試連線**，應該顯示「連線成功：FunASR…、Qwen3-8B…」。
 
-### 存取碼怎麼拿到手機上
-存取碼是 43 個字元，**不要用聊天軟體傳**。在主機的終端機執行：
+### 怎麼連上（配對，不用手動貼存取碼）
 
+兩種方法，任選：
+
+**A. 掃 QR 碼（第一台裝置用這個）**
+1. 在家裡的 Wi-Fi，用瀏覽器打開 `http://Dylan-Mac-mini.local:8765/pair`（或在主機上打開 `http://localhost:8765/pair`）。這頁**只有家裡的網路和主機本身打得開**，從外面會被拒絕。
+2. 用 iPhone / iPad 的**相機**掃畫面上的 QR 碼，點「在大D中打開」；或在 App「設定 → 大D的主機 → 掃描主機上的 QR 碼」。
+   用這台的 Safari 打開配對頁時沒辦法掃自己，點頁面上的「在這台 iPhone / iPad 上直接配對」。
+3. App 自動填好位址、拿到這台裝置自己的存取碼，顯示「已連上大D的主機」。
+   - QR 碼 10 分鐘內有效、只能用一次；重新整理頁面會換新的。
+   - QR 碼裡帶兩個位址：對外的（固定 IP:48765，主機 `config.json` 的 `public_url`）和區網的；App 先試對外的，連不到再試區網的。
+
+**B. 配對密碼（之後的裝置、人在外面也可以）**
+1. 先設定密碼（一次就好）：在已經連上的裝置，App「設定 → 大D的主機 → 配對密碼 → 設定」（至少 8 個字）；或在主機上執行：
+   ```bash
+   ~/dylan-local/venv/bin/python ~/dylan-local/server.py --set-password
+   ```
+2. 新裝置：App「設定 → 大D的主機」填**位址**、輸入**配對密碼** → 按「配對」。
+
+**原理**：每台裝置配對時拿到自己的長存取碼（43 字元，App 存在鑰匙圈；主機只存雜湊），密碼只在配對那一次傳。科技模式的「已配對的裝置」可以看每台的配對時間、最後使用時間，個別「取消」；這台自己按「取消配對」。手機遺失就從別台取消它。
+
+**防猜**：配對失敗同一個 IP 5 次封 1 小時；所有來源 1 小時內失敗 30 次，配對暫停 1 小時（重啟服務可解除）。
+
+**進階（舊方法）**：科技模式下還能直接貼主機 `config.json` 的主存取碼。複製主存取碼的指令：
 ```bash
 python3 -c "import json;print(json.load(open('/Users/mac/dylan-local/config.json'))['token'],end='')" | pbcopy
 ```
-
-- 手機 / iPad 跟主機用**同一個 Apple ID**（藍牙、Wi-Fi、接力都開）：直接在 App 的存取碼欄位「貼上」→ 按 **儲存**（沒按儲存不會存，iPhone 第一次就是這樣失敗的）。
-- 不同 Apple ID：在主機上把存取碼轉成 QR code 顯示在螢幕，用手機相機掃、拷貝、貼上：
-
-```bash
-brew install qrencode && python3 -c "import json;print(json.load(open('/Users/mac/dylan-local/config.json'))['token'],end='')" | qrencode -s 12 -o /tmp/code.png && open /tmp/code.png
-```
-用完刪掉 `/tmp/code.png`。
 
 - Android：App 存取碼存在 Keystore / EncryptedSharedPreferences；要允許 http 明文（`network_security_config`）。
 
@@ -145,7 +159,10 @@ T=$(python3 -c "import json;print(json.load(open('/Users/mac/dylan-local/config.
 
 | 狀況 | 原因 / 處理 |
 |---|---|
-| App：「存取碼不對」（401） | 存取碼貼錯或沒按儲存。重新複製、貼上、**儲存** |
+| App：「存取碼不對」（401） | 這台的配對被取消了（或主存取碼換了）。按「取消配對」後重新配對 |
+| 配對：「密碼不對」/「QR 碼過期或已經用過」 | 重新輸入；QR 碼重新整理配對頁再掃 |
+| 配對：「主機還沒設定配對密碼」 | 先用 QR 碼配對，再到設定裡設密碼 |
+| 配對頁打不開（403） | 配對頁只給家裡的網路：手機連家裡 Wi-Fi，用 `Dylan-Mac-mini.local` 或 192.168.0.23，不要用固定 IP |
 | App 連不上，`server.log` 有 `blocked <IP>`（429） | 同一個來源 IP 錯 10 次被封 1 小時。主機執行重啟服務指令即解除。在家用固定 IP 連時被封的是自己家 |
 | App：「連不到大D的主機」，`server.log` 完全沒有那支手機的紀錄 | 請求沒到主機：位址打錯（外面要用 **48765**、家裡用 **8765**）、手機沒網路、拒絕了「區域網路」權限、路由器轉埠或 DHCP 保留跑掉了（主機 IP 不是 192.168.0.23）|
 | App：「主機正在載入模型」很久 | 剛開機或剛換模型；第一次選新模型要下載（幾 GB）。看 `server.log` |
@@ -158,7 +175,7 @@ T=$(python3 -c "import json;print(json.load(open('/Users/mac/dylan-local/config.
 
 - 對外開的是 **http（不加密）**：錄音、報告、存取碼在網路上是明文。可以接受的前提是存取碼夠長、有錯誤封鎖。要加密就改用 Tailscale（手機和主機都裝，位址填主機的 Tailscale IP、埠 8765，不用開路由器的埠），或在前面加 HTTPS。
 - 服務的保護：存取碼固定時間比對；同一個來源 IP 錯 10 次封 1 小時（存在記憶體，重啟服務就清掉）；請求逾時 120 秒（處理中的連線另計）；設定請求限 10 KB；每筆請求記錄來源 IP。
-- 存取碼外洩或懷疑被猜：改 `config.json` 的 `token`（例如 `python3 -c "import secrets;print(secrets.token_urlsafe(32))"` 產生新的），重啟服務，再把新的貼到每一台裝置。
+- 某台裝置遺失：在別台的「已配對的裝置」取消它。配對密碼外洩：在 App 或主機上換密碼（已配對的裝置不受影響）。主存取碼外洩：改 `config.json` 的 `token`（`python3 -c "import secrets;print(secrets.token_urlsafe(32))"`）後重啟服務。
 - 不用時可以在路由器把 `dylan-ai` 轉埠規則關掉，只留區網。
 
 ---

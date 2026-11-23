@@ -201,61 +201,134 @@ private struct LocalMacCard: View {
     @State private var asr = ""
     @State private var llm = ""
     @State private var switching: String?   // 換模型中的提示
+    @State private var password = ""
+    @State private var pairing = false
+    @State private var scanning = false
+    @State private var confirmUnpair = false
+    @State private var passwordSet: Bool?
+    @State private var editingPassword = false
+    @State private var newPassword = ""
+    @State private var newPassword2 = ""
+    @State private var devices: [LocalAI.Device] = []
     @AppStorage(UIMode.key) private var mode: UIMode = .business
 
     var body: some View {
         GlassCard {
             Text("用大D的主機 跑 AI：會分說話者、免費、沒有額度，錄音不出你的設備。主機要開著，手機要連得到（同一個 Wi-Fi，或出門用固定 IP）。")
                 .font(.bodySmall).foregroundStyle(Brand.textMuted)
-            field("位址", text: $url, prompt: LocalAI.defaultURL.isEmpty ? "http://Dylan-Mac-mini.local:8765" : LocalAI.defaultURL)
-                .padding(.top, 10)
             if hasToken {
-                HStack {
-                    Image(systemName: "key.fill").foregroundStyle(Brand.success)
-                    Text("存取碼已設定").font(.titleSmall).foregroundStyle(Brand.text)
+                // ---------- 已配對 ----------
+                HStack(spacing: 10) {
+                    Image(systemName: "checkmark.seal.fill").foregroundStyle(Brand.success)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("已連上大D的主機").font(.titleSmall).foregroundStyle(Brand.text)
+                        Text(LocalAI.url).font(.labelMedium).foregroundStyle(Brand.textFaint).lineLimit(1)
+                    }
                     Spacer()
-                    Button("更換") { hasToken = false }.font(.labelLarge).foregroundStyle(Brand.cyan)
-                    Button("刪除") {
-                        Keychain.set("", for: LocalAI.tokenAccount); hasToken = false; result = nil; onChange()
-                    }
-                    .font(.labelLarge).foregroundStyle(Brand.error).padding(.leading, 8)
+                    Button("取消配對") { confirmUnpair = true }.font(.labelLarge).foregroundStyle(Brand.error)
                 }
                 .padding(.top, 10)
+                GradientButton(text: testing ? "測試中…" : "測試連線", systemImage: "antenna.radiowaves.left.and.right",
+                               enabled: !testing) { test() }
+                    .padding(.top, 10)
+                if let result {
+                    Label(result.text, systemImage: result.ok ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                        .font(.bodySmall).foregroundStyle(result.ok ? Brand.success : Brand.warning).padding(.top, 8)
+                }
+                // 配對密碼：其他裝置配對用
+                DividerLine().padding(.vertical, 12)
+                HStack {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("配對密碼").font(.titleSmall).foregroundStyle(Brand.text)
+                        Text(passwordSet == true ? "已設定：新裝置輸入這個密碼就能連上" : "還沒設定：設了之後新裝置輸入密碼就能連上")
+                            .font(.bodySmall).foregroundStyle(Brand.textMuted)
+                    }
+                    Spacer()
+                    Button(passwordSet == true ? "更換" : "設定") { editingPassword.toggle() }
+                        .font(.labelLarge).foregroundStyle(Brand.cyan)
+                }
+                if editingPassword {
+                    secure("新的配對密碼（至少 8 個字）", text: $newPassword).padding(.top, 8)
+                    secure("再輸入一次", text: $newPassword2).padding(.top, 6)
+                    GradientButton(text: "儲存密碼", enabled: newPassword.count >= 8 && newPassword == newPassword2) {
+                        Task {
+                            do {
+                                try await LocalAI.setPassword(newPassword)
+                                result = (true, "配對密碼已設定")
+                                passwordSet = true
+                                editingPassword = false
+                                newPassword = ""; newPassword2 = ""
+                            } catch { result = (false, error.localizedDescription) }
+                        }
+                    }
+                    .padding(.top, 8)
+                }
+                if mode == .tech, !devices.isEmpty {
+                    DividerLine().padding(.vertical, 12)
+                    Text("已配對的裝置").font(.labelMedium).foregroundStyle(Brand.textMuted)
+                    ForEach(devices) { d in
+                        HStack {
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(d.name + (d.current ? "（這台）" : "")).font(.bodyMedium).foregroundStyle(Brand.text)
+                                Text("配對 " + Fmt.stamp(Date(timeIntervalSince1970: d.created), "M/d HH:mm")
+                                     + (d.last_seen.map { " · 最後使用 " + Fmt.stamp(Date(timeIntervalSince1970: $0), "M/d HH:mm") } ?? "")
+                                     + (d.via == "qr" ? " · QR" : " · 密碼"))
+                                    .font(.labelMedium).foregroundStyle(Brand.textFaint)
+                            }
+                            Spacer()
+                            if !d.current {
+                                Button("取消") {
+                                    Task { try? await LocalAI.revoke(d.id); await loadDevices() }
+                                }
+                                .font(.labelLarge).foregroundStyle(Brand.error)
+                            }
+                        }
+                        .padding(.top, 6)
+                    }
+                }
             } else {
+                // ---------- 還沒配對：密碼或 QR 碼 ----------
+                field("位址", text: $url, prompt: LocalAI.defaultURL.isEmpty ? "http://Dylan-Mac-mini.local:8765" : LocalAI.defaultURL)
+                    .padding(.top, 10)
                 HStack(spacing: 8) {
-                    SecureField("", text: $token, prompt: Text("貼上存取碼（主機上 ~/dylan-local/config.json 的 token）").foregroundColor(Brand.textFaint))
-                        .textInputAutocapitalization(.never).autocorrectionDisabled()
-                        .foregroundStyle(Brand.text)
-                        .padding(12)
-                        .background(RoundedRectangle(cornerRadius: 12).fill(Brand.surfaceHigh))
-                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Brand.outline, lineWidth: 1))
-                    GhostButton(text: "儲存", tint: Brand.cyan) {
-                        let t = token.trimmingCharacters(in: .whitespacesAndNewlines)
-                        guard !t.isEmpty else { return }
-                        Keychain.set(t, for: LocalAI.tokenAccount); token = ""; hasToken = true; onChange()
+                    secure("配對密碼", text: $password)
+                    GhostButton(text: pairing ? "配對中…" : "配對", tint: Brand.cyan) {
+                        guard !pairing, !password.isEmpty else { return }
+                        pairing = true
+                        Task {
+                            do {
+                                try await LocalAI.pair(url: url.isEmpty ? LocalAI.defaultURL : url, password: password)
+                                password = ""
+                                paired("配對完成")
+                            } catch { result = (false, error.localizedDescription) }
+                            pairing = false
+                        }
                     }
                 }
-                .padding(.top, 10)
-            }
-            GradientButton(text: testing ? "測試中…" : "測試連線", systemImage: "antenna.radiowaves.left.and.right",
-                           enabled: !testing && hasToken) {
-                testing = true
-                Task {
-                    do {
-                        let h = try await LocalAI.health(url: LocalAI.url, token: LocalAI.token)
-                        result = (true, "連線成功：\(h.asr ?? "")、\(h.llm ?? "")" + (h.busy == true ? "（正在處理別的錄音）" : ""))
-                        await loadModels()
-                        onChange()
-                    } catch {
-                        result = (false, error.localizedDescription)
-                    }
-                    testing = false
+                .padding(.top, 8)
+                GhostButton(text: "掃描主機上的 QR 碼", systemImage: "qrcode.viewfinder", tint: Brand.cyan) { scanning = true }
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 10)
+                Text("QR 碼：在家裡的 Wi-Fi 用瀏覽器打開 http://Dylan-Mac-mini.local:8765/pair（或在主機上打開 http://localhost:8765/pair），用這台的相機掃。第一次還沒設密碼，就先用 QR 碼配對，再到這裡設定密碼。")
+                    .font(.bodySmall).foregroundStyle(Brand.textFaint).padding(.top, 8)
+                if let result {
+                    Label(result.text, systemImage: result.ok ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                        .font(.bodySmall).foregroundStyle(result.ok ? Brand.success : Brand.warning).padding(.top, 8)
                 }
-            }
-            .padding(.top, 10)
-            if let result {
-                Label(result.text, systemImage: result.ok ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-                    .font(.bodySmall).foregroundStyle(result.ok ? Brand.success : Brand.warning).padding(.top, 8)
+                if mode == .tech {
+                    // 進階：直接貼主機的主存取碼（舊方法）
+                    HStack(spacing: 8) {
+                        secure("或貼上存取碼（主機 config.json 的 token）", text: $token)
+                        GhostButton(text: "儲存", tint: Brand.cyan) {
+                            let t = token.trimmingCharacters(in: .whitespacesAndNewlines)
+                            guard !t.isEmpty else { return }
+                            if !url.isEmpty { url = LocalAI.normalize(url) }
+                            Keychain.set(t, for: LocalAI.tokenAccount); token = ""
+                            paired("存取碼已儲存")
+                        }
+                    }
+                    .padding(.top, 10)
+                }
             }
             if let models, mode == .tech {
                 // 實測時切換用：Mac 上有哪些模型就列哪些（Mac 的 config.json 可以再加）
@@ -272,7 +345,78 @@ private struct LocalMacCard: View {
                 }
             }
         }
-        .task { if hasToken { await loadModels() } }
+        .task { if hasToken { await loadModels(); await loadDevices() } }
+        .sheet(isPresented: $scanning) {
+            ZStack(alignment: .bottom) {
+                QRScanner { text in
+                    scanning = false
+                    guard let link = URL(string: text) else { result = (false, "這不是大D的主機的配對 QR 碼"); return }
+                    Task {
+                        do {
+                            try await LocalAI.pair(link: link)
+                            paired("配對完成")
+                        } catch { result = (false, error.localizedDescription) }
+                    }
+                }
+                .ignoresSafeArea()
+                Text("對準主機配對頁上的 QR 碼").font(.titleSmall).foregroundColor(.white)
+                    .padding(.horizontal, 16).padding(.vertical, 10)
+                    .background(Capsule().fill(Color.black.opacity(0.6)))
+                    .padding(.bottom, 40)
+            }
+        }
+        .confirmationDialog("取消和大D的主機的配對？", isPresented: $confirmUnpair, titleVisibility: .visible) {
+            Button("取消配對", role: .destructive) {
+                Task {
+                    await LocalAI.unpair()
+                    hasToken = false; result = nil; models = nil; devices = []; passwordSet = nil
+                    onChange()
+                }
+            }
+        } message: { Text("這台裝置之後要再用密碼或 QR 碼配對一次。") }
+        .onReceive(NotificationCenter.default.publisher(for: LocalAI.didPair)) { _ in
+            hasToken = !LocalAI.token.isEmpty
+            url = UserDefaults.standard.string(forKey: LocalAI.urlKey) ?? url
+            Task { await loadModels(); await loadDevices() }
+        }
+    }
+
+    private func paired(_ text: String) {
+        hasToken = !LocalAI.token.isEmpty
+        result = (true, text)
+        onChange()
+        test()
+    }
+
+    private func test() {
+        testing = true
+        Task {
+            do {
+                let h = try await LocalAI.health(url: LocalAI.url, token: LocalAI.token)
+                result = (true, "連線成功：\(h.asr ?? "")、\(h.llm ?? "")" + (h.busy == true ? "（正在處理別的錄音）" : ""))
+                await loadModels()
+                await loadDevices()
+                onChange()
+            } catch {
+                result = (false, error.localizedDescription)
+            }
+            testing = false
+        }
+    }
+
+    private func loadDevices() async {
+        guard let d = try? await LocalAI.devices() else { return }
+        devices = d.devices
+        passwordSet = d.password_set
+    }
+
+    private func secure(_ prompt: String, text: Binding<String>) -> some View {
+        SecureField("", text: text, prompt: Text(prompt).foregroundColor(Brand.textFaint))
+            .textInputAutocapitalization(.never).autocorrectionDisabled()
+            .foregroundStyle(Brand.text)
+            .padding(12)
+            .background(RoundedRectangle(cornerRadius: 12).fill(Brand.surfaceHigh))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Brand.outline, lineWidth: 1))
     }
 
     private func picker(_ label: String, selection: Binding<String>, options: [LocalAI.Option]) -> some View {
