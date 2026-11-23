@@ -6,6 +6,9 @@ import UniformTypeIdentifiers
 @MainActor
 enum AudioImport {
     /// 選檔畫面可以選的類型：聲音和影片（影片只取聲音）。
+    /// 從別的 App 送來的檔匯入完成（object = 給使用者看的訊息）。
+    static let didImport = Notification.Name("dylan.didImport")
+
     static let types: [UTType] = [.audio, .movie, .mpeg4Audio, .mp3, .wav, .aiff]
 
     /// 匯入一個檔，回傳錯誤訊息（成功回傳 nil）。

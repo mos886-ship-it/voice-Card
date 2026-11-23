@@ -23,6 +23,14 @@ struct DylanApp: App {
                     }
                 }
                 .task { await CallInbox.importFinished() }
+                // 從別的 App 分享 / 「打開方式」送來的音檔（語音備忘錄、檔案、LINE…）→ 匯入
+                .onOpenURL { url in
+                    Task {
+                        let err = await AudioImport.run(url)
+                        if url.path.contains("/Inbox/") { try? FileManager.default.removeItem(at: url) }
+                        NotificationCenter.default.post(name: AudioImport.didImport, object: err ?? "已匯入「\(url.deletingPathExtension().lastPathComponent)」，正在產生報告")
+                    }
+                }
                 #if DEBUG
                 // 測試用：simctl launch <iPhone> tw.dylan.wristai -processId 20261122_000000（背景分析測試）
                 .task {

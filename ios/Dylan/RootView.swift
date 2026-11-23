@@ -46,6 +46,11 @@ struct RootView: View {
         .environment(\.pageWidth, geo.size.width)
         }
         .toast($toast)
+        .onReceive(NotificationCenter.default.publisher(for: AudioImport.didImport)) { note in
+            path = []
+            tab = .records
+            toast = note.object as? String
+        }
     }
 
     private func open(_ id: String) { path.append(id) }
