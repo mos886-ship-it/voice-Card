@@ -250,7 +250,7 @@ struct TopBar<Trailing: View>: View {
             Spacer()
             trailing
         }
-        .pageColumn(maxWidth: 760)
+        .pageColumn()
         .padding(.vertical, 10)
     }
 }
@@ -286,10 +286,10 @@ extension View {
     func toast(_ text: Binding<String?>) -> some View { modifier(ToastModifier(text: text)) }
 }
 
-/// 每一頁的內容欄：iPhone 左右留 20；iPad（寬螢幕）置中、最寬 720，左右留 32，不會整片拉到螢幕邊。
+/// 每一頁的內容欄：iPhone 左右留 20；iPad（寬螢幕）左右留 32、幾乎用滿整個寬度（最寬 1240，超大螢幕才置中）。
 struct PageColumn: ViewModifier {
     @Environment(\.horizontalSizeClass) private var size
-    var maxWidth: CGFloat = 720
+    var maxWidth: CGFloat = 1240
 
     func body(content: Content) -> some View {
         content
@@ -300,5 +300,61 @@ struct PageColumn: ViewModifier {
 }
 
 extension View {
-    func pageColumn(maxWidth: CGFloat = 720) -> some View { modifier(PageColumn(maxWidth: maxWidth)) }
+    func pageColumn(maxWidth: CGFloat = 1240) -> some View { modifier(PageColumn(maxWidth: maxWidth)) }
+}
+
+/// 整個畫面的寬度（RootView 量好放進環境）：各頁用來決定要不要分欄。
+private struct PageWidthKey: EnvironmentKey { static let defaultValue: CGFloat = 0 }
+extension EnvironmentValues {
+    var pageWidth: CGFloat {
+        get { self[PageWidthKey.self] }
+        set { self[PageWidthKey.self] = newValue }
+    }
+}
+
+enum Wide {
+    /// 夠寬就分兩欄（iPad 橫向、13 吋直向）；iPhone 和 11 吋直向維持一欄。
+    static func twoColumns(_ width: CGFloat) -> Bool { width >= 980 }
+}
+
+/// 寬螢幕左右兩欄、窄螢幕上下排。leftWidth = nil 時兩欄一樣寬。
+struct TwoColumns<L: View, R: View>: View {
+    let wide: Bool
+    var leftWidth: CGFloat? = nil
+    var spacing: CGFloat = 14
+    @ViewBuilder let left: () -> L
+    @ViewBuilder let right: () -> R
+
+    var body: some View {
+        if wide {
+            HStack(alignment: .top, spacing: 20) {
+                VStack(alignment: .leading, spacing: spacing) { left() }
+                    .frame(width: leftWidth)
+                    .frame(maxWidth: leftWidth == nil ? .infinity : nil, alignment: .topLeading)
+                VStack(alignment: .leading, spacing: spacing) { right() }
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
+            }
+        } else {
+            VStack(alignment: .leading, spacing: spacing) {
+                left()
+                right()
+            }
+        }
+    }
+}
+
+/// 卡片清單：寬螢幕排成多欄格子，窄螢幕一張一列。
+struct CardGrid<Content: View>: View {
+    @Environment(\.pageWidth) private var width
+    var minimum: CGFloat = 360
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        if width >= 760 {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: minimum), spacing: 12, alignment: .top)],
+                      alignment: .leading, spacing: 12) { content() }
+        } else {
+            LazyVStack(alignment: .leading, spacing: 12) { content() }
+        }
+    }
 }

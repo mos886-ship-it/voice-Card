@@ -72,8 +72,10 @@ struct RecordsView: View {
                         }
                         .padding(.top, 6)
                     }
-                    ForEach(list) { m in
-                        MeetingRow(m: m).onTapGesture { open(m.id) }
+                    CardGrid {
+                        ForEach(list) { m in
+                            MeetingRow(m: m).onTapGesture { open(m.id) }
+                        }
                     }
                 }
                 Spacer(minLength: 24)

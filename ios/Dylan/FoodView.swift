@@ -3,6 +3,7 @@ import SwiftUI
 /// 「飲食」分頁（照 Android `ui/FoodScreen.kt`）：「記錄這一餐」、今日熱量圓環＋三大營養素、依日期分組的歷史（每天合計）。
 /// 飲食記錄 = 錄音 id 以 food_ 開頭（手錶「飲食」鍵錄的）；營養由 Apple（優先）或 Gemini 估算。
 struct FoodView: View {
+    @ObservedObject private var rec = PhoneRecorder.shared
     @Binding var toast: String?
     @EnvironmentObject private var store: MeetingStore
     @State private var openId: String?
@@ -28,8 +29,8 @@ struct FoodView: View {
                 }
 
                 GlassCard {
-                    GradientButton(text: "記錄這一餐", recordDot: true) {
-                        toast = "請用手錶的「飲食」鍵記錄（手機錄音下一版加上）"
+                    GradientButton(text: rec.isRecording ? "停止錄音" : "記錄這一餐", recordDot: !rec.isRecording) {
+                        if rec.isRecording { rec.stop() } else { rec.start(food: true) }
                     }
                     HStack(spacing: 20) {
                         ZStack {
@@ -56,7 +57,7 @@ struct FoodView: View {
                 if meals.isEmpty {
                     GlassCard {
                         Text("還沒有飲食記錄").font(.titleMedium).foregroundStyle(Brand.text)
-                        Text("在手錶按「飲食」，說出吃了什麼（例如「中午吃了一碗牛肉麵和燙青菜」），停止後會自動估算熱量。")
+                        Text("按「記錄這一餐」或手錶的「飲食」，說出吃了什麼（例如「中午吃了一碗牛肉麵和燙青菜」），停止後會自動估算熱量。")
                             .font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 4)
                     }
                 }
@@ -68,8 +69,10 @@ struct FoodView: View {
                         Text("\(String(list.reduce(0) { $0 + ($1.nutrition?.kcal ?? 0) })) 大卡").font(.labelMedium).foregroundStyle(Brand.textMuted)
                     }
                     .padding(.top, 6)
-                    ForEach(list) { m in
-                        NavigationLink(value: m.id) { MealRow(m: m) }.buttonStyle(.plain)
+                    CardGrid(minimum: 320) {
+                        ForEach(list) { m in
+                            NavigationLink(value: m.id) { MealRow(m: m) }.buttonStyle(.plain)
+                        }
                     }
                 }
             }

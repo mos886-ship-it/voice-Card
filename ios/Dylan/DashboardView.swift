@@ -8,6 +8,7 @@ struct DashboardView: View {
     @EnvironmentObject private var store: MeetingStore
     @EnvironmentObject private var link: PhoneLink
     @ObservedObject private var rec = PhoneRecorder.shared
+    @Environment(\.pageWidth) private var width
 
     var body: some View {
         let recordings = store.meetings.filter { !$0.isFood }
@@ -28,6 +29,7 @@ struct DashboardView: View {
                 }
 
                 // AI 設定只放在「設定」分頁（使用者要求），主頁不顯示提醒卡。
+                TwoColumns(wide: Wide.twoColumns(width)) {
 
                 // ---------- 快捷動作 ----------
                 // 手機也能錄（手錶不在身邊、或這支手機沒配對手錶時）
@@ -57,6 +59,7 @@ struct DashboardView: View {
                     .padding(.top, 10)
                 }
 
+                } right: {
                 // ---------- 處理中 ----------
                 if !busy.isEmpty {
                     SectionLabel(text: "處理中")
@@ -94,6 +97,7 @@ struct DashboardView: View {
                         Text("按上面的「開始錄音」，或在手錶按下錄音。錄完會自動整理出重點、待辦與逐字稿。")
                             .font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 4)
                     }
+                }
                 }
             }
             .pageColumn()

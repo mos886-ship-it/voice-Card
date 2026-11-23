@@ -3,6 +3,7 @@ import SwiftUI
 /// 「設定」分頁（照 Android `ui/SettingsScreen.kt` 的結構）：最上面系統狀態卡，沒有返回鍵。
 /// AI 引擎、錄音地點、外觀、飲食目標等設定在之後的里程碑加入。
 struct SettingsView: View {
+    @Environment(\.pageWidth) private var width
     @EnvironmentObject private var link: PhoneLink
     @EnvironmentObject private var theme: ThemeStore
     @ObservedObject private var ai = AiStatus.shared
@@ -21,6 +22,7 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 14) {
                 Text("設定").font(.headlineSmall).foregroundStyle(Brand.text)
 
+                TwoColumns(wide: Wide.twoColumns(width)) {
                 // ---------- 系統狀態 ----------
                 GlassCard(highlight: true) {
                     Text("系統狀態").font(.labelSmall).tracking(1.2).foregroundStyle(Brand.textMuted)
@@ -62,6 +64,7 @@ struct SettingsView: View {
                         ProgressView().padding(.top, 12)
                     }
                 }
+                } right: {
                 SectionLabel(text: "這台 Mac（自架）")
                 LocalMacCard { Task { await ai.refresh() } }
                 SectionLabel(text: "隱私模式")
@@ -79,6 +82,8 @@ struct SettingsView: View {
                 }
                 SectionLabel(text: "隱私")
                 placeholder("錄音存在這支 iPhone 與你的 Apple Watch。用你自己的 Mac 處理時，錄音只傳到你的 Mac，處理完不保留。使用 Gemini 時，錄音會上傳到 Google 分析，分析完立刻刪除上傳的檔案；免費方案的內容可能被 Google 用來改進產品。金鑰與存取碼只存在這支 iPhone 的鑰匙圈。")
+
+                }
 
                 Text("大D \(version)").font(.bodySmall).foregroundStyle(Brand.textFaint)
                     .frame(maxWidth: .infinity).padding(.top, 8)

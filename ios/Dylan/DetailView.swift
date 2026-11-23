@@ -12,6 +12,8 @@ struct DetailView: View {
     @State private var newTitle = ""
     @StateObject private var player = PlayerState()
 
+    @Environment(\.pageWidth) private var width
+
     var body: some View {
         VStack(spacing: 0) {
             TopBar(title: "錄音詳情", onBack: onBack) {
@@ -19,7 +21,7 @@ struct DetailView: View {
             }
             if let m = store.meetings.first(where: { $0.id == id }) {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 14) {
+                    TwoColumns(wide: Wide.twoColumns(width), leftWidth: 400) {
                         // ---------- 標題區 ----------
                         VStack(alignment: .leading, spacing: 0) {
                             Button {
@@ -122,12 +124,13 @@ struct DetailView: View {
                             AudioPlayerBar(url: MeetingStore.audioURL(m.id), p: player)
                         }
 
+                    } right: {
                         // ---------- 報告 / 逐字稿 ----------
                         if m.status == .done || m.aiModel != nil || m.transcriptPreview == true {   // 有過報告（重新產生中 / 失敗時也保留舊報告）
                             ReportSection(meeting: m, player: player) { Task { await store.process(m.id) } }
                         }
                     }
-                    .pageColumn(maxWidth: 760)
+                    .pageColumn()
                     .padding(.bottom, 24)
                 }
             } else {

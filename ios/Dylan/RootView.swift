@@ -21,6 +21,7 @@ struct RootView: View {
     @State private var toast: String?
 
     var body: some View {
+        GeometryReader { geo in
         NavigationStack(path: $path) {
             VStack(spacing: 0) {
                 Group {
@@ -41,6 +42,8 @@ struct RootView: View {
                 DetailView(id: id) { if !path.isEmpty { path.removeLast() } }
                     .toolbar(.hidden, for: .navigationBar)
             }
+        }
+        .environment(\.pageWidth, geo.size.width)
         }
         .toast($toast)
     }
