@@ -46,6 +46,8 @@ struct Meeting: Codable, Identifiable, Equatable {
     var engineNote: String?
     /// 使用者自己改過標題：AI 報告不再覆蓋。
     var titleEdited: Bool?
+    /// 在哪一台錄的 / 匯入的（iPhone、iPad 的名字；手錶錄的沒有）。舊資料沒有這欄。
+    var device: String?
 
     /// 飲食記錄的錄音 id 開頭（照 Android FoodLog.ID_PREFIX）。
     static let foodPrefix = "food_"
@@ -56,7 +58,7 @@ struct Meeting: Codable, Identifiable, Equatable {
         let kind = id.hasPrefix(foodPrefix) ? "飲食 " : "錄音 "
         return Meeting(id: id, title: kind + Fmt.stamp(start, "M/d HH:mm"), createdAt: start,
                        durationSec: 0, status: .recording, source: source, segments: [:], lastSeq: nil, error: nil,
-                       updatedAt: Date())
+                       updatedAt: Date(), device: source == "watch" ? nil : DeviceInfo.name)
     }
 
     var isComplete: Bool {
@@ -64,7 +66,14 @@ struct Meeting: Codable, Identifiable, Equatable {
         return (0...lastSeq).allSatisfy { segments[String($0)] != nil }
     }
 
-    var sourceLabel: String { Self.label(source: source) }
+    /// 來源＋裝置名字：「iPad · 會議室 iPad」、「通話 · iPhone 15 Pro Max」。
+    var sourceLabel: String {
+        let base = Self.label(source: source)
+        // 舊資料沒存裝置：錄音只存在錄的那台，所以就是這台
+        let device = self.device ?? (source == "watch" ? nil : DeviceInfo.name)
+        guard let device, !device.isEmpty, device != base else { return base }
+        return "\(base) · \(device)"
+    }
 
     static let isPad = UIDevice.current.userInterfaceIdiom == .pad
 

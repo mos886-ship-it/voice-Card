@@ -88,6 +88,8 @@ struct SettingsView: View {
                 PrivacyCard()
                 SectionLabel(text: "Gemini API Key")
                 GeminiKeyCard { Task { await ai.refresh() } }
+                SectionLabel(text: "這台裝置")
+                DeviceNameCard()
                 SectionLabel(text: "外觀")
                 GlassCard {
                     HStack(spacing: 8) {
@@ -485,5 +487,26 @@ private struct ModeChip: View {
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+}
+
+/// 這台 iPhone / iPad 的名字：顯示在錄音的「來源」。iOS 不讓 App 讀系統設定裡的名字，所以在這裡取。
+private struct DeviceNameCard: View {
+    @AppStorage(DeviceInfo.key) private var name = ""
+
+    var body: some View {
+        GlassCard {
+            HStack(spacing: 10) {
+                Text("名稱").font(.labelMedium).foregroundStyle(Brand.textMuted).frame(minWidth: 36, alignment: .leading).fixedSize()
+                TextField("", text: $name, prompt: Text(DeviceInfo.model).foregroundColor(Brand.textFaint))
+                    .autocorrectionDisabled()
+                    .foregroundStyle(Brand.text)
+                    .padding(12)
+                    .background(RoundedRectangle(cornerRadius: 12).fill(Brand.surfaceHigh))
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Brand.outline, lineWidth: 1))
+            }
+            Text("會顯示在錄音的「來源」，例如「\(Meeting.isPad ? "iPad" : "手機") · \(name.isEmpty ? DeviceInfo.model : name)」。沒填就用型號。")
+                .font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 8)
+        }
     }
 }
