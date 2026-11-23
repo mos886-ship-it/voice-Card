@@ -22,7 +22,8 @@
 7. 手錶：用手機的「Watch」App → 我的手錶 → 下面「可安裝的 App」裝「大D」（如果沒有自動安裝）。或在 Xcode 選 scheme「DylanWatch」＋你的手錶 → Run。
 
 可以裝的手機：iOS 17 以上（Xcode 27 不能再裝到 iOS 16 的手機，例如 iPhone X；App 本身最低支援 iOS 16）。
-已實測：iPhone 15 Pro Max（iOS 26.7.1）安裝、手機錄音、Gemini 報告 OK；連自架 Mac 尚未在真機上確認（Mac 記錄裡沒有收到手機的請求，下次先檢查 App 的位址與存取碼有沒有儲存）。
+已實測：iPhone 15 Pro Max（iOS 26.7.1）安裝、手機錄音、Gemini 報告 OK；連自架 Mac 尚未在 iPhone 上確認（Mac 記錄裡沒有收到手機的請求，下次先檢查 App 的位址與存取碼有沒有按「儲存」）。
+iPad Pro 11 吋第 2 代（iPadOS 27.2，iPhone 相容模式）：安裝、手機錄音 → 固定 IP → 自架 Mac（FunASR＋Qwen3-8B）OK：35 秒錄音，辨識 4 秒、報告 23 秒。
 
 免費帳號的限制：裝的 App 7 天後失效（重新 Run 一次即可）；同時最多 3 個 App ID。
 
