@@ -9,6 +9,8 @@ struct RecordsView: View {
     @State private var query = ""
     @State private var debounced = ""
     @State private var origin: String?
+    @State private var picking = false
+    @State private var importing = false
 
     var body: some View {
         let meetings = store.meetings.filter { !$0.isFood }
@@ -31,8 +33,21 @@ struct RecordsView: View {
                             .font(.bodySmall).foregroundStyle(Brand.textMuted)
                     }
                     Spacer()
-                    GhostButton(text: "匯入", systemImage: "plus", tint: Brand.cyan) {
-                        toast = "匯入音檔下一版加上"
+                    GhostButton(text: importing ? "匯入中…" : "匯入", systemImage: "plus", tint: Brand.cyan) {
+                        if !importing { picking = true }
+                    }
+                    .fileImporter(isPresented: $picking, allowedContentTypes: AudioImport.types,
+                                  allowsMultipleSelection: true) { result in
+                        guard case let .success(urls) = result, !urls.isEmpty else { return }
+                        importing = true
+                        Task {
+                            var errors: [String] = []
+                            for u in urls { if let e = await AudioImport.run(u) { errors.append(e) } }
+                            importing = false
+                            let ok = urls.count - errors.count
+                            toast = errors.isEmpty ? "已匯入 \(ok) 個檔，正在產生報告"
+                                : (ok > 0 ? "已匯入 \(ok) 個；" : "") + errors.joined(separator: "；")
+                        }
                     }
                 }
                 .padding(.bottom, 4)
@@ -126,7 +141,7 @@ private struct EmptyState: View {
             VStack(spacing: 0) {
                 GlyphTile(size: 64, filled: true) { Waveform(color: .white).frame(width: 28, height: 28) }
                 Text("還沒有錄音").font(.titleMedium).foregroundStyle(Brand.text).padding(.top, 16)
-                Text("在手錶按下「錄音」，結束後會自動傳到這裡")
+                Text("在主頁按「開始錄音」、用手錶錄音，或按右上的「匯入」選音檔")
                     .font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 4)
                     .multilineTextAlignment(.center)
             }

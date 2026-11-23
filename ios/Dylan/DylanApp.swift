@@ -31,6 +31,10 @@ struct DylanApp: App {
                         Keychain.set(t, for: LocalAI.tokenAccount)
                     }
                     if let id = UserDefaults.standard.string(forKey: "processId") { await MeetingStore.shared.process(id) }
+                    // 測試匯入：simctl launch <iPhone> tw.dylan.wristai -importFile /path/to/audio.m4a
+                    if let f = UserDefaults.standard.string(forKey: "importFile") {
+                        NSLog("[Import] \(await AudioImport.run(URL(fileURLWithPath: f)) ?? "ok")")
+                    }
                 }
                 #endif
         }

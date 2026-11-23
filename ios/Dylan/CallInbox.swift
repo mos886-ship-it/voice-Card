@@ -59,8 +59,8 @@ enum CallInbox {
         if m.status == .received, await MeetingStore.canReport() { await store.process(id) }
     }
 
-    /// 兩軌（各自的開始時間）疊在一起輸出成一個 m4a。回傳長度（秒）。
-    private static func mix(_ tracks: [(URL, Double)], to out: URL) async throws -> Double {
+    /// 幾軌（各自的開始時間）疊在一起輸出成一個 m4a（匯入也用：一軌）。回傳長度（秒）。
+    static func mix(_ tracks: [(URL, Double)], to out: URL) async throws -> Double {
         let comp = AVMutableComposition()
         let t0 = tracks.map(\.1).min() ?? 0
         var length = 0.0
@@ -86,7 +86,7 @@ enum CallInbox {
         return length
     }
 
-    private static func err(_ msg: String) -> NSError {
+    static func err(_ msg: String) -> NSError {
         NSError(domain: "Dylan", code: 2, userInfo: [NSLocalizedDescriptionKey: msg])
     }
 }
