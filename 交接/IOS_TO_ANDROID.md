@@ -51,7 +51,7 @@ iOS 版原本照 Android 版移植（見 `IOS_PORT.md`），之後在 iOS 上**�
 
 ## 3. 大D的主機（自架 AI）— Android 要新增的引擎
 
-主機服務在使用者自己的電腦（目前是 M4 Mac mini 16GB），安裝見 `local-ai/README.md`。App 這邊只要會打 HTTP。
+主機服務在使用者自己的電腦（目前是 M4 Mac mini 16GB），安裝見 `local-ai/README.md`，**連線、自動啟動、路由器、測試與排錯見 `HOST_CONNECT.md`**。App 這邊只要會打 HTTP。
 
 ### 設定（設定頁「大D的主機」卡）
 - **位址**：在家用 `http://<主機名>.local:8765` 或區網 IP；出門用固定 IP ＋路由器轉發的埠（實際 IP 不寫進 repo）。使用者沒打 `http://` 就自動補上、去掉結尾 `/`。
