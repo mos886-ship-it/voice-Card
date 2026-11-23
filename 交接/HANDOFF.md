@@ -259,3 +259,10 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 - **基本資料**：AI 兩種模式都顯示；耗時、編號、引擎切換原因只在科技模式。還沒有報告時，`engineNote` 兩種模式都顯示在詳情頁。
 - 測試：`ListFormatTest`（摘要、長度、日期分組）、`AiLabelTest` 加主機名稱與位址整理。模擬器用假主機（照 API 回固定報告，`adb reverse tcp:8765`）實測：設定 → 測試連線 → 換模型 → 手機錄音 → 主機出報告；主機關掉 → 改用錄音機並寫原因 → 主機開回來按「產生 AI 報告」成功；商用 / 科技切換；長按刪除。**還沒有接真正的大D的主機（Mac mini）測**，需要使用者在手機設定填位址與存取碼。
 - IOS_TO_ANDROID.md 的中優先項目（匯入文字檔、分享進來、錄線上通話、裝置名字＋型號、Fold5 展開兩欄、主機模型以外的 meta 欄位）還沒做。
+
+## Android：大D的主機配對（2026-11-23，跟 iOS 的 QR / 密碼配對一樣）
+
+- `ai/LocalHost.kt`：`pair(url, password | code)` 打 `POST /v1/pair`（不帶存取碼，送裝置名「名字（型號）」，`deviceLabel` / `modelName`）→ 存位址、這台自己的存取碼（Keystore 加密）、裝置 id；`parseLink` / `pairLink` 解析 `dylan://pair?url=&lan=&code=`，先試 url，**連不到**（`Unreachable`）才試 lan，主機回錯誤就直接顯示；`devices()`、`revoke(id)`、`setPassword()`、`unpair()`（通知主機作廢這台，連不到也清本機）。手動貼主存取碼時沒有裝置 id。
+- 設定頁「大D的主機」卡（`ui/LocalHostSettings.kt`）：還沒連 →「掃描主機上的 QR 碼」（Google Play 服務的掃碼畫面 `play-services-code-scanner`，不用相機權限）或填位址＋配對密碼；科技模式另有「進階：直接貼主存取碼」。已連上 →「已連上大D的主機」、測試連線、取消配對、配對密碼設定 / 更換；科技模式多模型選單與「已配對的裝置」（配對 / 最後使用時間、QR / 密碼，可個別取消，「這台」等於取消配對）。
+- `dylan://pair` 連結：MainActivity intent-filter（VIEW、BROWSABLE、scheme dylan、host pair）→ `PendingPair.link` → 切到設定頁自動配對。
+- 測試：`PairLinkTest`（連結解析、重複位址、非配對連結、型號）。模擬器用 repo 的**真正** `local-ai/pairing.py` 做假主機實測：QR 連結（對外位址連不到 → 自動改區網位址）配對成功；密碼錯顯示「密碼不對」、對了配對成功；裝置清單、取消別台、取消這台（主機端作廢）；App 內更換密碼後新密碼可配對；用配對拿到的存取碼送錄音、主機出報告。**未測**：真的用相機掃 QR（模擬器沒辦法）、接真正的 Mac mini 主機。

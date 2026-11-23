@@ -91,6 +91,12 @@ class MainActivity : ComponentActivity() {
 
     /** 从录音机等 App「分享」音频到 WristAI。 */
     private fun handleShare(intent: Intent?) {
+        // 大D的主機配对连结 dylan://pair?…（相机扫 QR、配对页的连结）→ 设定页处理
+        if (intent?.action == Intent.ACTION_VIEW && intent.data?.scheme == "dylan") {
+            com.example.wristai.ui.PendingPair.link = intent.data.toString()
+            setIntent(Intent(this, MainActivity::class.java))
+            return
+        }
         if (intent?.action != Intent.ACTION_SEND) return
         @Suppress("DEPRECATION")
         val uri = intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM) ?: return
@@ -122,6 +128,10 @@ private fun App() {
         permLauncher.launch(perms.toTypedArray())
     }
     fun go(r: String) { if (r.startsWith("tab:")) lastTab = r; route = r }
+    // 收到配对连结 → 到设定页（「大D的主機」卡会接着配对）
+    LaunchedEffect(com.example.wristai.ui.PendingPair.link) {
+        if (com.example.wristai.ui.PendingPair.link != null) go(Tab.SETTINGS.route)
+    }
     val tab = Tab.entries.firstOrNull { it.route == route }
     // 返回键：详情 → 原分页；其他分页 → 主页
     if (route.startsWith("detail:")) BackHandler { route = lastTab }

@@ -32,6 +32,7 @@ object LocalHost {
     private const val KEY_URL = "local_ai_url"
     private const val KEY_TOKEN = "local_ai_token_enc"
     private const val KEY_MODEL = "local_ai_model"
+    private const val KEY_DEVICE_ID = "local_ai_device_id"
     private const val KEYSTORE_ALIAS = "dylan_local_ai"
     const val DEFAULT_TAG = "local-funasr|qwen3-8b"
 
@@ -50,10 +51,16 @@ object LocalHost {
     fun setUrl(c: Context, v: String) = p(c).edit().putString(KEY_URL, normalize(v)).apply()
 
     fun token(c: Context): String = p(c).getString(KEY_TOKEN, null)?.let { runCatching { decrypt(it) }.getOrNull() }.orEmpty()
-    fun setToken(c: Context, v: String) {
+    /** 存存取码。手动贴主存取码时 [deviceId] = null（不是配对来的，没有装置 id）。 */
+    fun setToken(c: Context, v: String, deviceId: String? = null) {
         val t = v.trim()
-        p(c).edit().apply { if (t.isEmpty()) remove(KEY_TOKEN) else putString(KEY_TOKEN, encrypt(t)) }.apply()
+        p(c).edit().apply {
+            if (t.isEmpty()) remove(KEY_TOKEN) else putString(KEY_TOKEN, encrypt(t))
+            if (deviceId == null) remove(KEY_DEVICE_ID) else putString(KEY_DEVICE_ID, deviceId)
+        }.apply()
     }
+    /** 配对得到的这台装置 id（手动贴主存取码 → null）。 */
+    fun deviceId(c: Context): String? = p(c).getString(KEY_DEVICE_ID, null)
     fun hasToken(c: Context) = token(c).isNotEmpty()
 
     /** 位址和存取码都填了才算设定好。 */
@@ -104,7 +111,7 @@ object LocalHost {
     }
 
     private fun errorOf(code: Int, body: String): String = when (code) {
-        401 -> "大D的主機的存取碼不對，請到設定重新貼上"
+        401 -> "大D的主機不認得這台手機（配對可能被取消了）：請到設定按「取消配對」再重新配對"
         429 -> "存取碼錯太多次，主機暫時擋掉這支手機（一小時後或重開主機服務就解除）"
         else -> runCatching { JSONObject(body).optString("error") }.getOrNull()?.takeIf { it.isNotBlank() }
             ?: "大D的主機回應錯誤 $code"
@@ -150,20 +157,150 @@ object LocalHost {
         ).also { if (it.state != "loading") rememberTag(c, it.model) }
     }
 
+    /** 连不到主机（跟「主机回了错误」分开：QR 配对时连不到对外位址要改试区网位址）。 */
+    class Unreachable(message: String) : Exception(message)
+
+    /** 送 JSON（[token] 空 = 不带存取码，配对用）。连不到 → [Unreachable]。 */
+    private fun postJson(c: Context, base: String, token: String, path: String, json: JSONObject): Pair<Int, String> = try {
+        val conn = (URL(base + path).openConnection() as HttpURLConnection).apply {
+            requestMethod = "POST"
+            connectTimeout = 5_000
+            readTimeout = 10_000
+            doOutput = true
+            setRequestProperty("Content-Type", "application/json")
+            if (token.isNotEmpty()) setRequestProperty("Authorization", "Bearer $token")
+        }
+        try {
+            conn.outputStream.use { it.write(json.toString().toByteArray(Charsets.UTF_8)) }
+            read(conn)
+        } finally { conn.disconnect() }
+    } catch (e: Exception) { throw Unreachable(unreachable(e).message!!) }
+
     /** 换模型：主机存起来并在背景载入（第一次要下载），之后用 [models] 看 state 何时变回 ready。 */
     fun select(c: Context, asr: String, llm: String) {
-        val (code, body) = try {
-            val conn = open(c, url(c), token(c), "/v1/config", "POST", 10_000).apply {
-                doOutput = true
-                setRequestProperty("Content-Type", "application/json")
-            }
-            try {
-                conn.outputStream.use { it.write(JSONObject().put("asr", asr).put("llm", llm).toString().toByteArray()) }
-                read(conn)
-            } finally { conn.disconnect() }
-        } catch (e: Exception) { throw unreachable(e) }
+        val (code, body) = try { postJson(c, url(c), token(c), "/v1/config", JSONObject().put("asr", asr).put("llm", llm)) }
+            catch (e: Unreachable) { throw AiException(e.message!!) }
         if (code != 200 && code != 202) throw AiException(errorOf(code, body))
     }
+
+    // ---------------- 配对（不用手动贴存取码） ----------------
+
+    private fun jsonError(body: String, fallback: String): String =
+        runCatching { JSONObject(body).optString("error") }.getOrNull()?.takeIf { it.isNotBlank() } ?: fallback
+
+    private fun authedPost(c: Context, path: String, json: JSONObject): Pair<Int, String> =
+        try { postJson(c, url(c), token(c), path, json) } catch (e: Unreachable) { throw AiException(e.message!!) }
+
+    /**
+     * 用配对密码或 QR 配对码向主机换这台装置自己的存取码，连同位址一起存起来。
+     * 主机回的错误（密码不对、QR 过期、错太多次）照原文给使用者看。连不到 → [Unreachable]。
+     */
+    fun pair(c: Context, url: String, password: String? = null, code: String? = null) {
+        val base = normalize(url)
+        if (base.isEmpty() || runCatching { URL(base) }.isFailure) throw AiException("位址格式不對，例如 http://192.168.1.20:8765")
+        val json = JSONObject().put("name", deviceLabel(c))
+        if (password != null) json.put("password", password)
+        if (code != null) json.put("code", code)
+        val (status, body) = postJson(c, base, "", "/v1/pair", json)
+        if (status != 200) throw AiException(jsonError(body, "配對失敗（$status）"))
+        val j = runCatching { JSONObject(body) }.getOrElse { throw AiException("大D的主機回應看不懂") }
+        val token = j.optString("token").takeIf { it.isNotBlank() } ?: throw AiException("大D的主機沒有給存取碼")
+        setUrl(c, base)
+        setToken(c, token, j.optString("id").ifBlank { null })
+    }
+
+    data class PairLink(val urls: List<String>, val code: String)
+
+    /** 解析 dylan://pair?url=…&lan=…&code=…；不是配对连结 → null。 */
+    fun parseLink(link: String): PairLink? {
+        val uri = runCatching { java.net.URI(link.trim()) }.getOrNull() ?: return null
+        if (uri.scheme != "dylan" || uri.host != "pair") return null
+        val q = (uri.rawQuery ?: "").split('&').mapNotNull { kv ->
+            val i = kv.indexOf('=')
+            if (i <= 0) null else kv.substring(0, i) to java.net.URLDecoder.decode(kv.substring(i + 1), "UTF-8")
+        }.toMap()
+        val code = q["code"]?.takeIf { it.isNotBlank() } ?: return null
+        return PairLink(listOfNotNull(q["url"], q["lan"]).filter { it.isNotBlank() }.distinct(), code)
+    }
+
+    /** 扫到的 QR / 点到的连结：先试对外位址，连不到再试区网位址（配对码还没用掉）。回传用的位址。 */
+    fun pairLink(c: Context, link: String): String {
+        val l = parseLink(link) ?: throw AiException("這不是大D的主機的配對 QR 碼")
+        if (l.urls.isEmpty()) throw AiException("QR 碼裡沒有位址")
+        var last = "連不到大D的主機"
+        for (u in l.urls) {
+            try {
+                pair(c, u, code = l.code)
+                return normalize(u)
+            } catch (e: Unreachable) {
+                last = e.message ?: last
+            }
+        }
+        throw AiException(last)
+    }
+
+    data class Device(val id: String, val name: String, val created: Long, val lastSeen: Long?, val via: String?, val current: Boolean)
+    data class Devices(val devices: List<Device>, val passwordSet: Boolean)
+
+    fun devices(c: Context): Devices {
+        val (code, body) = try {
+            val conn = open(c, url(c), token(c), "/v1/devices", "GET", 10_000)
+            try { read(conn) } finally { conn.disconnect() }
+        } catch (e: Exception) { throw unreachable(e) }
+        if (code != 200) throw AiException(errorOf(code, body))
+        val j = JSONObject(body)
+        val a = j.optJSONArray("devices") ?: JSONArray()
+        return Devices((0 until a.length()).map { i ->
+            a.getJSONObject(i).let {
+                Device(it.optString("id"), it.optString("name"), it.optLong("created"),
+                    if (it.isNull("last_seen")) null else it.optLong("last_seen"), it.optString("via").ifBlank { null }, it.optBoolean("current"))
+            }
+        }, j.optBoolean("password_set"))
+    }
+
+    fun revoke(c: Context, id: String) {
+        val (code, body) = authedPost(c, "/v1/devices/revoke", JSONObject().put("id", id))
+        if (code != 200) throw AiException(if (code == 401) errorOf(code, body) else jsonError(body, errorOf(code, body)))
+    }
+
+    /** 设定 / 更换配对密码（至少 8 个字，主机检查）。 */
+    fun setPassword(c: Context, password: String) {
+        val (code, body) = authedPost(c, "/v1/password", JSONObject().put("password", password))
+        if (code != 200) throw AiException(if (code == 401) errorOf(code, body) else jsonError(body, errorOf(code, body)))
+    }
+
+    /** 取消这台的配对：通知主机作废这台的存取码（连不到也照样清掉本机的）。 */
+    fun unpair(c: Context) {
+        deviceId(c)?.let { id -> runCatching { revoke(c, id) } }
+        setToken(c, "")
+    }
+
+    // ---------------- 装置名字（给主机的装置清单看） ----------------
+
+    /** 「Dylan 的 Fold5（Galaxy Z Fold5）」；读不到名字就只有型号。 */
+    fun deviceLabel(c: Context): String {
+        val model = modelName(android.os.Build.MODEL)
+        val name = runCatching {
+            android.provider.Settings.Global.getString(c.contentResolver, android.provider.Settings.Global.DEVICE_NAME)
+        }.getOrNull()?.takeIf { it.isNotBlank() }
+            ?: runCatching { android.provider.Settings.Secure.getString(c.contentResolver, "bluetooth_name") }.getOrNull()
+                ?.takeIf { it.isNotBlank() }
+        return if (name == null || name == model || name == android.os.Build.MODEL) model else "$name（$model）"
+    }
+
+    /** 型号代码 → 好读的名字（常见的三星机型；认不得照原样）。 */
+    fun modelName(code: String): String {
+        val c = code.uppercase().removePrefix("SAMSUNG-")
+        val table = listOf(
+            "SM-F946" to "Galaxy Z Fold5", "SM-F956" to "Galaxy Z Fold6", "SM-F966" to "Galaxy Z Fold7",
+            "SM-F936" to "Galaxy Z Fold4", "SM-F731" to "Galaxy Z Flip5", "SM-F741" to "Galaxy Z Flip6", "SM-F766" to "Galaxy Z Flip7",
+            "SM-S928" to "Galaxy S24 Ultra", "SM-S926" to "Galaxy S24+", "SM-S921" to "Galaxy S24",
+            "SM-S938" to "Galaxy S25 Ultra", "SM-S936" to "Galaxy S25+", "SM-S931" to "Galaxy S25",
+            "SM-S918" to "Galaxy S23 Ultra", "SM-S916" to "Galaxy S23+", "SM-S911" to "Galaxy S23",
+        )
+        return table.firstOrNull { c.startsWith(it.first) }?.second ?: code
+    }
+
 
     data class Result(val text: String, val model: String)
 
