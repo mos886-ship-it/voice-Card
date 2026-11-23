@@ -78,7 +78,7 @@ struct RecordsView: View {
                 }
                 Spacer(minLength: 24)
             }
-            .padding(.horizontal, 20)
+            .pageColumn()
             .padding(.vertical, 12)
         }
         .refreshable { store.reload() }

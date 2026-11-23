@@ -63,6 +63,8 @@ struct BottomNav: View {
                 }
             }
             .padding(.horizontal, 12)
+            .frame(maxWidth: 560)
+            .frame(maxWidth: .infinity)
             .padding(.vertical, 8)
             .background(Brand.bg.ignoresSafeArea(edges: .bottom))
         }

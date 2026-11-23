@@ -83,7 +83,7 @@ struct SettingsView: View {
                 Text("大D \(version)").font(.bodySmall).foregroundStyle(Brand.textFaint)
                     .frame(maxWidth: .infinity).padding(.top, 8)
             }
-            .padding(.horizontal, 20)
+            .pageColumn()
             .padding(.vertical, 12)
         }
         .task { await ai.refresh() }
@@ -245,7 +245,7 @@ private struct LocalMacCard: View {
 
     private func picker(_ label: String, selection: Binding<String>, options: [LocalAI.Option]) -> some View {
         HStack(spacing: 10) {
-            Text(label).font(.labelMedium).foregroundStyle(Brand.textMuted).frame(width: 60, alignment: .leading)
+            Text(label).font(.labelMedium).foregroundStyle(Brand.textMuted).frame(minWidth: 60, alignment: .leading).fixedSize()
             Menu {
                 ForEach(options, id: \.id) { o in
                     Button { choose(label == "語音辨識" ? o.id : asr, label == "語音辨識" ? llm : o.id) } label: {
@@ -308,7 +308,7 @@ private struct LocalMacCard: View {
 
     private func field(_ label: String, text: Binding<String>, prompt: String) -> some View {
         HStack(spacing: 10) {
-            Text(label).font(.labelMedium).foregroundStyle(Brand.textMuted).frame(width: 36, alignment: .leading)
+            Text(label).font(.labelMedium).foregroundStyle(Brand.textMuted).frame(minWidth: 36, alignment: .leading).fixedSize()
             TextField("", text: text, prompt: Text(prompt).foregroundColor(Brand.textFaint))
                 .keyboardType(.URL).textInputAutocapitalization(.never).autocorrectionDisabled()
                 .foregroundStyle(Brand.text)
@@ -393,7 +393,7 @@ private struct UseRow: View {
     let engine: String
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
-            Text(task).font(.labelMedium).foregroundStyle(Brand.textMuted).frame(width: 56, alignment: .leading)
+            Text(task).font(.labelMedium).foregroundStyle(Brand.textMuted).frame(minWidth: 56, alignment: .leading).fixedSize()
             Text(engine).font(.titleSmall).foregroundStyle(Brand.text)
         }
     }

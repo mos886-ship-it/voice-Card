@@ -1,4 +1,7 @@
 import SwiftUI
+#if os(iOS)
+import UIKit
+#endif
 
 extension Color {
     init(hex: UInt32) {
@@ -120,19 +123,48 @@ enum Brand {
 }
 
 /// 字級照 Android `ui/theme/Type.kt`；水墨主題的標題改用襯線字（InkTypography）。
+/// iPhone / iPad 上跟著系統「文字大小」縮放（預設大小時跟原本一樣）；手錶維持固定大小。
 extension Font {
     private static var titleDesign: Font.Design { Brand.isInk ? .serif : .default }
-    static var headlineMedium: Font { .system(size: 26, weight: .bold, design: titleDesign) }
-    static var headlineSmall: Font { .system(size: 22, weight: .bold, design: titleDesign) }
-    static var titleLarge: Font { .system(size: 19, weight: .semibold, design: titleDesign) }
-    static var titleMedium: Font { .system(size: 16, weight: .semibold, design: titleDesign) }
-    static var titleSmall: Font { .system(size: 14, weight: .semibold, design: titleDesign) }
-    static let bodyLarge = Font.system(size: 16)
-    static let bodyMedium = Font.system(size: 14)
-    static let bodySmall = Font.system(size: 12)
-    static let labelLarge = Font.system(size: 14, weight: .semibold)
-    static let labelMedium = Font.system(size: 12, weight: .medium)
-    static var labelSmall: Font { .system(size: 10, weight: .semibold, design: Brand.isInk ? .serif : .monospaced) }
+    static var headlineMedium: Font { .system(size: TextScale.size(26, .title1), weight: .bold, design: titleDesign) }
+    static var headlineSmall: Font { .system(size: TextScale.size(22, .title2), weight: .bold, design: titleDesign) }
+    static var titleLarge: Font { .system(size: TextScale.size(19, .title3), weight: .semibold, design: titleDesign) }
+    static var titleMedium: Font { .system(size: TextScale.size(16, .headline), weight: .semibold, design: titleDesign) }
+    static var titleSmall: Font { .system(size: TextScale.size(14, .subheadline), weight: .semibold, design: titleDesign) }
+    static var bodyLarge: Font { .system(size: TextScale.size(16, .body)) }
+    static var bodyMedium: Font { .system(size: TextScale.size(14, .callout)) }
+    static var bodySmall: Font { .system(size: TextScale.size(12, .footnote)) }
+    static var labelLarge: Font { .system(size: TextScale.size(14, .subheadline), weight: .semibold) }
+    static var labelMedium: Font { .system(size: TextScale.size(12, .caption1), weight: .medium) }
+    static var labelSmall: Font { .system(size: TextScale.size(10, .caption2), weight: .semibold, design: Brand.isInk ? .serif : .monospaced) }
+}
+
+/// 字級縮放：設計稿的大小 × 系統文字大小的比例。
+enum TextScale {
+    enum Style { case title1, title2, title3, headline, subheadline, body, callout, footnote, caption1, caption2 }
+
+    static func size(_ base: CGFloat, _ style: Style) -> CGFloat {
+        #if os(iOS)
+        let ui: UIFont.TextStyle
+        switch style {
+        case .title1: ui = .title1
+        case .title2: ui = .title2
+        case .title3: ui = .title3
+        case .headline: ui = .headline
+        case .subheadline: ui = .subheadline
+        case .body: ui = .body
+        case .callout: ui = .callout
+        case .footnote: ui = .footnote
+        case .caption1: ui = .caption1
+        case .caption2: ui = .caption2
+        }
+        // iPad 螢幕大、拿得比較遠：字放大一點
+        let device: CGFloat = UIDevice.current.userInterfaceIdiom == .pad ? 1.15 : 1
+        return UIFontMetrics(forTextStyle: ui).scaledValue(for: base * device)
+        #else
+        return base
+        #endif
+    }
 }
 
 enum Fmt {

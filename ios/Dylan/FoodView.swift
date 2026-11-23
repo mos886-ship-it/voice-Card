@@ -73,7 +73,7 @@ struct FoodView: View {
                     }
                 }
             }
-            .padding(.horizontal, 20)
+            .pageColumn()
             .padding(.vertical, 12)
         }
     }

@@ -127,7 +127,7 @@ struct DetailView: View {
                             ReportSection(meeting: m, player: player) { Task { await store.process(m.id) } }
                         }
                     }
-                    .padding(.horizontal, 20)
+                    .pageColumn(maxWidth: 760)
                     .padding(.bottom, 24)
                 }
             } else {

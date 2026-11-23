@@ -53,6 +53,7 @@ struct DashboardView: View {
                                 .onTapGesture { select(.food) }
                         }
                     }
+                    .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, 10)
                 }
 
@@ -95,7 +96,7 @@ struct DashboardView: View {
                     }
                 }
             }
-            .padding(.horizontal, 20)
+            .pageColumn()
             .padding(.vertical, 12)
         }
         .refreshable { store.reload() }
@@ -141,7 +142,7 @@ private struct QuickTile: View {
                     .frame(width: 40, height: 40)
                     .background(Circle().fill(filled ? Color.white.opacity(0.18) : Brand.surfaceHigh))
                 Text(title).font(.titleMedium).foregroundStyle(filled ? Color.white : Brand.text).padding(.top, 14)
-                Text(sub).font(.bodySmall).foregroundStyle(filled ? Color.white.opacity(0.8) : Brand.textMuted).lineLimit(1)
+                Text(sub).font(.bodySmall).foregroundStyle(filled ? Color.white.opacity(0.8) : Brand.textMuted).lineLimit(2)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(16)

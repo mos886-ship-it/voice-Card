@@ -35,12 +35,14 @@ final class ThemeStore: ObservableObject {
 struct ThemedRoot: View {
     @StateObject private var theme = ThemeStore.shared
     @Environment(\.colorScheme) private var system
+    @Environment(\.dynamicTypeSize) private var textSize
 
     var body: some View {
         let p = theme.palette(system: system)
         Brand.current = p
         return RootView()
-            .id(p.id)
+            .id("\(p.id)-\(textSize)")   // 換主題或系統文字大小：整個重畫（字級是算出來的）
+            .dynamicTypeSize(...DynamicTypeSize.accessibility2)   // 最大到這裡，再大版面會擠壞
             .preferredColorScheme(theme.mode == .auto ? nil : (p.isDark ? .dark : .light))
             .environmentObject(theme)
     }

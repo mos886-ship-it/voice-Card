@@ -185,15 +185,16 @@ struct StatTile: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(value)
-                .font(value.count > 5 ? .titleSmall : .system(size: 19, weight: .bold))
+                .font(.system(size: TextScale.size(19, .title3), weight: .bold))
                 .foregroundStyle(Brand.text)
                 .lineLimit(1)
-                .minimumScaleFactor(0.7)
-            Text(label).font(.labelMedium).foregroundStyle(Brand.textMuted).lineLimit(1)
+                .minimumScaleFactor(0.6)
+            Text(label).font(.labelMedium).foregroundStyle(Brand.textMuted).lineLimit(2)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, value.count > 5 ? 10 : 14)
         .padding(.vertical, 12)
+        .frame(maxHeight: .infinity)   // 同一排的格子一樣高
         .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Brand.surfaceHigh))
         .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Brand.outline, lineWidth: 1))
     }
@@ -249,7 +250,7 @@ struct TopBar<Trailing: View>: View {
             Spacer()
             trailing
         }
-        .padding(.horizontal, 20)
+        .pageColumn(maxWidth: 760)
         .padding(.vertical, 10)
     }
 }
@@ -283,4 +284,21 @@ struct ToastModifier: ViewModifier {
 
 extension View {
     func toast(_ text: Binding<String?>) -> some View { modifier(ToastModifier(text: text)) }
+}
+
+/// 每一頁的內容欄：iPhone 左右留 20；iPad（寬螢幕）置中、最寬 720，左右留 32，不會整片拉到螢幕邊。
+struct PageColumn: ViewModifier {
+    @Environment(\.horizontalSizeClass) private var size
+    var maxWidth: CGFloat = 720
+
+    func body(content: Content) -> some View {
+        content
+            .padding(.horizontal, size == .regular ? 32 : 20)
+            .frame(maxWidth: size == .regular ? maxWidth : .infinity)
+            .frame(maxWidth: .infinity)
+    }
+}
+
+extension View {
+    func pageColumn(maxWidth: CGFloat = 720) -> some View { modifier(PageColumn(maxWidth: maxWidth)) }
 }

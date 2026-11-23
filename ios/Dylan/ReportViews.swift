@@ -89,7 +89,7 @@ struct ReportFacts: View {
 
     private func fact(_ k: String, _ v: String) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 12) {
-            Text(k).font(.bodySmall).foregroundStyle(Brand.textFaint).frame(width: 36, alignment: .leading)
+            Text(k).font(.bodySmall).foregroundStyle(Brand.textFaint).frame(minWidth: 36, alignment: .leading).fixedSize()
             Text(v).font(.bodySmall).foregroundStyle(Brand.text)
         }
     }
