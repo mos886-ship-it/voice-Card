@@ -13,6 +13,7 @@ struct DetailView: View {
     @StateObject private var player = PlayerState()
 
     @Environment(\.pageWidth) private var width
+    @AppStorage(UIMode.key) private var mode: UIMode = .business
 
     var body: some View {
         VStack(spacing: 0) {
@@ -112,7 +113,7 @@ struct DetailView: View {
                         if let n = m.nutrition { NutritionCard(n: n) }
 
                         // ---------- 這次為什麼用 Apple ----------
-                        if let note = m.engineNote, m.status == .done || m.status == .summarizing {
+                        if let note = m.engineNote, mode == .tech, m.status == .done || m.status == .summarizing {
                             Label(note, systemImage: note.contains("Gemini") ? "arrow.triangle.branch" : "apple.logo")
                                 .font(.bodySmall).foregroundStyle(Brand.textMuted)
                                 .padding(12).frame(maxWidth: .infinity, alignment: .leading)

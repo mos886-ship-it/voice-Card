@@ -72,15 +72,19 @@ struct SegmentTabs: View {
 /// 報告最上面的「基本資料」卡（照 Android `ReportFacts`）：時間、長度、來源、AI、耗時。不顯示 GPS 來源。
 struct ReportFacts: View {
     let meeting: Meeting
+    @AppStorage(UIMode.key) private var mode: UIMode = .business
     var body: some View {
         GlassCard(padding: 14) {
             Text("基本資料").font(.labelSmall).tracking(1.2).foregroundStyle(Brand.textMuted)
             VStack(alignment: .leading, spacing: 6) {
                 fact("時間", meeting.recordingRange)
                 fact("來源", meeting.sourceLabel)
-                fact("AI", Meeting.aiModelLabel(meeting.aiModel))
-                if let s = meeting.processStartedAt, let e = meeting.processEndedAt {
-                    fact("耗時", "\(Int(e.timeIntervalSince(s).rounded())) 秒")
+                if mode == .tech {
+                    fact("AI", Meeting.aiModelLabel(meeting.aiModel))
+                    if let s = meeting.processStartedAt, let e = meeting.processEndedAt {
+                        fact("耗時", "\(Int(e.timeIntervalSince(s).rounded())) 秒")
+                    }
+                    fact("編號", meeting.id)
                 }
             }
             .padding(.top, 8)

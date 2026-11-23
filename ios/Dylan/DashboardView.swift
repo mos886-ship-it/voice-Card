@@ -9,6 +9,7 @@ struct DashboardView: View {
     @EnvironmentObject private var link: PhoneLink
     @ObservedObject private var rec = PhoneRecorder.shared
     @Environment(\.pageWidth) private var width
+    @AppStorage(UIMode.key) private var mode: UIMode = .business
 
     var body: some View {
         let recordings = store.meetings.filter { !$0.isFood }
@@ -23,9 +24,14 @@ struct DashboardView: View {
                     VStack(alignment: .leading, spacing: 0) {
                         Text(greeting).font(.headlineSmall).foregroundStyle(Brand.text)
                         Text(Fmt.stamp(Date(), "M 月 d 日 EEEE")).font(.bodySmall).foregroundStyle(Brand.textMuted)
+                        if mode == .tech {
+                            Text("AI：" + engineLabel).font(.labelMedium).foregroundStyle(Brand.textFaint).lineLimit(1)
+                        }
                     }
                     Spacer()
-                    WatchPill(state: link.watchState) { select(.settings) }
+                    if mode == .tech || hasWatch {
+                        WatchPill(state: link.watchState) { select(.settings) }
+                    }
                 }
 
                 // AI 設定只放在「設定」分頁（使用者要求），主頁不顯示提醒卡。
@@ -38,10 +44,10 @@ struct DashboardView: View {
                 } else {
                     HStack(spacing: 12) {
                         QuickTile(title: "開始錄音", sub: "會議、課堂、訪談、靈感", filled: true) { rec.start() }
-                        QuickTile(title: "記錄飲食", sub: "說出吃了什麼", filled: false) { rec.start(food: true) }
+                        QuickTile(title: "記錄飲食", sub: "說出吃了什麼", filled: false, bowl: true) { rec.start(food: true) }
                     }
                 }
-                CallTile { BroadcastPicker.open() }
+                CallTile(detailed: mode == .tech) { BroadcastPicker.open() }
                     .background(BroadcastPicker().frame(width: 1, height: 1))
 
                 // ---------- 今天 ----------
@@ -50,7 +56,7 @@ struct DashboardView: View {
                     HStack(spacing: 10) {
                         StatTile(value: "\(todayRec.count)", label: "段錄音")
                             .onTapGesture { select(.records) }
-                        StatTile(value: Self.minutes(todayRec.reduce(0) { $0 + $1.durationSec }), label: "錄音時長")
+                        StatTile(value: Fmt.human(todayRec.reduce(0) { $0 + $1.durationSec }), label: "錄音時長")
                             .onTapGesture { select(.records) }
                         if store.meetings.contains(where: \.isFood) {
                             StatTile(value: "\(FoodView.todayKcal(store.meetings))/\(FoodView.goal)", label: "大卡")
@@ -83,7 +89,7 @@ struct DashboardView: View {
                     SectionLabel(text: latest.status == .done ? "最新報告" : "最新錄音")
                     GlassCard {
                         Text(latest.title).font(.titleMedium).foregroundStyle(Brand.text).lineLimit(2)
-                        Text("\(latest.sourceLabel) · \(Fmt.shortWhen(latest.createdAt)) · \(Fmt.duration(latest.durationSec))")
+                        Text("\(latest.sourceLabel) · \(Fmt.shortWhen(latest.createdAt))" + (latest.durationSec < 1 ? "" : " · \(Fmt.human(latest.durationSec))"))
                             .font(.bodySmall).foregroundStyle(Brand.textFaint)
                         let summary = latest.status == .done ? GeneratedReport.summarySection(store.report(latest.id) ?? "") : ""
                         if !summary.isEmpty {
@@ -115,6 +121,19 @@ struct DashboardView: View {
         }
     }
 
+    private var hasWatch: Bool {
+        switch link.watchState {
+        case .reachable, .connected, .notInstalled: return true
+        default: return false
+        }
+    }
+
+    private var engineLabel: String {
+        if LocalAI.configured { return LocalAI.modelLabel }
+        if MeetingStore.hasGeminiKey && !MeetingStore.privacyMode { return "Google Gemini" }
+        return "Apple（手機上）"
+    }
+
     private var greeting: String {
         switch Calendar.current.component(.hour, from: Date()) {
         case 5...10: return "早安"
@@ -138,15 +157,18 @@ private struct QuickTile: View {
     let title: String
     let sub: String
     let filled: Bool
+    var bowl = false
     let action: () -> Void
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: 22, style: .continuous)
         Button(action: action) {
             VStack(alignment: .leading, spacing: 0) {
-                RecordDot(size: 20)
-                    .frame(width: 40, height: 40)
-                    .background(Circle().fill(filled ? Color.white.opacity(0.18) : Brand.surfaceHigh))
+                Group {
+                    if bowl { BowlGlyph(color: Brand.success).frame(width: 22, height: 22) } else { RecordDot(size: 20) }
+                }
+                .frame(width: 40, height: 40)
+                .background(Circle().fill(filled ? Color.white.opacity(0.18) : Brand.surfaceHigh))
                 Text(title).font(.titleMedium).foregroundStyle(filled ? Color.white : Brand.text).padding(.top, 14)
                 Text(sub).font(.bodySmall).foregroundStyle(filled ? Color.white.opacity(0.8) : Brand.textMuted).lineLimit(2)
             }
@@ -195,6 +217,7 @@ private struct RecordingCard: View {
 
 /// 錄通話：LINE / Zoom / Teams 等 App 裡雙方的聲音（iOS 畫面廣播，只留聲音）。
 private struct CallTile: View {
+    let detailed: Bool
     let action: () -> Void
 
     var body: some View {
@@ -206,9 +229,12 @@ private struct CallTile: View {
                     .background(Circle().fill(Brand.surfaceHigh))
                 VStack(alignment: .leading, spacing: 2) {
                     Text("錄通話 / 線上會議").font(.titleMedium).foregroundStyle(Brand.text)
-                    Text("LINE、Zoom、Teams 雙方的聲音，戴 AirPods 也可以。在面板選「大D」、打開麥克風，按「開始廣播」；結束時按紅色狀態列停止。")
-                        .font(.bodySmall).foregroundStyle(Brand.textMuted)
-                        .fixedSize(horizontal: false, vertical: true)
+                    Text("LINE、Zoom、Teams 雙方的聲音").font(.bodySmall).foregroundStyle(Brand.textMuted)
+                    if detailed {
+                        Text("iOS 畫面廣播只留聲音：面板選「大D」、開麥克風 → 開始廣播；按紅色狀態列停止。一般電話與 FaceTime 錄不到。")
+                            .font(.labelMedium).foregroundStyle(Brand.textFaint)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
                 Spacer(minLength: 0)
             }

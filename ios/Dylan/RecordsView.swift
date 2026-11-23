@@ -10,6 +10,8 @@ struct RecordsView: View {
     @State private var debounced = ""
     @State private var origin: String?
     @State private var picking = false
+    @State private var deleting: Meeting?
+    @AppStorage(UIMode.key) private var mode: UIMode = .business
     @State private var importing = false
 
     var body: some View {
@@ -18,8 +20,8 @@ struct RecordsView: View {
         let shown = meetings
             .filter { origin == nil || $0.source == origin }
             .filter { m in terms.allSatisfy { m.searchText.contains($0) } }
-        let groups = Dictionary(grouping: shown) { Fmt.stamp($0.createdAt, "yyyy年M月") }
-            .sorted { ($0.value.first?.createdAt ?? .distantPast) > ($1.value.first?.createdAt ?? .distantPast) }
+        let groups = Dictionary(grouping: shown) { Calendar.current.startOfDay(for: $0.createdAt) }
+            .sorted { $0.key > $1.key }
         let origins = ["watch", "phone", "call", "import"].filter { o in meetings.contains { $0.source == o } }
 
         ScrollView {
@@ -78,18 +80,22 @@ struct RecordsView: View {
                     Text("找到 \(shown.count) 筆").font(.labelLarge).foregroundStyle(Brand.cyan)
                 }
 
-                ForEach(groups, id: \.key) { month, list in
-                    // 月份標題（只有一個月、又沒在搜尋時就不顯示）
-                    if groups.count > 1 || !terms.isEmpty {
-                        HStack(spacing: 8) {
-                            Text(month).font(.titleSmall).foregroundStyle(Brand.text)
-                            Text("\(list.count) 筆").font(.labelMedium).foregroundStyle(Brand.textFaint)
-                        }
-                        .padding(.top, 6)
+                ForEach(groups, id: \.key) { day, list in
+                    // 日期標題：今天 / 昨天 / 11月20日 週四
+                    HStack(spacing: 8) {
+                        Text(Fmt.dayLabel(day)).font(.titleSmall).foregroundStyle(Brand.text)
+                        Text("\(list.count) 筆").font(.labelMedium).foregroundStyle(Brand.textFaint)
                     }
+                    .padding(.top, 6)
                     CardGrid {
                         ForEach(list) { m in
-                            MeetingRow(m: m).onTapGesture { open(m.id) }
+                            MeetingRow(m: m, mode: mode)
+                                .contentShape(Rectangle())
+                                .onTapGesture { open(m.id) }
+                                .contextMenu {
+                                    Button { open(m.id) } label: { Label("打開", systemImage: "doc.text") }
+                                    Button(role: .destructive) { deleting = m } label: { Label("刪除", systemImage: "trash") }
+                                }
                         }
                     }
                 }
@@ -99,6 +105,13 @@ struct RecordsView: View {
             .padding(.vertical, 12)
         }
         .refreshable { store.reload() }
+        .confirmationDialog("刪除「\(deleting?.title ?? "")」？", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }),
+                            titleVisibility: .visible) {
+            Button("刪除錄音與報告", role: .destructive) {
+                if let m = deleting { store.delete(m.id) }
+                deleting = nil
+            }
+        } message: { Text("刪除後無法復原。") }
         .task(id: query) {
             // 打字停 250ms 才搜
             try? await Task.sleep(for: .milliseconds(250))
@@ -114,24 +127,69 @@ private extension Meeting {
     }
 }
 
+/// 清單一列：圖示（依來源）、標題＋時間、一行摘要；處理中 / 失敗才顯示狀態。科技模式多一行：來源、長度、模型、耗時。
 private struct MeetingRow: View {
     let m: Meeting
+    let mode: UIMode
+
     var body: some View {
         let style = m.statusStyle
-        GlassCard(padding: 14) {
-            HStack(spacing: 12) {
-                GlyphTile { Waveform(color: style.busy ? Brand.cyan : Brand.text).frame(width: 20, height: 20) }
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(m.title).font(.titleMedium).foregroundStyle(Brand.text).lineLimit(1)
-                    Text("\(m.sourceLabel) · \(Fmt.shortWhen(m.createdAt)) · \(Fmt.duration(m.durationSec))")
-                        .font(.bodySmall).foregroundStyle(Brand.textMuted)
-                    StatusChip(style: style).padding(.top, 6)
+        let text = MeetingStore.isText(m.id)
+        GlassCard(padding: 12) {
+            HStack(alignment: .top, spacing: 12) {
+                SourceIcon(source: m.source, text: text, busy: style.busy)
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text(m.title).font(.titleMedium).foregroundStyle(Brand.text).lineLimit(1)
+                        Spacer(minLength: 4)
+                        Text(Fmt.stamp(m.createdAt, "HH:mm")).font(.labelMedium).foregroundStyle(Brand.textFaint)
+                    }
+                    if m.status == .done, let s = m.summary, !s.isEmpty {
+                        Text(s).font(.bodySmall).foregroundStyle(Brand.textMuted)
+                            .lineLimit(mode == .tech ? 2 : 1)
+                    } else {
+                        Text(m.sourceLabel + (text ? "" : " · " + Fmt.human(m.durationSec)))
+                            .font(.bodySmall).foregroundStyle(Brand.textMuted)
+                    }
+                    if mode == .tech { Text(details(text)).font(.labelMedium).foregroundStyle(Brand.textFaint).lineLimit(1) }
+                    if m.status != .done { StatusChip(style: style).padding(.top, 4) }
                 }
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.right").font(.system(size: 14, weight: .semibold)).foregroundStyle(Brand.textFaint)
             }
-            if style.busy { ScanningBar().padding(.top, 12) }
+            if style.busy { ScanningBar().padding(.top, 10) }
         }
+    }
+
+    private func details(_ text: Bool) -> String {
+        var parts = [m.sourceLabel]
+        if !text { parts.append(Fmt.duration(m.durationSec)) }
+        if m.aiModel != nil { parts.append(Meeting.aiModelLabel(m.aiModel)) }
+        if let s = m.processStartedAt, let e = m.processEndedAt { parts.append("耗時 \(Int(e.timeIntervalSince(s).rounded())) 秒") }
+        return parts.joined(separator: " · ")
+    }
+}
+
+/// 來源圖示：手錶、手機、通話、匯入音檔、匯入文字。
+struct SourceIcon: View {
+    let source: String
+    var text = false
+    var busy = false
+
+    var body: some View {
+        let name: String = {
+            if text { return "doc.text.fill" }
+            switch source {
+            case "watch": return "applewatch"
+            case "phone": return "iphone"
+            case "call": return "phone.fill"
+            case "import": return "square.and.arrow.down.fill"
+            default: return "waveform"
+            }
+        }()
+        Image(systemName: name)
+            .font(.system(size: 17, weight: .semibold))
+            .foregroundStyle(busy ? Brand.cyan : Brand.text)
+            .frame(width: 40, height: 40)
+            .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Brand.surfaceHigh))
     }
 }
 

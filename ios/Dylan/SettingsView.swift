@@ -4,6 +4,7 @@ import SwiftUI
 /// AI 引擎、錄音地點、外觀、飲食目標等設定在之後的里程碑加入。
 struct SettingsView: View {
     @Environment(\.pageWidth) private var width
+    @AppStorage(UIMode.key) private var mode: UIMode = .business
     @EnvironmentObject private var link: PhoneLink
     @EnvironmentObject private var theme: ThemeStore
     @ObservedObject private var ai = AiStatus.shared
@@ -22,6 +23,18 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 14) {
                 Text("設定").font(.headlineSmall).foregroundStyle(Brand.text)
 
+                // ---------- 介面模式 ----------
+                GlassCard {
+                    Text("介面模式").font(.labelSmall).tracking(1.2).foregroundStyle(Brand.textMuted)
+                    HStack(spacing: 8) {
+                        ForEach(UIMode.allCases) { m in
+                            ModeChip(mode: m, selected: mode == m) { mode = m }
+                        }
+                    }
+                    .padding(.top, 10)
+                    Text(mode.note).font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 10)
+                }
+
                 TwoColumns(wide: Wide.twoColumns(width)) {
                 // ---------- 系統狀態 ----------
                 GlassCard(highlight: true) {
@@ -30,12 +43,15 @@ struct SettingsView: View {
                               value: LocalAI.configured ? LocalAI.modelLabel : (ai.engine?.title ?? "偵測中…"),
                               detail: LocalAI.configured ? "你自己的 Mac：分說話者、免費、不出你的設備；連不到時改用 " + (MeetingStore.hasGeminiKey ? "Gemini" : "Apple")
                                                          : (ai.engine?.detail ?? ""),
-                              color: (ai.engine?.ready ?? false) ? Brand.success : Brand.warning)
+                              color: LocalAI.configured || (ai.engine?.ready ?? false) ? Brand.success : Brand.warning)
                         .padding(.top, 12)
-                    DividerLine().padding(.vertical, 12)
-                    StatusRow(label: "智慧手錶", value: watchValue, detail: watchDetail, color: watchColor)
+                    if mode == .tech || hasWatch {
+                        DividerLine().padding(.vertical, 12)
+                        StatusRow(label: "智慧手錶", value: watchValue, detail: watchDetail, color: watchColor)
+                    }
                 }
 
+                if mode == .tech {
                 SectionLabel(text: "AI 引擎")
                 GlassCard {
                     Text("自動（依這支 iPhone）").font(.titleMedium).foregroundStyle(Brand.text)
@@ -58,11 +74,12 @@ struct SettingsView: View {
                             UseRow(task: "飲食", engine: ai.foodEngine?.title ?? "")
                         }
                         .padding(.top, 6)
-                        Text("輔助：沒有 Gemini 金鑰、連不上或額度用完時，改用 Apple 先產生逐字稿與重點。Apple 引擎還在開發中，目前只有 Gemini 會實際執行。")
+                        Text("輔助：Mac 和 Gemini 都不能用時，改用 Apple 在手機上產生逐字稿與重點（不分說話者）。")
                             .font(.bodySmall).foregroundStyle(Brand.textFaint).padding(.top, 8)
                     } else {
                         ProgressView().padding(.top, 12)
                     }
+                }
                 }
                 } right: {
                 SectionLabel(text: "這台 Mac（自架）")
@@ -92,6 +109,13 @@ struct SettingsView: View {
             .padding(.vertical, 12)
         }
         .task { await ai.refresh() }
+    }
+
+    private var hasWatch: Bool {
+        switch link.watchState {
+        case .reachable, .connected, .notInstalled: return true
+        default: return false
+        }
     }
 
     private var watchValue: String {
@@ -175,6 +199,7 @@ private struct LocalMacCard: View {
     @State private var asr = ""
     @State private var llm = ""
     @State private var switching: String?   // 換模型中的提示
+    @AppStorage(UIMode.key) private var mode: UIMode = .business
 
     var body: some View {
         GlassCard {
@@ -230,7 +255,7 @@ private struct LocalMacCard: View {
                 Label(result.text, systemImage: result.ok ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                     .font(.bodySmall).foregroundStyle(result.ok ? Brand.success : Brand.warning).padding(.top, 8)
             }
-            if let models {
+            if let models, mode == .tech {
                 // 實測時切換用：Mac 上有哪些模型就列哪些（Mac 的 config.json 可以再加）
                 picker("語音辨識", selection: $asr, options: models.asr_options)
                     .padding(.top, 12)
@@ -435,5 +460,30 @@ private struct StatusRow: View {
                 Text(detail).font(.bodySmall).foregroundStyle(Brand.textFaint)
             }
         }
+    }
+}
+
+/// 介面模式選項（同外觀選項的樣式）。
+private struct ModeChip: View {
+    let mode: UIMode
+    let selected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: mode.icon).font(.system(size: 15, weight: .semibold))
+                Text(mode.label).font(.labelLarge)
+            }
+            .foregroundStyle(selected ? Color.white : Brand.textMuted)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .background(RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(selected ? AnyShapeStyle(Brand.accent) : AnyShapeStyle(Brand.surfaceHigh)))
+            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(selected ? Color.clear : Brand.outline, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
