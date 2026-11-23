@@ -179,7 +179,7 @@ struct SourceIcon: View {
             if text { return "doc.text.fill" }
             switch source {
             case "watch": return "applewatch"
-            case "phone": return "iphone"
+            case "phone": return Meeting.isPad ? "ipad" : "iphone"
             case "call": return "phone.fill"
             case "import": return "square.and.arrow.down.fill"
             default: return "waveform"

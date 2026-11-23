@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 /// 一筆錄音（對應 Android `Meeting`，存成每筆資料夾裡的 meta.json）。
 /// 程式內部沿用 Meeting 這個名字，介面上一律叫「錄音」。
@@ -65,10 +66,12 @@ struct Meeting: Codable, Identifiable, Equatable {
 
     var sourceLabel: String { Self.label(source: source) }
 
+    static let isPad = UIDevice.current.userInterfaceIdiom == .pad
+
     static func label(source: String) -> String {
         switch source {
         case "watch": return "手錶"
-        case "phone": return "手機"
+        case "phone": return Meeting.isPad ? "iPad" : "手機"   // 錄音只存在錄的那台：在 iPad 上看到的就是 iPad 錄的
         case "import": return "匯入"
         case "call": return "通話"
         case "food": return "飲食"

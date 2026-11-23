@@ -195,7 +195,7 @@ private struct RecordingCard: View {
                 .frame(width: 44, height: 44)
                 .background(Circle().fill(Color.white.opacity(0.18)))
             VStack(alignment: .leading, spacing: 2) {
-                Text(food ? "正在記錄飲食" : "手機錄音中").font(.titleMedium).foregroundColor(.white)
+                Text(food ? "正在記錄飲食" : (Meeting.isPad ? "iPad 錄音中" : "手機錄音中")).font(.titleMedium).foregroundColor(.white)
                 TimelineView(.periodic(from: since, by: 1)) { ctx in
                     Text(interrupted ? "收音中斷，正在恢復…" : Fmt.duration(ctx.date.timeIntervalSince(since)))
                         .font(.bodySmall).monospacedDigit().foregroundColor(Color.white.opacity(0.85))
