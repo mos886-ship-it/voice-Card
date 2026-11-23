@@ -2,6 +2,19 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>tw.dylan.pair</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>dylan</string>
+			</array>
+		</dict>
+	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>掃描大D的主機的配對 QR 碼。</string>
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>

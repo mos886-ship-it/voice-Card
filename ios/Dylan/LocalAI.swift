@@ -123,6 +123,108 @@ enum LocalAI {
         return h
     }
 
+    // MARK: - 配對（不用手動貼存取碼）
+
+    static let deviceIdKey = "local_ai_device_id"
+    /// 已和主機配對（或貼了存取碼）、可以從 App 裡通知別的畫面重新讀狀態。
+    static let didPair = Notification.Name("dylan.didPair")
+
+    struct Paired: Decodable { let token: String; let id: String }
+    struct Device: Decodable, Identifiable {
+        let id: String
+        let name: String
+        let created: Double
+        let last_seen: Double?
+        let via: String?
+        let current: Bool
+    }
+    struct Devices: Decodable {
+        let devices: [Device]
+        let password_set: Bool
+    }
+
+    /// 給主機看的裝置名字：「Dylan 的 iPad（iPad Pro 11 吋 第 2 代）」。
+    static var deviceLabel: String {
+        let n = DeviceInfo.name, m = DeviceInfo.modelShort
+        return n.isEmpty ? m : "\(n)（\(m)）"
+    }
+
+    /// 用配對密碼或 QR 配對碼，向主機換這台裝置自己的存取碼，連同位址一起存起來。
+    static func pair(url: String, password: String? = nil, code: String? = nil) async throws {
+        let base = normalize(url)
+        guard !base.isEmpty, let u = URL(string: base + "/v1/pair") else {
+            throw GeminiClient.Failure(message: "位址格式不對，例如 http://Dylan-Mac-mini.local:8765")
+        }
+        var r = URLRequest(url: u, timeoutInterval: 10)
+        r.httpMethod = "POST"
+        var body = ["name": deviceLabel]
+        if let password { body["password"] = password }
+        if let code { body["code"] = code }
+        r.httpBody = try JSONSerialization.data(withJSONObject: body)
+        let (data, resp): (Data, URLResponse)
+        do { (data, resp) = try await URLSession.shared.data(for: r) } catch {
+            throw GeminiClient.Failure(message: "連不到大D的主機（\(error.localizedDescription)）")
+        }
+        let status = (resp as? HTTPURLResponse)?.statusCode ?? 0
+        guard status == 200, let p = try? JSONDecoder().decode(Paired.self, from: data) else {
+            let msg = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String
+            throw GeminiClient.Failure(message: msg ?? "配對失敗（\(status)）", code: status)
+        }
+        UserDefaults.standard.set(base, forKey: urlKey)
+        Keychain.set(p.token, for: tokenAccount)
+        UserDefaults.standard.set(p.id, forKey: deviceIdKey)
+        NotificationCenter.default.post(name: didPair, object: nil)
+    }
+
+    /// 相機掃到的 dylan://pair?url=…&lan=…&code=…：先試對外位址，連不到再試區網位址。回傳用的位址。
+    @discardableResult
+    static func pair(link: URL) async throws -> String {
+        guard link.scheme == "dylan", link.host == "pair",
+              let items = URLComponents(url: link, resolvingAgainstBaseURL: false)?.queryItems,
+              let code = items.first(where: { $0.name == "code" })?.value else {
+            throw GeminiClient.Failure(message: "這不是大D的主機的配對 QR 碼")
+        }
+        let urls = ["url", "lan"].compactMap { k in items.first(where: { $0.name == k })?.value }.filter { !$0.isEmpty }
+        var last: Error = GeminiClient.Failure(message: "QR 碼裡沒有位址")
+        for u in urls {
+            do {
+                try await pair(url: u, code: code)
+                return u
+            } catch let e as GeminiClient.Failure where e.code == 0 {
+                last = e   // 連不到：換下一個位址（配對碼還沒用掉）
+            }
+        }
+        throw last
+    }
+
+    static func devices() async throws -> Devices {
+        let (data, resp) = try await URLSession.shared.data(for: request("/v1/devices"))
+        let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
+        guard code == 200, let d = try? JSONDecoder().decode(Devices.self, from: data) else {
+            throw GeminiClient.Failure(message: error(data, status: code), code: code)
+        }
+        return d
+    }
+
+    static func revoke(_ id: String) async throws {
+        let (data, resp) = try await URLSession.shared.data(for: request("/v1/devices/revoke", method: "POST", body: ["id": id]))
+        let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
+        guard code == 200 else { throw GeminiClient.Failure(message: error(data, status: code), code: code) }
+    }
+
+    static func setPassword(_ password: String) async throws {
+        let (data, resp) = try await URLSession.shared.data(for: request("/v1/password", method: "POST", body: ["password": password]))
+        let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
+        guard code == 200 else { throw GeminiClient.Failure(message: error(data, status: code), code: code) }
+    }
+
+    /// 取消這台裝置的配對：通知主機作廢這台的存取碼（連不到也照樣清掉本機的）。
+    static func unpair() async {
+        if let id = UserDefaults.standard.string(forKey: deviceIdKey), !token.isEmpty { try? await revoke(id) }
+        Keychain.set("", for: tokenAccount)
+        UserDefaults.standard.removeObject(forKey: deviceIdKey)
+    }
+
     /// 背景上傳用的請求（GeminiJobs 交給系統做，App 暗了也會完成）。
     static func processRequest(kind: String, recordedAt: String, durationSec: Double, text: Bool = false) -> URLRequest? {
         guard let u = URL(string: url + "/v1/process") else { return nil }

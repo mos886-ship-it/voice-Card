@@ -48,7 +48,7 @@ struct RootView: View {
         .toast($toast)
         .onReceive(NotificationCenter.default.publisher(for: AudioImport.didImport)) { note in
             path = []
-            tab = .records
+            tab = (note.userInfo?["tab"] as? String) == "settings" ? .settings : .records
             toast = note.object as? String
         }
     }

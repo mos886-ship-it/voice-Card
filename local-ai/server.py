@@ -12,10 +12,18 @@ App 的報告解析、說話者名字、飲食 NUTRITION 解析都直接沿用�
                        X-Input: text 時 body 是 UTF-8 文字（匯入的會議紀錄 / 逐字稿），跳過語音辨識直接寫報告
                      回 {"text": "<Gemini 格式>", "model": "local-<asr>|<llm>"，例如 local-funasr|qwen3-8b}，失敗回 {"error": "..."}
                      （處理中每 20 秒先送一個空白保持連線，所以狀態碼一律 200，結果看 JSON）
+  配對（pairing.py）：
+  POST /v1/pair           → {"password": …} 或 {"code": QR 配對碼}，加 "name"（裝置名）；不用存取碼 → {"token", "id"}
+  GET  /v1/devices        → {"devices": [{id, name, created, last_seen, via, current}], "password_set"}
+  POST /v1/devices/revoke → {"id": …} 取消某台裝置
+  POST /v1/password       → {"password": …} 設定 / 更換配對密碼（至少 8 個字）
+  GET  /pair              → 配對用的 QR 碼網頁（只給區網 / 本機）
+  設定密碼也可以在主機上：venv/bin/python server.py --set-password
 
 一次只處理一筆（同一顆 GPU），其他請求排隊。啟動：venv/bin/python server.py（launchd 會在登入時自動啟動）。
 """
-import hmac
+import getpass
+import ipaddress
 import json
 import os
 import re
@@ -82,6 +90,23 @@ def load_config():
 # ---------------- 模型 ----------------
 
 CFG = load_config()
+
+if "--set-password" in sys.argv:   # 在主機上設定配對密碼（不用載入模型）
+    from pairing import Pairing
+
+    def _save():
+        with open(CONFIG, "w", encoding="utf-8") as f:
+            json.dump(CFG, f, indent=2, ensure_ascii=False)
+        os.chmod(CONFIG, 0o600)
+    pw = getpass.getpass("新的配對密碼（至少 8 個字）：")
+    if pw != getpass.getpass("再輸入一次："):
+        sys.exit("兩次不一樣，沒有改")
+    try:
+        Pairing(CFG, _save, print).set_password(pw)
+    except ValueError as e:
+        sys.exit(str(e))
+    print("已設定。服務若正在執行，請重啟：launchctl kickstart -k gui/$(id -u)/com.dylan.localai")
+    sys.exit(0)
 # config.json 可以再加自己的選項：{"extra_llm": {"mlx:<repo>": {"label": "...", "tag": "..."}}}
 LLM_OPTIONS.update(CFG.get("extra_llm", {}))
 ASR_OPTIONS.update(CFG.get("extra_asr", {}))
@@ -415,6 +440,20 @@ def status():
             "state": CUR["state"], "error": CUR["error"], "busy": n > 0}
 
 
+sys.path.insert(0, HERE)
+from pairing import Pairing  # noqa: E402
+
+PAIR = Pairing(CFG, save_config, log)
+
+
+def lan_url():
+    try:
+        name = subprocess.run(["scutil", "--get", "LocalHostName"], capture_output=True, text=True).stdout.strip()
+    except OSError:
+        name = ""
+    return f"http://{name or 'localhost'}.local:{PORT}"
+
+
 # 防猜存取碼：同一個來源 IP 錯 10 次就封 1 小時（服務透過固定 IP 對外開放，誰都連得到）
 MAX_FAILS = 10
 BLOCK_SECONDS = 3600
@@ -447,9 +486,10 @@ class Handler(BaseHTTPRequestHandler):
         if blocked:
             self._json(429, {"error": "存取碼錯太多次，請一小時後再試"})
             return False
-        given = self.headers.get("Authorization", "").encode("utf-8")
-        # 固定時間比對：不能從回應快慢猜出存取碼
-        if hmac.compare_digest(given, f"Bearer {CFG['token']}".encode("utf-8")):
+        # 主存取碼或配對過的裝置存取碼（固定時間比對：不能從回應快慢猜出存取碼）
+        ok, dev = PAIR.check(self.headers.get("Authorization", ""))
+        if ok:
+            self.device_id = dev
             with FAILS_LOCK:
                 FAILS.pop(ip, None)
             return True
@@ -462,7 +502,37 @@ class Handler(BaseHTTPRequestHandler):
         self._json(401, {"error": "存取碼不對"})
         return False
 
+    def _body(self):
+        n = int(self.headers.get("Content-Length", "0") or 0)
+        if n > 10_000:
+            raise ValueError("too big")
+        return json.loads(self.rfile.read(n) or b"{}")
+
+    def _local_only(self):
+        """配對頁只給區網 / 本機：從外面（經路由器轉埠）看不到 QR 碼。"""
+        try:
+            ip = ipaddress.ip_address(self.client_address[0])
+        except ValueError:
+            return False
+        return ip.is_private or ip.is_loopback
+
     def do_GET(self):
+        if self.path.split("?")[0] == "/pair":
+            if not self._local_only():
+                return self._json(403, {"error": "配對頁只能在家裡的網路打開"})
+            body = PAIR.page(CFG.get("public_url") or lan_url(), lan_url()).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        if self.path == "/v1/devices":
+            if not self._authorized():
+                return
+            return self._json(200, {"devices": PAIR.devices(getattr(self, "device_id", None)),
+                                    "password_set": PAIR.has_password})
         if self.path not in ("/v1/health", "/v1/models"):
             return self._json(404, {"error": "not found"})
         if not self._authorized():
@@ -496,7 +566,37 @@ class Handler(BaseHTTPRequestHandler):
         threading.Thread(target=work, daemon=True).start()
         self._json(202, status())
 
+    def _pair(self):
+        ip = self.client_address[0]
+        try:
+            body = self._body()
+        except ValueError:
+            return self._json(400, {"error": "格式不對"})
+        try:
+            token, dev = PAIR.pair(ip, password=body.get("password"), code=body.get("code"), name=body.get("name", ""))
+        except PermissionError as e:
+            return self._json(429 if "一小時" in str(e) else 401, {"error": str(e)})
+        self._json(200, {"token": token, "id": dev})
+
     def do_POST(self):
+        if self.path == "/v1/pair":
+            return self._pair()
+        if self.path in ("/v1/password", "/v1/devices/revoke"):
+            if not self._authorized():
+                return
+            try:
+                body = self._body()
+            except ValueError:
+                return self._json(400, {"error": "格式不對"})
+            if self.path == "/v1/password":
+                try:
+                    PAIR.set_password(str(body.get("password", "")))
+                except ValueError as e:
+                    return self._json(400, {"error": str(e)})
+                return self._json(200, {"ok": True})
+            if not PAIR.revoke(str(body.get("id", ""))):
+                return self._json(404, {"error": "沒有這台裝置"})
+            return self._json(200, {"ok": True})
         if self.path == "/v1/config":
             return self._config() if self._authorized() else None
         if self.path != "/v1/process":

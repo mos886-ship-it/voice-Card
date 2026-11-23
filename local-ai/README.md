@@ -1,6 +1,8 @@
-# 大D 自架 AI 服務（使用者自己的 Mac）
+# 大D的主機：自架 AI 服務（使用者自己的電腦）
 
-錄音 → **語音辨識＋分說話者** → **語言模型**寫報告。模型可以在 App「設定 → 這台 Mac（自架）」切換（實測時比較用）：
+> 連線、開機自動啟動、路由器、App 怎麼填、出問題怎麼查：**`交接/HOST_CONNECT.md`**。這份只講服務本身（模型、安裝、API）。
+
+錄音 → **語音辨識＋分說話者** → **語言模型**寫報告。模型可以在 App「設定 → 大D的主機」切換（實測時比較用）：
 
 | | 選項 | 說明 |
 |---|---|---|
@@ -21,7 +23,7 @@ bash local-ai/setup.sh
 ```
 
 - 建立 `~/dylan-local`：Python 環境（約 850 MB）、模型快取（FunASR 2.1 GB 在 `~/.cache/modelscope`、Qwen 4.3 GB 在 `~/.cache/huggingface`）。
-- 存取碼：`~/dylan-local/config.json` 的 `token`（第一次啟動自動產生，權限 600）。貼到 App「設定 → 這台 Mac（自架）」。**不要放進 repo。**
+- 存取碼：`~/dylan-local/config.json` 的 `token`（第一次啟動自動產生，權限 600）。**不要放進 repo。** App 不用手動貼：用 QR 碼或配對密碼配對（`pairing.py`，見 `交接/HOST_CONNECT.md`）。
 - 登入時自動啟動：`~/Library/LaunchAgents/com.dylan.localai.plist`（KeepAlive：當掉會自動重啟）。紀錄在 `~/dylan-local/server.log`。
 
 ## 端點（埠 8765，都要 `Authorization: Bearer <token>`）
@@ -29,21 +31,13 @@ bash local-ai/setup.sh
 - `GET /v1/health` → `{"ok": true, "asr": 名稱, "llm": 名稱, "asr_id", "llm_id", "model", "state": "ready|loading|error", "error", "busy"}`
 - `GET /v1/models` → health 的內容＋`asr_options`、`llm_options`（`[{id, label}]`）
 - `POST /v1/config` `{"asr": id, "llm": id}` → 存進 config.json，等正在處理的那筆做完才在背景換（第一次會下載），回 202；用 health 的 `state` 看何時好
+- 配對（不用存取碼）：`POST /v1/pair`；已連上的裝置：`GET /v1/devices`、`POST /v1/devices/revoke`、`POST /v1/password`；配對頁 `GET /pair`（只給區網 / 本機）。詳見 `pairing.py` 開頭的說明。
 - `POST /v1/process`：body 是錄音檔；標頭 `X-Kind: meeting|food`、`X-Recorded-At`、`X-Duration`（秒）→ `{"text": "<Gemini 格式>", "model": "local-funasr|qwen3-8b"}`，失敗回 `{"error": "..."}`。
   處理中每 20 秒先送一個空白保持連線（6 小時的錄音估計要 30 分鐘以上，App 的連線閒置上限是 30 分鐘），所以狀態碼一律 200，成功或失敗看 JSON。
 
 ## 手機怎麼連到
 
-- 同一個 Wi-Fi：App 位址填 `http://<Mac 名稱>.local:8765`（系統設定 → 一般 → 共享 可以看到名稱）。第一次 macOS 可能會問是否允許 Python 接受連入連線，要按允許。
-- 出門在外（建議）：Mac 和 iPhone 都裝 Tailscale，位址填 Mac 的 Tailscale IP（`http://100.x.x.x:8765`），不用開路由器的埠、全程加密。
-- 出門在外（固定 IP＋路由器轉埠，目前這台 Mac 的做法）：路由器 DHCP 保留讓 Mac 有線網路固定 `192.168.0.x`，轉埠「外部 48765 → Mac:8765，TCP，來源 Any」，App 位址填 `http://<固定 IP>:48765`。
-  - 這樣整個網路都連得到這個埠，而且是 **http（不加密）**：錄音、報告、存取碼在網路上都是明文。要加密就改用 Tailscale 或前面加 HTTPS。
-  - 服務的保護：存取碼用固定時間比對；同一個來源 IP 錯 10 次封 1 小時（回 429，存在記憶體，重啟服務就清掉）；紀錄檔會記來源 IP；閒置連線 2 分鐘斷線。
-  - 在家裡用固定 IP 連（路由器回送），來源 IP 會是固定 IP 本身——在家打錯 10 次會把自己家封住，重啟服務即可。
-  - App 的 Info.plist 用 `NSAllowsArbitraryLoads`：iOS 預設擋 http 連公網 IP（ATS），例外清單又不能寫 IP，而且有 `NSAllowsLocalNetworking` 時 iOS 會忽略 `NSAllowsArbitraryLoads`，所以只留這一個。改用 HTTPS 網域後可以拿掉。
-  - 存取碼外洩或懷疑被猜：重新產生（改 `config.json` 的 `token` 後重啟服務），再把新的貼到 App。
-- 模擬器：預設 `http://localhost:8765`。
-- Mac 要保持開機、不睡眠（系統設定 → 能源 → 防止自動進入睡眠，需要自己設定）。
+見 `交接/HOST_CONNECT.md`（在家 `http://Dylan-Mac-mini.local:8765`；出門 `http://<固定 IP>:48765`；存取碼怎麼拿到手機上；安全注意事項）。模擬器預設 `http://localhost:8765`。
 
 ## 實測（M4 / 16 GB，2026-11-22）
 

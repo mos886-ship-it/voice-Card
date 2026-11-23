@@ -25,6 +25,14 @@ struct DylanApp: App {
                 .task { await CallInbox.importFinished() }
                 // 從別的 App 分享 / 「打開方式」送來的音檔（語音備忘錄、檔案、LINE…）→ 匯入
                 .onOpenURL { url in
+                    if url.scheme == "dylan" {   // 相機掃到主機配對頁的 QR 碼
+                        Task {
+                            var msg = "已和大D的主機配對"
+                            do { try await LocalAI.pair(link: url) } catch { msg = "配對失敗：\(error.localizedDescription)" }
+                            NotificationCenter.default.post(name: AudioImport.didImport, object: msg, userInfo: ["tab": "settings"])
+                        }
+                        return
+                    }
                     Task {
                         let err = await AudioImport.run(url)
                         if url.path.contains("/Inbox/") { try? FileManager.default.removeItem(at: url) }

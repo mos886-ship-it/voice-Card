@@ -247,7 +247,7 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 - 測試用開關（只在 Debug）：手錶 `-autoRecordSeconds N` 自動錄 N 秒；手機 `-processId <錄音id>` 啟動就分析；手錶分段長度可用 UserDefaults `segment_seconds` 改短（測完刪掉）。
 - 強制關閉 App（在 App 切換器滑掉）時 iOS 會取消背景傳輸，下次開 App 會自動重新分析。
 - 測試用開關（只在 Debug）另有：手錶 `-autoRecordFood YES` 讓自動錄音變成飲食記錄；手機 `-localToken <存取碼>` 直接存自架 Mac 的存取碼（模擬器剪貼簿不能用）。
-- **自架 Mac**：安裝 `bash local-ai/setup.sh`，說明見 `local-ai/README.md`。服務登入時自動啟動（LaunchAgent `com.dylan.localai`），存取碼在 `~/dylan-local/config.json`（不進 repo）。背景傳輸遇到連不到的主機不會失敗、只會一直等，所以送出前先做 5 秒的 health 檢查；Mac 用自己的背景 session，總時限 1 小時。
+- **大D的主機（自架 Mac）**：安裝 `bash local-ai/setup.sh`，說明見 `local-ai/README.md`；**連線與維護見 `交接/HOST_CONNECT.md`**。服務登入時自動啟動（LaunchAgent `com.dylan.localai`），存取碼在 `~/dylan-local/config.json`（不進 repo）。背景傳輸遇到連不到的主機不會失敗、只會一直等，所以送出前先做 5 秒的 health 檢查；Mac 用自己的背景 session，總時限 1 小時。
 - 還沒做：手錶報告書清單 / 明細、手錶今日熱量環（`/wristai/food_today`）、長錄音分段分析（目前太長只會提示逐字稿被截斷）、GPS、搜尋、組合式引擎、處理步驟視覺化、說話者改名。
 
 ## Android 跟上 iOS（2026-11-23，依 `交接/IOS_TO_ANDROID.md` 的高優先項目）

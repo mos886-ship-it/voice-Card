@@ -1,6 +1,6 @@
 # 大D：iOS 版程式總結，交接給 Android 版
 
-更新：2026-11-23（Mac mini）
+更新：2026-11-23（Mac mini；含大D的主機配對）
 
 iOS 版原本照 Android 版移植（見 `IOS_PORT.md`），之後在 iOS 上**多做了一批功能和介面改版**。這份文件把 iOS 版目前的程式整理一遍，並逐項寫出 Android 版要怎麼跟上，讓兩邊功能、用詞、畫面一致。
 
@@ -15,6 +15,7 @@ iOS 版原本照 Android 版移植（見 `IOS_PORT.md`），之後在 iOS 上**�
 | # | 功能 | iOS 狀態 | Android 要做的事 | 優先 |
 |---|---|---|---|---|
 | 1 | **大D的主機**（使用者自己的電腦跑 AI：分說話者、免費、不出設備） | ✅ 真機 iPad 經固定 IP 實測 | 新增一個 AI 引擎，打同一組 HTTP API（第 3 節）；有設定時優先，連不到改 Gemini | 高 |
+| 1b | **配對大D的主機**：掃 QR 碼或輸入配對密碼，每台裝置自己的存取碼，可個別取消（不用再手動貼 43 字元存取碼） | ✅ 主機 curl 全測、模擬器 QR 連結配對；真機相機掃描未測 | 實作 `/v1/pair` 流程、`dylan://pair` 連結、相機掃 QR、裝置清單（第 3 節） | 高 |
 | 2 | 主機模型切換（語音辨識 / 報告模型） | ✅ | 設定頁兩個選單，資料來自 `/v1/models`，選了打 `/v1/config` | 中 |
 | 3 | **匯入文字檔**（會議紀錄、逐字稿 → 報告） | ✅ 模擬器 | 匯入接受 txt / md / rtf；跳過語音辨識，主機用 `X-Input: text`，Gemini 直接送文字 | 中 |
 | 4 | 匯入音檔 / 影片、**從別的 App 分享進來** | ✅ 模擬器＋iPad | Android 已有 `AudioImporter`；補上 `ACTION_SEND` / `ACTION_VIEW` intent-filter（audio/*、video/*、text/plain）＋文字檔 | 中 |
@@ -51,11 +52,17 @@ iOS 版原本照 Android 版移植（見 `IOS_PORT.md`），之後在 iOS 上**�
 
 ## 3. 大D的主機（自架 AI）— Android 要新增的引擎
 
-主機服務在使用者自己的電腦（目前是 M4 Mac mini 16GB），安裝見 `local-ai/README.md`。App 這邊只要會打 HTTP。
+主機服務在使用者自己的電腦（目前是 M4 Mac mini 16GB），安裝見 `local-ai/README.md`，**連線、自動啟動、路由器、測試與排錯見 `HOST_CONNECT.md`**。App 這邊只要會打 HTTP。
 
 ### 設定（設定頁「大D的主機」卡）
 - **位址**：在家用 `http://<主機名>.local:8765` 或區網 IP；出門用固定 IP ＋路由器轉發的埠（實際 IP 不寫進 repo）。使用者沒打 `http://` 就自動補上、去掉結尾 `/`。
-- **存取碼**：43 字元，存在主機的 `~/dylan-local/config.json`。App 端存 **Android Keystore / EncryptedSharedPreferences**，畫面只顯示「存取碼已設定」。
+- **配對（取代手動貼存取碼）**：
+  - **QR**：主機的 `/pair` 頁（只給區網 / 本機）顯示 `dylan://pair?url=<對外位址>&lan=<區網位址>&code=<一次性配對碼>`；App 註冊 `dylan://` 連結（Android：intent-filter `scheme="dylan" host="pair"`），也可在 App 內用相機掃（Android：CameraX ＋ ML Kit barcode）。先用 `url`，連不到再用 `lan`。
+  - **密碼**：使用者填位址＋配對密碼。
+  - 兩種都打 `POST /v1/pair`，拿到這台裝置自己的存取碼（43 字元）＋裝置 id，存 **Android Keystore / EncryptedSharedPreferences**。畫面顯示「已連上大D的主機」＋「取消配對」。
+  - 已連上時：「配對密碼」設定 / 更換（`POST /v1/password`）；科技模式顯示「已配對的裝置」（`GET /v1/devices`）可個別取消（`POST /v1/devices/revoke`）。
+  - 送給主機的裝置名：「名字（型號）」，例「Dylan 的 Fold5（Galaxy Z Fold5）」。
+  - 科技模式保留「直接貼主存取碼」的進階方法。
 - **測試連線**按鈕 → `GET /v1/health`，成功顯示「連線成功：FunASR…、Qwen3-8B…」，並載入模型選單（科技模式才顯示選單）。
 - Android 要允許 http 明文連線：`network_security_config` 開 `cleartextTrafficPermitted`（固定 IP 不能用網域白名單，iOS 也是整個打開 ATS）。
 
@@ -65,6 +72,10 @@ iOS 版原本照 Android 版移植（見 `IOS_PORT.md`），之後在 iOS 上**�
 | GET | `/v1/health` | `{ok, asr, llm, asr_id, llm_id, model, state: ready\|loading\|error, error, busy}` |
 | GET | `/v1/models` | health 的內容＋`asr_options`、`llm_options`（`[{id, label}]`） |
 | POST | `/v1/config` | `{"asr": id, "llm": id}` → 回 202，主機在背景換模型（第一次會下載）；App 每 3 秒查 `/v1/models` 直到 `state != loading`，期間顯示「主機正在載入模型（第一次會先下載，可能要幾分鐘）…」 |
+| POST | `/v1/pair` | **不用存取碼**。body `{"password": …, "name": 裝置名}` 或 `{"code": QR 配對碼, "name": …}` → `{"token", "id"}`；錯回 401 `{"error"}`、太多次回 429 |
+| GET | `/v1/devices` | `{"devices": [{id, name, created, last_seen, via: password\|qr, current}], "password_set": bool}` |
+| POST | `/v1/devices/revoke` | `{"id": …}` → 取消那台裝置的存取碼 |
+| POST | `/v1/password` | `{"password": …}`（至少 8 個字）→ 設定 / 更換配對密碼 |
 | POST | `/v1/process` | body 是錄音檔（m4a 等）；標頭 `X-Kind: meeting\|food`、`X-Recorded-At`（例 `2026/11/23 21:20`；標頭只能放 ASCII）、`X-Duration`（秒，整數）。**文字輸入**：加 `X-Input: text`、body 是 UTF-8 文字、`Content-Type: text/plain; charset=utf-8` |
 
 `/v1/process` 回應：主機先回 200，處理期間每 20 秒送一個空白（防逾時），最後送 JSON：`{"text": "<報告>\n\n===TRANSCRIPT===\n<逐字稿>", "model": "local-funasr|qwen3-8b"}` 或 `{"error": "大D的主機處理失敗：…"}`。`text` 的格式和 Gemini 輸出一樣（TITLE / SUMMARY 行＋Markdown 報告＋`===TRANSCRIPT===`＋`[mm:ss] 說話者A：…`），**直接用現有的 Gemini 解析**。逾時設長（iOS 用 30 分鐘請求、1 小時總時限）。
