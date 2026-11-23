@@ -1,6 +1,6 @@
 # 大D：iOS 版程式總結，交接給 Android 版
 
-更新：2026-11-23（Mac mini）
+更新：2026-11-23（Mac mini；含大D的主機配對）
 
 iOS 版原本照 Android 版移植（見 `IOS_PORT.md`），之後在 iOS 上**多做了一批功能和介面改版**。這份文件把 iOS 版目前的程式整理一遍，並逐項寫出 Android 版要怎麼跟上，讓兩邊功能、用詞、畫面一致。
 
@@ -15,6 +15,7 @@ iOS 版原本照 Android 版移植（見 `IOS_PORT.md`），之後在 iOS 上**�
 | # | 功能 | iOS 狀態 | Android 要做的事 | 優先 |
 |---|---|---|---|---|
 | 1 | **大D的主機**（使用者自己的電腦跑 AI：分說話者、免費、不出設備） | ✅ 真機 iPad 經固定 IP 實測 | 新增一個 AI 引擎，打同一組 HTTP API（第 3 節）；有設定時優先，連不到改 Gemini | 高 |
+| 1b | **配對大D的主機**：掃 QR 碼或輸入配對密碼，每台裝置自己的存取碼，可個別取消（不用再手動貼 43 字元存取碼） | ✅ 主機 curl 全測、模擬器 QR 連結配對；真機相機掃描未測 | 實作 `/v1/pair` 流程、`dylan://pair` 連結、相機掃 QR、裝置清單（第 3 節） | 高 |
 | 2 | 主機模型切換（語音辨識 / 報告模型） | ✅ | 設定頁兩個選單，資料來自 `/v1/models`，選了打 `/v1/config` | 中 |
 | 3 | **匯入文字檔**（會議紀錄、逐字稿 → 報告） | ✅ 模擬器 | 匯入接受 txt / md / rtf；跳過語音辨識，主機用 `X-Input: text`，Gemini 直接送文字 | 中 |
 | 4 | 匯入音檔 / 影片、**從別的 App 分享進來** | ✅ 模擬器＋iPad | Android 已有 `AudioImporter`；補上 `ACTION_SEND` / `ACTION_VIEW` intent-filter（audio/*、video/*、text/plain）＋文字檔 | 中 |
