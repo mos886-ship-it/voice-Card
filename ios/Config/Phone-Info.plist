@@ -17,6 +17,9 @@
 				<string>public.movie</string>
 				<string>com.apple.m4a-audio</string>
 				<string>public.mpeg-4-audio</string>
+				<string>public.plain-text</string>
+				<string>public.rtf</string>
+				<string>net.daringfireball.markdown</string>
 			</array>
 		</dict>
 	</array>

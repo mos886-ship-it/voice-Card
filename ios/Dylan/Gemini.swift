@@ -157,6 +157,31 @@ struct GeminiClient {
         throw last ?? Failure(message: "沒有可用的 Gemini 模型")
     }
 
+    /// 匯入的文字（會議紀錄 / 逐字稿）→ 報告。逐字稿不請模型重抄，直接接上原文。
+    func generateText(_ text: String, recordedAt: String) async throws -> (text: String, model: String) {
+        guard !apiKey.isEmpty else { throw Failure(message: "尚未設定 Gemini API Key（請到設定頁貼上）") }
+        let prompt = """
+        這是一份匯入的文字記錄（會議紀錄、逐字稿或筆記，不是錄音），時間：\(recordedAt)。
+        請依格式整理成報告；不需要輸出逐字稿區段。
+
+        <document>
+        \(text)
+        </document>
+        """
+        var last: Failure?
+        for model in Self.models {
+            do {
+                let (out, _) = try await generateContent(model: model, fileURI: nil, prompt: prompt)
+                let report = out.range(of: Self.transcriptMarker).map { String(out[..<$0.lowerBound]) } ?? out
+                return (report.trimmingCharacters(in: .whitespacesAndNewlines) + "\n\n" + Self.transcriptMarker + "\n" + text, model)
+            } catch let e as Failure {
+                last = e
+                guard [429, 404, 503, 500, 504].contains(e.code) else { throw e }
+            }
+        }
+        throw last ?? Failure(message: "沒有可用的 Gemini 模型")
+    }
+
     /// 把模型輸出拆成報告和逐字稿。
     static func split(_ text: String) -> (GeneratedReport, String) {
         guard let r = text.range(of: transcriptMarker) else {

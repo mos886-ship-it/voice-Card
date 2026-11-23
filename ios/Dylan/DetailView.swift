@@ -90,7 +90,7 @@ struct DetailView: View {
                             GlassCard {
                                 Text("處理失敗").font(.titleMedium).foregroundStyle(Brand.error)
                                 Text(e).font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 4)
-                                if hasAudio(m) {
+                                if hasAudio(m) || MeetingStore.isText(m.id) {
                                     GradientButton(text: "重試") { Task { await store.process(m.id) } }.padding(.top, 12)
                                 }
                             }

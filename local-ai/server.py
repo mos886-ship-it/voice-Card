@@ -9,6 +9,7 @@ App 的報告解析、說話者名字、飲食 NUTRITION 解析都直接沿用�
   GET  /v1/models   → health 的內容 ＋ asr_options / llm_options（[{id, label}]）
   POST /v1/config   → {"asr": id, "llm": id}；存進 config.json，背景換模型（第一次會下載），回 202
   POST /v1/process  → body 是錄音檔（m4a / wav…）；標頭 X-Kind: meeting|food、X-Recorded-At、X-Duration（秒）
+                       X-Input: text 時 body 是 UTF-8 文字（匯入的會議紀錄 / 逐字稿），跳過語音辨識直接寫報告
                      回 {"text": "<Gemini 格式>", "model": "local-<asr>|<llm>"，例如 local-funasr|qwen3-8b}，失敗回 {"error": "..."}
                      （處理中每 20 秒先送一個空白保持連線，所以狀態碼一律 200，結果看 JSON）
 
@@ -366,12 +367,17 @@ def chunks(text, size):
     return out
 
 
-def process(audio_path, kind, recorded_at, duration):
+def process(audio_path, kind, recorded_at, duration, text_input=False):
     t0 = time.time()
-    wav = to_wav(audio_path)
-    transcript = transcribe(wav)
+    if text_input:
+        with open(audio_path, encoding="utf-8", errors="replace") as f:
+            transcript = f.read().strip()
+        header = f"這是一份匯入的文字記錄（會議紀錄、逐字稿或筆記，不是錄音），時間：{recorded_at}。"
+    else:
+        wav = to_wav(audio_path)
+        transcript = transcribe(wav)
+        header = f"錄音時間：{recorded_at}，長度約 {duration / 60:.1f} 分鐘。"
     t1 = time.time()
-    header = f"錄音時間：{recorded_at}，長度約 {duration / 60:.1f} 分鐘。"
     if not transcript.strip():
         report = "TITLE: 沒有聽到內容\nSUMMARY: 這段錄音沒有辨識到說話內容。\n## 摘要\n這段錄音沒有辨識到說話內容。"
     elif kind == "food":
@@ -501,6 +507,7 @@ class Handler(BaseHTTPRequestHandler):
         if length <= 0 or length > 1_000_000_000:
             return self._json(400, {"error": "沒有錄音檔或檔案太大"})
         kind = self.headers.get("X-Kind", "meeting")
+        text_input = self.headers.get("X-Input", "") == "text"
         recorded_at = self.headers.get("X-Recorded-At", "")
         duration = float(self.headers.get("X-Duration", "0") or 0)
         with tempfile.TemporaryDirectory() as tmp:
@@ -513,7 +520,7 @@ class Handler(BaseHTTPRequestHandler):
                         break
                     f.write(buf)
                     left -= len(buf)
-            log(f"job {kind} {length // 1024} KB, {duration:.0f}s")
+            log(f"job {kind}{' text' if text_input else ''} {length // 1024} KB, {duration:.0f}s")
             # 長錄音在這台 Mac 上可能要半小時以上：先回 200，處理期間每 20 秒送一個空白（JSON 前面的空白是合法的），
             # App 的連線才不會因為太久沒資料而逾時；結果（或錯誤）最後用 JSON 送出。
             self.send_response(200)
@@ -537,7 +544,10 @@ class Handler(BaseHTTPRequestHandler):
                 with GPU:   # 一次一筆
                     if not CUR["llm_obj"]:
                         raise RuntimeError(CUR["error"] or "模型還沒載入")
-                    result = {"text": process(path, kind, recorded_at, duration), "model": model_tag()}
+                    tag = model_tag()
+                    if text_input:   # 沒用到語音辨識：代號的辨識部分寫 text
+                        tag = "local-text|" + tag.split("|", 1)[-1]
+                    result = {"text": process(path, kind, recorded_at, duration, text_input), "model": tag}
             except Exception as e:  # noqa: BLE001
                 log(f"  failed: {e}")
                 result = {"error": f"這台 Mac 處理失敗：{e}"}

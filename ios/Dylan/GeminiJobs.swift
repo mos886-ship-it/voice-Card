@@ -85,10 +85,11 @@ final class GeminiJobs: NSObject, URLSessionDataDelegate {
 
     /// 自架：錄音直接傳給這台 Mac 的服務，Mac 處理完回傳 Gemini 格式的結果（交給系統，App 暗了也會完成）。
     func startLocal(meetingId: String, kind: String, recordedAt: String, durationSec: Double) throws {
-        guard let r = LocalAI.processRequest(kind: kind, recordedAt: recordedAt, durationSec: durationSec) else {
+        let text = MeetingStore.isText(meetingId)
+        guard let r = LocalAI.processRequest(kind: kind, recordedAt: recordedAt, durationSec: durationSec, text: text) else {
             throw GeminiClient.Failure(message: "這台 Mac 的位址格式不對")
         }
-        let task = localSession.uploadTask(with: r, fromFile: MeetingStore.audioURL(meetingId))
+        let task = localSession.uploadTask(with: r, fromFile: text ? MeetingStore.textURL(meetingId) : MeetingStore.audioURL(meetingId))
         task.taskDescription = Self.encode(Job(meetingId: meetingId, stage: .local))
         task.resume()
         NSLog("[GeminiJobs] \(meetingId) handed to local Mac")

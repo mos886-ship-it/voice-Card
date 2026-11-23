@@ -19,6 +19,9 @@ final class MeetingStore: ObservableObject {
     nonisolated static func audioURL(_ id: String) -> URL { dir(id).appendingPathComponent("audio.m4a") }
     nonisolated static func reportURL(_ id: String) -> URL { dir(id).appendingPathComponent("report.md") }
     nonisolated static func transcriptURL(_ id: String) -> URL { dir(id).appendingPathComponent("transcript.txt") }
+    /// 匯入的文字檔（會議紀錄 / 逐字稿）：沒有錄音，直接拿來寫報告。
+    nonisolated static func textURL(_ id: String) -> URL { dir(id).appendingPathComponent("input.txt") }
+    nonisolated static func isText(_ id: String) -> Bool { FileManager.default.fileExists(atPath: textURL(id).path) }
     nonisolated static func segmentsDir(_ id: String) -> URL { dir(id).appendingPathComponent("segments", isDirectory: true) }
     nonisolated static func segmentURL(_ id: String, _ seq: Int) -> URL { segmentsDir(id).appendingPathComponent("\(seq).m4a") }
 
@@ -170,7 +173,14 @@ final class MeetingStore: ObservableObject {
 
     /// 產生（或重新產生）報告。
     func process(_ id: String) async {
-        guard !processing.contains(id), let m = load(id), FileManager.default.fileExists(atPath: Self.audioURL(id).path) else { return }
+        guard !processing.contains(id), let m = load(id),
+              FileManager.default.fileExists(atPath: Self.audioURL(id).path) || Self.isText(id) else { return }
+        if Self.isText(id) {   // 匯入的文字：Mac → Gemini；Apple 不處理文字
+            if LocalAI.configured { await runLocal(id) }
+            else if Self.hasGeminiKey && !Self.privacyMode { await runGeminiText(id) }
+            else { aiFailed(id, message: "文字檔要用這台 Mac 或 Gemini 產生報告：請到設定填好其中一個") }
+            return
+        }
         // 順序：飲食 → Apple（有模型時）；有設定自架 Mac → Mac；隱私模式 → Apple（不送第三方雲端）；
         //       有 Gemini 金鑰 → Gemini；都沒有 → Apple。隱私模式下自己的 Mac 可以用（錄音不出你的設備），Gemini 不行。
         if m.isFood && AppleAI.availableModel != nil {
@@ -200,7 +210,7 @@ final class MeetingStore: ObservableObject {
             await localFailed(id, message: error.localizedDescription)
             return
         }
-        if !m.isFood { Task { await self.preview(id) } }   // Mac 在跑的同時，Apple 先出預覽逐字稿
+        if !m.isFood && !Self.isText(id) { Task { await self.preview(id) } }   // Mac 在跑的同時，Apple 先出預覽逐字稿
         do {
             try GeminiJobs.shared.startLocal(meetingId: id, kind: m.isFood ? "food" : "meeting",
                                              recordedAt: Fmt.stamp(m.createdAt, "yyyy/MM/dd HH:mm"), durationSec: m.durationSec)
@@ -213,6 +223,15 @@ final class MeetingStore: ObservableObject {
     func localFailed(_ id: String, message: String) async {
         guard var m = load(id) else { return }
         NSLog("[MeetingStore] local Mac failed (\(message)), falling back")
+        if Self.isText(id) {
+            if Self.hasGeminiKey && !Self.privacyMode {
+                if var m = load(id) { m.engineNote = "這台 Mac 連不到（\(message)），改用 Gemini"; save(m) }
+                await runGeminiText(id)
+            } else {
+                aiFailed(id, message: message)
+            }
+            return
+        }
         if Self.hasGeminiKey && !Self.privacyMode {
             m.engineNote = "這台 Mac 沒有完成（\(message)），改用 Gemini"
             save(m)
@@ -238,6 +257,21 @@ final class MeetingStore: ObservableObject {
             try await GeminiJobs.shared.start(meetingId: id, key: Keychain.get(Keychain.geminiKey) ?? "")
         } catch {
             await geminiFailed(id, message: error.localizedDescription)
+        }
+    }
+
+    /// 文字檔用 Gemini（前景、純文字，不用上傳檔案）。
+    private func runGeminiText(_ id: String) async {
+        guard var m = load(id), let text = try? String(contentsOf: Self.textURL(id), encoding: .utf8) else { return }
+        processing.insert(id)
+        defer { processing.remove(id) }
+        begin(&m, step: "AI 整理中")
+        do {
+            let r = try await GeminiClient(apiKey: Keychain.get(Keychain.geminiKey) ?? "")
+                .generateText(text, recordedAt: Fmt.stamp(m.createdAt, "yyyy/MM/dd HH:mm"))
+            geminiReplied(id, text: r.text, model: r.model, truncated: false)
+        } catch {
+            aiFailed(id, message: "Gemini：\(error.localizedDescription)")
         }
     }
 
