@@ -44,8 +44,8 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * 设定页「Google 雲端硬碟備份」：连结帐号（Google 自己的同意画面，由使用者选帐号、按允许）、
- * 备份选项（录音档、自动、只用 Wi-Fi）、立即备份、从云端取回、取消连结。
+ * 设定页「Google 雲端硬碟備份」：只放设定——连结帐号（Google 自己的同意画面，由使用者选帐号、按允许）、
+ * 备份选项（录音档、自动、只用 Wi-Fi）、取消连结。立即备份 / 从云端取回在「檔案」分页（[BackupActions]）。
  */
 @Composable
 fun BackupSection() {
@@ -116,38 +116,14 @@ fun BackupSection() {
                 Text("已連結 Google 雲端硬碟", style = MaterialTheme.typography.titleMedium, color = Brand.Text)
             }
             email?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted) }
-            val last = DriveBackup.lastBackup(context)
-            Text(
-                "資料夾「${DriveBackup.FOLDER_NAME}」" +
-                    if (last > 0) " · 上次備份 " + SimpleDateFormat("M/d HH:mm", Locale.TAIWAN).format(Date(last)) else "",
-                style = MaterialTheme.typography.bodySmall, color = Brand.TextFaint,
-            )
+            Text("備份在雲端硬碟「${DriveBackup.FOLDER_NAME}」資料夾；立即備份、從雲端取回在「檔案」分頁",
+                style = MaterialTheme.typography.bodySmall, color = Brand.TextFaint)
             Spacer(Modifier.height(10.dp))
             BackupToggle("備份錄音檔", "關掉只備份報告和逐字稿（小很多）；錄音一小時約 22 MB", audio) {
                 audio = it; DriveBackup.setIncludeAudio(context, it)
             }
             BackupToggle("報告完成後自動備份", null, auto) { auto = it; DriveBackup.setAuto(context, it) }
             if (auto) BackupToggle("只用 Wi-Fi 自動備份", "不用行動數據", wifi) { wifi = it; DriveBackup.setWifiOnly(context, it) }
-            Spacer(Modifier.height(10.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                GhostButton(if (status.running) "處理中…" else "立即備份", {
-                    if (!status.running) BackupWorker.run(context, BackupWorker.MODE_BACKUP)
-                }, Modifier.weight(1f), tint = Brand.Cyan)
-                GhostButton("從雲端取回", {
-                    if (!status.running) BackupWorker.run(context, BackupWorker.MODE_RESTORE)
-                }, Modifier.weight(1f), tint = Brand.Cyan)
-            }
-            Text("取回只會補回手機上沒有的錄音，不會蓋掉手機上的。手機上刪掉的錄音，雲端硬碟裡的備份會留著。",
-                style = MaterialTheme.typography.labelSmall, color = Brand.TextFaint)
-            if (status.running && status.total > 0) {
-                Spacer(Modifier.height(8.dp))
-                LinearProgressIndicator(progress = { status.done.toFloat() / status.total }, modifier = Modifier.fillMaxWidth(),
-                    color = Brand.Cyan, trackColor = Brand.Outline)
-            }
-            status.text?.let {
-                Spacer(Modifier.height(6.dp))
-                Text(it, style = MaterialTheme.typography.bodySmall, color = if (status.error) Brand.Warning else Brand.Success)
-            }
             TextButton(onClick = { confirmUnlink = true }) { Text("取消連結", color = Brand.TextMuted) }
         }
         message?.let { (ok, msg) ->
@@ -185,5 +161,54 @@ private fun BackupToggle(title: String, sub: String?, checked: Boolean, onChange
         }
         Switch(checked = checked, onCheckedChange = onChange,
             colors = SwitchDefaults.colors(checkedTrackColor = Brand.Cyan))
+    }
+}
+
+/**
+ * 「檔案」分页上方的备份操作：立即备份、从云端取回、进度、上次备份时间。
+ * 还没连结 → 一行说明＋「到設定連結」。[pending] = 还没备份 / 有更新的笔数（null = 还不知道）。
+ */
+@Composable
+fun BackupActions(pending: Int?, onOpenSettings: () -> Unit) {
+    val context = LocalContext.current
+    val status by DriveBackup.status.collectAsState()
+    GlassCard {
+        if (!DriveBackup.linked(context)) {
+            Text("還沒連結 Google 雲端硬碟", style = MaterialTheme.typography.titleSmall, color = Brand.Text)
+            Text("連結後可以備份到雲端、換手機時取回。", style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
+            Spacer(Modifier.height(8.dp))
+            GhostButton("到設定連結", onOpenSettings, Modifier.fillMaxWidth(), tint = Brand.Cyan)
+            return@GlassCard
+        }
+        val last = DriveBackup.lastBackup(context)
+        Text(
+            listOfNotNull(
+                when {
+                    pending == null -> null
+                    pending == 0 -> "全部已備份"
+                    else -> "$pending 筆還沒備份"
+                },
+                if (last > 0) "上次備份 " + SimpleDateFormat("M/d HH:mm", Locale.TAIWAN).format(Date(last)) else "還沒備份過",
+            ).joinToString(" · "),
+            style = MaterialTheme.typography.bodySmall, color = if (pending != null && pending > 0) Brand.Warning else Brand.TextMuted,
+        )
+        Spacer(Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            GhostButton(if (status.running) "處理中…" else "立即備份", {
+                if (!status.running) BackupWorker.run(context, BackupWorker.MODE_BACKUP)
+            }, Modifier.weight(1f), tint = Brand.Cyan)
+            GhostButton("從雲端取回", {
+                if (!status.running) BackupWorker.run(context, BackupWorker.MODE_RESTORE)
+            }, Modifier.weight(1f), tint = Brand.Cyan)
+        }
+        if (status.running && status.total > 0) {
+            Spacer(Modifier.height(8.dp))
+            LinearProgressIndicator(progress = { status.done.toFloat() / status.total }, modifier = Modifier.fillMaxWidth(),
+                color = Brand.Cyan, trackColor = Brand.Outline)
+        }
+        status.text?.let {
+            Spacer(Modifier.height(6.dp))
+            Text(it, style = MaterialTheme.typography.bodySmall, color = if (status.error) Brand.Warning else Brand.Success)
+        }
     }
 }

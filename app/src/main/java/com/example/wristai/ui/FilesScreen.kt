@@ -52,11 +52,12 @@ import java.util.Locale
 
 /**
  * 「檔案」分页（底部导览列）：画面保持简单——一行空间摘要、类别筛选、所有录音档的清单。
- * 每笔显示大小、有没有备份到 Google 云端硬碟（连结与备份设定在「設定」），
+ * 上方有立即备份 / 从云端取回（[BackupActions]；连结帐号、备份选项在「設定」）。
+ * 每笔显示大小、有没有备份到 Google 云端硬碟，
  * 点了可以打开、分享录音档、只删录音档（保留报告）、整笔删除。
  */
 @Composable
-fun FilesScreen(onBack: (() -> Unit)? = null, onOpen: (String) -> Unit = {}) {
+fun FilesScreen(onBack: (() -> Unit)? = null, onOpen: (String) -> Unit = {}, onOpenSettings: () -> Unit = {}) {
     if (onBack != null) BackHandler(onBack = onBack)
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -104,10 +105,18 @@ fun FilesScreen(onBack: (() -> Unit)? = null, onOpen: (String) -> Unit = {}) {
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             item {
-                // 一行摘要＋类别筛选；Google 云端硬碟的连结、备份选项都在「設定」
+                // 一行摘要
                 Text("${meetings.size} 筆 · 錄音檔 ${bytes(totalAudio)} · 報告等 ${bytes(totalOther)}",
                     style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
-                Spacer(Modifier.height(8.dp))
+            }
+            // 备份 / 同步按钮（连结帐号、备份选项在「設定」）
+            item {
+                val pending = cloud?.let { c ->
+                    meetings.count { DriveBackup.eligible(it) && c[it.id] != local[it.id] }
+                }
+                BackupActions(pending, onOpenSettings)
+            }
+            item {
                 Chips(listOf("全部", "錄音", "飲食"), kind) { kind = it }
                 note?.let {
                     Spacer(Modifier.height(6.dp))

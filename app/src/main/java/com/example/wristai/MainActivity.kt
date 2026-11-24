@@ -147,7 +147,7 @@ private fun App() {
                     go(if (cloud) Tab.SETTINGS.route else Tab.HOME.route)
                 }
                 r == Tab.SETTINGS.route -> SettingsScreen()
-                r == Tab.FILES.route -> com.example.wristai.ui.FilesScreen(onBack = null, onOpen = { route = "detail:$it" })
+                r == Tab.FILES.route -> com.example.wristai.ui.FilesScreen(onBack = null, onOpen = { route = "detail:$it" }, onOpenSettings = { go(Tab.SETTINGS.route) })
                 r == Tab.HOME.route -> DashboardScreen(
                     onOpen = { route = "detail:$it" },
                     onOpenRecords = { go(Tab.RECORDS.route) },
