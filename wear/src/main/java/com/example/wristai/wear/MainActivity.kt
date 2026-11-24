@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -816,11 +817,15 @@ private fun WatchLevel(s: com.example.voiceai.shared.AudioLevel.Snapshot) {
  */
 @Composable
 private fun BrandWatermark() {
-    Image(
-        painterResource(R.drawable.ic_logo_mark), null,
-        Modifier.size(236.dp),
-        colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Brand.Text.copy(alpha = if (Brand.isInk) 0.08f else 0.07f)),
-    )
+    // 往下移一点：印章落在「飲食」字的下面，不压到字
+    Box(Modifier.size(236.dp).offset(x = 4.dp, y = 22.dp)) {
+        // 笔画跟着主题着色；红色印章保留原色（含镂空字），两张图同一个座标，叠起来就是完整 logo
+        Image(
+            painterResource(R.drawable.ic_logo_mark), null, Modifier.fillMaxSize(),
+            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Brand.Text.copy(alpha = if (Brand.isInk) 0.17f else 0.15f)),
+        )
+        Image(painterResource(R.drawable.ic_logo_seal), null, Modifier.fillMaxSize(), alpha = if (Brand.isInk) 0.45f else 0.35f)
+    }
 }
 
 /** 中间的主状态：待机标题 / 录音计时（脉冲红点）/ 传送中（旋转弧）/ 结果。 */
