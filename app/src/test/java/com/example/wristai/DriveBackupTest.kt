@@ -83,6 +83,8 @@ class DriveBackupTest {
         assertTrue(DriveBackup.consentError(0, null).contains("還沒在 Google Cloud 登記"))   // 选完帐号就被取消
         assertEquals("已取消 Google 授權", DriveBackup.consentError(0, 16))
         assertEquals("Google 授權失敗（代碼 8）", DriveBackup.consentError(-1, 8))
+        // Fold5 实测：没登记时回 8 + UNREGISTERED_ON_API_CONSOLE
+        assertTrue(DriveBackup.consentError(0, 8, "8: [8] Unknown error [status=UNREGISTERED_ON_API_CONSOLE].").contains("還沒在 Google Cloud 登記"))
     }
 
     /** Drive files.list 的回应（官方格式）：只认 App 放的（有 dylanId）。 */

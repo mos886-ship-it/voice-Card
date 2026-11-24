@@ -118,8 +118,9 @@ object DriveBackup {
      * Google 同意画面没成功时给使用者看的原因（[resultCode] = 画面的结果，[status] = Google 的错误代码）。
      * 最常见：App 还没在 Google Cloud 登记（10 DEVELOPER_ERROR）→ 选完帐号就直接失败。
      */
-    fun consentError(resultCode: Int, status: Int?): String = when {
-        status == 10 -> "這個 App 還沒在 Google Cloud 登記（OAuth 用戶端、測試使用者），Google 不給授權。設定步驟見 交接/DRIVE_BACKUP.md"
+    fun consentError(resultCode: Int, status: Int?, detail: String? = null): String = when {
+        // 没登记：有的版本回 10，有的回 8 加「UNREGISTERED_ON_API_CONSOLE」
+        status == 10 || detail?.contains("UNREGISTERED_ON_API_CONSOLE") == true -> "這個 App 還沒在 Google Cloud 登記（OAuth 用戶端、測試使用者），Google 不給授權。設定步驟見 交接/DRIVE_BACKUP.md"
         status == 16 || status == 12501 || (status == null && resultCode == android.app.Activity.RESULT_CANCELED) ->
             "已取消 Google 授權" + if (status == null) "（如果你沒有按取消：多半是這個 App 還沒在 Google Cloud 登記，見 交接/DRIVE_BACKUP.md）" else ""
         status == 7 -> "連不到 Google，請確認網路"

@@ -80,7 +80,7 @@ fun BackupSection() {
         else {
             val e = res.exceptionOrNull()
             android.util.Log.w("DriveBackup", "consent result=${r.resultCode}", e)
-            message = false to DriveBackup.consentError(r.resultCode, (e as? com.google.android.gms.common.api.ApiException)?.statusCode)
+            message = false to DriveBackup.consentError(r.resultCode, (e as? com.google.android.gms.common.api.ApiException)?.statusCode, e?.message)
         }
     }
 
