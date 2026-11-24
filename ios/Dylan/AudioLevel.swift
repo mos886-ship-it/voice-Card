@@ -26,7 +26,8 @@ final class AudioLevel: ObservableObject {
 
     nonisolated static let floorDB: Float = -60
 
-    nonisolated static func measure(_ buffer: AVAudioPCMBuffer, parts: Int = 3) -> Measure? {
+    /// 一個 buffer（約 85 ms）一根：56 根大約 5 秒，看得出說話的起伏節奏。
+    nonisolated static func measure(_ buffer: AVAudioPCMBuffer, parts: Int = 1) -> Measure? {
         guard let ch = buffer.floatChannelData?[0] else { return nil }
         let n = Int(buffer.frameLength)
         guard n > 0 else { return nil }
@@ -55,10 +56,10 @@ final class AudioLevel: ObservableObject {
         max(floorDB, 10 * log10(max(meanSquare, 1e-12)))
     }
 
-    /// 均方 → 0…1：-60 dB 以下是 0，0 dB 是 1，中間稍微往上拉，讓說話聲看起來有起伏。
+    /// 均方 → 0…1：-52 dB 以下（安靜的房間）是 0，-8 dB 以上滿格；平方加大對比，說話的高低才看得出來。
     nonisolated static func norm(_ meanSquare: Float) -> Float {
-        let x = (dB(meanSquare) - floorDB) / -floorDB
-        return pow(max(0, min(1, x)), 1.6)
+        let x = (dB(meanSquare) + 52) / 44
+        return pow(max(0, min(1, x)), 2)
     }
 
     func push(_ m: Measure) {
@@ -97,11 +98,13 @@ struct LevelMeter: View {
         VStack(alignment: .leading, spacing: 6) {
             Canvas { ctx, size in
                 let n = level.history.count
+                // 自動增益：最近 5 秒最大聲的那根拉到約滿格（但安靜時不放大雜音）
+                let gain = 0.92 / CGFloat(max(level.history.max() ?? 0, 0.3))
                 let gap: CGFloat = 2
                 let w = max(1.5, (size.width - gap * CGFloat(n - 1)) / CGFloat(n))
                 let mid = size.height / 2
                 for (i, v) in level.history.enumerated() {
-                    let lv = paused ? 0 : CGFloat(v)
+                    let lv = paused ? 0 : min(1, CGFloat(v) * gain)
                     let h = max(3, lv * size.height)
                     let x = CGFloat(i) * (w + gap)
                     let rect = CGRect(x: x, y: mid - h / 2, width: w, height: h)
@@ -131,8 +134,8 @@ struct LevelMeter: View {
 
     private var status: String {
         if paused { return "收音中斷，正在恢復…" }
-        if level.loud { return "聲音太大，可能破音：離麥克風遠一點" }
-        if level.quiet { return "幾乎沒有聲音：靠近一點，或確認麥克風沒被遮住" }
+        if level.loud { return "聲音太大，請離遠一點" }
+        if level.quiet { return "幾乎沒有聲音，請靠近一點" }
         return "收音正常"
     }
 

@@ -230,7 +230,7 @@ private struct RecordingCard: View {
             }
             Spacer()
             Button(action: stop) {
-                Text("停止").font(.labelLarge).foregroundColor(Brand.text)
+                Text("停止").font(.labelLarge).foregroundColor(Color(red: 0.08, green: 0.1, blue: 0.18))
                     .padding(.horizontal, 18).padding(.vertical, 10)
                     .background(Capsule().fill(Color.white))
             }
