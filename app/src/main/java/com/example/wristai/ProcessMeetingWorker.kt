@@ -85,7 +85,7 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
             return try {
                 withContext(Dispatchers.IO) {
                     LongMeeting.processChunks(ctx, id, final = false, deadline = startedAt + CHUNK_BUDGET_MS,
-                        gemini = GeminiReportGenerator(key), recordedAt = recordedAt) { done, _ ->
+                        gemini = GeminiReportGenerator(key, SpeechLang.geminiNote(meeting.lang)), recordedAt = recordedAt) { done, _ ->
                         MeetingStore.update(ctx, id) { it.copy(chunkDone = done) }
                     }
                 }
@@ -154,7 +154,7 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
             val geminiKey = Settings.geminiKey(ctx).takeIf { mode == com.example.wristai.ai.AiConfig.MODE_GEMINI }.orEmpty()
             if (geminiKey.isNotBlank() && LongMeeting.isLong(ctx, meeting)) {
                 // ---------- 长会议：每 30 分钟一段转录，最后合成报告 ----------
-                val gemini = GeminiReportGenerator(geminiKey)
+                val gemini = GeminiReportGenerator(geminiKey, SpeechLang.geminiNote(meeting.lang))
                 val total = LongMeeting.chunkCount(meeting.durationSec, Settings.geminiChunkSec(ctx))
                 MeetingStore.update(ctx, id) { it.copy(status = MeetingStatus.SUMMARIZING, error = null, chunkTotal = total) }
                 val done = withContext(Dispatchers.IO) {
@@ -197,7 +197,7 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
                     val compact = File(ctx.cacheDir, "gemini_$id.m4a")
                     try {
                         VoiceRecorderExporter.encodeM4a(audio, compact, outRate = 16_000, bitRate = 32_000)
-                        GeminiReportGenerator(geminiKey).generate(compact, meeting.durationSec, recordedAt,
+                        GeminiReportGenerator(geminiKey, SpeechLang.geminiNote(meeting.lang)).generate(compact, meeting.durationSec, recordedAt,
                             onListening = { stepTo(id, "AI 聆聽整理", "Gemini") })
                     } finally {
                         compact.delete()
@@ -441,6 +441,7 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
                 try {
                     VoiceRecorderExporter.encodeM4a(MeetingStore.audioFile(ctx, id), compact, outRate = 16_000, bitRate = 32_000)
                     host.process(ctx, if (food) "food" else "meeting", asciiAt, meeting.durationSec, audio = compact,
+                        lang = SpeechLang.of(meeting.lang).code,
                         onUploaded = { stepTo(id, lastStep, "大D的主機") })
                 } finally {
                     compact.delete()

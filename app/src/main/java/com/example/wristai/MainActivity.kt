@@ -62,6 +62,7 @@ class MainActivity : ComponentActivity() {
         // 深色品牌底 → 状态列 / 导航列用浅色图示
         AppTheme.mode = ThemeMode.from(Settings.themeMode(this))
         com.example.wristai.ui.UiMode.load(this)
+        SpeechLang.load(this)
         applySystemBars(dark = true)
         MeetingStore.reload(this)
         CallRecordingWatcher.schedule(this)

@@ -56,6 +56,8 @@ data class Meeting(
     val processEndedAt: Long = 0,
     /** 为什么改用别的引擎（例「大D的主機連不到（…），改用 Gemini」）；科技模式显示。 */
     val engineNote: String? = null,
+    /** 辨识语言：zh（国语）/ nan（台语・国台语）；null（旧资料）＝国语。见 [SpeechLang]。 */
+    val lang: String? = null,
 ) {
     fun toJson(): String = JSONObject()
         .put("id", id).put("status", status.name).put("createdAt", createdAt)
@@ -72,6 +74,7 @@ data class Meeting(
         .put("steps", org.json.JSONArray(steps)).put("step", step).put("stepDetail", stepDetail)
         .put("stepStartedAt", stepStartedAt).put("processStartedAt", processStartedAt).put("processEndedAt", processEndedAt)
         .put("engineNote", engineNote)
+        .put("lang", lang)
         .toString(2)
 
     companion object {
@@ -106,6 +109,7 @@ data class Meeting(
                 processStartedAt = j.optLong("processStartedAt"),
                 processEndedAt = j.optLong("processEndedAt"),
                 engineNote = j.optStringOrNull("engineNote")?.takeIf { it.isNotBlank() },
+                lang = j.optStringOrNull("lang")?.takeIf { it.isNotBlank() },
             )
         }
     }

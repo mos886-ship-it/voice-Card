@@ -126,7 +126,10 @@ fun DashboardScreen(
             val a = active
             if (a != null) {
                 PhoneRecordCard(onOpenMeeting = onOpen, foodMode = FoodLog.isFood(a.meetingId))
-            } else {
+            } else Column {
+                // 辨识语言（记住上次）：国语 → 最快；有台语就选台语・国台语
+                LangPicker(com.example.wristai.SpeechLang.current) { com.example.wristai.SpeechLang.set(context, it) }
+                Spacer(Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     QuickTile("開始錄音", "會議、課堂、訪談、靈感", filled = true, modifier = Modifier.weight(1f)) { start(false) }
                     QuickTile("記錄飲食", "說出吃了什麼", filled = false, modifier = Modifier.weight(1f)) { start(true) }

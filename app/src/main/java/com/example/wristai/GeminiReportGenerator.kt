@@ -16,7 +16,11 @@ import java.net.URL
  * - 录音用 Files API 上传（>20MB 不能内嵌），用完立刻删除。
  * - 只用 Android 内建的 HttpURLConnection + org.json，不加依赖。
  */
-class GeminiReportGenerator(private val apiKey: String) {
+class GeminiReportGenerator(
+    private val apiKey: String,
+    /** 加在提示词后面的说明（例：台语录音的 [SpeechLang.geminiNote]）。 */
+    private val note: String = "",
+) {
 
     companion object {
         private const val TAG = "GeminiReport"
@@ -161,6 +165,7 @@ class GeminiReportGenerator(private val apiKey: String) {
                     appendLine("前面段落已出現的說話者（請沿用相同代號；聲音相符就用同一代號，新出現的人從下一個字母開始編）：")
                     appendLine(roster)
                 }
+                if (note.isNotBlank()) { appendLine(); appendLine(note) }
             }
             return withModels("chunk ${index + 1}") { model -> generateContent(model, file.getString("uri"), prompt, CHUNK_PROMPT) }
         } finally {
@@ -236,7 +241,7 @@ class GeminiReportGenerator(private val apiKey: String) {
             Log.d(TAG, "file ACTIVE (${System.currentTimeMillis() - t0}ms)")
             onListening()
             val minutes = "%.1f".format(durationSec / 60)
-            val prompt = "錄音時間：$recordedAt，長度約 $minutes 分鐘。請依格式整理這段錄音。"
+            val prompt = "錄音時間：$recordedAt，長度約 $minutes 分鐘。請依格式整理這段錄音。" + note
             var last: GeminiException? = null
             for (model in MODELS) {
                 try {

@@ -181,7 +181,7 @@ fun Meeting.statusStyle(): StatusStyle {
 }
 
 private fun Meeting.baseStatusStyle(): StatusStyle = when (status) {
-    MeetingStatus.RECORDING -> StatusStyle("手錶錄音中", Brand.Recording, true)
+    MeetingStatus.RECORDING -> StatusStyle(if (source == "phone") "手機錄音中" else "手錶錄音中", Brand.Recording, true)
     MeetingStatus.RECEIVED -> StatusStyle("排隊中", Brand.Cyan, true)
     MeetingStatus.TRANSCRIBING -> StatusStyle(
         if (chunkTotal > 0) "辨識中 $chunkDone/$chunkTotal" else "辨識中", Brand.Cyan, true)

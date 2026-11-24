@@ -1,5 +1,10 @@
 package com.example.wristai.ui
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -114,6 +119,9 @@ fun PhoneRecordCard(onOpenMeeting: (String) -> Unit, foodMode: Boolean = false) 
                 Text(it, style = MaterialTheme.typography.bodySmall, color = Brand.Warning)
             }
             Spacer(Modifier.height(14.dp))
+            // 辨识语言：记住上次的选择，新录音用这个
+            LangPicker(com.example.wristai.SpeechLang.current) { com.example.wristai.SpeechLang.set(context, it) }
+            Spacer(Modifier.height(10.dp))
             GradientButton("開始手機錄音", { start() }, Modifier.fillMaxWidth(), recordDot = true)
         }
     } else {
@@ -125,9 +133,9 @@ fun PhoneRecordCard(onOpenMeeting: (String) -> Unit, foodMode: Boolean = false) 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 PulseDot(Brand.Recording, 8.dp)
                 Spacer(Modifier.width(8.dp))
-                Text(if (food) "飲食記錄中" else "手機錄音中", style = MaterialTheme.typography.labelLarge, color = Brand.Recording)
+                Text(if (food) "飲食記錄中" else "手機錄音中 · " + recLang(context, a.meetingId).short,
+                    style = MaterialTheme.typography.labelLarge, color = Brand.Recording)
                 Spacer(Modifier.weight(1f))
-                Waveform(Modifier.size(width = 36.dp, height = 18.dp), Brand.Recording)
             }
             Spacer(Modifier.height(8.dp))
             Text(
@@ -137,6 +145,11 @@ fun PhoneRecordCard(onOpenMeeting: (String) -> Unit, foodMode: Boolean = false) 
             Text(if (food) "說出吃了什麼、大概份量（例如：牛肉麵一碗、半糖紅茶），說完按停止"
                 else "每 30 分鐘先在背景分析，錄完很快就有報告 · 螢幕關掉也會繼續錄",
                 style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
+            // 即时音量条＋收音状态
+            Spacer(Modifier.height(12.dp))
+            Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Brand.Bg.copy(alpha = 0.45f)).padding(12.dp)) {
+                LevelMeter()
+            }
             Spacer(Modifier.height(14.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 GhostButton("停止錄音", { PhoneRecordingService.stop(context) }, Modifier.weight(1f), tint = Brand.Recording)
@@ -144,3 +157,7 @@ fun PhoneRecordCard(onOpenMeeting: (String) -> Unit, foodMode: Boolean = false) 
         }
     }
 }
+
+/** 这笔录音的辨识语言（录音中的卡片显示用）。 */
+private fun recLang(context: android.content.Context, id: String): com.example.wristai.SpeechLang =
+    com.example.wristai.SpeechLang.of(com.example.wristai.MeetingStore.get(context, id)?.lang)

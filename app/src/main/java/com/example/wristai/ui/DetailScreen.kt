@@ -64,6 +64,8 @@ fun DetailScreen(id: String, onBack: () -> Unit, onOpenSettings: () -> Unit) {
     val meeting = meetings.firstOrNull { it.id == id }
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var confirmDelete by remember { mutableStateOf(false) }
+    // 换辨识语言（已有报告时要先确认，会用新语言重新产生）
+    var pendingLang by remember { mutableStateOf<com.example.wristai.SpeechLang?>(null) }
     var renaming by remember { mutableStateOf<String?>(null) }
     var editingTitle by remember { mutableStateOf(false) }
 
@@ -145,13 +147,22 @@ fun DetailScreen(id: String, onBack: () -> Unit, onOpenSettings: () -> Unit) {
                 StatusChip(style)
             }
 
+            // ---------- 辨识语言：可以换语言重新产生，方便对照 ----------
+            if (!com.example.wristai.FoodLog.isFood(meeting.id)) {
+                val lang = com.example.wristai.SpeechLang.of(meeting.lang)
+                LangPicker(lang, enabled = !style.busy && meeting.status != MeetingStatus.RECORDING) { l ->
+                    if (report != null || meeting.status == MeetingStatus.DONE) pendingLang = l
+                    else MeetingStore.update(context, id) { it.copy(lang = l.code) }
+                }
+            }
+
             // ---------- 饮食记录的营养 ----------
             if (meeting.nutrition != null) NutritionHeader(meeting)
 
             // ---------- 状态卡 ----------
             when {
                 meeting.status == MeetingStatus.RECORDING -> GlassCard(highlight = true) {
-                    Text("手錶正在錄音", style = MaterialTheme.typography.titleMedium, color = Brand.Text)
+                    Text(if (meeting.source == "phone") "手機正在錄音" else "手錶正在錄音", style = MaterialTheme.typography.titleMedium, color = Brand.Text)
                     Spacer(Modifier.height(4.dp))
                     Text(
                         "已同步 ${formatDuration(meeting.durationSec)} 到手機（每 5 分鐘一段）。" +
@@ -313,6 +324,29 @@ fun DetailScreen(id: String, onBack: () -> Unit, onOpenSettings: () -> Unit) {
                     Text(if (names.containsKey(label)) "還原代號" else "取消", color = Brand.TextMuted)
                 }
             },
+        )
+    }
+
+    pendingLang?.let { l ->
+        AlertDialog(
+            onDismissRequest = { pendingLang = null },
+            containerColor = Brand.SurfaceHigh,
+            title = { Text("改用「${l.label}」重新產生？", color = Brand.Text) },
+            text = {
+                Text(
+                    (if (l == com.example.wristai.SpeechLang.NAN) "台語・國台語辨識比較慢（50 秒的錄音約 1 分鐘）。" else "") +
+                        "目前的報告和逐字稿會被新的取代。",
+                    color = Brand.TextMuted,
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    pendingLang = null
+                    MeetingStore.update(context, id) { it.copy(lang = l.code) }
+                    regenerate()
+                }) { Text("重新產生", color = Brand.Cyan) }
+            },
+            dismissButton = { TextButton(onClick = { pendingLang = null }) { Text("取消", color = Brand.TextMuted) } },
         )
     }
 

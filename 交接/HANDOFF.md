@@ -266,3 +266,11 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 - 設定頁「大D的主機」卡（`ui/LocalHostSettings.kt`）：還沒連 →「掃描主機上的 QR 碼」（Google Play 服務的掃碼畫面 `play-services-code-scanner`，不用相機權限）或填位址＋配對密碼；科技模式另有「進階：直接貼主存取碼」。已連上 →「已連上大D的主機」、測試連線、取消配對、配對密碼設定 / 更換；科技模式多模型選單與「已配對的裝置」（配對 / 最後使用時間、QR / 密碼，可個別取消，「這台」等於取消配對）。
 - `dylan://pair` 連結：MainActivity intent-filter（VIEW、BROWSABLE、scheme dylan、host pair）→ `PendingPair.link` → 切到設定頁自動配對。
 - 測試：`PairLinkTest`（連結解析、重複位址、非配對連結、型號）。模擬器用 repo 的**真正** `local-ai/pairing.py` 做假主機實測：QR 連結（對外位址連不到 → 自動改區網位址）配對成功；密碼錯顯示「密碼不對」、對了配對成功；裝置清單、取消別台、取消這台（主機端作廢）；App 內更換密碼後新密碼可配對；用配對拿到的存取碼送錄音、主機出報告。**未測**：真的用相機掃 QR（模擬器沒辦法）、接真正的 Mac mini 主機。
+
+## Android：辨識語言＋錄音音量條（2026-11-24，IOS_TO_ANDROID 第 12、13 項 / 3b、3c 節）
+
+- **辨識語言**（`SpeechLang.kt`）：國語 `zh`（預設，舊資料＝國語）/ 台語・國台語 `nan`，設定 `speech_lang`，Compose 狀態（主頁、錄音頁的選擇器同步）。`Meeting.lang` 在建立錄音時存當下的選擇（手機錄音、手錶錄音、長錄音分段、匯入）。大D的主機送 `X-Lang`（文字輸入不帶）；Gemini 在 `nan` 時提示詞加台語說明（跟 iOS 一字不差，`GeminiReportGenerator(note=)`，短錄音與長錄音分段都加）。
+- 畫面（`ui/LangAndLevel.kt` 的 `LangPicker`）：主頁錄音鍵上方、「錄音」分頁手機錄音卡、錄音詳情頁（標題區下方）。詳情頁已有報告時換語言 → 確認「改用「X」重新產生？」（台語提醒較慢）→ 更新 lang 並重新產生；還沒有報告就只改 lang。錄音中的卡片顯示「手機錄音中 · 台語／國語」。
+- **音量條**（`AudioLevel.kt`＋`LevelMeter`）：`PhoneRecordingService` 的 AudioRecord 迴圈每段 PCM `AudioLevel.feed`，湊滿約 85 ms 算一次 RMS → 一根柱，留 56 根；高度 `((dB+52)/44)` 夾 0…1 再平方；畫的時候除以最近最大值（至少 0.3）×0.92；左右對稱、越新越亮、太大聲最新 6 根琥珀色。狀態：收音正常 / 聲音太大（峰值 >0.97 後 1.2 秒）/ 幾乎沒有聲音（4 秒都 < -45 dB）；科技模式顯示 dB。Android 沒有 iOS 的「收音中斷」狀態（錄音被打斷時目前會直接停止）。手錶錄音不顯示。
+- 順手修：手機錄音中的狀態原本寫「手錶錄音中」「手錶正在錄音」，改成依來源顯示「手機」。
+- 測試：`LangLevelTest`（語言代碼、台語提示、dB 刻度、每 85 ms 一根、太大聲）。模擬器＋假主機：主頁選台語 → 錄音卡顯示「台語」與音量條（模擬器麥克風沒聲音，顯示「幾乎沒有聲音」-60 dB）→ 主機收到 `X-Lang: nan`；詳情頁改國語 → 確認 → 重新產生，主機收到 `X-Lang: zh`、meta 存 `zh`。**未測**：真機有聲音時柱子的動態、真正主機的 Breeze-ASR-26。

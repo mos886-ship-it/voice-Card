@@ -157,6 +157,7 @@ class PhoneRecordingService : Service() {
         MeetingStore.save(this, Meeting(
             id = id, status = MeetingStatus.RECORDING, createdAt = startedAt, durationSec = 0.0,
             watchNodeId = watchNode, title = null, error = null, source = "phone",
+            lang = SpeechLang.currentCode(this),
         ))
         // GPS 戳记：开始录音时手机的位置（背景定位，最多等 30 秒）
         scope.launch {
@@ -180,10 +181,12 @@ class PhoneRecordingService : Service() {
             FileOutputStream(wav).buffered(64 * 1024).use { out ->
                 WavFile.writePlaceholderHeader(out)
                 try {
+                    AudioLevel.reset()
                     record.startRecording()
                     while (isActive && record.recordingState == AudioRecord.RECORDSTATE_RECORDING) {
                         val n = record.read(buffer, 0, buffer.size)
                         if (n <= 0) continue
+                        AudioLevel.feed(buffer, n, AudioSpec.SAMPLE_RATE)   // 录音卡的音量条
                         out.write(buffer, 0, n)
                         writer.write(buffer, n)
                         if (writer.samples >= segmentSamples) {

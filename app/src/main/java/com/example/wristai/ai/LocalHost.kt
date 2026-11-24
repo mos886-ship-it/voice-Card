@@ -309,6 +309,7 @@ object LocalHost {
      * [recordedAt] 只能是 ASCII（例 2026/11/23 21:20）。会等很久：主机每 20 秒送一个空白防逾时。
      */
     fun process(c: Context, kind: String, recordedAt: String, durationSec: Double, audio: File? = null, text: String? = null,
+                lang: String? = null,
                 onUploaded: () -> Unit = {}): Result {
         val bytes = text?.toByteArray(Charsets.UTF_8)
         val (code, body) = try {
@@ -323,6 +324,8 @@ object LocalHost {
                     setRequestProperty("Content-Type", "text/plain; charset=utf-8")
                     setFixedLengthStreamingMode(bytes.size)
                 } else {
+                    // 国语 → FunASR；台语・国台语 → Breeze-ASR-26（文字输入不用带）
+                    lang?.let { setRequestProperty("X-Lang", it) }
                     setRequestProperty("Content-Type", "audio/m4a")
                     setFixedLengthStreamingMode(audio!!.length())
                 }
