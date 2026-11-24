@@ -66,7 +66,7 @@ object WatchState {
 
     /** 报告书清单的一笔（手机传来的）。[kind] = watch/phone/food/call/import；[status] = DONE/整理中/錄音中/失敗/已存錄音機。 */
     data class Entry(val id: String, val title: String, val recordedAt: Long, val durationSec: Double, val kind: String, val status: String,
-                     /** 不是国语才有：「台語」「客語・海陸」。 */
+                     /** 不是国语才有：「國台語」「客語・海陸」。 */
                      val lang: String = "")
 
     /** 一次查询的结果（可能只载入了前几页）。[key] = 查询代号（"" = 预设：全部、不限月份、无关键字）。[months] = 每个月几笔（新的在前）。 */

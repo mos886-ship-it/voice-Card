@@ -752,7 +752,7 @@ private fun LangChip(lang: WatchState.Lang, enabled: Boolean, onClick: () -> Uni
 private fun LangScreen(cur: WatchState.Lang, onPick: (WatchState.Lang, Boolean) -> Unit, onBack: () -> Unit) {
     BackHandler(onBack = onBack)
     val listState = rememberTransformingLazyColumnState()
-    val hints = mapOf("zh" to "最快", "nan" to "國台語夾雜也選這個", "hak" to "數位部 Taiwan Tongues")
+    val hints = mapOf("zh" to "最快", "nan" to "有台語就選這個，比較慢", "hak" to "數位部 Taiwan Tongues")
     ScreenScaffold(scrollState = listState) { contentPadding ->
         TransformingLazyColumn(state = listState, contentPadding = contentPadding) {
             item { ListHeader { Text("辨識語言") } }

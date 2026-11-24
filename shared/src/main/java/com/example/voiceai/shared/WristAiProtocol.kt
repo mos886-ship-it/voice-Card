@@ -121,7 +121,7 @@ data class Segment(val recordingId: String, val seq: Int, val samples: Long, val
  * 预设国语；客语才有腔调，预设四县。
  */
 object SpeechLangs {
-    val LANGS = listOf("zh" to "國語", "nan" to "台語", "hak" to "客語")
+    val LANGS = listOf("zh" to "國語", "nan" to "國台語", "hak" to "客語")
     val DIALECTS = listOf("sixian" to "四縣", "hailu" to "海陸", "dapu" to "大埔", "raoping" to "饒平", "zhaoan" to "詔安", "nansixian" to "南四縣")
 
     fun lang(code: String?): String = LANGS.firstOrNull { it.first == code }?.first ?: "zh"
@@ -137,7 +137,7 @@ object SpeechLangs {
         return l to (if (l == "hak") dialect(p.getOrNull(1)) else null)
     }
 
-    /** 「國語」「台語」「客語・海陸」 */
+    /** 「國語」「國台語」「客語・海陸」 */
     fun display(lang: String?, dialect: String?): String {
         val l = lang(lang)
         val name = LANGS.first { it.first == l }.second

@@ -76,7 +76,7 @@ object WatchNotifier {
             .put("createdAt", m?.createdAt ?: 0L)
             .put("geo", MeetingStore.geo(context, id)?.let { org.json.JSONObject(it.toJson()) })
             // 手表明细页显示：辨识语言、哪个 AI 整理的、为什么改用备援引擎
-            .put("lang", m?.let { SpeechLang.display(it.lang, it.dialect) } ?: "")
+            .put("lang", m?.let { com.example.voiceai.shared.SpeechLangs.display(it.lang, it.dialect) } ?: "")   // 手表的名称（台语 = 「國台語」）
             .put("ai", m?.takeIf { it.status == MeetingStatus.DONE }?.let { com.example.wristai.ui.aiModelLabel(it.aiModel) } ?: "")
             .put("note", m?.engineNote ?: "")
         send(context, nodeId, WristAiProtocol.PATH_DETAIL, json.toString().toByteArray(Charsets.UTF_8))
@@ -121,7 +121,7 @@ object WatchNotifier {
                 .put("recordedAt", m.createdAt)
                 .put("durationSec", m.durationSec)
                 .put("kind", kindOf(m))
-                .put("lang", if (SpeechLang.of(m.lang) == SpeechLang.ZH) "" else SpeechLang.display(m.lang, m.dialect))
+                .put("lang", if (SpeechLang.of(m.lang) == SpeechLang.ZH) "" else com.example.voiceai.shared.SpeechLangs.display(m.lang, m.dialect))
                 .put("status", when (m.status) {
                     MeetingStatus.DONE -> "DONE"
                     MeetingStatus.FAILED -> if (m.error == ProcessMeetingWorker.CANCELED) "已中斷" else "失敗"

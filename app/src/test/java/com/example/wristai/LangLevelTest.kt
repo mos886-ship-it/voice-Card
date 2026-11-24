@@ -38,6 +38,7 @@ class LangLevelTest {
         assertEquals("hak" to "dapu", s.decode("hak|dapu"))
         assertEquals("zh" to null, s.decode("bogus"))
         assertEquals("客語・海陸", s.display("hak", "hailu"))
+        assertEquals("國台語", s.display("nan", null))                     // 手錶上台語叫「國台語」
         for (l in SpeechLang.entries) assertEquals(l.code, s.lang(l.code))   // 三种语言代号都认得
         for (d in HakkaDialect.entries) assertEquals(d.label, s.DIALECTS.first { it.first == d.code }.second)
         assertEquals(SpeechLang.display("hak", "zhaoan"), s.display("hak", "zhaoan"))
