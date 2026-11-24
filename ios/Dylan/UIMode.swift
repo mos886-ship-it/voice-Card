@@ -98,7 +98,7 @@ struct LangPicker: View {
         switch lang {
         case .zh: return "國語：最快"
         case .nan: return "有台語就選這個（國台語夾雜也是），比較慢"
-        case .hak: return "客語：陽明交大客語模型，比較慢"
+        case .hak: return "客語（國客夾雜也可以），比較慢"
         }
     }
 

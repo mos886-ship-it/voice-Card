@@ -19,7 +19,7 @@ enum LocalAI {
     static func label(_ tag: String) -> String {
         let parts = tag.replacingOccurrences(of: "local-", with: "").split(separator: "|").map(String.init)
         let names: [String: String] = [
-            "funasr": "FunASR", "breeze": "Breeze-ASR-26", "hakka": "客語 Whisper",
+            "funasr": "FunASR", "breeze": "Breeze-ASR-26", "taiwan-tongues": "Taiwan Tongues", "hakka-nycu": "客語 Whisper（陽明交大）",
             "qwen3-8b": "Qwen3-8B", "sarc-taigi-12b": "SARC 台語 12B", "text": "文字",
         ]
         return "大D的主機：" + parts.map { names[$0] ?? $0 }.joined(separator: " ＋ ")

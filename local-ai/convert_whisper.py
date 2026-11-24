@@ -13,10 +13,8 @@ import re
 import shutil
 
 import mlx.core as mx
-import mlx.nn as nn
 from huggingface_hub import snapshot_download
-from mlx.utils import tree_flatten, tree_unflatten
-from safetensors.numpy import load_file
+from mlx.utils import tree_flatten
 
 TOKENIZER_FILES = ["added_tokens.json", "merges.txt", "normalizer.json", "preprocessor_config.json",
                    "special_tokens_map.json", "tokenizer.json", "tokenizer_config.json", "vocab.json",
@@ -66,42 +64,50 @@ def convert(src, out, bits=None, dtype="float16", delete_source=False):
         "n_vocab": hf["vocab_size"], "n_text_ctx": hf["max_target_positions"], "n_text_state": hf["d_model"],
         "n_text_head": hf["decoder_attention_heads"], "n_text_layer": hf["decoder_layers"],
     }
-    weights = {}
-    files = sorted(f for f in os.listdir(path) if f.endswith(".safetensors"))
-    for name in files:
-        for k, v in load_file(os.path.join(path, name)).items():
+    # 一個一個權重處理（每個量化完就 eval，放掉原本的 fp16），記憶體只要約「輸出大小＋一層」，
+    # 不會像整個模型一起載入那樣把 16 GB 的 Mac 擠到大量 swap、吃光磁碟。
+    from mlx_whisper import whisper
+    small = whisper.ModelDimensions(**{**config, "n_audio_state": 64, "n_text_state": 64, "n_audio_head": 1,
+                                       "n_text_head": 1, "n_vocab": 64, "n_audio_ctx": 8, "n_text_ctx": 8})
+    expected = {k for k, _ in tree_flatten(whisper.Whisper(small).parameters())} - {"alignment_heads"}
+    quant = re.compile(r"(\.(attn|cross_attn)\.(query|key|value|out)|\.mlp[12])\.weight$|^decoder\.token_embedding\.weight$")
+    weights, seen = {}, set()
+    for name in sorted(f for f in os.listdir(path) if f.endswith(".safetensors")):
+        for k, a in mx.load(os.path.join(path, name)).items():
             nk = rename(k)
             if nk is None:
                 continue
-            a = mx.array(v).astype(getattr(mx, dtype))
+            seen.add(nk)
+            a = a.astype(getattr(mx, dtype))
             if nk.endswith(("conv1.weight", "conv2.weight")):
                 a = a.swapaxes(1, 2)   # PyTorch (out, in, k) → MLX (out, k, in)
-            weights[nk] = a
-
-    from mlx_whisper import whisper
-    model = whisper.Whisper(whisper.ModelDimensions(**config), getattr(mx, dtype))
-    expected = {k for k, _ in tree_flatten(model.parameters())}
-    missing, extra = expected - set(weights) - {"alignment_heads"}, set(weights) - expected
+            if bits and quant.search(nk) and a.shape[-1] % 64 == 0:
+                w, sc, bi = mx.quantize(a, group_size=64, bits=bits)
+                base = nk[: -len(".weight")]
+                weights.update({nk: w, base + ".scales": sc, base + ".biases": bi})
+                mx.eval(w, sc, bi)
+            else:
+                weights[nk] = a
+                mx.eval(a)
+    missing, extra = expected - seen, seen - expected
     if missing or extra:
         raise SystemExit(f"權重對不上：少了 {sorted(missing)[:5]}… 多了 {sorted(extra)[:5]}…")
-    model.update(tree_unflatten(list(weights.items())))
     if bits:
-        nn.quantize(model, group_size=64, bits=bits)
         config["quantization"] = {"group_size": 64, "bits": bits}
     config["model_type"] = "whisper"
 
     os.makedirs(out, exist_ok=True)
-    mx.save_safetensors(os.path.join(out, "weights.safetensors"), dict(tree_flatten(model.parameters())))
-    with open(os.path.join(out, "config.json"), "w", encoding="utf-8") as f:
-        json.dump(config, f, indent=2)
     for name in TOKENIZER_FILES:
         if os.path.exists(os.path.join(path, name)):
             shutil.copy(os.path.join(path, name), out)
-    print(f"done → {out}（{config['n_vocab']} 詞、{config['n_mels']} mel、{'%d-bit' % bits if bits else dtype}）")
-    if delete_source and not os.path.isdir(src):
+    if delete_source and not os.path.isdir(src):   # 先刪原檔再寫：磁碟緊的時候才放得下
         cache = os.path.dirname(os.path.dirname(path))   # models--org--name
         shutil.rmtree(cache, ignore_errors=True)
         print(f"deleted download cache {cache}")
+    mx.save_safetensors(os.path.join(out, "weights.safetensors"), weights)
+    with open(os.path.join(out, "config.json"), "w", encoding="utf-8") as f:
+        json.dump(config, f, indent=2)
+    print(f"done → {out}（{config['n_vocab']} 詞、{config['n_mels']} mel、{'%d-bit' % bits if bits else dtype}）")
 
 
 if __name__ == "__main__":

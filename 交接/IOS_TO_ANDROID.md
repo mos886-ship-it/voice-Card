@@ -2,7 +2,7 @@
 
 更新：2026-11-24（Mac mini；含大D的主機配對、辨識語言（國語／台語／客語）、錄音音量條）
 
-> **這次新增（2026-11-24）**：第 1 節表格第 12、13 項 —— **辨識語言（國語 / 台語・國台語 / 客語＋腔調，第 3b 節）**、**錄音中的音量條（第 3c 節）**。大D的主機已支援 `X-Lang`（客語另加 `X-Dialect`）。客語是下午才加的：Android 已做好國語／台語的話，只要補第三個選項和腔調選單。
+> **這次新增（2026-11-24）**：第 1 節表格第 12、13 項 —— **辨識語言（國語 / 台語・國台語 / 客語＋腔調，第 3b 節）**、**錄音中的音量條（第 3c 節）**。大D的主機已支援 `X-Lang`（客語另加 `X-Dialect`）。客語是下午才加的：Android 已做好國語／台語的話，只要補第三個選項和腔調選單。**客語模型已改用數位部 Taiwan Tongues（主機已裝好、可商用），App 端不用改。**
 
 iOS 版原本照 Android 版移植（見 `IOS_PORT.md`），之後在 iOS 上**多做了一批功能和介面改版**。這份文件把 iOS 版目前的程式整理一遍，並逐項寫出 Android 版要怎麼跟上，讓兩邊功能、用詞、畫面一致。
 
@@ -28,7 +28,7 @@ iOS 版原本照 Android 版移植（見 `IOS_PORT.md`），之後在 iOS 上**�
 | 9 | 大螢幕版面：寬螢幕兩欄、卡片格狀排列、內容欄不拉滿 | ✅ iPad 直橫向 | Fold5 展開、平板套同樣規則（第 9 節） | 中 |
 | 10 | 字級跟系統文字大小走 | ✅ | Compose 用 `sp` 已會縮放；檢查固定寬度的標籤會不會被截斷 | 低 |
 | 11 | 基本資料：兩種模式都顯示「AI」（用了哪個模型） | ✅ | `ReportFacts` 確認 AI 那行不要被藏 | 高 |
-| 12 | **辨識語言：國語 / 台語・國台語 / 客語（＋腔調）**（主頁錄音鍵上方，記住上次；錄音詳情頁可換語言重新產生，方便對照） | ✅ 模擬器＋主機實測（客語模型待申請） | 存 `Meeting.lang`（`zh`/`nan`/`hak`）、`Meeting.dialect`，送主機加 `X-Lang`（客語加 `X-Dialect`）；Gemini 提示詞加說明（第 3b 節） | 高 |
+| 12 | **辨識語言：國語 / 台語・國台語 / 客語（＋腔調）**（主頁錄音鍵上方，記住上次；錄音詳情頁可換語言重新產生，方便對照） | ✅ 模擬器＋主機實測（客語：Taiwan Tongues 已裝） | 存 `Meeting.lang`（`zh`/`nan`/`hak`）、`Meeting.dialect`，送主機加 `X-Lang`（客語加 `X-Dialect`）；Gemini 提示詞加說明（第 3b 節） | 高 |
 | 13 | **錄音中的音量條**：錄音卡上即時波形柱＋收音狀態（正常 / 太大聲 / 太小聲 / 中斷），科技模式顯示 dB | ✅ 模擬器 | 從錄音的 PCM 算 RMS，一個 buffer 一根，自動增益（第 3c 節） | 中 |
 
 ---
@@ -110,12 +110,14 @@ iOS 版原本照 Android 版移植（見 `IOS_PORT.md`），之後在 iOS 上**�
 |---|---|---|---|
 | 國語 | `zh`（預設；舊資料沒有這欄＝國語） | FunASR | 最快 |
 | 台語・國台語 | `nan` | Breeze-ASR-26（MLX；說話者仍由 FunASR 分） | 有台語就選，國台語夾雜也是；較慢（50 秒的錄音約 1 分鐘辨識）；輸出是華語字 |
-| 客語 | `hak` ＋ 腔調 `dialect` | 陽明交大 `formospeech/whisper-large-v3-taiwanese-hakka`（MLX；說話者仍由 FunASR 分） | 腔調：四縣 `sixian`（預設）、海陸 `hailu`、大埔 `dapu`、饒平 `raoping`、詔安 `zhaoan`、南四縣 `nansixian` |
+| 客語 | `hak` ＋ 腔調 `dialect` | 數位部 `adi-gov-tw/Taiwan-Tongues-ASR-CE`（Whisper large-v2，MLX 8-bit；說話者仍由 FunASR 分）。有裝陽明交大 `formospeech/whisper-large-v3-taiwanese-hakka` 時改用它（分腔調） | 腔調：四縣 `sixian`（預設）、海陸 `hailu`、大埔 `dapu`、饒平 `raoping`、詔安 `zhaoan`、南四縣 `nansixian` |
 
 **客語**：
 - 二選一變三選一（國語 / 台語・國台語 / 客語）；選客語時，說明那一行右邊多一個「四縣腔 ▾」選單（存 `hakka_dialect`），錄音時把腔調存到 `Meeting.dialect`。錄音卡顯示「手機錄音中 · 客語・四縣」，詳情頁顯示「辨識語言：客語・四縣腔」。
-- 主機：`X-Lang: hak` ＋ `X-Dialect: sixian|hailu|dapu|raoping|zhaoan|nansixian`。模型用腔調 id（`htia_sixian` 等）當 Whisper 的提示。
-- **授權 CC BY-NC 4.0（只能非商業使用）**，Hugging Face 要申請才能下載。主機上還沒裝好時：`/v1/models` 的 `langs` 只會有 `zh`、`nan`（不會有 `hak`），送 `hak` 會回錯誤「客語模型還沒裝好…」→ App 照常改用 Gemini。
+- 主機：`X-Lang: hak` ＋ `X-Dialect: sixian|hailu|dapu|raoping|zhaoan|nansixian`。Taiwan Tongues 不分腔調，腔調只寫進報告提示；裝了陽明交大模型時，腔調 id（`htia_sixian` 等）也當 Whisper 提示。回傳的 model 代號是 `local-taiwan-tongues|qwen3-8b`（陽明交大是 `local-hakka-nycu|…`）。
+- 授權：Taiwan Tongues 是 **TRAIL v0.1**（可商用；只呼叫、不改權重的 App 不用開源；改過或轉檔的權重若「散布」（含開 API 給別人用）要用 TRAIL 釋出；使用限制含標示機器產生的內容 —— 報告的「AI」欄已標示）。轉好的 MLX 權重只放在主機，不散布。陽明交大模型是 CC BY-NC 4.0（只能非商業），Hugging Face 要申請，目前沒裝。
+- 主機上沒有任何客語模型時：`/v1/models` 的 `langs` 不會有 `hak`，送 `hak` 會回錯誤 → App 照常改用 Gemini。
+- **實測（2026-11-24，小樣本，僅供參考）**：客語（Taiwan Tongues 自家測試集 8 句，標註是華語翻譯）字錯率 Taiwan Tongues 0.48 vs Breeze 0.73；獨立客語廣播 1 句 0.24 vs 0.70。台語（教育部辭典例句 8 句，對華語翻譯）Taiwan Tongues 0.51 vs Breeze 0.34 → 台語維持 Breeze。國語會議 53 秒：Taiwan Tongues 0.20、Breeze 0.12（國語維持 FunASR）。速度和 Breeze 差不多。不做「自動」語言：國語、台語都不如專用模型。
 - Gemini：`hak` 時提示詞加「客語（某某腔），逐字稿用台灣繁體華語寫出意思，不用客語拼音」。
 
 - 主頁錄音鍵上方一個二選一（記在 `speech_lang`）；新錄音、通話、匯入、手錶送來的錄音建立時，存當下的選擇到 `Meeting.lang`。

@@ -10,8 +10,9 @@ App 的報告解析、說話者名字、飲食 NUTRITION 解析都直接沿用�
   POST /v1/config   → {"asr": id, "llm": id}；存進 config.json，背景換模型（第一次會下載），回 202
   POST /v1/process  → body 是錄音檔（m4a / wav…）；標頭 X-Kind: meeting|food、X-Recorded-At、X-Duration（秒）
                        X-Input: text 時 body 是 UTF-8 文字（匯入的會議紀錄 / 逐字稿），跳過語音辨識直接寫報告
-                       X-Lang: zh（國語 → FunASR）| nan（台語・國台語 → Breeze-ASR-26）| hak（客語 → 陽明交大客語 Whisper，
-                       X-Dialect: sixian|hailu|dapu|raoping|zhaoan|nansixian，預設四縣）；沒帶就用設定頁選的語音模型
+                       X-Lang: zh（國語 → FunASR）| nan（台語・國台語 → Breeze-ASR-26）| hak（客語 → 數位部 Taiwan Tongues；
+                       X-Dialect: sixian|hailu|dapu|raoping|zhaoan|nansixian 寫進報告提示，有裝陽明交大客語模型時也當模型提示）；
+                       沒帶就用設定頁選的語音模型
                      回 {"text": "<Gemini 格式>", "model": "local-<asr>|<llm>"，例如 local-funasr|qwen3-8b}，失敗回 {"error": "..."}
                      （處理中每 20 秒先送一個空白保持連線，所以狀態碼一律 200，結果看 JSON）
   配對（pairing.py）：
@@ -54,10 +55,14 @@ ASR_OPTIONS = {
     "funasr": {"label": "FunASR（國語，分說話者，最快）", "tag": "funasr"},
     "breeze": {"label": "Breeze-ASR-26（台語＋國語，說話者用 FunASR 分）", "tag": "breeze",
                "repo": "doggy8088/Breeze-ASR-26-MLX-8bit"},   # 8bit：記憶體省一半，準確度差不多
-    # 客語：陽明交大 formospeech/whisper-large-v3-taiwanese-hakka（CC BY-NC 4.0，限非商業；Hugging Face 要申請）。
-    # 轉成 MLX 放在 models/hakka-mlx-8bit（convert_whisper.py）；沒轉好時選客語會回清楚的錯誤。
-    "hakka": {"label": "客語 Whisper（陽明交大，四縣／海陸／大埔／饒平／詔安／南四縣；限非商業）", "tag": "hakka",
-              "repo": os.path.join(os.path.dirname(os.path.abspath(__file__)), "models", "hakka-mlx-8bit")},
+    # 客語（預設）：數位發展部 adi-gov-tw/Taiwan-Tongues-ASR-CE（Whisper large-v2，國／台／客／英，TRAIL 授權、可商用）。
+    # 轉成 MLX 放在 models/taiwan-tongues-mlx-8bit（convert_whisper.py；轉過的權重只放本機，不散布）。
+    "hakka": {"label": "Taiwan Tongues（數位部，客語；說話者用 FunASR 分）", "tag": "taiwan-tongues",
+              "repo": os.path.join(os.path.dirname(os.path.abspath(__file__)), "models", "taiwan-tongues-mlx-8bit")},
+    # 客語（選用）：陽明交大 formospeech/whisper-large-v3-taiwanese-hakka（CC BY-NC 4.0，限非商業；Hugging Face 要申請），
+    # 用腔調 id 當提示。裝在 models/hakka-mlx-8bit 時，客語錄音改用它。
+    "hakka-nycu": {"label": "客語 Whisper（陽明交大，分腔調；限非商業）", "tag": "hakka-nycu", "dialect_prompt": True,
+                   "repo": os.path.join(os.path.dirname(os.path.abspath(__file__)), "models", "hakka-mlx-8bit")},
 }
 # 客語腔調 → 模型訓練時用的提示（模型卡：每個腔調一個 id 當 prompt）
 HAKKA_DIALECTS = {"sixian": "htia_sixian", "hailu": "htia_hailu", "dapu": "htia_dapu",
@@ -211,9 +216,16 @@ LANG_ASR = {"zh": "funasr", "nan": "breeze", "hak": "hakka"}
 
 
 def asr_ready(key):
-    """客語模型要另外申請、轉檔：還沒放好就不列出來（其他選項第一次用到時會自己下載）。"""
+    """客語模型要另外轉檔（陽明交大的還要申請）：還沒放好就不列出來（其他選項第一次用到時會自己下載）。"""
     repo = ASR_OPTIONS.get(key, {}).get("repo", "")
-    return key != "hakka" or os.path.exists(os.path.join(repo, "config.json"))
+    return key not in ("hakka", "hakka-nycu") or os.path.exists(os.path.join(repo, "config.json"))
+
+
+def lang_asr(lang):
+    """App 選的語言 → 語音模型。客語：裝了陽明交大的（分腔調）就用它，否則 Taiwan Tongues。"""
+    if lang == "hak" and asr_ready("hakka-nycu"):
+        return "hakka-nycu"
+    return LANG_ASR.get(lang)
 
 
 def model_tag(asr=None):
@@ -325,9 +337,9 @@ def breeze_segments(wav, asr="breeze", dialect=None):
     import torchaudio
     repo = ASR_OPTIONS[asr]["repo"]
     prompt = None
-    if asr == "hakka":
-        if not os.path.exists(os.path.join(repo, "config.json")):
-            raise RuntimeError("客語模型還沒裝好（要先在 Hugging Face 申請 formospeech/whisper-large-v3-taiwanese-hakka，再轉成 MLX）")
+    if not asr_ready(asr):
+        raise RuntimeError("客語模型還沒裝好（在主機上用 convert_whisper.py 轉 adi-gov-tw/Taiwan-Tongues-ASR-CE-pretrained-v1.0）")
+    if ASR_OPTIONS[asr].get("dialect_prompt"):
         prompt = HAKKA_DIALECTS.get(dialect or "sixian", "htia_sixian")
     audio, _ = torchaudio.load(wav)   # afconvert 的 wav 是 extensible 格式，內建 wave 讀不了
     r = mlx_whisper.transcribe(audio.mean(dim=0).numpy().astype(np.float32),
@@ -363,7 +375,7 @@ def breeze_segments(wav, asr="breeze", dialect=None):
     return [(a, b, k, re.sub(r"(.{1,4}?)\1{3,}", r"\1", t)) for a, b, k, t in out]
 
 
-WHISPER_ASR = ("breeze", "hakka")
+WHISPER_ASR = ("breeze", "hakka", "hakka-nycu")
 
 
 def transcribe(wav, asr=None, dialect=None):
@@ -502,7 +514,7 @@ def process(audio_path, kind, recorded_at, duration, text_input=False, asr=None,
         wav = to_wav(audio_path)
         transcript = transcribe(wav, asr, dialect)
         header = f"錄音時間：{recorded_at}，長度約 {duration / 60:.1f} 分鐘。"
-        if (asr or CUR["asr"]) == "hakka":
+        if (asr or CUR["asr"]) in ("hakka", "hakka-nycu"):
             header += (f"這段錄音是客語（{HAKKA_NAMES.get(dialect or 'sixian', '四縣')}腔，可能夾雜國語），逐字稿可能有用字不一的客語漢字或同音字；"
                        "報告請用台灣繁體華語寫，依上下文理解原意，不要自己補沒說過的內容。")
         elif (asr or CUR["asr"]) == "breeze":
@@ -648,7 +660,7 @@ class Handler(BaseHTTPRequestHandler):
         opts = lambda d: [{"id": k, "label": v["label"]} for k, v in d.items() if asr_ready(k)]  # noqa: E731
         oa = [{"id": llm_tag(), "object": "model", "created": 0, "owned_by": "dylan"}]
         self._json(200, {**status(), "asr_options": opts(ASR_OPTIONS), "llm_options": opts(LLM_OPTIONS),
-                         "langs": [k for k, a in LANG_ASR.items() if asr_ready(a)],
+                         "langs": [k for k in LANG_ASR if asr_ready(lang_asr(k))],
                          "object": "list", "data": oa})
 
     def _config(self):
@@ -785,7 +797,7 @@ class Handler(BaseHTTPRequestHandler):
         text_input = self.headers.get("X-Input", "") == "text"
         recorded_at = self.headers.get("X-Recorded-At", "")
         duration = float(self.headers.get("X-Duration", "0") or 0)
-        asr = LANG_ASR.get(self.headers.get("X-Lang", ""))   # None → 設定頁選的
+        asr = lang_asr(self.headers.get("X-Lang", ""))   # None → 設定頁選的
         if asr and asr not in ASR_OPTIONS:
             asr = None
         dialect = self.headers.get("X-Dialect", "")   # 客語腔調：sixian / hailu / dapu / raoping / zhaoan / nansixian
