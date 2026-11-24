@@ -17,6 +17,12 @@ enum class SpeechLang(val code: String, val label: String, val short: String, va
     NAN("nan", "台語・國台語", "台語", "有台語就選這個（國台語夾雜也是），比較慢"),
     HAK("hak", "客語", "客語", "客語：數位部 Taiwan Tongues 模型，比較慢");
 
+    /** 逐字稿每段前的语言标签（一个字，跟 iOS `SpeechLang.tag` 一样）。 */
+    val tag: String get() = when (this) { ZH -> "國"; NAN -> "台"; HAK -> "客" }
+
+    /** 标签的无障碍朗读：「國語」「台語」「客語四縣腔」。 */
+    fun tagLabel(dialect: String?): String = if (this == HAK) "客語" + HakkaDialect.of(dialect).label + "腔" else short
+
     companion object {
         private const val PREFS = "wristai_settings"
         private const val KEY = "speech_lang"

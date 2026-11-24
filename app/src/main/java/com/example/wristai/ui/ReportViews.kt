@@ -2,6 +2,8 @@ package com.example.wristai.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -263,6 +265,25 @@ private fun Avatar(text: String, color: Color, size: androidx.compose.ui.unit.Dp
     }
 }
 
+/** 语言标签颜色：國＝灰、台＝绿、客＝琥珀（跟说话者颜色分开，不抢眼；跟 iOS 一样）。 */
+fun langTagColor(l: com.example.wristai.SpeechLang): Color = when (l) {
+    com.example.wristai.SpeechLang.ZH -> Brand.TextMuted
+    com.example.wristai.SpeechLang.NAN -> Brand.Success
+    com.example.wristai.SpeechLang.HAK -> Brand.Warning
+}
+
+/** 逐字稿每段前的小胶囊「國／台／客」：标的是使用者选的辨识语言，不是逐句判断（台语、客语模型没有语言标记）。 */
+@Composable
+private fun LangTag(l: com.example.wristai.SpeechLang, dialect: String?) {
+    val c = langTagColor(l)
+    Text(
+        l.tag, style = MaterialTheme.typography.labelSmall, color = c,
+        modifier = Modifier.clip(CircleShape).background(c.copy(alpha = 0.15f)).border(1.dp, c.copy(alpha = 0.5f), CircleShape)
+            .padding(horizontal = 6.dp, vertical = 1.dp)
+            .clearAndSetSemantics { contentDescription = l.tagLabel(dialect) },
+    )
+}
+
 @Composable
 fun TranscriptView(
     text: String,
@@ -273,6 +294,9 @@ fun TranscriptView(
     onSeek: ((Int) -> Unit)? = null,
     /** 播放中的位置（毫秒），用来标示正在播放的那一行；-1 = 不标示 */
     currentMs: Int = -1,
+    /** 这笔录音的辨识语言：每段前显示「國／台／客」标签（null = 不显示，例如汇入的文字）。 */
+    langTag: com.example.wristai.SpeechLang? = null,
+    dialect: String? = null,
 ) {
     val lines = parseTranscript(text)
     val starts = lines.map { l -> l.time?.let { parseStampMs(it) } }
@@ -312,6 +336,7 @@ fun TranscriptView(
                         Spacer(Modifier.width(10.dp))
                         Column(Modifier.weight(1f)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
+                                langTag?.let { LangTag(it, dialect); Spacer(Modifier.width(8.dp)) }
                                 if (!sameAsPrev) name?.let { Text(it, style = MaterialTheme.typography.labelLarge, color = color) }
                                 l.time?.let {
                                     if (!sameAsPrev && name != null) Spacer(Modifier.width(8.dp))

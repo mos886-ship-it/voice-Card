@@ -299,3 +299,10 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 - **音量條**：`AudioLevel` 從 app 搬到 `shared`（手機、手錶共用同一套刻度）。手錶 `RecordingService` 每段 PCM `feed`；錄音畫面在計時與停止鈕之間畫最近 24 根，下面一行在太大聲 / 幾乎沒聲音時改成提示。手錶遙控手機錄音時不顯示（音量在手機上看）。錄音畫面標題「錄音中 · 客語・海陸」。
 - **報告書 / 明細**：手機的清單每筆多 `lang`（國語不帶），手錶清單第二行顯示「· 台語」；明細 JSON 多 `lang`、`ai`（`aiModelLabel`，整理好才有）、`note`（engineNote），手錶明細顯示「語言 …」「AI：大D的主機：…」，改用備援引擎時用琥珀色顯示原因。明細手機回了就不再顯示「正在取得」（原本固定等 8 秒）。
 - 測試：`LangLevelTest.watchLangPayload`。Wear OS 模擬器（沒配對手機）：選台語、客語・海陸 → 存檔且標記未同步、重開 App 還在；錄音畫面音量條＋「幾乎沒聲音」；假資料的清單與明細顯示語言與 AI。**未測**：真手錶與手機之間的同步（模擬器沒配對）、真手錶有聲音時的柱子。iOS / watchOS 還沒有這些。
+
+## Android：逐字稿語言標籤（2026-11-24，IOS_TO_ANDROID 3b「逐字稿語言標籤」）
+
+- 逐字稿每一段說話者名字前一個小膠囊：國（灰 `TextMuted`）、台（綠 `Success`）、客（琥珀 `Warning`），淡色底＋細框。無障礙朗讀「國語」「台語」「客語海陸腔」（客語帶腔調）。依 `Meeting.lang`（舊資料＝國）。`SpeechLang.tag` / `tagLabel(dialect)`、`ui/ReportViews.kt` 的 `TranscriptView(langTag, dialect)`、`langTagColor`。
+- 匯入的文字記錄（錄音資料夾有 `input.txt`）不標；Android 目前還沒有文字匯入，先照 iOS 的規則留著判斷。
+- 標的是使用者選的辨識語言，不是逐句判斷（Breeze、Taiwan Tongues 都沒有台語／客語語言標記）。
+- 測試：`LangLevelTest.transcriptTag`；模擬器看過國（灰）、客・海陸（琥珀、朗讀「客語海陸腔」）。

@@ -43,6 +43,15 @@ class LangLevelTest {
         assertEquals(SpeechLang.display("hak", "zhaoan"), s.display("hak", "zhaoan"))
     }
 
+    /** 逐字稿语言标签（跟 iOS 一样）。 */
+    @Test fun transcriptTag() {
+        assertEquals(listOf("國", "台", "客"), SpeechLang.entries.map { it.tag })
+        assertEquals("國語", SpeechLang.of(null).tagLabel(null))           // 旧资料 = 国
+        assertEquals("台語", SpeechLang.NAN.tagLabel("hailu"))
+        assertEquals("客語四縣腔", SpeechLang.HAK.tagLabel(null))
+        assertEquals("客語詔安腔", SpeechLang.HAK.tagLabel("zhaoan"))
+    }
+
     @Test fun levelScale() {
         assertEquals(-60f, AudioLevel.dB(0.0), 0.01f)               // 下限
         assertEquals(0f, AudioLevel.norm(1e-6), 0.0001f)            // -60 dB：安静 = 0

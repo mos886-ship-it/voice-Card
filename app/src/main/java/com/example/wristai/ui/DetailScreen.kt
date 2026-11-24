@@ -274,6 +274,11 @@ fun DetailScreen(id: String, onBack: () -> Unit, onOpenSettings: () -> Unit) {
                             transcript, names = names, onRename = { renaming = it },
                             onSeek = player?.let { p -> { ms: Int -> p.seekTo(ms, play = true) } },
                             currentMs = player?.takeIf { it.playing || it.positionMs > 0 }?.positionMs ?: -1,
+                            // 每段前标辨识语言（國／台／客）；汇入的文字（input.txt）不是辨识出来的，不标
+                            langTag = remember(meeting.id) {
+                                java.io.File(MeetingStore.transcriptFile(context, meeting.id).parentFile, "input.txt").exists()
+                            }.let { isText -> if (isText) null else com.example.wristai.SpeechLang.of(meeting.lang) },
+                            dialect = meeting.dialect,
                         ) else Empty("尚無逐字稿")
                     }
                 }
