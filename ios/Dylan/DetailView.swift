@@ -132,6 +132,10 @@ struct DetailView: View {
                                 Text(m.speechLang == .hak ? "辨識語言：客語・\(m.hakkaDialect.label)腔" : "辨識語言")
                                     .font(.labelSmall).tracking(1.2).foregroundStyle(Brand.textMuted)
                                     .padding(.horizontal, 6)
+                                if m.status == .summarizing {
+                                    Text("報告產生中，完成後才能換語言（台語、客語約要錄音長度的 1～2 倍時間）")
+                                        .font(.labelMedium).foregroundStyle(Brand.textFaint).padding(.horizontal, 6)
+                                }
                                 LangPicker(value: m.speechLang, disabled: m.status == .summarizing) { l in
                                     if m.status == .done || m.status == .failed {
                                         relang = l   // 先問：會用新的語言重新產生

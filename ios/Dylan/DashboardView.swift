@@ -55,7 +55,11 @@ struct DashboardView: View {
                         HStack(spacing: 8) {
                             Text(LangPicker.hint(lang)).font(.labelMedium).foregroundStyle(Brand.textFaint)
                             Spacer(minLength: 0)
-                            if lang == .hak { DialectMenu(value: dialect) { dialect = $0 } }
+                            // 選單一直留在畫面上，只是藏起來：iOS 16 反覆插入／拿掉 Menu 會讓整個畫面點不動
+                            DialectMenu(value: dialect) { dialect = $0 }
+                                .opacity(lang == .hak ? 1 : 0)
+                                .allowsHitTesting(lang == .hak)
+                                .accessibilityHidden(lang != .hak)
                         }
                         .padding(.horizontal, 6)
                     }
