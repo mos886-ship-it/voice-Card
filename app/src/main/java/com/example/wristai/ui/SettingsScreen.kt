@@ -107,6 +107,9 @@ fun SettingsScreen(onBack: (() -> Unit)? = null) {
     // 「关于与授权」页（设定里的子页面）
     var showAbout by remember { mutableStateOf(false) }
     if (showAbout) { AboutScreen { showAbout = false }; return }
+    // 「檔案管理」页（备份 / 取回，不跟设定挤在同一页）
+    var showFiles by remember { mutableStateOf(false) }
+    if (showFiles) { FilesScreen { showFiles = false }; return }
 
     fun save() {
         Settings.setGeminiKey(context, gemini)
@@ -178,8 +181,8 @@ fun SettingsScreen(onBack: (() -> Unit)? = null) {
             // ---------- 大D的主機（使用者自己的电脑跑 AI） ----------
             LocalHostSection()
 
-            // ---------- Google 云端硬碟备份 / 取回 ----------
-            BackupSection()
+            // ---------- 檔案管理（自己一页：空间、Google 云端硬碟备份 / 取回） ----------
+            FilesEntry { showFiles = true }
 
             // ---------- AI 引擎：Gemini 一站式 / 组合式（百炼、讯飞、OpenAI、Meta、Claude）/ 只用 Galaxy AI ----------
             AiEngineSection(
