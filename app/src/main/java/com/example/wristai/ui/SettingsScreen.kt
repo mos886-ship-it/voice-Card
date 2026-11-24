@@ -178,6 +178,9 @@ fun SettingsScreen(onBack: (() -> Unit)? = null) {
             // ---------- 大D的主機（使用者自己的电脑跑 AI） ----------
             LocalHostSection()
 
+            // ---------- Google 云端硬碟备份 / 取回（档案清单在「檔案」分页） ----------
+            BackupSection()
+
 
             // ---------- AI 引擎：Gemini 一站式 / 组合式（百炼、讯飞、OpenAI、Meta、Claude）/ 只用 Galaxy AI ----------
             AiEngineSection(

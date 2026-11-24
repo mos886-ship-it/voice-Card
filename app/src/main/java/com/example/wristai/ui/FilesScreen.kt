@@ -51,9 +51,9 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * 「檔案」分页（底部导览列，不放在设定里）：
- * 手机上的空间、Google 云端硬碟备份 / 取回（[BackupSection]），以及所有录音档的清单——
- * 每笔显示大小、有没有备份，点了可以打开、分享录音档、只删录音档（保留报告）、整笔删除。
+ * 「檔案」分页（底部导览列）：画面保持简单——一行空间摘要、类别筛选、所有录音档的清单。
+ * 每笔显示大小、有没有备份到 Google 云端硬碟（连结与备份设定在「設定」），
+ * 点了可以打开、分享录音档、只删录音档（保留报告）、整笔删除。
  */
 @Composable
 fun FilesScreen(onBack: (() -> Unit)? = null, onOpen: (String) -> Unit = {}) {
@@ -66,7 +66,6 @@ fun FilesScreen(onBack: (() -> Unit)? = null, onOpen: (String) -> Unit = {}) {
     var cloud by remember { mutableStateOf<Map<String, String>?>(null) }      // 录音编号 → 云端指纹；null = 没连结 / 还没读
     var local by remember { mutableStateOf<Map<String, String>>(emptyMap()) } // 录音编号 → 本机指纹
     var kind by remember { mutableIntStateOf(0) }   // 0 全部 / 1 錄音 / 2 飲食
-    var bySize by remember { mutableStateOf(false) }
     var acting by remember { mutableStateOf<Meeting?>(null) }
     var confirm by remember { mutableStateOf<Pair<Meeting, Boolean>?>(null) }   // (哪一笔, true = 只删录音档)
     var note by remember { mutableStateOf<String?>(null) }
@@ -87,10 +86,10 @@ fun FilesScreen(onBack: (() -> Unit)? = null, onOpen: (String) -> Unit = {}) {
         local = withContext(Dispatchers.IO) { meetings.associate { it.id to DriveBackup.localVersion(context, it.id) } }
     }
 
-    val shown = remember(meetings, sizes, kind, bySize) {
+    val shown = remember(meetings, kind) {
         meetings.filter {
             when (kind) { 1 -> !FoodLog.isFood(it.id); 2 -> FoodLog.isFood(it.id); else -> true }
-        }.let { l -> if (bySize) l.sortedByDescending { sizes[it.id]?.total ?: 0 } else l.sortedByDescending { it.createdAt } }
+        }.sortedByDescending { it.createdAt }
     }
     val totalAudio = sizes.values.sumOf { it.audio }
     val totalOther = sizes.values.sumOf { it.other }
@@ -105,26 +104,11 @@ fun FilesScreen(onBack: (() -> Unit)? = null, onOpen: (String) -> Unit = {}) {
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             item {
-                SectionLabel("手機上的檔案")
-                GlassCard {
-                    val food = meetings.count { FoodLog.isFood(it.id) }
-                    UsageRow("錄音", "${meetings.size - food} 筆")
-                    UsageRow("飲食記錄", "$food 筆")
-                    UsageRow("錄音檔", bytes(totalAudio))
-                    UsageRow("報告、逐字稿等", bytes(totalOther))
-                    Spacer(Modifier.height(6.dp))
-                    Text("錄音存在這支手機的 App 資料裡；刪掉 App 或換手機前，先備份到 Google 雲端硬碟。",
-                        style = MaterialTheme.typography.bodySmall, color = Brand.TextFaint)
-                }
-            }
-            item { BackupSection() }
-
-            item {
-                Spacer(Modifier.height(6.dp))
-                SectionLabel("所有檔案（${shown.size}）")
+                // 一行摘要＋类别筛选；Google 云端硬碟的连结、备份选项都在「設定」
+                Text("${meetings.size} 筆 · 錄音檔 ${bytes(totalAudio)} · 報告等 ${bytes(totalOther)}",
+                    style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
+                Spacer(Modifier.height(8.dp))
                 Chips(listOf("全部", "錄音", "飲食"), kind) { kind = it }
-                Spacer(Modifier.height(6.dp))
-                Chips(listOf("依時間", "依大小"), if (bySize) 1 else 0) { bySize = it == 1 }
                 note?.let {
                     Spacer(Modifier.height(6.dp))
                     Text(it, style = MaterialTheme.typography.bodySmall, color = Brand.Success)
@@ -289,12 +273,4 @@ private fun bytes(n: Long): String = when {
     n >= 1L shl 30 -> "%.1f GB".format(n / (1024.0 * 1024 * 1024))
     n >= 1L shl 20 -> "%.1f MB".format(n / (1024.0 * 1024))
     else -> "${(n + 1023) / 1024} KB"
-}
-
-@Composable
-private fun UsageRow(label: String, value: String) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
-        Text(label, style = MaterialTheme.typography.bodyMedium, color = Brand.TextMuted, modifier = Modifier.weight(1f))
-        Text(value, style = MaterialTheme.typography.bodyMedium, color = Brand.Text)
-    }
 }
