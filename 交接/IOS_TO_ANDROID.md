@@ -146,6 +146,13 @@ iOS 版原本照 Android 版移植（見 `IOS_PORT.md`），之後在 iOS 上**�
 - **效能**：音量是獨立的 ObservableObject，只有音量條重畫，主頁其他部分不跟著更新。Android 用 `StateFlow` 給一個小 Composable（`Canvas`）就好；錄音的 `AudioRecord` 迴圈裡順手算 RMS。
 - 手錶錄音不顯示（音量在手錶上，手機拿不到即時資料）。
 
+## 3d. 版本號（iOS 跟 Android 同一套，2026-11-24）
+
+- 版本 = `<dylanVersion>.<commit 數>`（例 `1.1.63`），build 號 = commit 數（`git rev-list --count HEAD`）。同一個 commit 編出來，iPhone / iPad / Apple Watch / Android 的號碼一樣。
+- `dylanVersion` 只在 repo 根目錄的 `gradle.properties` 改（兩個平台共用）。
+- iOS：三個 target（App、`DylanWatch`、`DylanBroadcast`）各有一個 **Set Version** 建置腳本，用 PlistBuddy 改編好的 Info.plist（`CFBundleShortVersionString`、`CFBundleVersion`）；App 的腳本放在最後一個階段（Embed 之後），否則 Info.plist 會被蓋回去。找不到 git 時 build 號用 1。專案的 `ENABLE_USER_SCRIPT_SANDBOXING` 改成 NO（腳本要讀 `.git` 和 `../gradle.properties`）。`MARKETING_VERSION` 只剩後備用途（1.1）。
+- 設定頁底下的版本本來就讀 `CFBundleShortVersionString`，會顯示真的版本。
+
 ## 4. 匯入（音檔、影片、文字）與分享進來
 
 - **選檔**：音檔（m4a、mp3、wav、aiff…）、影片（mp4、mov，只取聲音）、文字（txt、md、rtf），可多選。
