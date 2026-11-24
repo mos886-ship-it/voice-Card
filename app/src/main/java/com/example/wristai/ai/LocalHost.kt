@@ -73,7 +73,7 @@ object LocalHost {
     // ---------------- 名称 ----------------
 
     private val NAMES = mapOf(
-        "funasr" to "FunASR", "breeze" to "Breeze-ASR-26", "hakka" to "客語 Whisper", "text" to "文字",
+        "funasr" to "FunASR", "breeze" to "Breeze-ASR-26", "hakka" to "客語 Whisper", "taiwan-tongues" to "Taiwan Tongues", "text" to "文字",
         "qwen3-8b" to "Qwen3-8B", "sarc-taigi-12b" to "SARC 台語 12B",
     )
 

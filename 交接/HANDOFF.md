@@ -287,3 +287,8 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 - `SpeechLang` 加 `HAK`（客語）；`HakkaDialect`：四縣 `sixian`（預設）、海陸、大埔、饒平、詔安、南四縣，設定 `hakka_dialect`。`Meeting.dialect` 在建立錄音時存（只有客語才存）。主機送 `X-Lang: hak` ＋ `X-Dialect`；Gemini 提示詞加客語說明（跟 iOS 一字不差，含腔調名）；主機模型名稱認 `hakka` →「客語 Whisper」。
 - 畫面：`LangChooser`（主頁、「錄音」分頁）＝三選一＋下面一行說明，選客語時右邊「四縣腔 ▾」選單；錄音卡「手機錄音中 · 客語・海陸」；詳情頁選客語時多一行「辨識語言：客語・X腔」＋腔調選單，已有報告時換語言或腔調都要確認再重新產生（客語提醒比較慢、主機沒裝模型會改用 Gemini）。
 - 測試：`LangLevelTest.hakka`。模擬器＋假主機（照目前真主機的行為：客語回「客語模型還沒裝好」）：選客語・海陸 → 錄音 → 主機收到 `hak` / `hailu` → 主機失敗 → 改用其他引擎並寫進 engineNote；meta 存 `lang=hak`、`dialect=hailu`。主機的客語模型授權是 CC BY-NC 4.0（只能非商業使用），還在等 Hugging Face 申請。
+
+## Android：客語改用 Taiwan Tongues（2026-11-24，跟主機同步）
+
+- 大D的主機的客語模型改成數位部 `adi-gov-tw/Taiwan-Tongues-ASR-CE`（Whisper large-v2，本機轉 MLX 8bit、不散布；TRAIL v0.1 授權，可商用但有使用限制，例如要標示 AI 產生內容）。主機的評估與決定見 `HOST_CONNECT.md`、`IOS_TO_ANDROID.md` 3b。台語仍用 Breeze-ASR-26、國語仍用 FunASR，沒有「自動」語言。
+- Android 只改顯示：`aiModelLabel` 認 `taiwan-tongues` →「大D的主機：Taiwan Tongues ＋ Qwen3-8B」；客語提示文字改「數位部 Taiwan Tongues 模型」；「關於與授權」的主機模型清單加這個模型（授權 TRAIL v0.1）。X-Dialect 照送（Taiwan Tongues 沒有腔調提示，主機只把腔調放進報告提示詞）。

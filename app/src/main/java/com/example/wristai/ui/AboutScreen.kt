@@ -51,6 +51,8 @@ private val HOST_ITEMS = listOf(
     HostItem("FunASR（程式）", "Alibaba DAMO Academy / ModelScope", "MIT License", "https://github.com/modelscope/FunASR"),
     HostItem("FunASR 語音辨識模型", "Alibaba DAMO Academy / ModelScope", "依模型頁的授權", "https://github.com/modelscope/FunASR"),
     HostItem("Breeze-ASR-26（MLX 8bit）", "MediaTek Research；doggy8088 轉換", "依模型頁的授權", "https://huggingface.co/doggy8088/Breeze-ASR-26-MLX-8bit"),
+    HostItem("Taiwan-Tongues-ASR-CE（客語，MLX 8bit 本機轉換）", "數位發展部數位產業署；台灣大哥大維護",
+        "TRAIL v0.1（只呼叫、不散布轉換後的模型）", "https://huggingface.co/adi-gov-tw/Taiwan-Tongues-ASR-CE-pretrained-v1.0"),
     HostItem("SARC 台語 12B（GGUF）", "Speech AI Research Center", "依模型頁的授權", "https://huggingface.co/Speech-AI-Research-Center/SARC-Taigi-LLM-12b-GGUF"),
     HostItem("MLX", "Apple", "MIT License", "https://github.com/ml-explore/mlx"),
     HostItem("llama.cpp", "ggml-org", "MIT License", "https://github.com/ggml-org/llama.cpp"),

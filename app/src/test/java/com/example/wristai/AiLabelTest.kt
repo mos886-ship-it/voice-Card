@@ -18,4 +18,5 @@ class AiLabelTest {
         assertEquals("https://x.example:8765", com.example.wristai.ai.LocalHost.normalize("https://x.example:8765"))
         assertEquals("", com.example.wristai.ai.LocalHost.normalize("  "))
     }
+    @Test fun localHostHakka() = assertEquals("大D的主機：Taiwan Tongues ＋ Qwen3-8B", aiModelLabel("local-taiwan-tongues|qwen3-8b"))
 }

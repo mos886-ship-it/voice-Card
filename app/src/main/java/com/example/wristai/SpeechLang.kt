@@ -9,13 +9,13 @@ import androidx.compose.runtime.setValue
  * 辨识语言（每笔录音选一次，跟 iOS `SpeechLang` 一样）：
  * - 国语 `zh`（预设；旧资料没有这栏＝国语）：大D的主機用 FunASR。
  * - 台语・国台语 `nan`：主机用 Breeze-ASR-26（较慢）。
- * - 客语 `hak`＋腔调 [HakkaDialect]：主机用阳明交大客语 Whisper（模型还没装好时主机回错误 → 改用 Gemini）。
+ * - 客语 `hak`＋腔调 [HakkaDialect]：主机用数位部 Taiwan Tongues（腔调只放进报告提示词；主机没装客语模型时回错误 → 改用 Gemini）。
  * 台湾的国台语常在同一句里夹杂，所以不逐句切换，整笔录音一个语言。
  */
 enum class SpeechLang(val code: String, val label: String, val short: String, val hint: String) {
     ZH("zh", "國語", "國語", "國語：最快"),
     NAN("nan", "台語・國台語", "台語", "有台語就選這個（國台語夾雜也是），比較慢"),
-    HAK("hak", "客語", "客語", "客語：陽明交大客語模型，比較慢");
+    HAK("hak", "客語", "客語", "客語：數位部 Taiwan Tongues 模型，比較慢");
 
     companion object {
         private const val PREFS = "wristai_settings"
