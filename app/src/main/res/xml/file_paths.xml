@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 「檔案」分页分享录音档：只开放 cache/share/ 这个资料夹（分享前才压好的 m4a） -->
+<paths>
+    <cache-path name="share" path="share/" />
+</paths>

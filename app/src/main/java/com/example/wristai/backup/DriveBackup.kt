@@ -431,6 +431,13 @@ object DriveBackup {
         }
     }
 
+    /** 云端硬碟上每一笔备份的指纹（录音编号 → dylanVer），「檔案」分页标示每笔有没有备份用。 */
+    fun remoteVersions(c: Context, token: String): Map<String, String> =
+        list(token, folder(c, token)).associate { it.meetingId to it.ver }
+
+    /** 这笔录音现在的指纹（跟 [backup] 比对用的一样）。 */
+    fun localVersion(c: Context, id: String): String = fingerprint(File(MeetingStore.rootDir(c), id), includeAudio(c))
+
     /** 云端硬碟上有、手机上没有的备份。 */
     fun missing(c: Context, token: String): List<Remote> {
         val local = MeetingStore.meetings.value.map { it.id }.toSet()
