@@ -295,7 +295,11 @@ fun SettingsScreen(onBack: (() -> Unit)? = null) {
                 Note(Icons.Filled.Lock, "金鑰只儲存在這支手機，只用來呼叫對應的 AI 服務。上傳給 Gemini 的錄音在產生報告後立即刪除；錄音與報告都保存在本機。")
             }
             GhostButton("關於與授權（開放原始碼、模型、條款）", { showAbout = true }, Modifier.fillMaxWidth())
-            Text("大D · Dylan 1.0", style = MaterialTheme.typography.labelSmall, color = Brand.TextFaint,
+            // 版本号读 App 本身（build.gradle 自动编号，例如 1.1.63），不要写死
+            val version = remember {
+                runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: ""
+            }
+            Text("大D · Dylan $version", style = MaterialTheme.typography.labelSmall, color = Brand.TextFaint,
                 modifier = Modifier.padding(vertical = 8.dp))
         }
         Box(Modifier.padding(20.dp)) {
