@@ -26,6 +26,7 @@ iOS 版原本照 Android 版移植（見 `IOS_PORT.md`），之後在 iOS 上**�
 | 9 | 大螢幕版面：寬螢幕兩欄、卡片格狀排列、內容欄不拉滿 | ✅ iPad 直橫向 | Fold5 展開、平板套同樣規則（第 9 節） | 中 |
 | 10 | 字級跟系統文字大小走 | ✅ | Compose 用 `sp` 已會縮放；檢查固定寬度的標籤會不會被截斷 | 低 |
 | 11 | 基本資料：兩種模式都顯示「AI」（用了哪個模型） | ✅ | `ReportFacts` 確認 AI 那行不要被藏 | 高 |
+| 12 | **辨識語言二選一：國語 / 台語・國台語**（主頁錄音鍵上方，記住上次；錄音詳情頁可換語言重新產生，方便對照） | ✅ 模擬器＋主機實測 | 存 `Meeting.lang`（`zh`/`nan`），送主機加 `X-Lang`；Gemini 提示詞加台語說明（第 3b 節） | 高 |
 
 ---
 
@@ -77,7 +78,7 @@ iOS 版原本照 Android 版移植（見 `IOS_PORT.md`），之後在 iOS 上**�
 | POST | `/v1/devices/revoke` | `{"id": …}` → 取消那台裝置的存取碼 |
 | POST | `/v1/password` | `{"password": …}`（至少 8 個字）→ 設定 / 更換配對密碼 |
 | POST | `/v1/chat/completions` | OpenAI 相容的聊天（給 VPS / 其他程式；App 目前不用）。見 `HOST_CONNECT.md` 5b |
-| POST | `/v1/process` | body 是錄音檔（m4a 等）；標頭 `X-Kind: meeting\|food`、`X-Recorded-At`（例 `2026/11/23 21:20`；標頭只能放 ASCII）、`X-Duration`（秒，整數）。**文字輸入**：加 `X-Input: text`、body 是 UTF-8 文字、`Content-Type: text/plain; charset=utf-8` |
+| POST | `/v1/process` | body 是錄音檔（m4a 等）；標頭 `X-Kind: meeting\|food`、`X-Recorded-At`（例 `2026/11/23 21:20`；標頭只能放 ASCII）、`X-Duration`（秒，整數）、`X-Lang: zh\|nan`（第 3b 節）。**文字輸入**：加 `X-Input: text`、body 是 UTF-8 文字、`Content-Type: text/plain; charset=utf-8` |
 
 `/v1/process` 回應：主機先回 200，處理期間每 20 秒送一個空白（防逾時），最後送 JSON：`{"text": "<報告>\n\n===TRANSCRIPT===\n<逐字稿>", "model": "local-funasr|qwen3-8b"}` 或 `{"error": "大D的主機處理失敗：…"}`。`text` 的格式和 Gemini 輸出一樣（TITLE / SUMMARY 行＋Markdown 報告＋`===TRANSCRIPT===`＋`[mm:ss] 說話者A：…`），**直接用現有的 Gemini 解析**。逾時設長（iOS 用 30 分鐘請求、1 小時總時限）。
 
@@ -97,6 +98,21 @@ iOS 版原本照 Android 版移植（見 `IOS_PORT.md`），之後在 iOS 上**�
 - 實測速度（M4 16GB）：35 秒錄音 → 辨識 4 秒＋報告 23 秒；文字 131 字 → 報告 42 秒（Qwen3-8B）。
 
 ---
+
+## 3b. 辨識語言：國語 / 台語・國台語
+
+台灣的國台語夾雜常常在**同一句裡**，所以不逐句切換模型，也不用兩個模型合併，而是每筆錄音選一次語言：
+
+| 選項 | `lang` | 主機語音模型 | 說明 |
+|---|---|---|---|
+| 國語 | `zh`（預設；舊資料沒有這欄＝國語） | FunASR | 最快 |
+| 台語・國台語 | `nan` | Breeze-ASR-26（MLX；說話者仍由 FunASR 分） | 有台語就選，國台語夾雜也是；較慢（50 秒的錄音約 1 分鐘辨識）；輸出是華語字 |
+
+- 主頁錄音鍵上方一個二選一（記在 `speech_lang`）；新錄音、通話、匯入、手錶送來的錄音建立時，存當下的選擇到 `Meeting.lang`。
+- 錄音詳情頁也有同一個選擇：已有報告時換語言 → 先確認 →「用新語言重新產生」（舊報告會被取代）。這是給使用者 A/B 對照用的。
+- 主機：`POST /v1/process` 加 `X-Lang: zh|nan`（文字輸入不用帶）。沒帶就用設定頁選的語音模型（舊 App 相容）。`nan` 時主機會在報告提示詞加一段「逐字稿有台語、可能有同音或意思相近的字」。
+- Gemini：`nan` 時提示詞加「逐字稿用台灣繁體華語字寫出意思，不用台羅、不寫同音錯字」。
+- Apple / 裝置端語音辨識不會台語：`nan` 的錄音不出 Apple 預覽逐字稿。
 
 ## 4. 匯入（音檔、影片、文字）與分享進來
 
@@ -182,6 +198,7 @@ iOS 新增 / 確定的欄位，Android 建議同名，以後資料可以互通�
 |---|---|
 | `source` | `watch` / `phone` / `call` / `import`（飲食用 id 前綴 `food_` 判斷） |
 | `device` | 錄 / 匯入的裝置名字（手錶錄的沒有）；舊資料沒有這欄 |
+| `lang` | 辨識語言 `zh`（國語）/ `nan`（台語・國台語）；舊資料沒有這欄＝國語 |
 | `aiModel` | 例 `local-funasr|qwen3-8b`、`local-text|qwen3-8b`、`gemini-3.8-flash` |
 | `engineNote` | 為什麼改用別的引擎（科技模式顯示） |
 | `titleEdited` | 使用者改過標題，AI 不再覆蓋 |

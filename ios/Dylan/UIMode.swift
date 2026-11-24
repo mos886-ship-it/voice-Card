@@ -16,6 +16,19 @@ enum UIMode: String, CaseIterable, Identifiable {
     }
 }
 
+/// 錄音的語言（錄音前選，記住上次）：國語 → FunASR（快）；台語・國台語 → Breeze-ASR-26（整段交給它，不逐句切）。
+enum SpeechLang: String, CaseIterable, Identifiable {
+    case zh, nan
+
+    static let key = "speech_lang"
+    /// 現在選的（新錄音用）。
+    static var current: SpeechLang { SpeechLang(rawValue: UserDefaults.standard.string(forKey: key) ?? "") ?? .zh }
+
+    var id: String { rawValue }
+    var label: String { self == .zh ? "國語" : "台語・國台語" }
+    var short: String { self == .zh ? "國語" : "台語" }
+}
+
 extension Fmt {
     /// 給人看的時長：16 秒、2 分、1 小時 5 分。
     static func human(_ sec: Double) -> String {
@@ -32,5 +45,41 @@ extension Fmt {
         if cal.isDateInYesterday(day) { return "昨天" }
         let sameYear = cal.component(.year, from: day) == cal.component(.year, from: Date())
         return stamp(day, sameYear ? "M月d日 EEEE" : "yyyy年M月d日 EEEE")
+    }
+}
+
+/// 辨識語言的二選一（膠囊分段）：主頁錄音前、錄音詳情頁都用。
+struct LangPicker: View {
+    let value: SpeechLang
+    var disabled = false
+    let pick: (SpeechLang) -> Void
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(SpeechLang.allCases) { l in
+                segment(l)
+            }
+        }
+        .padding(4)
+        .background(Capsule().fill(Brand.surfaceHigh))
+        .overlay(Capsule().stroke(Brand.outline, lineWidth: 1))
+        .opacity(disabled ? 0.5 : 1)
+        .disabled(disabled)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("辨識語言")
+    }
+
+    private func segment(_ l: SpeechLang) -> some View {
+        let on = value == l
+        let fg: Color = on ? .white : Brand.textMuted
+        let bg = on ? AnyShapeStyle(Brand.accent) : AnyShapeStyle(Color.clear)
+        return Button { if !on { pick(l) } } label: {
+            Text(l.label).font(.labelLarge).foregroundColor(fg)
+                .frame(maxWidth: .infinity).padding(.vertical, 9)
+                .background(Capsule().fill(bg))
+                .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(on ? .isSelected : [])
     }
 }

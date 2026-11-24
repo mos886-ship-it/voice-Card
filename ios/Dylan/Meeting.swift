@@ -48,6 +48,10 @@ struct Meeting: Codable, Identifiable, Equatable {
     var titleEdited: Bool?
     /// 在哪一台錄的 / 匯入的（iPhone、iPad 的名字；手錶錄的沒有）。舊資料沒有這欄。
     var device: String?
+    /// 錄音的語言：zh（國語）/ nan（台語・國台語）。舊資料沒有這欄 = 國語。
+    var lang: String?
+
+    var speechLang: SpeechLang { SpeechLang(rawValue: lang ?? "") ?? .zh }
 
     /// 飲食記錄的錄音 id 開頭（照 Android FoodLog.ID_PREFIX）。
     static let foodPrefix = "food_"
@@ -58,7 +62,8 @@ struct Meeting: Codable, Identifiable, Equatable {
         let kind = id.hasPrefix(foodPrefix) ? "飲食 " : "錄音 "
         return Meeting(id: id, title: kind + Fmt.stamp(start, "M/d HH:mm"), createdAt: start,
                        durationSec: 0, status: .recording, source: source, segments: [:], lastSeq: nil, error: nil,
-                       updatedAt: Date(), device: source == "watch" || DeviceInfo.name.isEmpty ? nil : DeviceInfo.name)
+                       updatedAt: Date(), device: source == "watch" || DeviceInfo.name.isEmpty ? nil : DeviceInfo.name,
+                       lang: SpeechLang.current.rawValue)
     }
 
     var isComplete: Bool {

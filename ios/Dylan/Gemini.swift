@@ -248,8 +248,11 @@ struct GeminiClient {
         return (text, finish == "MAX_TOKENS")
     }
 
-    static func prompt(durationSec: Double, recordedAt: String) -> String {
-        "錄音時間：\(recordedAt)，長度約 \(String(format: "%.1f", durationSec / 60)) 分鐘。請依格式整理這段錄音。"
+    static func prompt(durationSec: Double, recordedAt: String, lang: SpeechLang = .zh) -> String {
+        let base = "錄音時間：\(recordedAt)，長度約 \(String(format: "%.1f", durationSec / 60)) 分鐘。請依格式整理這段錄音。"
+        guard lang == .nan else { return base }
+        return base + "這段錄音有台語（可能和國語夾雜在同一句裡）。逐字稿請一律用台灣繁體中文的華語字寫出意思（台語的部分翻成通順的華語，"
+            + "國語照說的寫），不要用台羅拼音，也不要寫成同音的錯字。"
     }
 
     // MARK: - REST

@@ -226,7 +226,8 @@ enum LocalAI {
     }
 
     /// 背景上傳用的請求（GeminiJobs 交給系統做，App 暗了也會完成）。
-    static func processRequest(kind: String, recordedAt: String, durationSec: Double, text: Bool = false) -> URLRequest? {
+    static func processRequest(kind: String, recordedAt: String, durationSec: Double, text: Bool = false,
+                               lang: SpeechLang = .zh) -> URLRequest? {
         guard let u = URL(string: url + "/v1/process") else { return nil }
         var r = URLRequest(url: u, timeoutInterval: 1800)   // 長錄音在 Mac 上可能要好幾分鐘
         r.httpMethod = "POST"
@@ -237,6 +238,7 @@ enum LocalAI {
         r.setValue(String(Int(durationSec)), forHTTPHeaderField: "X-Duration")
         r.setValue(text ? "text/plain; charset=utf-8" : "audio/m4a", forHTTPHeaderField: "Content-Type")
         if text { r.setValue("text", forHTTPHeaderField: "X-Input") }   // 匯入的文字：Mac 跳過語音辨識
+        else { r.setValue(lang.rawValue, forHTTPHeaderField: "X-Lang") }   // 國語 → FunASR；台語 → Breeze-ASR-26
         return r
     }
 

@@ -10,6 +10,7 @@ App 的報告解析、說話者名字、飲食 NUTRITION 解析都直接沿用�
   POST /v1/config   → {"asr": id, "llm": id}；存進 config.json，背景換模型（第一次會下載），回 202
   POST /v1/process  → body 是錄音檔（m4a / wav…）；標頭 X-Kind: meeting|food、X-Recorded-At、X-Duration（秒）
                        X-Input: text 時 body 是 UTF-8 文字（匯入的會議紀錄 / 逐字稿），跳過語音辨識直接寫報告
+                       X-Lang: zh（國語 → FunASR）| nan（台語・國台語 → Breeze-ASR-26）；沒帶就用設定頁選的語音模型
                      回 {"text": "<Gemini 格式>", "model": "local-<asr>|<llm>"，例如 local-funasr|qwen3-8b}，失敗回 {"error": "..."}
                      （處理中每 20 秒先送一個空白保持連線，所以狀態碼一律 200，結果看 JSON）
   配對（pairing.py）：
@@ -196,8 +197,13 @@ def apply_models(asr, llm):
         log(f"  {CUR['error']}")
 
 
-def model_tag():
-    a = ASR_OPTIONS.get(CUR["asr"], {}).get("tag", CUR["asr"])
+# 每筆錄音的語言（App 錄音前選）→ 語音模型。國台語夾雜常在同一句裡，整段交給 Breeze，不逐句切。
+LANG_ASR = {"zh": "funasr", "nan": "breeze"}
+
+
+def model_tag(asr=None):
+    asr = asr or CUR["asr"]
+    a = ASR_OPTIONS.get(asr, {}).get("tag", asr)
     m = LLM_OPTIONS.get(CUR["llm"], {}).get("tag", (CUR["llm"] or "").rsplit("/", 1)[-1].lower())
     return f"local-{a}|{m}"
 
@@ -336,16 +342,17 @@ def breeze_segments(wav):
     return [(a, b, k, re.sub(r"(.{1,4}?)\1{3,}", r"\1", t)) for a, b, k, t in out]
 
 
-def transcribe(wav):
+def transcribe(wav, asr=None):
     """→ [mm:ss] 說話者X：內容（同一人連續說的話合併成一行，最長約 30 秒一段）。"""
-    segs = breeze_segments(wav) if CUR["asr"] == "breeze" else funasr_segments(wav)
+    asr = asr or CUR["asr"]
+    segs = breeze_segments(wav) if asr == "breeze" else funasr_segments(wav)
     lines, cur = [], None
     for start, _, spk, text in segs:
         name = spk_name(spk)
         text = tw(text)
         if cur and cur["name"] == name and start - cur["start"] < 30:
             sep = "" if re.search(r"[，。！？、,.!?]$", cur["text"]) else "，"
-            cur["text"] += (sep if CUR["asr"] == "breeze" else "") + text
+            cur["text"] += (sep if asr == "breeze" else "") + text
         else:
             cur = {"start": start, "name": name, "text": text}
             lines.append(cur)
@@ -461,7 +468,7 @@ def chunks(text, size):
     return out
 
 
-def process(audio_path, kind, recorded_at, duration, text_input=False):
+def process(audio_path, kind, recorded_at, duration, text_input=False, asr=None):
     t0 = time.time()
     if text_input:
         with open(audio_path, encoding="utf-8", errors="replace") as f:
@@ -469,8 +476,11 @@ def process(audio_path, kind, recorded_at, duration, text_input=False):
         header = f"這是一份匯入的文字記錄（會議紀錄、逐字稿或筆記，不是錄音），時間：{recorded_at}。"
     else:
         wav = to_wav(audio_path)
-        transcript = transcribe(wav)
+        transcript = transcribe(wav, asr)
         header = f"錄音時間：{recorded_at}，長度約 {duration / 60:.1f} 分鐘。"
+        if (asr or CUR["asr"]) == "breeze":
+            header += ("這段錄音有台語（可能國台語夾雜），逐字稿已用華語字寫出，台語詞可能被寫成意思相近或同音的華語字；"
+                       "請依上下文理解原意來整理，不要逐字照抄可疑的字，也不要自己補沒說過的內容。")
     t1 = time.time()
     if not transcript.strip():
         report = "TITLE: 沒有聽到內容\nSUMMARY: 這段錄音沒有辨識到說話內容。\n## 摘要\n這段錄音沒有辨識到說話內容。"
@@ -747,6 +757,9 @@ class Handler(BaseHTTPRequestHandler):
         text_input = self.headers.get("X-Input", "") == "text"
         recorded_at = self.headers.get("X-Recorded-At", "")
         duration = float(self.headers.get("X-Duration", "0") or 0)
+        asr = LANG_ASR.get(self.headers.get("X-Lang", ""))   # None → 設定頁選的
+        if asr and asr not in ASR_OPTIONS:
+            asr = None
         with tempfile.TemporaryDirectory() as tmp:
             path = os.path.join(tmp, "audio")
             with open(path, "wb") as f:
@@ -757,7 +770,7 @@ class Handler(BaseHTTPRequestHandler):
                         break
                     f.write(buf)
                     left -= len(buf)
-            log(f"job {kind}{' text' if text_input else ''} {length // 1024} KB, {duration:.0f}s")
+            log(f"job {kind}{' text' if text_input else ''} {length // 1024} KB, {duration:.0f}s, asr={asr or CUR['asr']}")
             # 長錄音在這台 Mac 上可能要半小時以上：先回 200，處理期間每 20 秒送一個空白（JSON 前面的空白是合法的），
             # App 的連線才不會因為太久沒資料而逾時；結果（或錯誤）最後用 JSON 送出。
             self.send_response(200)
@@ -781,10 +794,10 @@ class Handler(BaseHTTPRequestHandler):
                 with GPU:   # 一次一筆
                     if not CUR["llm_obj"]:
                         raise RuntimeError(CUR["error"] or "模型還沒載入")
-                    tag = model_tag()
+                    tag = model_tag(asr)
                     if text_input:   # 沒用到語音辨識：代號的辨識部分寫 text
                         tag = "local-text|" + tag.split("|", 1)[-1]
-                    result = {"text": process(path, kind, recorded_at, duration, text_input), "model": tag}
+                    result = {"text": process(path, kind, recorded_at, duration, text_input, asr), "model": tag}
             except Exception as e:  # noqa: BLE001
                 log(f"  failed: {e}")
                 result = {"error": f"大D的主機處理失敗：{e}"}

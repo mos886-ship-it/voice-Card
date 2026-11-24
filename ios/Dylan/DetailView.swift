@@ -10,6 +10,7 @@ struct DetailView: View {
     @State private var confirmDelete = false
     @State private var editingTitle = false
     @State private var newTitle = ""
+    @State private var relang: SpeechLang?
     @StateObject private var player = PlayerState()
 
     @Environment(\.pageWidth) private var width
@@ -125,6 +126,22 @@ struct DetailView: View {
                             AudioPlayerBar(url: MeetingStore.audioURL(m.id), p: player)
                         }
 
+                        // ---------- 辨識語言（換了可以重新產生，對照兩種結果） ----------
+                        if hasAudio(m) && !MeetingStore.isText(m.id) {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("辨識語言").font(.labelSmall).tracking(1.2).foregroundStyle(Brand.textMuted)
+                                    .padding(.horizontal, 6)
+                                LangPicker(value: m.speechLang, disabled: m.status == .summarizing) { l in
+                                    if m.status == .done || m.status == .failed {
+                                        relang = l   // 先問：會用新的語言重新產生
+                                    } else if var mm = store.load(m.id) {
+                                        mm.lang = l.rawValue
+                                        store.save(mm)
+                                    }
+                                }
+                            }
+                        }
+
                     } right: {
                         // ---------- 報告 / 逐字稿 ----------
                         if m.status == .done || m.aiModel != nil || m.transcriptPreview == true {   // 有過報告（重新產生中 / 失敗時也保留舊報告）
@@ -158,6 +175,19 @@ struct DetailView: View {
                 }
             }
         }
+        .confirmationDialog(relang.map { "用「\($0.label)」重新產生報告？" } ?? "",
+                            isPresented: Binding(get: { relang != nil }, set: { if !$0 { relang = nil } }),
+                            titleVisibility: .visible) {
+            Button("重新產生") {
+                if let l = relang, var m = store.load(id) {
+                    m.lang = l.rawValue
+                    store.save(m)
+                    Task { await store.process(id) }
+                }
+                relang = nil
+            }
+            Button("取消", role: .cancel) { relang = nil }
+        } message: { Text("現在的報告和逐字稿會被新的取代。想對照兩種結果，請先把現在的逐字稿複製或截圖。") }
         .onDisappear { player.stop() }
     }
 
