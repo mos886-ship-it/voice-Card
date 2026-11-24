@@ -69,7 +69,9 @@ struct Segment: Hashable {
     }
 }
 
-/// 錄音 id = 開始時間 yyyyMMdd_HHmmss（跟 Android 一樣）。
+/// 錄音 id = `[food_|imp_|call_]yyyyMMdd_HHmmss_<裝置代碼>`（跟 Android shared/RecordingIds.kt 一樣）。
+/// 裝置代碼：這台裝置（iPhone、Apple Watch 各一）第一次用時隨機產生的 4 碼，存起來之後都一樣；
+/// 多台裝置共用雲端備份時，同一秒開始錄音也不會撞號。舊編號（沒有代碼）照用。
 enum RecordingID {
     private static let formatter: DateFormatter = {
         let f = DateFormatter()
@@ -77,9 +79,37 @@ enum RecordingID {
         f.dateFormat = "yyyyMMdd_HHmmss"
         return f
     }()
+    static let alphabet = Array("abcdefghijkmnpqrstuvwxyz23456789")   // 去掉容易看錯的 l、o、0、1
+    private static let key = "dylan_device_code"
 
-    static func make(_ date: Date = Date()) -> String { formatter.string(from: date) }
-    static func date(of id: String) -> Date? { formatter.date(from: String(id.suffix(15))) }
+    static func isCode(_ s: String) -> Bool { s.count == 4 && s.allSatisfy { alphabet.contains($0) } }
+
+    /// 這台裝置的代碼（第一次叫的時候產生）。
+    static var deviceCode: String {
+        if let c = UserDefaults.standard.string(forKey: key), isCode(c) { return c }
+        var g = SystemRandomNumberGenerator()
+        let c = String((0..<4).map { _ in alphabet[Int.random(in: 0..<alphabet.count, using: &g)] })
+        UserDefaults.standard.set(c, forKey: key)
+        return c
+    }
+
+    static func make(_ date: Date = Date(), prefix: String = "") -> String { format(prefix, date, deviceCode) }
+    static func format(_ prefix: String, _ date: Date, _ code: String) -> String {
+        prefix + formatter.string(from: date) + "_" + code
+    }
+
+    /// 編號裡的時間；新舊格式、有沒有前綴都可以。
+    static func date(of id: String) -> Date? {
+        guard let r = id.range(of: #"\d{8}_\d{6}"#, options: .regularExpression) else { return nil }
+        return formatter.date(from: String(id[r]))
+    }
+
+    /// 編號裡的裝置代碼；舊格式沒有 → nil。
+    static func device(of id: String) -> String? {
+        guard let i = id.lastIndex(of: "_") else { return nil }
+        let c = String(id[id.index(after: i)...])
+        return isCode(c) && date(of: String(id[..<i])) != nil ? c : nil
+    }
 }
 
 #if targetEnvironment(simulator)

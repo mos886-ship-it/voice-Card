@@ -29,7 +29,10 @@ enum CallInbox {
     }
 
     private static func importOne(_ dir: URL, done: URL) async {
-        let id = dir.lastPathComponent
+        // 擴充用開始時間當資料夾名；收進來時加 call_ 前綴與這台的裝置代碼（跟 Android 一樣的編號格式）
+        let name = dir.lastPathComponent
+        let id = RecordingID.device(of: name) != nil ? name
+            : RecordingID.date(of: name).map { RecordingID.make($0, prefix: "call_") } ?? name
         let store = MeetingStore.shared
         guard store.load(id) == nil else {   // 已經收過（上次刪資料夾失敗）
             try? FileManager.default.removeItem(at: dir)

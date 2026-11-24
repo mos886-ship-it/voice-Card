@@ -74,7 +74,7 @@ final class Recorder: ObservableObject {
             try session.setCategory(.record, mode: .default)
             try session.setActive(true)
 
-            let id = (food ? "food_" : "") + RecordingID.make()
+            let id = RecordingID.make(prefix: food ? "food_" : "")
             let link = WatchLink.shared
             closedSegments = 0
             sending = false

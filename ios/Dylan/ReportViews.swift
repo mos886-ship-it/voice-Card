@@ -83,6 +83,7 @@ struct ReportFacts: View {
                 fact("時間", meeting.recordingRange)
                 fact("來源", meeting.sourceLabel)
                 fact("AI", Meeting.aiModelLabel(meeting.aiModel))   // 兩種模式都顯示用了哪個 AI
+                if let c = meeting.hostCleanup { fact("隱私", c) }
                 if mode == .tech {
                     if let s = meeting.processStartedAt, let e = meeting.processEndedAt {
                         fact("耗時", "\(Int(e.timeIntervalSince(s).rounded())) 秒")

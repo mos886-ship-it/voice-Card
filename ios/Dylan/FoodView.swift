@@ -4,6 +4,7 @@ import SwiftUI
 /// 飲食記錄 = 錄音 id 以 food_ 開頭（手錶「飲食」鍵錄的）；營養由 Apple（優先）或 Gemini 估算。
 struct FoodView: View {
     @ObservedObject private var rec = PhoneRecorder.shared
+    @ObservedObject private var langs = LangSettings.shared
     @Binding var toast: String?
     @EnvironmentObject private var store: MeetingStore
     @State private var openId: String?
@@ -29,6 +30,21 @@ struct FoodView: View {
                 }
 
                 GlassCard {
+                    // 辨識語言（跟主頁同一個設定）：台語、客語說的餐點也能記
+                    VStack(alignment: .leading, spacing: 6) {
+                        LangPicker(value: langs.lang, disabled: rec.isRecording) { langs.lang = $0 }
+                        HStack(spacing: 8) {
+                            Text(LangPicker.hint(langs.lang)).font(.labelMedium).foregroundStyle(Brand.textFaint)
+                            Spacer(minLength: 0)
+                            // 一直留在畫面上只是藏起來（iOS 16 反覆插入／拿掉 Menu 會點不動）
+                            DialectMenu(value: langs.dialect) { langs.dialect = $0 }
+                                .opacity(langs.lang == .hak ? 1 : 0)
+                                .allowsHitTesting(langs.lang == .hak)
+                                .accessibilityHidden(langs.lang != .hak)
+                        }
+                        .padding(.horizontal, 6)
+                    }
+                    .padding(.bottom, 12)
                     GradientButton(text: rec.isRecording ? "停止錄音" : "記錄這一餐", recordDot: !rec.isRecording) {
                         if rec.isRecording { rec.stop() } else { rec.start(food: true) }
                     }

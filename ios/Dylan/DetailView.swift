@@ -205,6 +205,8 @@ struct DetailView: View {
         case "傳給大D的主機 處理中": return "錄音已傳給大D的主機，正在辨識說話者並整理報告（約錄音長度的一半到一倍時間）。"
         case "Apple 語音辨識中": return "Apple 正在手機上把錄音轉成文字（不上傳）。"
         case "Apple 整理中": return "Apple 正在整理重點。"
+        case let s? where s.hasPrefix("排隊中") || s.hasPrefix("輪到你了"):
+            return "大D的主機同時幫好幾台裝置處理，每台輪流。" + s + "（錄音已經傳到主機，可以關掉 App）"
         default: return "處理中…"
         }
     }

@@ -51,10 +51,10 @@ enum AudioImport {
         let store = MeetingStore.shared
         // 錄音時間：檔案建立時間（沒有就用現在）；同一秒已有錄音就往後推
         var when = (try? url.resourceValues(forKeys: [.creationDateKey]).creationDate) ?? Date()
-        var id = RecordingID.make(when)
+        var id = RecordingID.make(when, prefix: "imp_")
         while store.load(id) != nil {
             when = when.addingTimeInterval(1)
-            id = RecordingID.make(when)
+            id = RecordingID.make(when, prefix: "imp_")
         }
         var m = Meeting.new(id: id, source: "import")
         m.title = url.deletingPathExtension().lastPathComponent

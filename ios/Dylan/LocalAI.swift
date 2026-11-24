@@ -60,7 +60,18 @@ enum LocalAI {
         let model: String?
         let state: String?   // ready / loading（換模型、第一次下載中）/ error
         let error: String?
+        let admin: Bool?     // 這台是不是管理者（舊主機沒有 = 管理者）
+        let jobs: Bool?      // 有工作佇列（/v1/jobs）
+        let ahead: Int?      // 現在送的話前面有幾筆
+        let wait_sec: Int?
     }
+
+    static let jobsKey = "local_ai_jobs"
+    static let adminKey = "local_ai_admin"
+    /// 最後一次得知：主機有沒有工作佇列。
+    static var hasJobs: Bool { UserDefaults.standard.bool(forKey: jobsKey) }
+    /// 最後一次得知：這台是不是管理者（舊主機沒回 = 管理者）。
+    static var isAdmin: Bool { UserDefaults.standard.object(forKey: adminKey) as? Bool ?? true }
 
     struct Option: Decodable, Hashable {
         let id: String
@@ -120,6 +131,8 @@ enum LocalAI {
             throw GeminiClient.Failure(message: "大D的主機 回應錯誤 \(code)", code: code)
         }
         if let m = h.model { UserDefaults.standard.set(m, forKey: modelKey) }
+        UserDefaults.standard.set(h.jobs == true, forKey: jobsKey)
+        UserDefaults.standard.set(h.admin ?? true, forKey: adminKey)
         return h
     }
 
@@ -137,10 +150,12 @@ enum LocalAI {
         let last_seen: Double?
         let via: String?
         let current: Bool
+        let admin: Bool?
     }
     struct Devices: Decodable {
         let devices: [Device]
         let password_set: Bool
+        let admin: Bool?
     }
 
     /// 給主機看的裝置名字：「Dylan 的 iPad（iPad Pro 11 吋 第 2 代）」。
@@ -203,7 +218,17 @@ enum LocalAI {
         guard code == 200, let d = try? JSONDecoder().decode(Devices.self, from: data) else {
             throw GeminiClient.Failure(message: error(data, status: code), code: code)
         }
+        UserDefaults.standard.set(d.admin ?? true, forKey: adminKey)
         return d
+    }
+
+    /// 指定 / 取消管理者（只有管理者能做）。
+    static func setAdmin(_ id: String, _ admin: Bool) async throws {
+        var r = try request("/v1/devices/admin", method: "POST")
+        r.httpBody = try JSONSerialization.data(withJSONObject: ["id": id, "admin": admin] as [String: Any])
+        let (data, resp) = try await URLSession.shared.data(for: r)
+        let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
+        guard code == 200 else { throw GeminiClient.Failure(message: error(data, status: code), code: code) }
     }
 
     static func revoke(_ id: String) async throws {
@@ -226,9 +251,10 @@ enum LocalAI {
     }
 
     /// 背景上傳用的請求（GeminiJobs 交給系統做，App 暗了也會完成）。
+    /// [queue]：新主機送到工作佇列（/v1/jobs，馬上回工作編號）；舊主機 /v1/process（連著等結果）。
     static func processRequest(kind: String, recordedAt: String, durationSec: Double, text: Bool = false,
-                               lang: SpeechLang = .zh, dialect: HakkaDialect = .sixian) -> URLRequest? {
-        guard let u = URL(string: url + "/v1/process") else { return nil }
+                               lang: SpeechLang = .zh, dialect: HakkaDialect = .sixian, queue: Bool = false) -> URLRequest? {
+        guard let u = URL(string: url + (queue ? "/v1/jobs" : "/v1/process")) else { return nil }
         var r = URLRequest(url: u, timeoutInterval: 1800)   // 長錄音在 Mac 上可能要好幾分鐘
         r.httpMethod = "POST"
         r.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -243,6 +269,59 @@ enum LocalAI {
             if lang == .hak { r.setValue(dialect.rawValue, forHTTPHeaderField: "X-Dialect") }
         }
         return r
+    }
+
+    // MARK: - 工作佇列（多人共用一台主機）
+
+    /// GET /v1/jobs/<id> 的回應。
+    struct JobView: Decodable {
+        let id: String?
+        let state: String       // queued / running / done / error
+        let ahead: Int?
+        let wait_sec: Int?
+        let text: String?
+        let model: String?
+        let error: String?
+        let purged: Bool?       // 主機上的錄音（含轉檔）已刪
+    }
+
+    static func parseJob(_ data: Data) -> JobView? { try? JSONDecoder().decode(JobView.self, from: data) }
+
+    /// 查一筆工作；[wait] 秒內還沒做完就先等著（主機做完或逾時才回）。
+    static func jobRequest(_ id: String, wait: Int) -> URLRequest? {
+        guard let r = try? request("/v1/jobs/\(id)?wait=\(wait)") else { return nil }
+        var q = r
+        q.timeoutInterval = TimeInterval(wait + 60)
+        return q
+    }
+
+    /// 拿到結果後刪掉主機上的報告（排隊中就是取消）。主機已經沒有這筆也算成功。
+    @discardableResult
+    static func deleteJob(_ id: String) async -> Bool {
+        guard let r = try? request("/v1/jobs/\(id)", method: "DELETE"),
+              let (_, resp) = try? await URLSession.shared.data(for: r) else { return false }
+        let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
+        return code == 200 || code == 404
+    }
+
+    /// 「排隊中：前面還有 2 筆，約 6 分鐘」（跟 Android LocalHost.queueText 一樣）。
+    static func queueText(ahead: Int, waitSec: Int) -> String {
+        let wait = waitSec < 60 ? "不到 1 分鐘"
+            : waitSec < 3600 ? "約 \((waitSec + 59) / 60) 分鐘"
+            : "約 \(waitSec / 3600) 小時 \((waitSec % 3600 + 59) / 60) 分"
+        return ahead <= 0 ? "輪到你了，\(wait)" : "排隊中：前面還有 \(ahead) 筆，\(wait)"
+    }
+
+    static let cleanupAll = "大D的主機上的錄音與報告都已刪除"
+
+    /// 報告「基本資料」的「隱私」：主機回報錄音刪了沒、報告拿走後刪了沒（跟 Android cleanupText 一樣）。
+    static func cleanupText(purged: Bool, reportGone: Bool) -> String {
+        switch (purged, reportGone) {
+        case (true, true): return cleanupAll
+        case (true, false): return "大D的主機上的錄音已刪除；報告會在 24 小時內自動刪除"
+        case (false, true): return "大D的主機上的報告已刪除；錄音會在 24 小時內自動刪除"
+        default: return "大D的主機會在 24 小時內自動刪除錄音與報告"
+        }
     }
 
     /// Mac 的回應 → (Gemini 格式文字, 模型代號)。

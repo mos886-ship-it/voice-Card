@@ -73,7 +73,7 @@ final class PhoneRecorder: ObservableObject {
             try session.setCategory(.record, mode: .default)
             try session.setActive(true)
 
-            let id = (food ? Meeting.foodPrefix : "") + RecordingID.make()
+            let id = RecordingID.make(prefix: food ? Meeting.foodPrefix : "")
             interrupted = false
             AudioLevel.shared.reset()
             writer = SegmentWriter(dir: Self.pendingDir, recordingId: id,

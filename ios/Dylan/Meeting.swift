@@ -52,6 +52,8 @@ struct Meeting: Codable, Identifiable, Equatable {
     var lang: String?
     /// 客語腔調（lang = hak 時）：sixian / hailu / dapu / raoping / zhaoan / nansixian。
     var dialect: String?
+    /// 大D的主機上的錄音 / 報告刪了沒（報告「基本資料」的「隱私」行；跟 Android Meeting.hostCleanup 一樣）。
+    var hostCleanup: String?
 
     var speechLang: SpeechLang { SpeechLang(rawValue: lang ?? "") ?? .zh }
     var hakkaDialect: HakkaDialect { HakkaDialect(rawValue: dialect ?? "") ?? .sixian }

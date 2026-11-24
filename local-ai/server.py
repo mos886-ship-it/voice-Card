@@ -13,7 +13,7 @@ App 的報告解析、說話者名字、飲食 NUTRITION 解析都直接沿用�
   工作佇列（多人共用時用這組，見 jobs.py；每台裝置輪流、主機重開會接著做）：
   POST   /v1/jobs       → 標頭、body 跟 /v1/process 一樣；收完檔馬上回 202 {"id", "state": "queued", "ahead", "wait_sec"}
                           這台排太多筆 / 主機硬碟不夠 → 503 {"error"}
-  GET    /v1/jobs/<id>  → {"id", "state": queued|running|done|error, "ahead", "wait_sec"}；
+  GET    /v1/jobs/<id>  → {"id", "state": queued|running|done|error, "ahead", "wait_sec"}；加 ?wait=秒（最多 1500）會等到做完或逾時才回；
                           done 多 "text"、"model"（同 /v1/process）；error 多 "error"；做完都有 "purged"（主機上的錄音已刪）。別台的工作 → 404
   DELETE /v1/jobs/<id>  → 排隊中就取消、做完的就刪結果（App 拿到結果後要刪）；正在做的做完直接丟掉
   GET    /v1/jobs       → {"jobs": [這台的工作狀態]}（管理者看全部）
@@ -762,6 +762,11 @@ class Handler(BaseHTTPRequestHandler):
             admin = PAIR.is_admin(self._dev())
             if self.path.startswith("/v1/jobs/"):
                 j = JOBS.get(self._job_id(), self._dev(), admin)
+                # ?wait=秒（最多 1500）：還沒做完就先等著，做完或逾時才回（iPhone 在背景只能靠這種長等待拿結果）
+                m = re.search(r"[?&]wait=(\d+)", self.path)
+                if j and m and j["state"] not in ("done", "error"):
+                    JOBS.wait(j["id"], min(int(m.group(1)), 1500))
+                    j = JOBS.get(self._job_id(), self._dev(), admin)
                 return self._json(200, JOBS.view(j)) if j else self._json(404, {"error": "找不到這筆工作（可能已經過期被刪掉）"})
             with JOBS.cond:
                 mine = [j for j in JOBS.jobs.values() if admin or j["dev"] == self._dev()]

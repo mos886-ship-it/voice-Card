@@ -66,6 +66,8 @@ final class MeetingStore: ObservableObject {
     }
 
     func delete(_ id: String) {
+        // 還在大D的主機排隊 / 處理中：通知主機丟掉，不占別人的位置
+        if let job = Self.hostJob(id) { Task { await LocalAI.deleteJob(job) } }
         try? FileManager.default.removeItem(at: Self.dir(id))
         meetings.removeAll { $0.id == id }
     }
@@ -183,7 +185,7 @@ final class MeetingStore: ObservableObject {
         }
         // 順序：飲食 → Apple（有模型時）；有設定自架 Mac → Mac；隱私模式 → Apple（不送第三方雲端）；
         //       有 Gemini 金鑰 → Gemini；都沒有 → Apple。隱私模式下自己的 Mac 可以用（錄音不出你的設備），Gemini 不行。
-        if m.isFood && AppleAI.availableModel != nil {
+        if m.isFood && m.speechLang == .zh && AppleAI.availableModel != nil {   // Apple 聽不懂台語、客語
             await runApple(id, note: nil)
         } else if LocalAI.configured {
             await runLocal(id)
@@ -203,9 +205,15 @@ final class MeetingStore: ObservableObject {
         defer { processing.remove(id) }
         begin(&m, step: "傳給大D的主機 處理中")
         PhoneLink.shared.sendStatus(id: id, text: "AI 分析中…")
+        // 已經送進主機佇列（App 被停掉 / 強制關閉後重開）：接著查，不重傳
+        if let job = Self.hostJob(id) {
+            GeminiJobs.shared.pollLocal(meetingId: id, hostJob: job)
+            return
+        }
         // 先花幾秒確認 Mac 連得到：背景傳輸遇到連不到的主機不會失敗，只會一直等
+        let h: LocalAI.Health
         do {
-            _ = try await LocalAI.health(url: LocalAI.url, token: LocalAI.token)
+            h = try await LocalAI.health(url: LocalAI.url, token: LocalAI.token)
         } catch {
             await localFailed(id, message: error.localizedDescription)
             return
@@ -216,6 +224,7 @@ final class MeetingStore: ObservableObject {
             try GeminiJobs.shared.startLocal(meetingId: id, kind: m.isFood ? "food" : "meeting",
                                              recordedAt: Fmt.stamp(m.createdAt, "yyyy/MM/dd HH:mm"), durationSec: m.durationSec,
                                              lang: m.speechLang, dialect: m.hakkaDialect)
+            if LocalAI.hasJobs, let a = h.ahead, a > 0 { setAiStep(id, LocalAI.queueText(ahead: a, waitSec: h.wait_sec ?? 0)) }
         } catch {
             await localFailed(id, message: error.localizedDescription)
         }
@@ -351,6 +360,7 @@ final class MeetingStore: ObservableObject {
 
     private func begin(_ m: inout Meeting, step: String) {
         m.status = .summarizing
+        m.hostCleanup = nil
         m.error = nil
         m.aiStep = step
         m.processStartedAt = Date()
@@ -370,6 +380,22 @@ final class MeetingStore: ObservableObject {
     func restartAI(_ id: String) async {
         guard let m = load(id), m.status == .summarizing else { return }
         await process(id)
+    }
+
+    func setHostCleanup(_ id: String, _ text: String) {
+        guard var m = load(id) else { return }
+        m.hostCleanup = text
+        save(m)
+    }
+
+    /// 送進大D的主機佇列的工作編號（App 被停掉、重開後接著查，不重傳）。
+    nonisolated static func hostJobURL(_ id: String) -> URL { dir(id).appendingPathComponent("host_job.txt") }
+    nonisolated static func hostJob(_ id: String) -> String? {
+        (try? String(contentsOf: hostJobURL(id), encoding: .utf8))?.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+    nonisolated static func setHostJob(_ id: String, _ job: String?) {
+        if let job { try? job.write(to: hostJobURL(id), atomically: true, encoding: .utf8) }
+        else { try? FileManager.default.removeItem(at: hostJobURL(id)) }
     }
 
     func setAiStep(_ id: String, _ step: String) {

@@ -210,6 +210,7 @@ private struct LocalMacCard: View {
     @State private var newPassword = ""
     @State private var newPassword2 = ""
     @State private var devices: [LocalAI.Device] = []
+    @State private var admin = LocalAI.isAdmin
     @AppStorage(UIMode.key) private var mode: UIMode = .business
 
     var body: some View {
@@ -235,7 +236,12 @@ private struct LocalMacCard: View {
                     Label(result.text, systemImage: result.ok ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                         .font(.bodySmall).foregroundStyle(result.ok ? Brand.success : Brand.warning).padding(.top, 8)
                 }
-                // 配對密碼：其他裝置配對用
+                if !admin {
+                    Text("這台是一般使用者：換模型、配對密碼、管理別台裝置要用管理者的裝置。")
+                        .font(.bodySmall).foregroundStyle(Brand.textFaint).padding(.top, 8)
+                }
+                // 配對密碼：其他裝置配對用（只有管理者）
+                if admin {
                 DividerLine().padding(.vertical, 12)
                 HStack {
                     VStack(alignment: .leading, spacing: 1) {
@@ -263,13 +269,15 @@ private struct LocalMacCard: View {
                     }
                     .padding(.top, 8)
                 }
-                if mode == .tech, !devices.isEmpty {
+                }
+                if mode == .tech, admin, !devices.isEmpty {
                     DividerLine().padding(.vertical, 12)
                     Text("已配對的裝置").font(.labelMedium).foregroundStyle(Brand.textMuted)
                     ForEach(devices) { d in
                         HStack {
                             VStack(alignment: .leading, spacing: 1) {
-                                Text(d.name + (d.current ? "（這台）" : "")).font(.bodyMedium).foregroundStyle(Brand.text)
+                                Text(d.name + (d.current ? "（這台）" : "") + (d.admin == true ? " · 管理者" : ""))
+                                    .font(.bodyMedium).foregroundStyle(Brand.text)
                                 Text("配對 " + Fmt.stamp(Date(timeIntervalSince1970: d.created), "M/d HH:mm")
                                      + (d.last_seen.map { " · 最後使用 " + Fmt.stamp(Date(timeIntervalSince1970: $0), "M/d HH:mm") } ?? "")
                                      + (d.via == "qr" ? " · QR" : " · 密碼"))
@@ -277,10 +285,20 @@ private struct LocalMacCard: View {
                             }
                             Spacer()
                             if !d.current {
+                                Button(d.admin == true ? "改一般" : "設管理者") {
+                                    Task {
+                                        do { try await LocalAI.setAdmin(d.id, d.admin != true) } catch {
+                                            result = (false, error.localizedDescription)
+                                        }
+                                        await loadDevices()
+                                    }
+                                }
+                                .font(.labelLarge).foregroundStyle(Brand.cyan)
                                 Button("取消") {
                                     Task { try? await LocalAI.revoke(d.id); await loadDevices() }
                                 }
                                 .font(.labelLarge).foregroundStyle(Brand.error)
+                                    .padding(.leading, 10)
                             }
                         }
                         .padding(.top, 6)
@@ -330,7 +348,7 @@ private struct LocalMacCard: View {
                     .padding(.top, 10)
                 }
             }
-            if let models, mode == .tech {
+            if let models, mode == .tech, admin {
                 // 實測時切換用：Mac 上有哪些模型就列哪些（Mac 的 config.json 可以再加）
                 picker("語音辨識", selection: $asr, options: models.asr_options)
                     .padding(.top, 12)
@@ -408,6 +426,7 @@ private struct LocalMacCard: View {
         guard let d = try? await LocalAI.devices() else { return }
         devices = d.devices
         passwordSet = d.password_set
+        admin = d.admin ?? true
     }
 
     private func secure(_ prompt: String, text: Binding<String>) -> some View {
