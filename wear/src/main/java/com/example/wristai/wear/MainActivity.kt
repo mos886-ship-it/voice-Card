@@ -57,6 +57,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -143,6 +145,9 @@ private fun WatchApp() {
     val pending by WatchState.pendingCount.collectAsState()
     val phoneRec by WatchState.phoneRecordingSince.collectAsState()
     val pendingFood = remember { mutableStateOf(false) }
+    val lang by WatchState.lang.collectAsState()
+    // 正在选辨识语言（全萤幕清单）
+    var pickLang by remember { mutableStateOf(false) }
     // 打开 App 时问手机：是不是正在录音？主题是什么？
     LaunchedEffect(Unit) { runCatching { PhoneLink.sendPhoneCommand(context, WristAiProtocol.CMD_QUERY) } }
 
@@ -213,11 +218,20 @@ private fun WatchApp() {
                 recorder = recorder,
                 phoneRec = phoneRec?.takeIf { phoneMode },
                 phoneStatus = phoneStatus,
+                lang = lang,
                 onStop = {
                     if (phoneMode) phoneCommand(WristAiProtocol.CMD_STOP, "正在停止手機錄音…")
                     else RecordingService.stop(context)
                 },
             )
+            return@AppScaffold
+        }
+        if (pickLang) {
+            LangScreen(lang, onPick = { v, done ->
+                WatchState.setLocalLang(context, v)
+                scope.launch { runCatching { PhoneLink.sendLang(context) } }
+                if (done) pickLang = false
+            }, onBack = { pickLang = false })
             return@AppScaffold
         }
         openId?.let { id ->
@@ -235,7 +249,8 @@ private fun WatchApp() {
                 AnimatedPage(page, pagerState) {
                     when (page) {
                         0 -> RecordPage(
-                            recorder, phoneStatus, sending, foodToday,
+                            recorder, phoneStatus, sending, foodToday, lang,
+                            onLang = { pickLang = true },
                             onRecord = { if (!sending) startWatch(food = false) },
                             onFood = { if (!sending) startWatch(food = true) },
                             onPhone = { phoneCommand(WristAiProtocol.CMD_START, "正在啟動手機錄音…") },
@@ -276,6 +291,7 @@ private fun WatchApp() {
 @Composable
 private fun RecordPage(
     recorder: RecorderStatus, phoneStatus: String?, sending: Boolean, food: WatchState.FoodToday?,
+    lang: WatchState.Lang, onLang: () -> Unit,
     onRecord: () -> Unit, onFood: () -> Unit, onPhone: () -> Unit,
 ) {
     val today = food?.takeIf { it.day == WatchState.todayStart() }
@@ -288,6 +304,8 @@ private fun RecordPage(
     ) {
         BrandHeader()
         Hero(recorder = recorder, phoneRec = null, phoneStatus = phoneStatus)
+        LangChip(lang, enabled = !sending, onClick = onLang)
+        Spacer(Modifier.height(4.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
             SideAction(
                 label = if (kcal > 0) "$kcal 大卡" else "飲食",
@@ -458,7 +476,7 @@ private fun SummaryPage(
                             secondaryLabel = {
                                 Text(
                                     java.text.SimpleDateFormat("HH:mm", java.util.Locale.TAIWAN).format(java.util.Date(e.recordedAt)) +
-                                        durationText(e.durationSec) + if (ready) "" else " · ${e.status}",
+                                        durationText(e.durationSec) + (if (e.lang.isNotEmpty()) " · ${e.lang}" else "") + if (ready) "" else " · ${e.status}",
                                     maxLines = 1, overflow = TextOverflow.Ellipsis,
                                     color = when { ready || e.status == "已存錄音機" -> Brand.TextMuted; e.status == "失敗" -> Brand.Warning; else -> Brand.Cyan },
                                 )
@@ -602,8 +620,10 @@ private fun DetailScreen(id: String, summary: MeetingSummary?, entry: WatchState
     LaunchedEffect(id, attempt) {
         WatchState.loadDetail(context, id)
         waiting = true; error = null
+        val before = WatchState.details.value[id]
         runCatching { PhoneLink.requestDetail(context, id) }.onFailure { error = "找不到手機，先顯示存下來的內容" }
-        delay(8000)
+        // 最多等 8 秒；手机回了就提早结束
+        for (i in 0 until 40) { if (error != null || WatchState.details.value[id] !== before) break; delay(200) }
         waiting = false
     }
     BackHandler(onBack = onBack)
@@ -647,6 +667,7 @@ private fun DetailScreen(id: String, summary: MeetingSummary?, entry: WatchState
                         summary?.createdAt?.let { "報告 " + stamp(it) },
                     ).joinToString(" · ")
                     if (meta.isNotEmpty()) Text(meta, fontSize = 11.sp, color = Brand.TextFaint, textAlign = TextAlign.Center)
+                    d?.lang?.takeIf { it.isNotEmpty() }?.let { Text("語言 $it", fontSize = 11.sp, color = Brand.TextFaint, textAlign = TextAlign.Center) }
                     // GPS 戳记：地名（没有地名就显示座标）
                     d?.geo?.let { g ->
                         Text("📍 " + (g.place ?: "%.4f, %.4f".format(g.lat, g.lon)), fontSize = 11.sp, color = Brand.TextMuted,
@@ -671,7 +692,15 @@ private fun DetailScreen(id: String, summary: MeetingSummary?, entry: WatchState
                     Text(if (d.status.contains("錄音機")) "已存到手機的三星錄音機，\n可在手機用 Galaxy AI 整理" else "手機還在整理：${d.status}", fontSize = 12.sp, color = Brand.Cyan, textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth().padding(top = 6.dp))
                 }
-                else -> for (b in blocks) item {
+                else -> {
+                    // 哪个 AI 整理的（跟手机报告的「AI」栏一样），改用备援引擎时说明原因
+                    if (d.ai.isNotEmpty() || d.note.isNotEmpty()) item {
+                        Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 2.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            if (d.ai.isNotEmpty()) Text("AI：" + d.ai, fontSize = 11.sp, color = Brand.TextMuted, textAlign = TextAlign.Center)
+                            if (d.note.isNotEmpty()) Text(d.note, fontSize = 11.sp, lineHeight = 14.sp, color = Brand.Warning, textAlign = TextAlign.Center)
+                        }
+                    }
+                    for (b in blocks) item {
                     when (b) {
                         is Block.Header -> ListHeader { Text(b.text) }
                         is Block.Para -> Text(b.text, fontSize = 13.sp, lineHeight = 18.sp, color = Brand.Text,
@@ -688,6 +717,7 @@ private fun DetailScreen(id: String, summary: MeetingSummary?, entry: WatchState
                             for (r in b.rest) Text(r, fontSize = 11.sp, color = Brand.TextMuted)
                         }
                     }
+                    }
                 }
             }
             if (!waiting && (d == null || error != null)) item {
@@ -696,6 +726,84 @@ private fun DetailScreen(id: String, summary: MeetingSummary?, entry: WatchState
             }
         }
     }
+    }
+}
+
+/** 录音页的语言小胶囊「國語 ▾」：点了进语言清单。 */
+@Composable
+private fun LangChip(lang: WatchState.Lang, enabled: Boolean, onClick: () -> Unit) {
+    Box(
+        Modifier.clip(CircleShape).background(Brand.SurfaceHigh)
+            .then(if (enabled) Modifier.clickableNoRipple(onClick) else Modifier)
+            .padding(horizontal = 10.dp, vertical = 3.dp)
+            .semantics { contentDescription = "辨識語言：" + lang.label },
+    ) { Text(lang.label + " ▾", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = if (enabled) Brand.Cyan else Brand.TextFaint, maxLines = 1) }
+}
+
+/**
+ * 选辨识语言（跟手机同一个设定，改了手机也会跟着改）：
+ * 国语 / 台语 选了就回录音页；客语选了留在这页，下面再选腔调。
+ */
+@Composable
+private fun LangScreen(cur: WatchState.Lang, onPick: (WatchState.Lang, Boolean) -> Unit, onBack: () -> Unit) {
+    BackHandler(onBack = onBack)
+    val listState = rememberTransformingLazyColumnState()
+    val hints = mapOf("zh" to "最快", "nan" to "國台語夾雜也選這個", "hak" to "數位部 Taiwan Tongues")
+    ScreenScaffold(scrollState = listState) { contentPadding ->
+        TransformingLazyColumn(state = listState, contentPadding = contentPadding) {
+            item { ListHeader { Text("辨識語言") } }
+            for ((code, name) in com.example.voiceai.shared.SpeechLangs.LANGS) item(key = code) {
+                val on = cur.lang == code
+                Button(
+                    onClick = { onPick(WatchState.Lang(code, if (code == "hak") cur.dialect ?: "sixian" else null), code != "hak") },
+                    modifier = Modifier.fillMaxWidth(),
+                    secondaryLabel = { Text(hints[code] ?: "", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    colors = if (on) ButtonDefaults.buttonColors() else ButtonDefaults.filledTonalButtonColors(),
+                ) { Text((if (on) "✓ " else "") + name) }
+            }
+            if (cur.lang == "hak") {
+                item { ListHeader { Text("客語腔調") } }
+                for ((code, name) in com.example.voiceai.shared.SpeechLangs.DIALECTS) item(key = "d_$code") {
+                    val on = (cur.dialect ?: "sixian") == code
+                    Button(
+                        onClick = { onPick(WatchState.Lang("hak", code), true) },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = if (on) ButtonDefaults.buttonColors() else ButtonDefaults.filledTonalButtonColors(),
+                    ) { Text((if (on) "✓ " else "") + name + "腔") }
+                }
+            }
+            item {
+                Text("手機的語言也會一起改", fontSize = 11.sp, color = Brand.TextFaint, textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().padding(top = 6.dp))
+            }
+        }
+    }
+}
+
+/**
+ * 手表录音画面的音量条：最近 24 根、以中线上下长，越新越亮；太大声时最新几根变琥珀色。
+ * 跟手机录音卡同一套刻度（[com.example.voiceai.shared.AudioLevel]）。
+ */
+@Composable
+private fun WatchLevel(s: com.example.voiceai.shared.AudioLevel.Snapshot) {
+    val bars = s.history.takeLast(24)
+    Canvas(Modifier.width(116.dp).height(20.dp).padding(vertical = 1.dp)) {
+        val n = bars.size
+        val gain = 0.92f / kotlin.math.max(s.history.maxOrNull() ?: 0f, 0.3f)
+        val gap = 2.dp.toPx()
+        val w = (size.width - gap * (n - 1)) / n
+        val mid = size.height / 2
+        bars.forEachIndexed { i, v ->
+            val lv = kotlin.math.min(1f, v * gain)
+            val h = kotlin.math.max(2.dp.toPx(), lv * size.height)
+            val age = i.toFloat() / kotlin.math.max(1, n - 1)
+            val hot = s.loud && i >= n - 4
+            drawRoundRect(
+                color = (if (hot) Brand.Warning else Brand.Text).copy(alpha = 0.3f + 0.7f * age * (0.45f + 0.55f * lv)),
+                topLeft = Offset(i * (w + gap), mid - h / 2), size = Size(w, h),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(w / 2),
+            )
+        }
     }
 }
 
@@ -744,7 +852,7 @@ private fun Hero(recorder: RecorderStatus, phoneRec: Long?, phoneStatus: String?
  * 内容整组置中，上方留出 TimeText 的位置，圆形萤幕上不会被切到。
  */
 @Composable
-private fun RecordingScreen(recorder: RecorderStatus, phoneRec: Long?, phoneStatus: String?, onStop: () -> Unit) {
+private fun RecordingScreen(recorder: RecorderStatus, phoneRec: Long?, phoneStatus: String?, lang: WatchState.Lang, onStop: () -> Unit) {
     val t = rememberInfiniteTransition(label = "recScreen")
     val pulse by t.animateFloat(0f, 1f, infiniteRepeatable(tween(1400, easing = LinearEasing)), label = "pulse")
     val r = recorder as? RecorderStatus.Recording
@@ -763,23 +871,32 @@ private fun RecordingScreen(recorder: RecorderStatus, phoneRec: Long?, phoneStat
                 drawCircle(Brand.Recording, radius = size.minDimension / 4)
             }
             Spacer(Modifier.width(5.dp))
-            Text(when { phoneRec != null -> "手機錄音中"; r?.food == true -> "飲食記錄中"; else -> "錄音中" },
+            Text(when { phoneRec != null -> "手機錄音中"; r?.food == true -> "飲食記錄中"; else -> "錄音中 · " + lang.label },
                 fontSize = 12.sp, color = Brand.Recording, fontWeight = FontWeight.SemiBold)
         }
         Text(
             if (sec >= 3600) "%d:%02d:%02d".format(sec / 3600, sec / 60 % 60, sec % 60) else "%02d:%02d".format(sec / 60, sec % 60),
-            fontSize = if (sec >= 3600) 28.sp else 32.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, color = Brand.Text,
+            fontSize = if (sec >= 3600) 26.sp else 30.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, color = Brand.Text,
         )
+        // 手表自己录：音量条（手机录音的音量在手机上看）
+        val level by com.example.voiceai.shared.AudioLevel.state.collectAsState()
+        if (phoneRec == null) WatchLevel(level)
         RecordCircle(recording = true, sending = false, onClick = onStop, compact = true)
         Text(
             when {
                 phoneRec != null -> phoneStatus ?: "點一下停止"
+                level.loud -> "聲音太大，離遠一點"
+                level.quiet -> "幾乎沒聲音，靠近一點"
                 r?.food == true -> "說完按停止"
                 r != null && r.waiting > 0 -> "${r.waiting} 段待傳"
                 r != null && r.synced > 0 -> "已同步 ${r.synced} 段"
                 else -> "每 5 分鐘同步到手機"
             },
-            fontSize = 11.sp, color = if (r != null && r.waiting > 0 && !r.food) Brand.Warning else Brand.TextMuted,
+            fontSize = 11.sp, color = when {
+                phoneRec == null && level.loud -> Brand.Warning
+                r != null && r.waiting > 0 && !r.food -> Brand.Warning
+                else -> Brand.TextMuted
+            },
             textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis,
         )
     }

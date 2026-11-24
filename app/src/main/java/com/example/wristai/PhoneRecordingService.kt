@@ -1,5 +1,6 @@
 package com.example.wristai
 
+import com.example.voiceai.shared.AudioLevel
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.NotificationChannel

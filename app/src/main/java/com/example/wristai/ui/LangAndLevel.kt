@@ -32,7 +32,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.example.wristai.AudioLevel
+import com.example.voiceai.shared.AudioLevel
 import com.example.wristai.SpeechLang
 import com.example.wristai.ui.theme.Brand
 import kotlin.math.max

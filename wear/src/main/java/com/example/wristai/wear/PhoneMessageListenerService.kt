@@ -26,6 +26,12 @@ class PhoneMessageListenerService : WearableListenerService() {
 
             WristAiProtocol.PATH_DETAIL -> WatchState.saveDetail(this, event.data.toString(Charsets.UTF_8))
 
+            WristAiProtocol.PATH_LANG -> {
+                // 手表有还没传出去的修改 → 以手表的为准，送给手机
+                if (!WatchState.setLangFromPhone(this, event.data.toString(Charsets.UTF_8)))
+                    runBlocking { runCatching { PhoneLink.sendLang(this@PhoneMessageListenerService) } }
+            }
+
             WristAiProtocol.PATH_FOOD_TODAY -> WatchState.saveFoodToday(this, event.data.toString(Charsets.UTF_8))
 
             WristAiProtocol.PATH_PHONE_REC_STATE -> {

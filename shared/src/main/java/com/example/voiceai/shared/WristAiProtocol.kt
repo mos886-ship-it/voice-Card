@@ -88,6 +88,15 @@ object WristAiProtocol {
         return parseSegmentPath("$PATH_SEGMENT_PREFIX/${p.joinToString("/")}")
     }
 
+    /**
+     * 辨识语言（国语 / 台语 / 客语＋腔调），手机与手表共用同一个设定：
+     * - 手表 → 手机 [PATH_LANG_SET]：手表上改了（路径在 /wristai/phone_rec 底下，沿用手机的 message filter）。
+     * - 手机 → 手表 [PATH_LANG]：手机上改了、或手表打开 App（[CMD_QUERY]）时推目前的设定。
+     * payload = "zh" / "nan" / "hak|sixian"（见 [SpeechLangs]）。
+     */
+    const val PATH_LANG_SET = "/wristai/phone_rec/lang"
+    const val PATH_LANG = "/wristai/lang"
+
     fun recordingIdFromPath(path: String): String? =
         path.removePrefix("$PATH_AUDIO_PREFIX/").takeIf { it.isNotBlank() && it != path }
 }
@@ -106,3 +115,32 @@ object AudioSpec {
 
 /** 一段录音。[samples] = 这段的 PCM 样本数；[last] = 录音的最后一段。 */
 data class Segment(val recordingId: String, val seq: Int, val samples: Long, val last: Boolean)
+
+/**
+ * 辨识语言的代号与名称（手表用；手机的 `SpeechLang` 是同一套代号）。
+ * 预设国语；客语才有腔调，预设四县。
+ */
+object SpeechLangs {
+    val LANGS = listOf("zh" to "國語", "nan" to "台語", "hak" to "客語")
+    val DIALECTS = listOf("sixian" to "四縣", "hailu" to "海陸", "dapu" to "大埔", "raoping" to "饒平", "zhaoan" to "詔安", "nansixian" to "南四縣")
+
+    fun lang(code: String?): String = LANGS.firstOrNull { it.first == code }?.first ?: "zh"
+    fun dialect(code: String?): String = DIALECTS.firstOrNull { it.first == code }?.first ?: "sixian"
+
+    /** "zh" / "nan" / "hak|hailu" */
+    fun encode(lang: String?, dialect: String?): String = lang(lang).let { if (it == "hak") "hak|" + dialect(dialect) else it }
+
+    /** 反过来：回传 (语言, 腔调)；腔调只有客语才有。 */
+    fun decode(payload: String?): Pair<String, String?> {
+        val p = payload.orEmpty().trim().split('|')
+        val l = lang(p.getOrNull(0))
+        return l to (if (l == "hak") dialect(p.getOrNull(1)) else null)
+    }
+
+    /** 「國語」「台語」「客語・海陸」 */
+    fun display(lang: String?, dialect: String?): String {
+        val l = lang(lang)
+        val name = LANGS.first { it.first == l }.second
+        return if (l == "hak") name + "・" + DIALECTS.first { it.first == dialect(dialect) }.second else name
+    }
+}

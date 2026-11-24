@@ -32,9 +32,10 @@ enum class SpeechLang(val code: String, val label: String, val short: String, va
             HakkaDialect.load(c)
         }
 
-        fun set(c: Context, v: SpeechLang) {
+        fun set(c: Context, v: SpeechLang, notifyWatch: Boolean = true) {
             current = v
             c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY, v.code).apply()
+            if (notifyWatch) WatchNotifier.broadcastLang(c)
         }
 
         /** 建立新录音时存进 [Meeting.lang] 的值（读设定档，服务里也能用）。 */
@@ -59,7 +60,7 @@ enum class SpeechLang(val code: String, val label: String, val short: String, va
     }
 }
 
-/** 客语腔调（主机的客语 Whisper 用腔调 id 当提示）。存在 `hakka_dialect`，录音时跟着存到 [Meeting.dialect]。 */
+/** 客语腔调（只放进报告提示词）。存在 `hakka_dialect`，录音时跟着存到 [Meeting.dialect]。 */
 enum class HakkaDialect(val code: String, val label: String) {
     SIXIAN("sixian", "四縣"),
     HAILU("hailu", "海陸"),
@@ -81,9 +82,10 @@ enum class HakkaDialect(val code: String, val label: String) {
             current = of(c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY, null))
         }
 
-        fun set(c: Context, v: HakkaDialect) {
+        fun set(c: Context, v: HakkaDialect, notifyWatch: Boolean = true) {
             current = v
             c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY, v.code).apply()
+            if (notifyWatch) WatchNotifier.broadcastLang(c)
         }
 
         fun currentCode(c: Context): String = of(c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY, null)).code

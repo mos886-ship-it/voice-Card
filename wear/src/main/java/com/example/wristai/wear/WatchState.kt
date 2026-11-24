@@ -65,7 +65,9 @@ object WatchState {
     }
 
     /** 报告书清单的一笔（手机传来的）。[kind] = watch/phone/food/call/import；[status] = DONE/整理中/錄音中/失敗/已存錄音機。 */
-    data class Entry(val id: String, val title: String, val recordedAt: Long, val durationSec: Double, val kind: String, val status: String)
+    data class Entry(val id: String, val title: String, val recordedAt: Long, val durationSec: Double, val kind: String, val status: String,
+                     /** 不是国语才有：「台語」「客語・海陸」。 */
+                     val lang: String = "")
 
     /** 一次查询的结果（可能只载入了前几页）。[key] = 查询代号（"" = 预设：全部、不限月份、无关键字）。[months] = 每个月几笔（新的在前）。 */
     data class ListResult(val key: String, val total: Int, val months: List<Pair<String, Int>>, val items: List<Entry>)
@@ -78,7 +80,7 @@ object WatchState {
     fun findEntry(id: String): Entry? = _lists.value.values.asSequence().flatMap { it.items.asSequence() }.firstOrNull { it.id == id }
 
     private fun parseEntry(j: org.json.JSONObject) = Entry(j.getString("id"), j.optString("title"), j.optLong("recordedAt"),
-        j.optDouble("durationSec", 0.0), j.optString("kind", "watch"), j.optString("status", "DONE"))
+        j.optDouble("durationSec", 0.0), j.optString("kind", "watch"), j.optString("status", "DONE"), j.optString("lang"))
 
     /** 回传 (结果, offset)。也读得懂旧版（纯阵列）的格式。 */
     private fun parseList(json: String): Pair<ListResult, Int>? = runCatching {
@@ -121,7 +123,9 @@ object WatchState {
 
     /** 从手机取回的完整报告（看明细用）。整理好的会存档，手机不在旁边也能再看。 */
     data class Detail(val id: String, val title: String, val status: String, val markdown: String, val durationSec: Double, val createdAt: Long,
-                      val geo: com.example.voiceai.shared.GeoFix? = null)
+                      val geo: com.example.voiceai.shared.GeoFix? = null,
+                      /** 辨识语言（「國語」「客語・四縣」）、整理的 AI（「大D的主機：FunASR ＋ Qwen3-8B」）、改用备援引擎的原因。 */
+                      val lang: String = "", val ai: String = "", val note: String = "")
     private val _details = MutableStateFlow<Map<String, Detail>>(emptyMap())
     val details: StateFlow<Map<String, Detail>> = _details.asStateFlow()
 
@@ -132,7 +136,8 @@ object WatchState {
         val j = org.json.JSONObject(json)
         Detail(j.getString("id"), j.optString("title"), j.optString("status"), j.optString("markdown"),
             j.optDouble("durationSec", 0.0), j.optLong("createdAt"),
-            j.optJSONObject("geo")?.let { com.example.voiceai.shared.GeoFix.fromJson(it.toString()) })
+            j.optJSONObject("geo")?.let { com.example.voiceai.shared.GeoFix.fromJson(it.toString()) },
+            j.optString("lang"), j.optString("ai"), j.optString("note"))
     }.getOrNull()
 
     /** 先读存档（有的话），画面马上有内容；之后手机回传再更新。 */
@@ -157,6 +162,42 @@ object WatchState {
                 .putString(KEY_HISTORY, org.json.JSONArray(list.map { it.toBytes().toString(Charsets.UTF_8) }).toString()).apply()
         }
     }
+
+    /**
+     * 辨识语言（跟手机同一个设定）。手表上改的会马上传给手机；手机不在就记着 [KEY_LANG_DIRTY]，
+     * 下次传录音前先补传（所以手机建立这笔录音时已经是新的语言）。
+     */
+    data class Lang(val lang: String = "zh", val dialect: String? = null) {
+        val label: String get() = com.example.voiceai.shared.SpeechLangs.display(lang, dialect)
+        val payload: String get() = com.example.voiceai.shared.SpeechLangs.encode(lang, dialect)
+    }
+    private const val KEY_LANG = "speech_lang"
+    private const val KEY_LANG_DIRTY = "speech_lang_dirty"
+    private val _lang = MutableStateFlow(Lang())
+    val lang: StateFlow<Lang> = _lang.asStateFlow()
+
+    private fun parseLang(payload: String?) = com.example.voiceai.shared.SpeechLangs.decode(payload).let { (l, d) -> Lang(l, d) }
+
+    /** 手表上选的：存起来、标记「还没传到手机」。 */
+    fun setLocalLang(context: Context, v: Lang) {
+        _lang.value = v
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putString(KEY_LANG, v.payload).putBoolean(KEY_LANG_DIRTY, true).apply()
+    }
+
+    /** 手机推来的。手表有还没传出去的修改就不盖掉（回传 false，呼叫端改把手表的送过去）。 */
+    fun setLangFromPhone(context: Context, payload: String): Boolean {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        if (prefs.getBoolean(KEY_LANG_DIRTY, false)) return false
+        val v = parseLang(payload)
+        _lang.value = v
+        prefs.edit().putString(KEY_LANG, v.payload).apply()
+        return true
+    }
+
+    fun langDirty(context: Context) = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_LANG_DIRTY, false)
+    fun markLangSynced(context: Context) =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(KEY_LANG_DIRTY, false).apply()
 
     private val _pendingCount = MutableStateFlow(0)
     val pendingCount: StateFlow<Int> = _pendingCount.asStateFlow()
@@ -187,6 +228,7 @@ object WatchState {
         prefs.getString(KEY_FOOD, null)?.split('/')?.mapNotNull { it.toLongOrNull() }?.takeIf { it.size == 4 }?.let {
             _foodToday.value = FoodToday(it[0].toInt(), it[1].toInt(), it[2].toInt(), it[3])
         }
+        _lang.value = parseLang(prefs.getString(KEY_LANG, null))
         refreshPending(context)
     }
 

@@ -1,5 +1,6 @@
 package com.example.wristai
 
+import com.example.voiceai.shared.AudioLevel
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -26,6 +27,20 @@ class LangLevelTest {
         assertEquals("台語", SpeechLang.display("nan", "hailu"))           // 不是客语就不显示腔调
         val note = SpeechLang.geminiNote("hak", "dapu")
         assertTrue(note.contains("客語（大埔腔") && note.contains("不要用客語拼音"))
+    }
+
+    /** 手机 ↔ 手表同步语言用的代号（shared SpeechLangs）跟手机的 SpeechLang 一致。 */
+    @Test fun watchLangPayload() {
+        val s = com.example.voiceai.shared.SpeechLangs
+        assertEquals("zh", s.encode(null, null))
+        assertEquals("nan", s.encode("nan", "hailu"))                       // 不是客语就不带腔调
+        assertEquals("hak|sixian", s.encode("hak", null))
+        assertEquals("hak" to "dapu", s.decode("hak|dapu"))
+        assertEquals("zh" to null, s.decode("bogus"))
+        assertEquals("客語・海陸", s.display("hak", "hailu"))
+        for (l in SpeechLang.entries) assertEquals(l.code, s.lang(l.code))   // 三种语言代号都认得
+        for (d in HakkaDialect.entries) assertEquals(d.label, s.DIALECTS.first { it.first == d.code }.second)
+        assertEquals(SpeechLang.display("hak", "zhaoan"), s.display("hak", "zhaoan"))
     }
 
     @Test fun levelScale() {

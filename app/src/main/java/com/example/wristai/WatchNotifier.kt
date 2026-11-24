@@ -31,6 +31,19 @@ object WatchNotifier {
         broadcast(context, WristAiProtocol.PATH_THEME, key)
     }
 
+    /** 把辨识语言（国语 / 台语 / 客语＋腔调）推给手表，手表的语言选择跟手机同步。 */
+    fun broadcastLang(context: Context) {
+        broadcast(context, WristAiProtocol.PATH_LANG,
+            com.example.voiceai.shared.SpeechLangs.encode(SpeechLang.currentCode(context), HakkaDialect.currentCode(context)))
+    }
+
+    /** 手表改了语言：存成手机的设定（之后手表、手机的新录音都用这个）。 */
+    fun applyLangFromWatch(context: Context, payload: String) {
+        val (lang, dialect) = com.example.voiceai.shared.SpeechLangs.decode(payload)
+        dialect?.let { HakkaDialect.set(context, HakkaDialect.of(it), notifyWatch = false) }
+        SpeechLang.set(context, SpeechLang.of(lang), notifyWatch = false)
+    }
+
     /** 把「今天吃了多少大卡 / 目标 / 几餐」推给手表的饮食分页。 */
     fun broadcastFoodToday(context: Context) {
         val start = java.util.Calendar.getInstance().apply {
@@ -62,6 +75,10 @@ object WatchNotifier {
             .put("durationSec", m?.durationSec ?: 0.0)
             .put("createdAt", m?.createdAt ?: 0L)
             .put("geo", MeetingStore.geo(context, id)?.let { org.json.JSONObject(it.toJson()) })
+            // 手表明细页显示：辨识语言、哪个 AI 整理的、为什么改用备援引擎
+            .put("lang", m?.let { SpeechLang.display(it.lang, it.dialect) } ?: "")
+            .put("ai", m?.takeIf { it.status == MeetingStatus.DONE }?.let { com.example.wristai.ui.aiModelLabel(it.aiModel) } ?: "")
+            .put("note", m?.engineNote ?: "")
         send(context, nodeId, WristAiProtocol.PATH_DETAIL, json.toString().toByteArray(Charsets.UTF_8))
     }
 
@@ -104,6 +121,7 @@ object WatchNotifier {
                 .put("recordedAt", m.createdAt)
                 .put("durationSec", m.durationSec)
                 .put("kind", kindOf(m))
+                .put("lang", if (SpeechLang.of(m.lang) == SpeechLang.ZH) "" else SpeechLang.display(m.lang, m.dialect))
                 .put("status", when (m.status) {
                     MeetingStatus.DONE -> "DONE"
                     MeetingStatus.FAILED -> if (m.error == ProcessMeetingWorker.CANCELED) "已中斷" else "失敗"

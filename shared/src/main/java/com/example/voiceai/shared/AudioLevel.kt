@@ -1,4 +1,4 @@
-package com.example.wristai
+package com.example.voiceai.shared
 
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -9,7 +9,7 @@ import kotlin.math.max
 import kotlin.math.min
 
 /**
- * 手机录音的即时音量（录音卡的音量条用；跟 iOS `AudioLevel.swift` 同规则）。
+ * 手机 / 手表录音的即时音量（录音卡、手表录音画面的音量条用；跟 iOS `AudioLevel.swift` 同规则）。
  * 录音迴圈每读到一段 PCM 就 [feed]；凑满约 85 ms 算一次 RMS → 一根柱，留最近 [COUNT] 根（约 5 秒）。
  * 跟录音状态分开的 StateFlow：一秒更新十几次，只让音量条自己重画。
  */

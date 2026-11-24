@@ -292,3 +292,10 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 
 - 大D的主機的客語模型改成數位部 `adi-gov-tw/Taiwan-Tongues-ASR-CE`（Whisper large-v2，本機轉 MLX 8bit、不散布；TRAIL v0.1 授權，可商用但有使用限制，例如要標示 AI 產生內容）。主機的評估與決定見 `HOST_CONNECT.md`、`IOS_TO_ANDROID.md` 3b。台語仍用 Breeze-ASR-26、國語仍用 FunASR，沒有「自動」語言。
 - Android 只改顯示：`aiModelLabel` 認 `taiwan-tongues` →「大D的主機：Taiwan Tongues ＋ Qwen3-8B」；客語提示文字改「數位部 Taiwan Tongues 模型」；「關於與授權」的主機模型清單加這個模型（授權 TRAIL v0.1）。X-Dialect 照送（Taiwan Tongues 沒有腔調提示，主機只把腔調放進報告提示詞）。
+
+## 手錶（Wear OS）：辨識語言、音量條、AI 欄位（2026-11-24）
+
+- **辨識語言跟手機同一個設定**：手錶錄音頁中間多一顆「國語 ▾」小膠囊 → 全螢幕清單選 國語 / 台語 / 客語（選客語後下面再選腔調）。手錶改 → `PATH_LANG_SET`（`/wristai/phone_rec/lang`，沿用手機的 message filter）→ 手機 `SpeechLang.set`；手機改或手錶開 App（`CMD_QUERY`）→ 手機推 `PATH_LANG`（`/wristai/lang`）。payload `zh` / `nan` / `hak|hailu`（`shared/SpeechLangs`）。手機不在時手錶記 `speech_lang_dirty`，下次傳錄音前（`PhoneLink.sendPending` 一開始）先補傳，所以手機建立這筆錄音時已經是新語言；手錶有沒傳出的修改時，手機推來的舊值不蓋掉、改把手錶的送過去。手錶錄音照舊在手機建立 Meeting 時存 `lang` / `dialect`。
+- **音量條**：`AudioLevel` 從 app 搬到 `shared`（手機、手錶共用同一套刻度）。手錶 `RecordingService` 每段 PCM `feed`；錄音畫面在計時與停止鈕之間畫最近 24 根，下面一行在太大聲 / 幾乎沒聲音時改成提示。手錶遙控手機錄音時不顯示（音量在手機上看）。錄音畫面標題「錄音中 · 客語・海陸」。
+- **報告書 / 明細**：手機的清單每筆多 `lang`（國語不帶），手錶清單第二行顯示「· 台語」；明細 JSON 多 `lang`、`ai`（`aiModelLabel`，整理好才有）、`note`（engineNote），手錶明細顯示「語言 …」「AI：大D的主機：…」，改用備援引擎時用琥珀色顯示原因。明細手機回了就不再顯示「正在取得」（原本固定等 8 秒）。
+- 測試：`LangLevelTest.watchLangPayload`。Wear OS 模擬器（沒配對手機）：選台語、客語・海陸 → 存檔且標記未同步、重開 App 還在；錄音畫面音量條＋「幾乎沒聲音」；假資料的清單與明細顯示語言與 AI。**未測**：真手錶與手機之間的同步（模擬器沒配對）、真手錶有聲音時的柱子。iOS / watchOS 還沒有這些。

@@ -168,6 +168,7 @@ class RecordingService : Service() {
             .apply { acquire(MAX_RECORDING_MS) }
 
         startedAt = System.currentTimeMillis()
+        com.example.voiceai.shared.AudioLevel.reset()
         synced.set(0)
         autoStopReason = null
         recording = true
@@ -184,7 +185,10 @@ class RecordingService : Service() {
                 record.startRecording()
                 while (isActive && record.recordingState == AudioRecord.RECORDSTATE_RECORDING) {
                     val n = record.read(buffer, 0, buffer.size)
-                    if (n > 0) writer.write(buffer, n)
+                    if (n > 0) {
+                        writer.write(buffer, n)
+                        com.example.voiceai.shared.AudioLevel.feed(buffer, n, AudioSpec.SAMPLE_RATE)
+                    }
                     if (writer.samples >= segmentSamples) {
                         finishSegment(writer, part, Segment(id, seq, writer.samples, last = false))
                         sendSignal.trySend(Unit)

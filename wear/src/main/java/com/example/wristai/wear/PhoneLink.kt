@@ -70,6 +70,14 @@ object PhoneLink {
             .sendMessage(phone.id, WristAiProtocol.PATH_PHONE_REC_CMD, cmd.toByteArray()).await()
     }
 
+    /** 把手表选的辨识语言传给手机（成功才清掉「还没传」的记号）。 */
+    suspend fun sendLang(context: Context) = withContext(Dispatchers.IO) {
+        val phone = findPhone(context)
+        Wearable.getMessageClient(context)
+            .sendMessage(phone.id, WristAiProtocol.PATH_LANG_SET, WatchState.lang.value.payload.toByteArray()).await()
+        WatchState.markLangSynced(context)
+    }
+
     /** 跟手机要录音清单（摘要页）。手机回 PATH_LIST。 */
     suspend fun requestList(context: Context, request: String = "") = withContext(Dispatchers.IO) {
         val phone = findPhone(context)
@@ -100,6 +108,8 @@ object PhoneLink {
      */
     suspend fun sendPending(context: Context): Int = sendLock.withLock {
         var ok = 0
+        // 手机不在时改的语言：先补传，手机收到第一段录音时就用新的语言
+        if (WatchState.langDirty(context)) runCatching { sendLang(context) }
         try {
             for (f in pendingFiles(context)) {
                 val path = pathFor(f) ?: continue

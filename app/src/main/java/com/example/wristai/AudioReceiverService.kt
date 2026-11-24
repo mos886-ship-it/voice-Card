@@ -55,13 +55,17 @@ class AudioReceiverService : WearableListenerService() {
             WatchNotifier.sendDetail(this, event.sourceNodeId, event.data.toString(Charsets.UTF_8).trim())
             return
         }
+        if (event.path == WristAiProtocol.PATH_LANG_SET) {
+            WatchNotifier.applyLangFromWatch(this, event.data.toString(Charsets.UTF_8))
+            return
+        }
         if (event.path != WristAiProtocol.PATH_PHONE_REC_CMD) return
         when (event.data.toString(Charsets.UTF_8)) {
             WristAiProtocol.CMD_START -> RemoteRecordActivity.requestFromWatch(this, event.sourceNodeId)
             WristAiProtocol.CMD_STOP ->
                 if (PhoneRecorder.active.value != null) PhoneRecordingService.stop(this)
                 else PhoneRecordingService.broadcastState(this)
-            WristAiProtocol.CMD_QUERY -> { PhoneRecordingService.broadcastState(this); WatchNotifier.broadcastTheme(this); WatchNotifier.broadcastFoodToday(this) }
+            WristAiProtocol.CMD_QUERY -> { PhoneRecordingService.broadcastState(this); WatchNotifier.broadcastTheme(this); WatchNotifier.broadcastFoodToday(this); WatchNotifier.broadcastLang(this) }
         }
     }
 
