@@ -55,6 +55,16 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
         /** 送进大D的主机伫列的工作编号（Worker 被系统停掉、App 重开后接着查，不用重传）。 */
         fun hostJobFile(context: Context, id: String) = File(MeetingStore.dir(context, id), "host_job.txt")
 
+        const val CLEANUP_ALL = "大D的主機上的錄音與報告都已刪除"
+
+        /** 「基本資料」的「隱私」：主机回报录音删了没（[purged]）、报告拿走后删了没（[reportGone]）。 */
+        fun cleanupText(purged: Boolean, reportGone: Boolean): String = when {
+            purged && reportGone -> CLEANUP_ALL
+            purged -> "大D的主機上的錄音已刪除；報告會在 24 小時內自動刪除"
+            reportGone -> "大D的主機上的報告已刪除；錄音會在 24 小時內自動刪除"
+            else -> "大D的主機會在 24 小時內自動刪除錄音與報告"
+        }
+
         /** 主机连不到多久就放弃、改用别的引擎（短暂断线 / 主机重开机都会等）。 */
         private const val HOST_GONE_MS = 15 * 60_000L
 
@@ -470,6 +480,7 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
                                 // 旧主机处理完就把暂存的录音删掉；报告直接随回应传回、主机不留
                                 stepTo(id, STEP_HOST_PURGE, "主機上的錄音已刪除")
                                 stepTo(id, STEP_HOST_BACK, "已收到報告")
+                                MeetingStore.update(ctx, id) { m -> m.copy(hostCleanup = CLEANUP_ALL) }
                             }
                     } finally {
                         compact.delete()
@@ -576,6 +587,7 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
                     stepTo(id, STEP_HOST_BACK, "下載報告中…")
                     val gone = host.deleteJob(ctx, jid)
                     stepTo(id, STEP_HOST_BACK, if (gone) "已收到報告，主機上的報告也已刪除" else "已收到報告（主機會在 24 小時內刪除）")
+                    MeetingStore.update(ctx, id) { m -> m.copy(hostCleanup = cleanupText(j.purged, gone)) }
                     delay(600)
                     jobFile.delete()
                     return LocalHost.Result(j.text ?: throw AiException("大D的主機沒有回傳報告"), j.model ?: host.DEFAULT_TAG)

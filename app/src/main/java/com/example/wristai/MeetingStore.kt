@@ -60,6 +60,8 @@ data class Meeting(
     val lang: String? = null,
     /** 客语腔调（lang = hak 时）：sixian / hailu / dapu / raoping / zhaoan / nansixian。见 [HakkaDialect]。 */
     val dialect: String? = null,
+    /** 大D的主机处理后的清理结果（例「主機上的錄音與報告已刪除」），报告「基本資料」的「隱私」栏；没给主机处理 → null。 */
+    val hostCleanup: String? = null,
 ) {
     fun toJson(): String = JSONObject()
         .put("id", id).put("status", status.name).put("createdAt", createdAt)
@@ -78,6 +80,7 @@ data class Meeting(
         .put("engineNote", engineNote)
         .put("lang", lang)
         .put("dialect", dialect)
+        .put("hostCleanup", hostCleanup)
         .toString(2)
 
     companion object {
@@ -114,6 +117,7 @@ data class Meeting(
                 engineNote = j.optStringOrNull("engineNote")?.takeIf { it.isNotBlank() },
                 lang = j.optStringOrNull("lang")?.takeIf { it.isNotBlank() },
                 dialect = j.optStringOrNull("dialect")?.takeIf { it.isNotBlank() },
+                hostCleanup = j.optStringOrNull("hostCleanup")?.takeIf { it.isNotBlank() },
             )
         }
     }

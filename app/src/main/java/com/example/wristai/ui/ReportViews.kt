@@ -377,6 +377,8 @@ fun ReportFacts(m: com.example.wristai.Meeting, geo: com.example.voiceai.shared.
         // AI 两种模式都显示（用了哪个模型）
         FactRow("AI", aiModelLabel(m.aiModel), faint = m.aiModel == null)
         m.importedAt?.let { FactRow("匯入", formatWhen(it)) }
+        // 给大D的主机处理过：主机上的录音、报告删了没（两种模式都显示）
+        m.hostCleanup?.let { FactRow("隱私", it) }
         // 科技模式：耗时、编号、为什么改用别的引擎
         if (UiMode.tech) {
             if (m.processStartedAt > 0 && m.processEndedAt > m.processStartedAt)
