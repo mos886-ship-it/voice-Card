@@ -259,10 +259,13 @@ class Jobs:
         with self.cond:
             j.update(upd)
             j["finished"] = time.time()
-            try:
-                os.remove(self.input_path(j["id"]))   # 錄音做完就刪，只留結果
-            except OSError:
-                pass
+            # 錄音做完就刪（含轉檔的 input.wav 等暫存），只留 job.json 的結果
+            for name in os.listdir(self._dir(j["id"])):
+                if name != "job.json":
+                    try:
+                        os.remove(os.path.join(self._dir(j["id"]), name))
+                    except OSError:
+                        pass
             elapsed = j["finished"] - j["started"]
             dur = float(j.get("duration") or 0)
             if j["state"] == "done" and not j.get("text_input") and dur >= 30:

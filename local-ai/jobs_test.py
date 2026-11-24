@@ -23,6 +23,8 @@ class JobsTest(unittest.TestCase):
         def run(j, path):
             with open(path, "rb") as f:
                 body = f.read()
+            with open(path + ".wav", "wb") as f:   # 跟 server.to_wav 一樣在旁邊產生轉檔
+                f.write(body)
             if body == b"boom":
                 raise RuntimeError("壞掉了")
             self.ran.append((j["dev"], body.decode()))
@@ -62,7 +64,7 @@ class JobsTest(unittest.TestCase):
         self.q.run_next(block=False)
         v = self.q.view(self.q.get(j["id"], "A"))
         self.assertEqual((v["state"], v["text"], v["model"]), ("done", "TITLE: hello", "local-test|x"))
-        self.assertFalse(os.path.exists(self.q.input_path(j["id"])))   # 錄音做完就刪
+        self.assertEqual(os.listdir(os.path.join(self.tmp.name, j["id"])), ["job.json"])   # 錄音、轉檔做完就刪
         self.assertIsNone(self.q.get(j["id"], "B"))                    # 別台看不到
         self.assertIsNotNone(self.q.get(j["id"], "B", admin=True))
         self.assertFalse(self.q.cancel(j["id"], "B"))
