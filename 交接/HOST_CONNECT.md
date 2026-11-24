@@ -141,6 +141,37 @@ python3 -c "import json;print(json.load(open('/Users/mac/dylan-local/config.json
 
 ---
 
+## 5b. 從 VPS / 其他程式呼叫（OpenAI 相容）
+
+大D的主機也是一個 **OpenAI 相容的 API**：任何支援 OpenAI 的程式（OpenAI SDK、LangChain、各種工具）把 base URL 指到主機、API key 填這台的存取碼，就能用主機目前載入的報告模型（預設 Qwen3-8B）。
+
+1. **給這台 VPS 自己的存取碼**（配對一次；先設好配對密碼）：
+   ```bash
+   curl -s -X POST http://<固定IP>:48765/v1/pair -H "Content-Type: application/json" -d '{"password":"你的配對密碼","name":"VPS"}'
+   ```
+   回應裡的 `token` 存在 VPS（例如環境變數 `DYLAN_TOKEN`）。它會出現在 App 科技模式的「已配對的裝置」，可以隨時取消。
+2. **呼叫**：
+   ```python
+   from openai import OpenAI
+   c = OpenAI(base_url="http://<固定IP>:48765/v1", api_key=os.environ["DYLAN_TOKEN"])
+   r = c.chat.completions.create(model="qwen3-8b", messages=[{"role": "user", "content": "…"}], max_tokens=500)
+   ```
+   ```bash
+   curl -s http://<固定IP>:48765/v1/chat/completions -H "Authorization: Bearer $DYLAN_TOKEN" -H "Content-Type: application/json" -d '{"model":"qwen3-8b","messages":[{"role":"user","content":"你好"}]}'
+   ```
+
+支援：`messages`（system / user / assistant；content 可以是字串或 text 片段）、`max_tokens`（上限 8192，預設 1024）、`temperature`（預設 0.7）、`stream: true`（SSE）、`usage`。`GET /v1/models` 回 OpenAI 格式的模型清單。額外參數 `enable_thinking: true` 打開 Qwen3 的「思考」模式（預設關，回得快）。
+
+注意：
+- `model` 填什麼都會用**主機目前載入的那個**（換模型在 App 科技模式或 `/v1/config`）；回應的 `model` 欄位會寫實際用的。
+- 跟 App 的錄音報告**排同一個隊**（16 GB 一次只能跑一個模型）：App 正在處理長錄音時，呼叫會等到它做完。客戶端逾時請設長一點。
+- 輸出是模型原文（不會自動轉繁體）；要繁體就在 system 寫「用繁體中文回答」。
+- 不支援：工具呼叫（function calling）、圖片、embeddings、`n > 1`。
+- 實測（M4 16GB，Qwen3-8B）：一句話問答約 1.6 秒；兩點條列 115 tokens 約 5 秒。
+- **加密**：經固定 IP 是 http 明文。VPS 長期用建議改走 Tailscale（VPS 和主機都裝，位址用主機的 Tailscale IP、埠 8765），或從主機開反向 SSH 通道到 VPS（`ssh -N -R 8765:localhost:8765 user@vps`，VPS 呼叫 `http://localhost:8765/v1`）。
+
+---
+
 ## 6. 測試
 
 在主機上（把存取碼放進變數、不印出來）：

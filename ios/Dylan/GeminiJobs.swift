@@ -84,9 +84,10 @@ final class GeminiJobs: NSObject, URLSessionDataDelegate {
     }
 
     /// 自架：錄音直接傳給這台 Mac 的服務，Mac 處理完回傳 Gemini 格式的結果（交給系統，App 暗了也會完成）。
-    func startLocal(meetingId: String, kind: String, recordedAt: String, durationSec: Double) throws {
+    func startLocal(meetingId: String, kind: String, recordedAt: String, durationSec: Double, lang: SpeechLang = .zh) throws {
         let text = MeetingStore.isText(meetingId)
-        guard let r = LocalAI.processRequest(kind: kind, recordedAt: recordedAt, durationSec: durationSec, text: text) else {
+        guard let r = LocalAI.processRequest(kind: kind, recordedAt: recordedAt, durationSec: durationSec, text: text,
+                                             lang: lang) else {
             throw GeminiClient.Failure(message: "大D的主機 的位址格式不對")
         }
         let task = localSession.uploadTask(with: r, fromFile: text ? MeetingStore.textURL(meetingId) : MeetingStore.audioURL(meetingId))
@@ -101,7 +102,8 @@ final class GeminiJobs: NSObject, URLSessionDataDelegate {
         let client = GeminiClient(apiKey: key)
         try await client.waitUntilActive(name)
         let model = GeminiClient.models[job.model]
-        let prompt = GeminiClient.prompt(durationSec: m.durationSec, recordedAt: Fmt.stamp(m.createdAt, "yyyy/MM/dd HH:mm"))
+        let prompt = GeminiClient.prompt(durationSec: m.durationSec, recordedAt: Fmt.stamp(m.createdAt, "yyyy/MM/dd HH:mm"),
+                                         lang: m.speechLang)
         // 背景上傳任務只能從檔案上傳 → 請求內容先寫成暫存檔
         let body = FileManager.default.temporaryDirectory.appendingPathComponent("gemini-\(job.meetingId)-\(job.model).json")
         try GeminiClient.generateBody(fileURI: uri, prompt: prompt,

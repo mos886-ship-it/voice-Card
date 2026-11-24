@@ -10,6 +10,7 @@ App 的報告解析、說話者名字、飲食 NUTRITION 解析都直接沿用�
   POST /v1/config   → {"asr": id, "llm": id}；存進 config.json，背景換模型（第一次會下載），回 202
   POST /v1/process  → body 是錄音檔（m4a / wav…）；標頭 X-Kind: meeting|food、X-Recorded-At、X-Duration（秒）
                        X-Input: text 時 body 是 UTF-8 文字（匯入的會議紀錄 / 逐字稿），跳過語音辨識直接寫報告
+                       X-Lang: zh（國語 → FunASR）| nan（台語・國台語 → Breeze-ASR-26）；沒帶就用設定頁選的語音模型
                      回 {"text": "<Gemini 格式>", "model": "local-<asr>|<llm>"，例如 local-funasr|qwen3-8b}，失敗回 {"error": "..."}
                      （處理中每 20 秒先送一個空白保持連線，所以狀態碼一律 200，結果看 JSON）
   配對（pairing.py）：
@@ -19,6 +20,10 @@ App 的報告解析、說話者名字、飲食 NUTRITION 解析都直接沿用�
   POST /v1/password       → {"password": …} 設定 / 更換配對密碼（至少 8 個字）
   GET  /pair              → 配對用的 QR 碼網頁（只給區網 / 本機）
   設定密碼也可以在主機上：venv/bin/python server.py --set-password
+  OpenAI 相容（給 VPS / 其他程式用目前載入的報告模型）：
+  POST /v1/chat/completions → OpenAI Chat Completions 格式（messages、max_tokens、temperature、stream），
+                              存取碼當 API key；跟 App 的工作共用一個佇列（一次一筆）
+  GET  /v1/models          → 除了上面的欄位，也有 OpenAI 的 {"object": "list", "data": [...]}
 
 一次只處理一筆（同一顆 GPU），其他請求排隊。啟動：venv/bin/python server.py（launchd 會在登入時自動啟動）。
 """
@@ -192,8 +197,13 @@ def apply_models(asr, llm):
         log(f"  {CUR['error']}")
 
 
-def model_tag():
-    a = ASR_OPTIONS.get(CUR["asr"], {}).get("tag", CUR["asr"])
+# 每筆錄音的語言（App 錄音前選）→ 語音模型。國台語夾雜常在同一句裡，整段交給 Breeze，不逐句切。
+LANG_ASR = {"zh": "funasr", "nan": "breeze"}
+
+
+def model_tag(asr=None):
+    asr = asr or CUR["asr"]
+    a = ASR_OPTIONS.get(asr, {}).get("tag", asr)
     m = LLM_OPTIONS.get(CUR["llm"], {}).get("tag", (CUR["llm"] or "").rsplit("/", 1)[-1].lower())
     return f"local-{a}|{m}"
 
@@ -332,16 +342,17 @@ def breeze_segments(wav):
     return [(a, b, k, re.sub(r"(.{1,4}?)\1{3,}", r"\1", t)) for a, b, k, t in out]
 
 
-def transcribe(wav):
+def transcribe(wav, asr=None):
     """→ [mm:ss] 說話者X：內容（同一人連續說的話合併成一行，最長約 30 秒一段）。"""
-    segs = breeze_segments(wav) if CUR["asr"] == "breeze" else funasr_segments(wav)
+    asr = asr or CUR["asr"]
+    segs = breeze_segments(wav) if asr == "breeze" else funasr_segments(wav)
     lines, cur = [], None
     for start, _, spk, text in segs:
         name = spk_name(spk)
         text = tw(text)
         if cur and cur["name"] == name and start - cur["start"] < 30:
             sep = "" if re.search(r"[，。！？、,.!?]$", cur["text"]) else "，"
-            cur["text"] += (sep if CUR["asr"] == "breeze" else "") + text
+            cur["text"] += (sep if asr == "breeze" else "") + text
         else:
             cur = {"start": start, "name": name, "text": text}
             lines.append(cur)
@@ -380,6 +391,71 @@ def chat(system, user, max_tokens=2500):
     return tw(out).replace("語言者", "說話者").replace("發言者", "說話者")
 
 
+# ---------------- OpenAI 相容 ----------------
+OA_MAX_TOKENS = 8192
+
+
+def llm_tag():
+    return LLM_OPTIONS.get(CUR["llm"], {}).get("tag", (CUR["llm"] or "").rsplit("/", 1)[-1].lower())
+
+
+def oa_messages(raw):
+    """OpenAI 的 messages → 模型的對話。content 可以是字串或 [{type: text, text}]；tool 等其他角色當成 user。"""
+    out = []
+    for m in raw if isinstance(raw, list) else []:
+        if not isinstance(m, dict):
+            continue
+        c = m.get("content", "")
+        if isinstance(c, list):
+            c = "".join(p.get("text", "") for p in c if isinstance(p, dict) and p.get("type", "text") == "text")
+        role = m.get("role", "user")
+        out.append({"role": role if role in ("system", "user", "assistant") else "user", "content": str(c or "")})
+    return out
+
+
+def oa_generate(messages, max_tokens, temperature, think, on_text=None):
+    """用目前載入的報告模型回答。on_text(片段) 有給就邊產生邊回呼（串流）。回傳 (全文, prompt tokens, 產生 tokens, finish)。"""
+    kind, obj = CUR["llm_obj"]
+    parts, n_prompt, n_gen, finish = [], 0, 0, "stop"
+    if kind == "gguf":
+        stream = obj.create_chat_completion(messages=messages, temperature=temperature, max_tokens=max_tokens, stream=True)
+        for ch in stream:
+            choice = ch["choices"][0]
+            piece = choice.get("delta", {}).get("content") or ""
+            if piece:
+                parts.append(piece)
+                if on_text:
+                    on_text(piece)
+            if choice.get("finish_reason"):
+                finish = choice["finish_reason"]
+        text = "".join(parts)
+        try:
+            n_gen = len(obj.tokenize(text.encode("utf-8"), add_bos=False))
+            n_prompt = len(obj.tokenize("".join(m["content"] for m in messages).encode("utf-8")))
+        except Exception:  # noqa: BLE001
+            pass
+        return text, n_prompt, n_gen, finish
+    from mlx_lm import stream_generate
+    from mlx_lm.sample_utils import make_sampler
+    model, tok = obj
+    try:   # Qwen3：預設關掉「思考」，要的話 enable_thinking: true
+        prompt = tok.apply_chat_template(messages, add_generation_prompt=True, enable_thinking=think, tokenize=False)
+    except TypeError:
+        prompt = tok.apply_chat_template(messages, add_generation_prompt=True, tokenize=False)
+    for r in stream_generate(model, tok, prompt=prompt, max_tokens=max_tokens, sampler=make_sampler(temp=temperature)):
+        if r.text:
+            parts.append(r.text)
+            if on_text:
+                on_text(r.text)
+        n_prompt, n_gen = r.prompt_tokens, r.generation_tokens
+        if r.finish_reason:
+            finish = "length" if r.finish_reason == "length" else "stop"
+    text = "".join(parts)
+    if not think:
+        text = re.sub(r"<think>.*?</think>\s*", "", text, flags=re.S)
+    return text, n_prompt, n_gen, finish
+
+
 def chunks(text, size):
     out, cur = [], ""
     for line in text.split("\n"):
@@ -392,7 +468,7 @@ def chunks(text, size):
     return out
 
 
-def process(audio_path, kind, recorded_at, duration, text_input=False):
+def process(audio_path, kind, recorded_at, duration, text_input=False, asr=None):
     t0 = time.time()
     if text_input:
         with open(audio_path, encoding="utf-8", errors="replace") as f:
@@ -400,8 +476,11 @@ def process(audio_path, kind, recorded_at, duration, text_input=False):
         header = f"這是一份匯入的文字記錄（會議紀錄、逐字稿或筆記，不是錄音），時間：{recorded_at}。"
     else:
         wav = to_wav(audio_path)
-        transcript = transcribe(wav)
+        transcript = transcribe(wav, asr)
         header = f"錄音時間：{recorded_at}，長度約 {duration / 60:.1f} 分鐘。"
+        if (asr or CUR["asr"]) == "breeze":
+            header += ("這段錄音有台語（可能國台語夾雜），逐字稿已用華語字寫出，台語詞可能被寫成意思相近或同音的華語字；"
+                       "請依上下文理解原意來整理，不要逐字照抄可疑的字，也不要自己補沒說過的內容。")
     t1 = time.time()
     if not transcript.strip():
         report = "TITLE: 沒有聽到內容\nSUMMARY: 這段錄音沒有辨識到說話內容。\n## 摘要\n這段錄音沒有辨識到說話內容。"
@@ -540,7 +619,9 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/v1/health":
             return self._json(200, status())
         opts = lambda d: [{"id": k, "label": v["label"]} for k, v in d.items()]  # noqa: E731
-        self._json(200, {**status(), "asr_options": opts(ASR_OPTIONS), "llm_options": opts(LLM_OPTIONS)})
+        oa = [{"id": llm_tag(), "object": "model", "created": 0, "owned_by": "dylan"}]
+        self._json(200, {**status(), "asr_options": opts(ASR_OPTIONS), "llm_options": opts(LLM_OPTIONS),
+                         "object": "list", "data": oa})
 
     def _config(self):
         """POST /v1/config {"asr": id, "llm": id} → 存起來，背景換模型（可能要下載，先回 202，App 用 /v1/health 看進度）。"""
@@ -578,7 +659,73 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(429 if "一小時" in str(e) else 401, {"error": str(e)})
         self._json(200, {"token": token, "id": dev})
 
+    def _chat(self):
+        """POST /v1/chat/completions（OpenAI 相容）。"""
+        def err(code, msg, kind="invalid_request_error"):
+            self._json(code, {"error": {"message": msg, "type": kind}})
+        try:
+            n = int(self.headers.get("Content-Length", "0") or 0)
+            if n <= 0 or n > 400_000:
+                return err(400, "請求太大或是空的（上限 400 KB）")
+            body = json.loads(self.rfile.read(n))
+        except ValueError:
+            return err(400, "格式不對（要 JSON）")
+        messages = oa_messages(body.get("messages"))
+        if not messages:
+            return err(400, "messages 是空的")
+        max_tokens = int(body.get("max_tokens") or body.get("max_completion_tokens") or 1024)
+        max_tokens = max(1, min(max_tokens, OA_MAX_TOKENS))
+        temperature = float(body.get("temperature", 0.7) if body.get("temperature") is not None else 0.7)
+        think = bool(body.get("enable_thinking", False))
+        stream = bool(body.get("stream", False))
+        cid = "chatcmpl-" + secrets.token_hex(12)
+        created = int(time.time())
+        t0 = time.time()
+        busy(1)
+        try:
+            with GPU:   # 跟 App 的錄音報告排同一個隊
+                if not CUR["llm_obj"]:
+                    return err(503, CUR["error"] or "模型還沒載入，請稍後再試", "server_error")
+                tag = llm_tag()
+                if not stream:
+                    text, n_p, n_g, finish = oa_generate(messages, max_tokens, temperature, think)
+                    self._json(200, {"id": cid, "object": "chat.completion", "created": created, "model": tag,
+                                     "choices": [{"index": 0, "message": {"role": "assistant", "content": text},
+                                                  "finish_reason": finish}],
+                                     "usage": {"prompt_tokens": n_p, "completion_tokens": n_g, "total_tokens": n_p + n_g}})
+                else:
+                    self.send_response(200)
+                    self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+                    self.send_header("Cache-Control", "no-cache")
+                    self.send_header("Connection", "close")
+                    self.end_headers()
+
+                    def send(delta, finish=None):
+                        chunk = {"id": cid, "object": "chat.completion.chunk", "created": created, "model": tag,
+                                 "choices": [{"index": 0, "delta": delta, "finish_reason": finish}]}
+                        self.wfile.write(b"data: " + json.dumps(chunk, ensure_ascii=False).encode("utf-8") + b"\n\n")
+                        self.wfile.flush()
+                    send({"role": "assistant", "content": ""})
+                    _, n_p, n_g, finish = oa_generate(messages, max_tokens, temperature, think,
+                                                      on_text=lambda t: send({"content": t}))
+                    send({}, finish)
+                    self.wfile.write(b"data: [DONE]\n\n")
+                    self.wfile.flush()
+                log(f"  chat {len(messages)} msgs, {n_p}+{n_g} tokens, {time.time() - t0:.1f}s{' stream' if stream else ''}")
+        except (BrokenPipeError, ConnectionResetError):
+            log("  chat client gone")
+        except Exception as e:  # noqa: BLE001
+            log(f"  chat failed: {e}")
+            try:
+                err(500, f"大D的主機處理失敗：{e}", "server_error")
+            except OSError:
+                pass
+        finally:
+            busy(-1)
+
     def do_POST(self):
+        if self.path == "/v1/chat/completions":
+            return self._chat() if self._authorized() else None
         if self.path == "/v1/pair":
             return self._pair()
         if self.path in ("/v1/password", "/v1/devices/revoke"):
@@ -610,6 +757,9 @@ class Handler(BaseHTTPRequestHandler):
         text_input = self.headers.get("X-Input", "") == "text"
         recorded_at = self.headers.get("X-Recorded-At", "")
         duration = float(self.headers.get("X-Duration", "0") or 0)
+        asr = LANG_ASR.get(self.headers.get("X-Lang", ""))   # None → 設定頁選的
+        if asr and asr not in ASR_OPTIONS:
+            asr = None
         with tempfile.TemporaryDirectory() as tmp:
             path = os.path.join(tmp, "audio")
             with open(path, "wb") as f:
@@ -620,7 +770,7 @@ class Handler(BaseHTTPRequestHandler):
                         break
                     f.write(buf)
                     left -= len(buf)
-            log(f"job {kind}{' text' if text_input else ''} {length // 1024} KB, {duration:.0f}s")
+            log(f"job {kind}{' text' if text_input else ''} {length // 1024} KB, {duration:.0f}s, asr={asr or CUR['asr']}")
             # 長錄音在這台 Mac 上可能要半小時以上：先回 200，處理期間每 20 秒送一個空白（JSON 前面的空白是合法的），
             # App 的連線才不會因為太久沒資料而逾時；結果（或錯誤）最後用 JSON 送出。
             self.send_response(200)
@@ -644,10 +794,10 @@ class Handler(BaseHTTPRequestHandler):
                 with GPU:   # 一次一筆
                     if not CUR["llm_obj"]:
                         raise RuntimeError(CUR["error"] or "模型還沒載入")
-                    tag = model_tag()
+                    tag = model_tag(asr)
                     if text_input:   # 沒用到語音辨識：代號的辨識部分寫 text
                         tag = "local-text|" + tag.split("|", 1)[-1]
-                    result = {"text": process(path, kind, recorded_at, duration, text_input), "model": tag}
+                    result = {"text": process(path, kind, recorded_at, duration, text_input, asr), "model": tag}
             except Exception as e:  # noqa: BLE001
                 log(f"  failed: {e}")
                 result = {"error": f"大D的主機處理失敗：{e}"}

@@ -10,6 +10,7 @@ struct DashboardView: View {
     @ObservedObject private var rec = PhoneRecorder.shared
     @Environment(\.pageWidth) private var width
     @AppStorage(UIMode.key) private var mode: UIMode = .business
+    @AppStorage(SpeechLang.key) private var lang: SpeechLang = .zh
     @AppStorage(DeviceInfo.askedKey) private var askedName = false
     @AppStorage(DeviceInfo.key) private var deviceName = ""
     @State private var naming = false
@@ -44,8 +45,14 @@ struct DashboardView: View {
                 // ---------- 快捷動作 ----------
                 // 手機也能錄（手錶不在身邊、或這支手機沒配對手錶時）
                 if rec.isRecording, let since = rec.since {
-                    RecordingCard(food: rec.isFood, since: since, interrupted: rec.interrupted) { rec.stop() }
+                    RecordingCard(food: rec.isFood, since: since, interrupted: rec.interrupted, lang: lang,
+                                  detailed: mode == .tech) { rec.stop() }
                 } else {
+                    VStack(alignment: .leading, spacing: 6) {
+                        LangPicker(value: lang) { lang = $0 }
+                        Text(lang == .zh ? "國語：最快" : "有台語就選這個（國台語夾雜也是），比較慢")
+                            .font(.labelMedium).foregroundStyle(Brand.textFaint).padding(.horizontal, 6)
+                    }
                     HStack(spacing: 12) {
                         QuickTile(title: "開始錄音", sub: "會議、課堂、訪談、靈感", filled: true) { rec.start() }
                         QuickTile(title: "記錄飲食", sub: "說出吃了什麼", filled: false, bowl: true) { rec.start(food: true) }
@@ -201,29 +208,37 @@ private struct RecordingCard: View {
     let food: Bool
     let since: Date
     let interrupted: Bool
+    let lang: SpeechLang
+    let detailed: Bool
     let stop: () -> Void
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: 22, style: .continuous)
+        VStack(alignment: .leading, spacing: 14) {
         HStack(spacing: 14) {
             RecordDot(size: 20)
                 .frame(width: 44, height: 44)
                 .background(Circle().fill(Color.white.opacity(0.18)))
             VStack(alignment: .leading, spacing: 2) {
-                Text(food ? "正在記錄飲食" : (Meeting.isPad ? "iPad 錄音中" : "手機錄音中")).font(.titleMedium).foregroundColor(.white)
+                Text((food ? "正在記錄飲食" : (Meeting.isPad ? "iPad 錄音中" : "手機錄音中")) + " · " + lang.short)
+                    .font(.titleMedium).foregroundColor(.white)
                 TimelineView(.periodic(from: since, by: 1)) { ctx in
-                    Text(interrupted ? "收音中斷，正在恢復…" : Fmt.duration(ctx.date.timeIntervalSince(since)))
-                        .font(.bodySmall).monospacedDigit().foregroundColor(Color.white.opacity(0.85))
+                    Text(Fmt.duration(ctx.date.timeIntervalSince(since)))
+                        .font(.titleMedium).monospacedDigit().foregroundColor(.white)
                 }
                 Text("可以鎖螢幕，會繼續錄").font(.bodySmall).foregroundColor(Color.white.opacity(0.7))
             }
             Spacer()
             Button(action: stop) {
-                Text("停止").font(.labelLarge).foregroundColor(Brand.text)
+                Text("停止").font(.labelLarge).foregroundColor(Color(red: 0.08, green: 0.1, blue: 0.18))
                     .padding(.horizontal, 18).padding(.vertical, 10)
                     .background(Capsule().fill(Color.white))
             }
             .buttonStyle(.plain)
+        }
+        LevelMeter(paused: interrupted, detailed: detailed)
+            .padding(12)
+            .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color.black.opacity(0.18)))
         }
         .padding(16)
         .background(shape.fill(Brand.accent))

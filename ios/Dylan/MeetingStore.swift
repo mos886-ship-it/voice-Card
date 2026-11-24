@@ -210,10 +210,12 @@ final class MeetingStore: ObservableObject {
             await localFailed(id, message: error.localizedDescription)
             return
         }
-        if !m.isFood && !Self.isText(id) { Task { await self.preview(id) } }   // Mac 在跑的同時，Apple 先出預覽逐字稿
+        // Mac 在跑的同時，Apple 先出預覽逐字稿（Apple 不會台語：台語錄音不出預覽）
+        if !m.isFood && !Self.isText(id) && m.speechLang == .zh { Task { await self.preview(id) } }
         do {
             try GeminiJobs.shared.startLocal(meetingId: id, kind: m.isFood ? "food" : "meeting",
-                                             recordedAt: Fmt.stamp(m.createdAt, "yyyy/MM/dd HH:mm"), durationSec: m.durationSec)
+                                             recordedAt: Fmt.stamp(m.createdAt, "yyyy/MM/dd HH:mm"), durationSec: m.durationSec,
+                                             lang: m.speechLang)
         } catch {
             await localFailed(id, message: error.localizedDescription)
         }
@@ -250,7 +252,7 @@ final class MeetingStore: ObservableObject {
         begin(&m, step: "上傳錄音中")
         PhoneLink.shared.sendStatus(id: id, text: "AI 分析中…")
         // 即時預覽：Gemini 在跑的同時，先用 Apple 秒出逐字稿（不分說話者），Gemini 完成後換掉
-        if !m.isFood {
+        if !m.isFood && m.speechLang == .zh {   // Apple 不會台語：台語錄音不出預覽
             Task { await self.preview(id) }
         }
         do {

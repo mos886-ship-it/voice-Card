@@ -75,6 +75,7 @@ final class PhoneRecorder: ObservableObject {
 
             let id = (food ? Meeting.foodPrefix : "") + RecordingID.make()
             interrupted = false
+            AudioLevel.shared.reset()
             writer = SegmentWriter(dir: Self.pendingDir, recordingId: id,
                                    segmentSeconds: AudioSpec.segmentSeconds) { url, seg in
                 Self.hand(url, seg)
@@ -115,6 +116,10 @@ final class PhoneRecorder: ObservableObject {
         let queue = self.queue
         input.removeTap(onBus: 0)
         input.installTap(onBus: 0, bufferSize: 4096, format: format) { buffer, _ in
+            // 音量條：在這裡先量（很便宜），丟回主執行緒更新
+            if let m = AudioLevel.measure(buffer) {
+                Task { @MainActor in AudioLevel.shared.push(m) }
+            }
             queue.async { writer.write(buffer) }
         }
         engine.prepare()
@@ -164,6 +169,7 @@ final class PhoneRecorder: ObservableObject {
         self.writer = nil
         state = .idle
         interrupted = false
+        AudioLevel.shared.reset()
         queue.async {
             let recorded = writer?.totalSamples ?? 0
             writer?.finish()
