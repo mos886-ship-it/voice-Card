@@ -72,10 +72,16 @@ fun BackupSection() {
 
     // Google 的同意画面（选帐号、允许存取「这个 App 建立的档案」）
     val consent = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { r ->
-        val token = runCatching {
+        val res = runCatching {
             Identity.getAuthorizationClient(context).getAuthorizationResultFromIntent(r.data).accessToken
-        }.getOrNull()
-        if (token != null) linkedNow(token) else message = false to "沒有完成 Google 授權"
+        }
+        val token = res.getOrNull()
+        if (token != null) linkedNow(token)
+        else {
+            val e = res.exceptionOrNull()
+            android.util.Log.w("DriveBackup", "consent result=${r.resultCode}", e)
+            message = false to DriveBackup.consentError(r.resultCode, (e as? com.google.android.gms.common.api.ApiException)?.statusCode)
+        }
     }
 
     fun link() {

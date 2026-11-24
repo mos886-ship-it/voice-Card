@@ -114,6 +114,19 @@ object DriveBackup {
         return r.accessToken ?: throw BackupException("Google 沒有給存取權杖")
     }
 
+    /**
+     * Google 同意画面没成功时给使用者看的原因（[resultCode] = 画面的结果，[status] = Google 的错误代码）。
+     * 最常见：App 还没在 Google Cloud 登记（10 DEVELOPER_ERROR）→ 选完帐号就直接失败。
+     */
+    fun consentError(resultCode: Int, status: Int?): String = when {
+        status == 10 -> "這個 App 還沒在 Google Cloud 登記（OAuth 用戶端、測試使用者），Google 不給授權。設定步驟見 交接/DRIVE_BACKUP.md"
+        status == 16 || status == 12501 || (status == null && resultCode == android.app.Activity.RESULT_CANCELED) ->
+            "已取消 Google 授權" + if (status == null) "（如果你沒有按取消：多半是這個 App 還沒在 Google Cloud 登記，見 交接/DRIVE_BACKUP.md）" else ""
+        status == 7 -> "連不到 Google，請確認網路"
+        status != null -> "Google 授權失敗（代碼 $status）"
+        else -> "沒有完成 Google 授權"
+    }
+
     /** 同意后：记住已连结、存 email（显示用）。 */
     fun finishLink(c: Context, token: String) {
         val email = runCatching {

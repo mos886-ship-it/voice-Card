@@ -77,6 +77,14 @@ class DriveBackupTest {
         assertFalse(DriveBackup.eligible(m("x").copy(status = MeetingStatus.RECORDING)))
     }
 
+    /** 授权失败的原因：没登记 OAuth 用户端（10）要讲清楚，不能只说「沒有完成」。 */
+    @Test fun consentError() {
+        assertTrue(DriveBackup.consentError(0, 10).contains("還沒在 Google Cloud 登記"))
+        assertTrue(DriveBackup.consentError(0, null).contains("還沒在 Google Cloud 登記"))   // 选完帐号就被取消
+        assertEquals("已取消 Google 授權", DriveBackup.consentError(0, 16))
+        assertEquals("Google 授權失敗（代碼 8）", DriveBackup.consentError(-1, 8))
+    }
+
     /** Drive files.list 的回应（官方格式）：只认 App 放的（有 dylanId）。 */
     @Test fun parseList() {
         val j = JSONObject("""{"files":[
