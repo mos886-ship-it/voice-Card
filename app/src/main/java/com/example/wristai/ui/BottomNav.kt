@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
@@ -49,26 +50,26 @@ fun BottomNav(current: Tab, onSelect: (Tab) -> Unit) {
     Column {
         Box(Modifier.fillMaxWidth().height(1.dp).background(Brand.Outline))
         Row(
-            Modifier.fillMaxWidth().background(Brand.Bg).padding(horizontal = 12.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
+            Modifier.fillMaxWidth().background(Brand.Bg).padding(horizontal = 4.dp, vertical = 8.dp),
         ) {
-            for (t in Tab.entries) NavItem(t, t == current) { onSelect(t) }
+            // 每个分页平分宽度：Fold5 封面萤幕只有约 344dp，五个固定宽度的分页会把「設定」挤出去
+            for (t in Tab.entries) NavItem(t, t == current, Modifier.weight(1f)) { onSelect(t) }
         }
     }
 }
 
 @Composable
-private fun NavItem(tab: Tab, selected: Boolean, onClick: () -> Unit) {
+private fun NavItem(tab: Tab, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     val tint = if (selected) Color.White else Brand.TextMuted
     Column(
-        Modifier.clip(RoundedCornerShape(16.dp))
+        modifier.clip(RoundedCornerShape(16.dp))
             .clickable(remember { MutableInteractionSource() }, indication = null, onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 2.dp),
+            .padding(horizontal = 2.dp, vertical = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         // 选中的分页：图示后面一个渐层胶囊
         Box(
-            Modifier.width(56.dp).height(30.dp).clip(RoundedCornerShape(15.dp))
+            Modifier.widthIn(max = 56.dp).fillMaxWidth().height(30.dp).clip(RoundedCornerShape(15.dp))
                 .then(if (selected) Modifier.background(Brand.Accent) else Modifier),
             contentAlignment = Alignment.Center,
         ) {
@@ -81,7 +82,8 @@ private fun NavItem(tab: Tab, selected: Boolean, onClick: () -> Unit) {
             }
         }
         Spacer(Modifier.height(4.dp))
-        Text(tab.label, style = MaterialTheme.typography.labelMedium, color = if (selected) Brand.Text else Brand.TextMuted)
+        Text(tab.label, style = MaterialTheme.typography.labelMedium, color = if (selected) Brand.Text else Brand.TextMuted,
+            maxLines = 1, softWrap = false)
     }
 }
 
