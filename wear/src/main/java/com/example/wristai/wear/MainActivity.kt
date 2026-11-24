@@ -298,14 +298,15 @@ private fun RecordPage(
     val goal = (food?.goal ?: 2000).coerceAtLeast(1)
     val kcal = today?.kcal ?: 0
     Column(
-        Modifier.fillMaxSize().padding(top = 28.dp, bottom = 20.dp, start = 8.dp, end = 8.dp),
+        Modifier.fillMaxSize().padding(top = 26.dp, bottom = 18.dp, start = 8.dp, end = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
+        // 由上而下：品牌 → 辨识语言（大胶囊）→ 三颗按钮 → 按钮下方的说明 / 状态
         BrandHeader()
-        Hero(recorder = recorder, phoneRec = null, phoneStatus = phoneStatus)
+        Spacer(Modifier.height(6.dp))
         LangChip(lang, enabled = !sending, onClick = onLang)
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(2.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
             SideAction(
                 label = if (kcal > 0) "$kcal 大卡" else "飲食",
@@ -318,6 +319,7 @@ private fun RecordPage(
                 PhoneGlyph(c, 24.dp, dotColor = if (c == Color.White) Brand.Recording else Color.Unspecified)
             }
         }
+        Hero(recorder = recorder, phoneRec = null, phoneStatus = phoneStatus)
     }
 }
 
@@ -735,9 +737,9 @@ private fun LangChip(lang: WatchState.Lang, enabled: Boolean, onClick: () -> Uni
     Box(
         Modifier.clip(CircleShape).background(Brand.SurfaceHigh)
             .then(if (enabled) Modifier.clickableNoRipple(onClick) else Modifier)
-            .padding(horizontal = 10.dp, vertical = 3.dp)
+            .padding(horizontal = 18.dp, vertical = 7.dp)
             .semantics { contentDescription = "辨識語言：" + lang.label },
-    ) { Text(lang.label + " ▾", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = if (enabled) Brand.Cyan else Brand.TextFaint, maxLines = 1) }
+    ) { Text(lang.label + " ▾", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = if (enabled) Brand.Cyan else Brand.TextFaint, maxLines = 1) }
 }
 
 /**
@@ -823,7 +825,7 @@ private fun Hero(recorder: RecorderStatus, phoneRec: Long?, phoneStatus: String?
     val t = rememberInfiniteTransition(label = "hero")
     val pulse by t.animateFloat(0f, 1f, infiniteRepeatable(tween(1400, easing = LinearEasing)), label = "pulse")
     val spin by t.animateFloat(0f, 360f, infiniteRepeatable(tween(1100, easing = LinearEasing)), label = "spin")
-    Column(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 2.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         when {
             recorder is RecorderStatus.Sending -> {
                 Row(verticalAlignment = Alignment.CenterVertically) {
