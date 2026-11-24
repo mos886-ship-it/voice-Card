@@ -129,13 +129,15 @@ struct DetailView: View {
                         // ---------- 辨識語言（換了可以重新產生，對照兩種結果） ----------
                         if hasAudio(m) && !MeetingStore.isText(m.id) {
                             VStack(alignment: .leading, spacing: 6) {
-                                Text("辨識語言").font(.labelSmall).tracking(1.2).foregroundStyle(Brand.textMuted)
+                                Text(m.speechLang == .hak ? "辨識語言：客語・\(m.hakkaDialect.label)腔" : "辨識語言")
+                                    .font(.labelSmall).tracking(1.2).foregroundStyle(Brand.textMuted)
                                     .padding(.horizontal, 6)
                                 LangPicker(value: m.speechLang, disabled: m.status == .summarizing) { l in
                                     if m.status == .done || m.status == .failed {
                                         relang = l   // 先問：會用新的語言重新產生
                                     } else if var mm = store.load(m.id) {
                                         mm.lang = l.rawValue
+                                        mm.dialect = l == .hak ? HakkaDialect.current.rawValue : nil
                                         store.save(mm)
                                     }
                                 }
@@ -175,12 +177,13 @@ struct DetailView: View {
                 }
             }
         }
-        .confirmationDialog(relang.map { "用「\($0.label)」重新產生報告？" } ?? "",
+        .confirmationDialog(relang.map { "用「\($0 == .hak ? "客語・" + HakkaDialect.current.label : $0.label)」重新產生報告？" } ?? "",
                             isPresented: Binding(get: { relang != nil }, set: { if !$0 { relang = nil } }),
                             titleVisibility: .visible) {
             Button("重新產生") {
                 if let l = relang, var m = store.load(id) {
                     m.lang = l.rawValue
+                    m.dialect = l == .hak ? HakkaDialect.current.rawValue : nil
                     store.save(m)
                     Task { await store.process(id) }
                 }

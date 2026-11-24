@@ -6,7 +6,7 @@ set -e
 SRC="$(cd "$(dirname "$0")" && pwd)"
 DEST="$HOME/dylan-local"
 mkdir -p "$DEST/samples"
-cp "$SRC/server.py" "$SRC/pairing.py" "$SRC/asr_test.py" "$SRC/llm_test.py" "$DEST/"
+cp "$SRC/server.py" "$SRC/pairing.py" "$SRC/convert_whisper.py" "$SRC/asr_test.py" "$SRC/llm_test.py" "$DEST/"
 [ -d "$DEST/venv" ] || /usr/bin/python3 -m venv "$DEST/venv"
 "$DEST/venv/bin/pip" install -q --upgrade pip
 "$DEST/venv/bin/pip" install -q -r "$SRC/requirements.txt"

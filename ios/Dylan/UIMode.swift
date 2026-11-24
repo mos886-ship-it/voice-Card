@@ -18,15 +18,39 @@ enum UIMode: String, CaseIterable, Identifiable {
 
 /// 錄音的語言（錄音前選，記住上次）：國語 → FunASR（快）；台語・國台語 → Breeze-ASR-26（整段交給它，不逐句切）。
 enum SpeechLang: String, CaseIterable, Identifiable {
-    case zh, nan
+    case zh, nan, hak
 
     static let key = "speech_lang"
     /// 現在選的（新錄音用）。
     static var current: SpeechLang { SpeechLang(rawValue: UserDefaults.standard.string(forKey: key) ?? "") ?? .zh }
 
     var id: String { rawValue }
-    var label: String { self == .zh ? "國語" : "台語・國台語" }
-    var short: String { self == .zh ? "國語" : "台語" }
+    var label: String {
+        switch self { case .zh: return "國語"; case .nan: return "台語・國台語"; case .hak: return "客語" }
+    }
+    var short: String {
+        switch self { case .zh: return "國語"; case .nan: return "台語"; case .hak: return "客語" }
+    }
+}
+
+/// 客語腔調（陽明交大客語 Whisper 用腔調 id 當提示）。存在 `hakka_dialect`，錄音時跟著存到 Meeting.dialect。
+enum HakkaDialect: String, CaseIterable, Identifiable {
+    case sixian, hailu, dapu, raoping, zhaoan, nansixian
+
+    static let key = "hakka_dialect"
+    static var current: HakkaDialect { HakkaDialect(rawValue: UserDefaults.standard.string(forKey: key) ?? "") ?? .sixian }
+
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .sixian: return "四縣"
+        case .hailu: return "海陸"
+        case .dapu: return "大埔"
+        case .raoping: return "饒平"
+        case .zhaoan: return "詔安"
+        case .nansixian: return "南四縣"
+        }
+    }
 }
 
 extension Fmt {
@@ -69,6 +93,15 @@ struct LangPicker: View {
         .accessibilityLabel("辨識語言")
     }
 
+    /// 選了客語時下面那一行：說明＋腔調選單。
+    static func hint(_ lang: SpeechLang) -> String {
+        switch lang {
+        case .zh: return "國語：最快"
+        case .nan: return "有台語就選這個（國台語夾雜也是），比較慢"
+        case .hak: return "客語：陽明交大客語模型，比較慢"
+        }
+    }
+
     private func segment(_ l: SpeechLang) -> some View {
         let on = value == l
         let fg: Color = on ? .white : Brand.textMuted
@@ -81,5 +114,31 @@ struct LangPicker: View {
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(on ? .isSelected : [])
+    }
+}
+
+/// 客語腔調選單（小膠囊：「四縣腔 ▾」）。
+struct DialectMenu: View {
+    let value: HakkaDialect
+    let pick: (HakkaDialect) -> Void
+
+    var body: some View {
+        Menu {
+            ForEach(HakkaDialect.allCases) { d in
+                Button { pick(d) } label: {
+                    if d == value { Label(d.label, systemImage: "checkmark") } else { Text(d.label) }
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Text(value.label + "腔").font(.labelLarge)
+                Image(systemName: "chevron.down").font(.system(size: 10, weight: .semibold))
+            }
+            .foregroundStyle(Brand.cyan)
+            .padding(.horizontal, 12).padding(.vertical, 6)
+            .background(Capsule().fill(Brand.surfaceHigh))
+            .overlay(Capsule().stroke(Brand.outline, lineWidth: 1))
+        }
+        .accessibilityLabel("客語腔調：" + value.label)
     }
 }

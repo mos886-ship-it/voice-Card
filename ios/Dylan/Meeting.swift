@@ -50,8 +50,13 @@ struct Meeting: Codable, Identifiable, Equatable {
     var device: String?
     /// 錄音的語言：zh（國語）/ nan（台語・國台語）。舊資料沒有這欄 = 國語。
     var lang: String?
+    /// 客語腔調（lang = hak 時）：sixian / hailu / dapu / raoping / zhaoan / nansixian。
+    var dialect: String?
 
     var speechLang: SpeechLang { SpeechLang(rawValue: lang ?? "") ?? .zh }
+    var hakkaDialect: HakkaDialect { HakkaDialect(rawValue: dialect ?? "") ?? .sixian }
+    /// 「客語・海陸」、「台語・國台語」、「國語」
+    var langLabel: String { speechLang == .hak ? "客語・" + hakkaDialect.label : speechLang.label }
 
     /// 飲食記錄的錄音 id 開頭（照 Android FoodLog.ID_PREFIX）。
     static let foodPrefix = "food_"
@@ -63,7 +68,8 @@ struct Meeting: Codable, Identifiable, Equatable {
         return Meeting(id: id, title: kind + Fmt.stamp(start, "M/d HH:mm"), createdAt: start,
                        durationSec: 0, status: .recording, source: source, segments: [:], lastSeq: nil, error: nil,
                        updatedAt: Date(), device: source == "watch" || DeviceInfo.name.isEmpty ? nil : DeviceInfo.name,
-                       lang: SpeechLang.current.rawValue)
+                       lang: SpeechLang.current.rawValue,
+                       dialect: SpeechLang.current == .hak ? HakkaDialect.current.rawValue : nil)
     }
 
     var isComplete: Bool {

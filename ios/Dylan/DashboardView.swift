@@ -11,6 +11,7 @@ struct DashboardView: View {
     @Environment(\.pageWidth) private var width
     @AppStorage(UIMode.key) private var mode: UIMode = .business
     @AppStorage(SpeechLang.key) private var lang: SpeechLang = .zh
+    @AppStorage(HakkaDialect.key) private var dialect: HakkaDialect = .sixian
     @AppStorage(DeviceInfo.askedKey) private var askedName = false
     @AppStorage(DeviceInfo.key) private var deviceName = ""
     @State private var naming = false
@@ -45,13 +46,18 @@ struct DashboardView: View {
                 // ---------- 快捷動作 ----------
                 // 手機也能錄（手錶不在身邊、或這支手機沒配對手錶時）
                 if rec.isRecording, let since = rec.since {
-                    RecordingCard(food: rec.isFood, since: since, interrupted: rec.interrupted, lang: lang,
+                    RecordingCard(food: rec.isFood, since: since, interrupted: rec.interrupted,
+                                  lang: lang == .hak ? "客語・" + dialect.label : lang.short,
                                   detailed: mode == .tech) { rec.stop() }
                 } else {
                     VStack(alignment: .leading, spacing: 6) {
                         LangPicker(value: lang) { lang = $0 }
-                        Text(lang == .zh ? "國語：最快" : "有台語就選這個（國台語夾雜也是），比較慢")
-                            .font(.labelMedium).foregroundStyle(Brand.textFaint).padding(.horizontal, 6)
+                        HStack(spacing: 8) {
+                            Text(LangPicker.hint(lang)).font(.labelMedium).foregroundStyle(Brand.textFaint)
+                            Spacer(minLength: 0)
+                            if lang == .hak { DialectMenu(value: dialect) { dialect = $0 } }
+                        }
+                        .padding(.horizontal, 6)
                     }
                     HStack(spacing: 12) {
                         QuickTile(title: "開始錄音", sub: "會議、課堂、訪談、靈感", filled: true) { rec.start() }
@@ -208,7 +214,7 @@ private struct RecordingCard: View {
     let food: Bool
     let since: Date
     let interrupted: Bool
-    let lang: SpeechLang
+    let lang: String
     let detailed: Bool
     let stop: () -> Void
 
@@ -220,7 +226,7 @@ private struct RecordingCard: View {
                 .frame(width: 44, height: 44)
                 .background(Circle().fill(Color.white.opacity(0.18)))
             VStack(alignment: .leading, spacing: 2) {
-                Text((food ? "正在記錄飲食" : (Meeting.isPad ? "iPad 錄音中" : "手機錄音中")) + " · " + lang.short)
+                Text((food ? "正在記錄飲食" : (Meeting.isPad ? "iPad 錄音中" : "手機錄音中")) + " · " + lang)
                     .font(.titleMedium).foregroundColor(.white)
                 TimelineView(.periodic(from: since, by: 1)) { ctx in
                     Text(Fmt.duration(ctx.date.timeIntervalSince(since)))
