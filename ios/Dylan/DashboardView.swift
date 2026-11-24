@@ -45,7 +45,8 @@ struct DashboardView: View {
                 // ---------- 快捷動作 ----------
                 // 手機也能錄（手錶不在身邊、或這支手機沒配對手錶時）
                 if rec.isRecording, let since = rec.since {
-                    RecordingCard(food: rec.isFood, since: since, interrupted: rec.interrupted, lang: lang) { rec.stop() }
+                    RecordingCard(food: rec.isFood, since: since, interrupted: rec.interrupted, lang: lang,
+                                  detailed: mode == .tech) { rec.stop() }
                 } else {
                     VStack(alignment: .leading, spacing: 6) {
                         LangPicker(value: lang) { lang = $0 }
@@ -208,10 +209,12 @@ private struct RecordingCard: View {
     let since: Date
     let interrupted: Bool
     let lang: SpeechLang
+    let detailed: Bool
     let stop: () -> Void
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: 22, style: .continuous)
+        VStack(alignment: .leading, spacing: 14) {
         HStack(spacing: 14) {
             RecordDot(size: 20)
                 .frame(width: 44, height: 44)
@@ -220,8 +223,8 @@ private struct RecordingCard: View {
                 Text((food ? "正在記錄飲食" : (Meeting.isPad ? "iPad 錄音中" : "手機錄音中")) + " · " + lang.short)
                     .font(.titleMedium).foregroundColor(.white)
                 TimelineView(.periodic(from: since, by: 1)) { ctx in
-                    Text(interrupted ? "收音中斷，正在恢復…" : Fmt.duration(ctx.date.timeIntervalSince(since)))
-                        .font(.bodySmall).monospacedDigit().foregroundColor(Color.white.opacity(0.85))
+                    Text(Fmt.duration(ctx.date.timeIntervalSince(since)))
+                        .font(.titleMedium).monospacedDigit().foregroundColor(.white)
                 }
                 Text("可以鎖螢幕，會繼續錄").font(.bodySmall).foregroundColor(Color.white.opacity(0.7))
             }
@@ -232,6 +235,10 @@ private struct RecordingCard: View {
                     .background(Capsule().fill(Color.white))
             }
             .buttonStyle(.plain)
+        }
+        LevelMeter(paused: interrupted, detailed: detailed)
+            .padding(12)
+            .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color.black.opacity(0.18)))
         }
         .padding(16)
         .background(shape.fill(Brand.accent))
