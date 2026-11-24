@@ -27,9 +27,9 @@ object SegmentAssembler {
         MeetingStore.segmentsDir(context, id).listFiles { f -> f.extension == "m4a" }
             ?.sortedBy { it.name } ?: emptyList()
 
-    /** 录音 id（yyyyMMdd_HHmmss）就是手表开始录音的时间。 */
+    /** 录音 id（[food_]yyyyMMdd_HHmmss[_装置代码]）里的时间就是手表开始录音的时间。 */
     private fun startTimeOf(id: String): Long =
-        runCatching { SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).parse(id.removePrefix(FoodLog.ID_PREFIX))!!.time }
+        runCatching { com.example.voiceai.shared.RecordingIds.timeOf(id)!! }
             .getOrDefault(System.currentTimeMillis())
 
     /** [received] = 刚收完的暂存档。返回 true = 整场录音到齐了。 */

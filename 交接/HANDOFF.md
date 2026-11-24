@@ -317,3 +317,8 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 ## Android：Google 雲端硬碟備份與取回（2026-11-24）
 
 設定頁「Google 雲端硬碟備份」：連結帳號（`drive.file`，只碰 App 自己建的檔案）→ 每筆錄音一個 zip 放在雲端硬碟「大D 錄音備份」資料夾（報告、逐字稿、meta、可選錄音 m4a）；自動備份（報告完成時，可只用 Wi-Fi）、立即備份（增量）、從雲端取回（只補手機沒有的，錄音解回 wav）。**要先在 Google Cloud 登記 OAuth 用戶端才能用**，步驟、指紋、限制、未驗證項目見 `交接/DRIVE_BACKUP.md`。
+
+## 錄音編號加裝置代碼（2026-11-25）
+
+新錄音編號 = `[food_|imp_|call_]yyyyMMdd_HHmmss_<裝置代碼>`，例 `20261125_001317_gt24`。裝置代碼是每台裝置（手機、手錶各一）第一次用時隨機產生的 4 碼（shared `RecordingIds`，存在 prefs `dylan_ids`）。目的：多台裝置共用 Google 雲端硬碟備份時不會撞號互相覆蓋。舊編號照用；`RecordingIds.timeOf` 新舊都認得（SegmentAssembler 用它推錄音時間）。手錶分段檔名用 `__` 分隔，不受影響。單元測試 `RecordingIdsTest`。iOS 之後也要用同一格式。
+

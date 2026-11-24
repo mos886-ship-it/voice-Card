@@ -143,7 +143,8 @@ class RecordingService : Service() {
         }
 
         this.food = food
-        val id = (if (food) "food_" else "") + SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
+        // 编号带这支手表的装置代码（跟手机不同）：多台装置共用云端备份也不会撞
+        val id = com.example.voiceai.shared.RecordingIds.newId(this, if (food) "food_" else "")
         recordingId = id
         // GPS 戳记：以联动的手机为主要来源——先请手机定位；手机连不上或拿不到，才用手表自己的 GPS（备援）。
         // 手表的位置存成 <id>.geo，传到手机后删掉；传不出去就跟录音一起补传。

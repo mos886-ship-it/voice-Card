@@ -37,7 +37,7 @@ object AudioImporter {
     ): String {
         val importedAt = System.currentTimeMillis()
         // id 用汇入时间：同一个时间点录的两个档也不会撞名
-        var id = (if (source == SOURCE_CALL) "call_" else "imp_") + SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date(importedAt))
+        var id = com.example.voiceai.shared.RecordingIds.newId(context, if (source == SOURCE_CALL) "call_" else "imp_", Date(importedAt))
         while (MeetingStore.meetings.value.any { it.id == id }) id += "_"
         val target = MeetingStore.audioFile(context, id)
         val tmp = File(target.parentFile, "audio.part")

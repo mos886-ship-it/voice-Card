@@ -144,7 +144,8 @@ class PhoneRecordingService : Service() {
             return
         }
 
-        val id = (if (food) FoodLog.ID_PREFIX else "") + SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
+        // 编号带这台手机的装置代码：多台装置共用云端备份也不会撞（RecordingIds）
+        val id = com.example.voiceai.shared.RecordingIds.newId(this, if (food) FoodLog.ID_PREFIX else "")
         val record = try { createAudioRecord() } catch (e: Exception) {
             fail("無法啟動麥克風：${e.message}")
             return
