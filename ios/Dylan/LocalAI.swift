@@ -19,7 +19,7 @@ enum LocalAI {
     static func label(_ tag: String) -> String {
         let parts = tag.replacingOccurrences(of: "local-", with: "").split(separator: "|").map(String.init)
         let names: [String: String] = [
-            "funasr": "FunASR", "breeze": "Breeze-ASR-26",
+            "funasr": "FunASR", "breeze": "Breeze-ASR-26", "hakka": "客語 Whisper",
             "qwen3-8b": "Qwen3-8B", "sarc-taigi-12b": "SARC 台語 12B", "text": "文字",
         ]
         return "大D的主機：" + parts.map { names[$0] ?? $0 }.joined(separator: " ＋ ")
@@ -227,7 +227,7 @@ enum LocalAI {
 
     /// 背景上傳用的請求（GeminiJobs 交給系統做，App 暗了也會完成）。
     static func processRequest(kind: String, recordedAt: String, durationSec: Double, text: Bool = false,
-                               lang: SpeechLang = .zh) -> URLRequest? {
+                               lang: SpeechLang = .zh, dialect: HakkaDialect = .sixian) -> URLRequest? {
         guard let u = URL(string: url + "/v1/process") else { return nil }
         var r = URLRequest(url: u, timeoutInterval: 1800)   // 長錄音在 Mac 上可能要好幾分鐘
         r.httpMethod = "POST"
@@ -238,7 +238,10 @@ enum LocalAI {
         r.setValue(String(Int(durationSec)), forHTTPHeaderField: "X-Duration")
         r.setValue(text ? "text/plain; charset=utf-8" : "audio/m4a", forHTTPHeaderField: "Content-Type")
         if text { r.setValue("text", forHTTPHeaderField: "X-Input") }   // 匯入的文字：Mac 跳過語音辨識
-        else { r.setValue(lang.rawValue, forHTTPHeaderField: "X-Lang") }   // 國語 → FunASR；台語 → Breeze-ASR-26
+        else {   // 國語 → FunASR；台語 → Breeze-ASR-26；客語 → 陽明交大客語 Whisper（加腔調）
+            r.setValue(lang.rawValue, forHTTPHeaderField: "X-Lang")
+            if lang == .hak { r.setValue(dialect.rawValue, forHTTPHeaderField: "X-Dialect") }
+        }
         return r
     }
 

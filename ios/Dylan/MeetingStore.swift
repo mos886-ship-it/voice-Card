@@ -211,11 +211,11 @@ final class MeetingStore: ObservableObject {
             return
         }
         // Mac 在跑的同時，Apple 先出預覽逐字稿（Apple 不會台語：台語錄音不出預覽）
-        if !m.isFood && !Self.isText(id) && m.speechLang == .zh { Task { await self.preview(id) } }
+        if !m.isFood && !Self.isText(id) && m.speechLang == .zh { Task { await self.preview(id) } }   // 台語、客語都不出
         do {
             try GeminiJobs.shared.startLocal(meetingId: id, kind: m.isFood ? "food" : "meeting",
                                              recordedAt: Fmt.stamp(m.createdAt, "yyyy/MM/dd HH:mm"), durationSec: m.durationSec,
-                                             lang: m.speechLang)
+                                             lang: m.speechLang, dialect: m.hakkaDialect)
         } catch {
             await localFailed(id, message: error.localizedDescription)
         }

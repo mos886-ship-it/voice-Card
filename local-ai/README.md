@@ -33,7 +33,7 @@ bash local-ai/setup.sh
 - `POST /v1/config` `{"asr": id, "llm": id}` → 存進 config.json，等正在處理的那筆做完才在背景換（第一次會下載），回 202；用 health 的 `state` 看何時好
 - 配對（不用存取碼）：`POST /v1/pair`；已連上的裝置：`GET /v1/devices`、`POST /v1/devices/revoke`、`POST /v1/password`；配對頁 `GET /pair`（只給區網 / 本機）。詳見 `pairing.py` 開頭的說明。
 - OpenAI 相容：`POST /v1/chat/completions`（messages、max_tokens、temperature、stream），`GET /v1/models` 也回 OpenAI 格式的 `data`。用法見 `交接/HOST_CONNECT.md` 5b。
-- `POST /v1/process`：body 是錄音檔；標頭 `X-Kind: meeting|food`、`X-Recorded-At`、`X-Duration`（秒）、`X-Lang: zh|nan`（國語 → FunASR；台語・國台語 → Breeze-ASR-26；沒帶就用設定的語音模型）→ `{"text": "<Gemini 格式>", "model": "local-funasr|qwen3-8b"}`，失敗回 `{"error": "..."}`。
+- `POST /v1/process`：body 是錄音檔；標頭 `X-Kind: meeting|food`、`X-Recorded-At`、`X-Duration`（秒）、`X-Lang: zh|nan|hak`（國語 → FunASR；台語・國台語 → Breeze-ASR-26；客語 → 陽明交大客語 Whisper，加 `X-Dialect: sixian|hailu|dapu|raoping|zhaoan|nansixian`；沒帶就用設定的語音模型）→ `{"text": "<Gemini 格式>", "model": "local-funasr|qwen3-8b"}`，失敗回 `{"error": "..."}`。
   處理中每 20 秒先送一個空白保持連線（6 小時的錄音估計要 30 分鐘以上，App 的連線閒置上限是 30 分鐘），所以狀態碼一律 200，成功或失敗看 JSON。
 
 ## 手機怎麼連到
@@ -62,3 +62,14 @@ launchctl bootout gui/$(id -u)/com.dylan.localai
 rm ~/Library/LaunchAgents/com.dylan.localai.plist
 rm -rf ~/dylan-local ~/.cache/modelscope ~/.cache/huggingface
 ```
+
+
+## 客語模型（選用，限非商業）
+
+`formospeech/whisper-large-v3-taiwanese-hakka`（陽明交大，CC BY-NC 4.0，只能非商業使用）是 Hugging Face 上要申請的模型：
+
+1. 用自己的 Hugging Face 帳號到模型頁按申請，等核准。
+2. 在主機上登入：`venv/bin/hf auth login`（貼上 read token）。
+3. 轉成 MLX（約 3 GB 下載 → 1.6 GB 的 8-bit 模型，轉完刪原檔）：
+   `venv/bin/python convert_whisper.py formospeech/whisper-large-v3-taiwanese-hakka models/hakka-mlx-8bit --bits 8 --delete-source`
+4. 重啟服務：`launchctl kickstart -k gui/$(id -u)/com.dylan.localai`。之後 `/v1/models` 的 `langs` 會多一個 `hak`。

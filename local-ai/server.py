@@ -10,7 +10,8 @@ App 的報告解析、說話者名字、飲食 NUTRITION 解析都直接沿用�
   POST /v1/config   → {"asr": id, "llm": id}；存進 config.json，背景換模型（第一次會下載），回 202
   POST /v1/process  → body 是錄音檔（m4a / wav…）；標頭 X-Kind: meeting|food、X-Recorded-At、X-Duration（秒）
                        X-Input: text 時 body 是 UTF-8 文字（匯入的會議紀錄 / 逐字稿），跳過語音辨識直接寫報告
-                       X-Lang: zh（國語 → FunASR）| nan（台語・國台語 → Breeze-ASR-26）；沒帶就用設定頁選的語音模型
+                       X-Lang: zh（國語 → FunASR）| nan（台語・國台語 → Breeze-ASR-26）| hak（客語 → 陽明交大客語 Whisper，
+                       X-Dialect: sixian|hailu|dapu|raoping|zhaoan|nansixian，預設四縣）；沒帶就用設定頁選的語音模型
                      回 {"text": "<Gemini 格式>", "model": "local-<asr>|<llm>"，例如 local-funasr|qwen3-8b}，失敗回 {"error": "..."}
                      （處理中每 20 秒先送一個空白保持連線，所以狀態碼一律 200，結果看 JSON）
   配對（pairing.py）：
@@ -52,8 +53,16 @@ PORT = 8765
 ASR_OPTIONS = {
     "funasr": {"label": "FunASR（國語，分說話者，最快）", "tag": "funasr"},
     "breeze": {"label": "Breeze-ASR-26（台語＋國語，說話者用 FunASR 分）", "tag": "breeze",
-               "repo": "doggy8088/Breeze-ASR-26-MLX-8bit"}   # 8bit：記憶體省一半，準確度差不多,
+               "repo": "doggy8088/Breeze-ASR-26-MLX-8bit"},   # 8bit：記憶體省一半，準確度差不多
+    # 客語：陽明交大 formospeech/whisper-large-v3-taiwanese-hakka（CC BY-NC 4.0，限非商業；Hugging Face 要申請）。
+    # 轉成 MLX 放在 models/hakka-mlx-8bit（convert_whisper.py）；沒轉好時選客語會回清楚的錯誤。
+    "hakka": {"label": "客語 Whisper（陽明交大，四縣／海陸／大埔／饒平／詔安／南四縣；限非商業）", "tag": "hakka",
+              "repo": os.path.join(os.path.dirname(os.path.abspath(__file__)), "models", "hakka-mlx-8bit")},
 }
+# 客語腔調 → 模型訓練時用的提示（模型卡：每個腔調一個 id 當 prompt）
+HAKKA_DIALECTS = {"sixian": "htia_sixian", "hailu": "htia_hailu", "dapu": "htia_dapu",
+                  "raoping": "htia_raoping", "zhaoan": "htia_zhaoan", "nansixian": "htia_nansixian"}
+HAKKA_NAMES = {"sixian": "四縣", "hailu": "海陸", "dapu": "大埔", "raoping": "饒平", "zhaoan": "詔安", "nansixian": "南四縣"}
 # 報告模型：mlx:<HF repo>（MLX 格式）或 gguf:<HF repo>/<檔名>（llama.cpp，用 GPU）。第一次選到時才下載。
 LLM_OPTIONS = {
     "mlx:mlx-community/Qwen3-8B-4bit": {"label": "Qwen3-8B（國語，預設，約 5 GB）", "tag": "qwen3-8b"},
@@ -198,7 +207,13 @@ def apply_models(asr, llm):
 
 
 # 每筆錄音的語言（App 錄音前選）→ 語音模型。國台語夾雜常在同一句裡，整段交給 Breeze，不逐句切。
-LANG_ASR = {"zh": "funasr", "nan": "breeze"}
+LANG_ASR = {"zh": "funasr", "nan": "breeze", "hak": "hakka"}
+
+
+def asr_ready(key):
+    """客語模型要另外申請、轉檔：還沒放好就不列出來（其他選項第一次用到時會自己下載）。"""
+    repo = ASR_OPTIONS.get(key, {}).get("repo", "")
+    return key != "hakka" or os.path.exists(os.path.join(repo, "config.json"))
 
 
 def model_tag(asr=None):
@@ -304,13 +319,19 @@ def funasr_segments(wav):
     return [(s["start"] / 1000, s["end"] / 1000, s.get("spk", 0), s["text"]) for s in res[0].get("sentence_info", [])]
 
 
-def breeze_segments(wav):
-    """Breeze-ASR-26（Whisper，MLX）辨識文字；每個字的說話者照 FunASR cam++ 的時間段（字的中點落在誰說話的時段）。"""
+def breeze_segments(wav, asr="breeze", dialect=None):
+    """Whisper 系（Breeze-ASR-26 台語、客語，MLX）辨識文字；每個字的說話者照 FunASR cam++ 的時間段（字的中點落在誰說話的時段）。"""
     import mlx_whisper
     import torchaudio
+    repo = ASR_OPTIONS[asr]["repo"]
+    prompt = None
+    if asr == "hakka":
+        if not os.path.exists(os.path.join(repo, "config.json")):
+            raise RuntimeError("客語模型還沒裝好（要先在 Hugging Face 申請 formospeech/whisper-large-v3-taiwanese-hakka，再轉成 MLX）")
+        prompt = HAKKA_DIALECTS.get(dialect or "sixian", "htia_sixian")
     audio, _ = torchaudio.load(wav)   # afconvert 的 wav 是 extensible 格式，內建 wave 讀不了
     r = mlx_whisper.transcribe(audio.mean(dim=0).numpy().astype(np.float32),
-                               path_or_hf_repo=ASR_OPTIONS["breeze"]["repo"], language="zh",
+                               path_or_hf_repo=repo, language="zh", initial_prompt=prompt,
                                condition_on_previous_text=False, word_timestamps=True,
                                hallucination_silence_threshold=2.0, verbose=None)   # 靜音處不要亂生字
     spans = funasr_segments(wav)
@@ -342,17 +363,20 @@ def breeze_segments(wav):
     return [(a, b, k, re.sub(r"(.{1,4}?)\1{3,}", r"\1", t)) for a, b, k, t in out]
 
 
-def transcribe(wav, asr=None):
+WHISPER_ASR = ("breeze", "hakka")
+
+
+def transcribe(wav, asr=None, dialect=None):
     """→ [mm:ss] 說話者X：內容（同一人連續說的話合併成一行，最長約 30 秒一段）。"""
     asr = asr or CUR["asr"]
-    segs = breeze_segments(wav) if asr == "breeze" else funasr_segments(wav)
+    segs = breeze_segments(wav, asr, dialect) if asr in WHISPER_ASR else funasr_segments(wav)
     lines, cur = [], None
     for start, _, spk, text in segs:
         name = spk_name(spk)
         text = tw(text)
         if cur and cur["name"] == name and start - cur["start"] < 30:
             sep = "" if re.search(r"[，。！？、,.!?]$", cur["text"]) else "，"
-            cur["text"] += (sep if asr == "breeze" else "") + text
+            cur["text"] += (sep if asr in WHISPER_ASR else "") + text
         else:
             cur = {"start": start, "name": name, "text": text}
             lines.append(cur)
@@ -468,7 +492,7 @@ def chunks(text, size):
     return out
 
 
-def process(audio_path, kind, recorded_at, duration, text_input=False, asr=None):
+def process(audio_path, kind, recorded_at, duration, text_input=False, asr=None, dialect=None):
     t0 = time.time()
     if text_input:
         with open(audio_path, encoding="utf-8", errors="replace") as f:
@@ -476,9 +500,12 @@ def process(audio_path, kind, recorded_at, duration, text_input=False, asr=None)
         header = f"這是一份匯入的文字記錄（會議紀錄、逐字稿或筆記，不是錄音），時間：{recorded_at}。"
     else:
         wav = to_wav(audio_path)
-        transcript = transcribe(wav, asr)
+        transcript = transcribe(wav, asr, dialect)
         header = f"錄音時間：{recorded_at}，長度約 {duration / 60:.1f} 分鐘。"
-        if (asr or CUR["asr"]) == "breeze":
+        if (asr or CUR["asr"]) == "hakka":
+            header += (f"這段錄音是客語（{HAKKA_NAMES.get(dialect or 'sixian', '四縣')}腔，可能夾雜國語），逐字稿可能有用字不一的客語漢字或同音字；"
+                       "報告請用台灣繁體華語寫，依上下文理解原意，不要自己補沒說過的內容。")
+        elif (asr or CUR["asr"]) == "breeze":
             header += ("這段錄音有台語（可能國台語夾雜），逐字稿已用華語字寫出，台語詞可能被寫成意思相近或同音的華語字；"
                        "請依上下文理解原意來整理，不要逐字照抄可疑的字，也不要自己補沒說過的內容。")
     t1 = time.time()
@@ -618,9 +645,10 @@ class Handler(BaseHTTPRequestHandler):
             return
         if self.path == "/v1/health":
             return self._json(200, status())
-        opts = lambda d: [{"id": k, "label": v["label"]} for k, v in d.items()]  # noqa: E731
+        opts = lambda d: [{"id": k, "label": v["label"]} for k, v in d.items() if asr_ready(k)]  # noqa: E731
         oa = [{"id": llm_tag(), "object": "model", "created": 0, "owned_by": "dylan"}]
         self._json(200, {**status(), "asr_options": opts(ASR_OPTIONS), "llm_options": opts(LLM_OPTIONS),
+                         "langs": [k for k, a in LANG_ASR.items() if asr_ready(a)],
                          "object": "list", "data": oa})
 
     def _config(self):
@@ -633,7 +661,7 @@ class Handler(BaseHTTPRequestHandler):
         except ValueError:
             return self._json(400, {"error": "格式不對"})
         asr, llm = body.get("asr", CUR["asr"]), body.get("llm", CUR["llm"])
-        if asr not in ASR_OPTIONS or llm not in LLM_OPTIONS:
+        if asr not in ASR_OPTIONS or llm not in LLM_OPTIONS or not asr_ready(asr):
             return self._json(400, {"error": "沒有這個模型"})
         CFG["asr"], CFG["llm"] = asr, llm
         save_config()
@@ -760,6 +788,8 @@ class Handler(BaseHTTPRequestHandler):
         asr = LANG_ASR.get(self.headers.get("X-Lang", ""))   # None → 設定頁選的
         if asr and asr not in ASR_OPTIONS:
             asr = None
+        dialect = self.headers.get("X-Dialect", "")   # 客語腔調：sixian / hailu / dapu / raoping / zhaoan / nansixian
+        dialect = dialect if dialect in HAKKA_DIALECTS else None
         with tempfile.TemporaryDirectory() as tmp:
             path = os.path.join(tmp, "audio")
             with open(path, "wb") as f:
@@ -797,7 +827,7 @@ class Handler(BaseHTTPRequestHandler):
                     tag = model_tag(asr)
                     if text_input:   # 沒用到語音辨識：代號的辨識部分寫 text
                         tag = "local-text|" + tag.split("|", 1)[-1]
-                    result = {"text": process(path, kind, recorded_at, duration, text_input, asr), "model": tag}
+                    result = {"text": process(path, kind, recorded_at, duration, text_input, asr, dialect), "model": tag}
             except Exception as e:  # noqa: BLE001
                 log(f"  failed: {e}")
                 result = {"error": f"大D的主機處理失敗：{e}"}

@@ -1,6 +1,8 @@
 # 大D：iOS 版程式總結，交接給 Android 版
 
-更新：2026-11-23（Mac mini；含大D的主機配對）
+更新：2026-11-24（Mac mini；含大D的主機配對、辨識語言（國語／台語／客語）、錄音音量條）
+
+> **這次新增（2026-11-24）**：第 1 節表格第 12、13 項 —— **辨識語言（國語 / 台語・國台語 / 客語＋腔調，第 3b 節）**、**錄音中的音量條（第 3c 節）**。大D的主機已支援 `X-Lang`（客語另加 `X-Dialect`）。客語是下午才加的：Android 已做好國語／台語的話，只要補第三個選項和腔調選單。
 
 iOS 版原本照 Android 版移植（見 `IOS_PORT.md`），之後在 iOS 上**多做了一批功能和介面改版**。這份文件把 iOS 版目前的程式整理一遍，並逐項寫出 Android 版要怎麼跟上，讓兩邊功能、用詞、畫面一致。
 
@@ -26,7 +28,7 @@ iOS 版原本照 Android 版移植（見 `IOS_PORT.md`），之後在 iOS 上**�
 | 9 | 大螢幕版面：寬螢幕兩欄、卡片格狀排列、內容欄不拉滿 | ✅ iPad 直橫向 | Fold5 展開、平板套同樣規則（第 9 節） | 中 |
 | 10 | 字級跟系統文字大小走 | ✅ | Compose 用 `sp` 已會縮放；檢查固定寬度的標籤會不會被截斷 | 低 |
 | 11 | 基本資料：兩種模式都顯示「AI」（用了哪個模型） | ✅ | `ReportFacts` 確認 AI 那行不要被藏 | 高 |
-| 12 | **辨識語言二選一：國語 / 台語・國台語**（主頁錄音鍵上方，記住上次；錄音詳情頁可換語言重新產生，方便對照） | ✅ 模擬器＋主機實測 | 存 `Meeting.lang`（`zh`/`nan`），送主機加 `X-Lang`；Gemini 提示詞加台語說明（第 3b 節） | 高 |
+| 12 | **辨識語言：國語 / 台語・國台語 / 客語（＋腔調）**（主頁錄音鍵上方，記住上次；錄音詳情頁可換語言重新產生，方便對照） | ✅ 模擬器＋主機實測（客語模型待申請） | 存 `Meeting.lang`（`zh`/`nan`/`hak`）、`Meeting.dialect`，送主機加 `X-Lang`（客語加 `X-Dialect`）；Gemini 提示詞加說明（第 3b 節） | 高 |
 | 13 | **錄音中的音量條**：錄音卡上即時波形柱＋收音狀態（正常 / 太大聲 / 太小聲 / 中斷），科技模式顯示 dB | ✅ 模擬器 | 從錄音的 PCM 算 RMS，一個 buffer 一根，自動增益（第 3c 節） | 中 |
 
 ---
@@ -79,7 +81,7 @@ iOS 版原本照 Android 版移植（見 `IOS_PORT.md`），之後在 iOS 上**�
 | POST | `/v1/devices/revoke` | `{"id": …}` → 取消那台裝置的存取碼 |
 | POST | `/v1/password` | `{"password": …}`（至少 8 個字）→ 設定 / 更換配對密碼 |
 | POST | `/v1/chat/completions` | OpenAI 相容的聊天（給 VPS / 其他程式；App 目前不用）。見 `HOST_CONNECT.md` 5b |
-| POST | `/v1/process` | body 是錄音檔（m4a 等）；標頭 `X-Kind: meeting\|food`、`X-Recorded-At`（例 `2026/11/23 21:20`；標頭只能放 ASCII）、`X-Duration`（秒，整數）、`X-Lang: zh\|nan`（第 3b 節）。**文字輸入**：加 `X-Input: text`、body 是 UTF-8 文字、`Content-Type: text/plain; charset=utf-8` |
+| POST | `/v1/process` | body 是錄音檔（m4a 等）；標頭 `X-Kind: meeting\|food`、`X-Recorded-At`（例 `2026/11/23 21:20`；標頭只能放 ASCII）、`X-Duration`（秒，整數）、`X-Lang: zh\|nan\|hak`、客語加 `X-Dialect`（第 3b 節）。**文字輸入**：加 `X-Input: text`、body 是 UTF-8 文字、`Content-Type: text/plain; charset=utf-8` |
 
 `/v1/process` 回應：主機先回 200，處理期間每 20 秒送一個空白（防逾時），最後送 JSON：`{"text": "<報告>\n\n===TRANSCRIPT===\n<逐字稿>", "model": "local-funasr|qwen3-8b"}` 或 `{"error": "大D的主機處理失敗：…"}`。`text` 的格式和 Gemini 輸出一樣（TITLE / SUMMARY 行＋Markdown 報告＋`===TRANSCRIPT===`＋`[mm:ss] 說話者A：…`），**直接用現有的 Gemini 解析**。逾時設長（iOS 用 30 分鐘請求、1 小時總時限）。
 
@@ -108,6 +110,13 @@ iOS 版原本照 Android 版移植（見 `IOS_PORT.md`），之後在 iOS 上**�
 |---|---|---|---|
 | 國語 | `zh`（預設；舊資料沒有這欄＝國語） | FunASR | 最快 |
 | 台語・國台語 | `nan` | Breeze-ASR-26（MLX；說話者仍由 FunASR 分） | 有台語就選，國台語夾雜也是；較慢（50 秒的錄音約 1 分鐘辨識）；輸出是華語字 |
+| 客語 | `hak` ＋ 腔調 `dialect` | 陽明交大 `formospeech/whisper-large-v3-taiwanese-hakka`（MLX；說話者仍由 FunASR 分） | 腔調：四縣 `sixian`（預設）、海陸 `hailu`、大埔 `dapu`、饒平 `raoping`、詔安 `zhaoan`、南四縣 `nansixian` |
+
+**客語**：
+- 二選一變三選一（國語 / 台語・國台語 / 客語）；選客語時，說明那一行右邊多一個「四縣腔 ▾」選單（存 `hakka_dialect`），錄音時把腔調存到 `Meeting.dialect`。錄音卡顯示「手機錄音中 · 客語・四縣」，詳情頁顯示「辨識語言：客語・四縣腔」。
+- 主機：`X-Lang: hak` ＋ `X-Dialect: sixian|hailu|dapu|raoping|zhaoan|nansixian`。模型用腔調 id（`htia_sixian` 等）當 Whisper 的提示。
+- **授權 CC BY-NC 4.0（只能非商業使用）**，Hugging Face 要申請才能下載。主機上還沒裝好時：`/v1/models` 的 `langs` 只會有 `zh`、`nan`（不會有 `hak`），送 `hak` 會回錯誤「客語模型還沒裝好…」→ App 照常改用 Gemini。
+- Gemini：`hak` 時提示詞加「客語（某某腔），逐字稿用台灣繁體華語寫出意思，不用客語拼音」。
 
 - 主頁錄音鍵上方一個二選一（記在 `speech_lang`）；新錄音、通話、匯入、手錶送來的錄音建立時，存當下的選擇到 `Meeting.lang`。
 - 錄音詳情頁也有同一個選擇：已有報告時換語言 → 先確認 →「用新語言重新產生」（舊報告會被取代）。這是給使用者 A/B 對照用的。
@@ -216,7 +225,8 @@ iOS 新增 / 確定的欄位，Android 建議同名，以後資料可以互通�
 |---|---|
 | `source` | `watch` / `phone` / `call` / `import`（飲食用 id 前綴 `food_` 判斷） |
 | `device` | 錄 / 匯入的裝置名字（手錶錄的沒有）；舊資料沒有這欄 |
-| `lang` | 辨識語言 `zh`（國語）/ `nan`（台語・國台語）；舊資料沒有這欄＝國語 |
+| `lang` | 辨識語言 `zh`（國語）/ `nan`（台語・國台語）/ `hak`（客語）；舊資料沒有這欄＝國語 |
+| `dialect` | 客語腔調（`lang` = `hak` 時）：`sixian` / `hailu` / `dapu` / `raoping` / `zhaoan` / `nansixian` |
 | `aiModel` | 例 `local-funasr|qwen3-8b`、`local-text|qwen3-8b`、`gemini-3.8-flash` |
 | `engineNote` | 為什麼改用別的引擎（科技模式顯示） |
 | `titleEdited` | 使用者改過標題，AI 不再覆蓋 |
