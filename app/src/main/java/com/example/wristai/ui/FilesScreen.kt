@@ -33,19 +33,21 @@ import kotlinx.coroutines.withContext
 import java.io.File
 
 /**
- * 「檔案管理」页（设定里的子页面，不跟设定挤在同一页）：
+ * 「檔案」分页（底部导览列第 4 个，不放在设定里）：
  * 手机上的录音占多少空间，以及 Google 云端硬碟备份 / 取回（[BackupSection]）。
  */
 @Composable
-fun FilesScreen(onBack: () -> Unit) {
-    BackHandler(onBack = onBack)
+fun FilesScreen(onBack: (() -> Unit)? = null) {
+    if (onBack != null) BackHandler(onBack = onBack)
     val context = LocalContext.current
     val meetings by MeetingStore.meetings.collectAsState()
     var usage by remember { mutableStateOf<Usage?>(null) }
     LaunchedEffect(meetings.size) { usage = withContext(Dispatchers.IO) { usage(MeetingStore.rootDir(context)) } }
 
     Column(Modifier.fillMaxSize()) {
-        TopBar("檔案管理", onBack)
+        if (onBack != null) TopBar("檔案管理", onBack)
+        else Text("檔案管理", style = MaterialTheme.typography.headlineSmall, color = Brand.Text,
+            modifier = Modifier.padding(start = 20.dp, top = 12.dp, bottom = 8.dp))
         Column(
             Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -64,30 +66,6 @@ fun FilesScreen(onBack: () -> Unit) {
 
             BackupSection()
             Spacer(Modifier.height(24.dp))
-        }
-    }
-}
-
-/** 设定页里的入口：「檔案管理 ›」，显示备份状态。 */
-@Composable
-fun FilesEntry(onOpen: () -> Unit) {
-    val context = LocalContext.current
-    val status by DriveBackup.status.collectAsState()
-    SectionLabel("檔案管理")
-    GlassCard(onClick = onOpen) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text("檔案管理與雲端備份", style = MaterialTheme.typography.titleMedium, color = Brand.Text)
-                Text(
-                    when {
-                        status.running -> status.text ?: "備份中…"
-                        DriveBackup.linked(context) -> "已連結 Google 雲端硬碟" + (DriveBackup.email(context)?.let { "（$it）" } ?: "")
-                        else -> "手機上的空間、備份到 Google 雲端硬碟、從雲端取回"
-                    },
-                    style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted,
-                )
-            }
-            Text("›", style = MaterialTheme.typography.headlineSmall, color = Brand.TextFaint)
         }
     }
 }

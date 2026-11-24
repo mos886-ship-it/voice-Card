@@ -39,6 +39,8 @@ enum class Tab(val route: String, val label: String) {
     HOME("tab:home", "主頁"),
     RECORDS("tab:records", "錄音"),
     FOOD("tab:food", "飲食"),
+    /** 檔案管理：手机上的空间、Google 云端硬碟备份 / 取回（自己一个分页，不放在设定里）。 */
+    FILES("tab:files", "檔案"),
     SETTINGS("tab:settings", "設定"),
 }
 
@@ -74,6 +76,7 @@ private fun NavItem(tab: Tab, selected: Boolean, onClick: () -> Unit) {
                 Tab.HOME -> Icon(Icons.Filled.Home, null, tint = tint, modifier = Modifier.size(20.dp))
                 Tab.RECORDS -> Waveform(Modifier.size(width = 20.dp, height = 16.dp), tint)
                 Tab.FOOD -> BowlGlyph(tint)
+                Tab.FILES -> FolderGlyph(tint)
                 Tab.SETTINGS -> Icon(Icons.Filled.Settings, null, tint = tint, modifier = Modifier.size(20.dp))
             }
         }
@@ -83,6 +86,19 @@ private fun NavItem(tab: Tab, selected: Boolean, onClick: () -> Unit) {
 }
 
 /** 饮食图示：一个碗 + 两缕热气。 */
+@Composable
+private fun FolderGlyph(color: Color) {
+    Canvas(Modifier.size(20.dp)) {
+        val w = size.width
+        val h = size.height
+        val s = 2.dp.toPx()
+        val r = androidx.compose.ui.geometry.CornerRadius(2.dp.toPx())
+        // 资料夹：上面的小签＋外框（空心，跟其他分页的线条图示一致）
+        drawRoundRect(color, Offset(w * 0.06f, h * 0.14f), Size(w * 0.38f, h * 0.22f), r)
+        drawRoundRect(color, Offset(w * 0.06f, h * 0.26f), Size(w * 0.88f, h * 0.60f), r, style = Stroke(s))
+    }
+}
+
 @Composable
 private fun BowlGlyph(color: Color) {
     Canvas(Modifier.size(20.dp)) {
