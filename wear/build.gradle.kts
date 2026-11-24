@@ -3,6 +3,21 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+
+/**
+ * 大D 的版本号（手机、手表一样）：
+ * - versionName = gradle.properties 的 dylanVersion ＋ 第几个 commit，例如 1.1.63（设定 →「關於與授權」看得到）；
+ * - versionCode = commit 数，每次提交自动加一，不会再忘记更新。
+ * 改大版本（1.1 → 1.2）只要改 gradle.properties。没有 git 时退回 1。
+ */
+val dylanBuild: Int = runCatching {
+    providers.exec {
+        commandLine("git", "rev-list", "--count", "HEAD")
+        isIgnoreExitValue = true
+    }.standardOutput.asText.get().trim().toIntOrNull()
+}.getOrNull() ?: 1
+val dylanVersion: String = (findProperty("dylanVersion") as String?) ?: "1.0"
+
 android {
     namespace = "com.example.wristai.wear"
     compileSdk {
@@ -14,8 +29,8 @@ android {
         applicationId = "com.example.wristai"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = dylanBuild
+        versionName = "$dylanVersion.$dylanBuild"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
