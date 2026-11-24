@@ -231,7 +231,7 @@ private struct SearchField: View {
     }
 }
 
-private struct FilterChip: View {
+struct FilterChip: View {
     let text: String
     let selected: Bool
     let action: () -> Void

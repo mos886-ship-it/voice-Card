@@ -65,6 +65,13 @@ final class MeetingStore: ObservableObject {
         }
     }
 
+    /// 只刪錄音檔（含分段），報告與逐字稿留著（「檔案」分頁）。
+    func deleteAudio(_ id: String) {
+        try? FileManager.default.removeItem(at: Self.audioURL(id))
+        try? FileManager.default.removeItem(at: Self.segmentsDir(id))
+        reload()
+    }
+
     func delete(_ id: String) {
         // 還在大D的主機排隊 / 處理中：通知主機丟掉，不占別人的位置
         if let job = Self.hostJob(id) { Task { await LocalAI.deleteJob(job) } }

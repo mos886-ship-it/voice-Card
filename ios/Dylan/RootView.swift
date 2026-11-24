@@ -1,14 +1,15 @@
 import SwiftUI
 
-/// 底部分頁（照 Android `ui/BottomNav.kt`）：主頁 / 錄音 / 飲食 / 設定，從詳情返回回到原分頁。
+/// 底部分頁（照 Android `ui/BottomNav.kt`）：主頁 / 錄音 / 飲食 / 檔案 / 設定（五個平分寬度），從詳情返回回到原分頁。
 enum Tab: String, CaseIterable {
-    case home, records, food, settings
+    case home, records, food, files, settings
 
     var label: String {
         switch self {
         case .home: return "主頁"
         case .records: return "錄音"
         case .food: return "飲食"
+        case .files: return "檔案"
         case .settings: return "設定"
         }
     }
@@ -29,6 +30,7 @@ struct RootView: View {
                     case .home: DashboardView(open: open, select: select, toast: $toast)
                     case .records: RecordsView(open: open, toast: $toast)
                     case .food: FoodView(toast: $toast)
+                    case .files: FilesView(open: open, toast: $toast)
                     case .settings: SettingsView()
                     }
                 }
@@ -70,7 +72,7 @@ struct BottomNav: View {
                         .frame(maxWidth: .infinity)
                 }
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, 4)
             .frame(maxWidth: 560)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 8)
@@ -93,7 +95,7 @@ private struct NavItem: View {
                     if selected { Capsule().fill(Brand.accent) }
                     icon(tint)
                 }
-                .frame(width: 56, height: 30)
+                .frame(maxWidth: 56).frame(height: 30)
                 Text(tab.label).font(.labelMedium).foregroundStyle(selected ? Brand.text : Brand.textMuted)
             }
             .contentShape(Rectangle())
@@ -108,6 +110,7 @@ private struct NavItem: View {
         case .home: Image(systemName: "house.fill").font(.system(size: 17)).foregroundStyle(tint)
         case .records: Waveform(color: tint).frame(width: 20, height: 16)
         case .food: BowlGlyph(color: tint).frame(width: 20, height: 20)
+        case .files: Image(systemName: "folder.fill").font(.system(size: 17)).foregroundStyle(tint)
         case .settings: Image(systemName: "gearshape.fill").font(.system(size: 17)).foregroundStyle(tint)
         }
     }

@@ -40,7 +40,7 @@ bash local-ai/setup.sh
 ### 多人共用：工作佇列與管理者（2026-11-24，`jobs.py`）
 
 - 主機一次只能處理一筆。`POST /v1/jobs`（標頭、body 同 `/v1/process`）收完檔就回 202 `{"id", "state": "queued", "ahead", "wait_sec"}`；
-  `GET /v1/jobs/<id>` 查 `queued|running|done|error`，做完多 `text`、`model`；拿到後 `DELETE /v1/jobs/<id>`。`GET /v1/jobs` 列出自己的。
+  `GET /v1/jobs/<id>` 查 `queued|running|done|error`，做完多 `text`、`model`；拿到後 `DELETE /v1/jobs/<id>`。加 `?wait=秒`（最多 1500）會等到做完或逾時才回（iPhone 背景用）。`GET /v1/jobs` 列出自己的。
 - **每台裝置輪流**：最久沒輪到的裝置先，一個人一次送 10 筆不會卡住別人。每台最多排 20 筆；硬碟剩不到 1 GB 不收（503）。
 - 工作存在 `~/dylan-local/jobs/<id>/`（權限 700），錄音做完就刪、結果沒人拿 24 小時後刪；**服務重開會接著做**沒做完的。
 - 預估等待：照錄音長度 × 實測速度（`jobs/stats.json` 會自己學）。health 也回 `queue`、`ahead`、`wait_sec`，App 送出前就知道要排多久。

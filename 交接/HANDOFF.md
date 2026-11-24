@@ -322,3 +322,14 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 
 新錄音編號 = `[food_|imp_|call_]yyyyMMdd_HHmmss_<裝置代碼>`，例 `20261125_001317_gt24`。裝置代碼是每台裝置（手機、手錶各一）第一次用時隨機產生的 4 碼（shared `RecordingIds`，存在 prefs `dylan_ids`）。目的：多台裝置共用 Google 雲端硬碟備份時不會撞號互相覆蓋。舊編號照用；`RecordingIds.timeOf` 新舊都認得（SegmentAssembler 用它推錄音時間）。手錶分段檔名用 `__` 分隔，不受影響。單元測試 `RecordingIdsTest`。iOS 之後也要用同一格式。
 
+
+## iOS 跟上：佇列、管理者、裝置代碼、飲食語言、「檔案」分頁（2026-11-25，Mac mini）
+
+- **大D的主機已部署**新版（`server.py`、`pairing.py`、`jobs.py`），`jobs_test.py` 10/10；真主機用 `/v1/jobs` 跑一筆真錄音：排隊 → 完成（`purged=true`）→ DELETE。原本配對的兩台都自動是管理者。
+- **主機小改**：`GET /v1/jobs/<id>?wait=秒`（最多 1500）會等到做完或逾時才回。iPhone 在背景只能用系統的背景下載任務，沒辦法每幾秒查一次，所以用長等待拿結果；不帶 `wait` 跟以前一樣馬上回（Android 不受影響）。
+- **錄音編號**：`RecordingID.make(prefix:)` = `[food_|imp_|call_]yyyyMMdd_HHmmss_<4碼>`，代碼存在各自的 UserDefaults（iPhone、Apple Watch 各一組）。匯入改加 `imp_`；通話錄音（廣播擴充寫的資料夾名還是時間）收進來時改成 `call_…_<代碼>`。`RecordingID.date(of:)` 新舊格式都認得。
+- **佇列**（`LocalAI`、`GeminiJobs`）：health 有 `jobs` → 背景上傳到 `/v1/jobs`，工作編號存 `host_job.txt`，用背景下載任務查 `?wait=20`（App 在前景）/ `?wait=1500`（背景）；App 被停掉 / 強制關閉後重開，有 `host_job.txt` 就接著查、不重傳；主機回 404 重送一次；連不到超過 15 分鐘改用 Gemini / Apple；做完 DELETE。分析中的說明顯示「排隊中：前面還有 N 筆，約 X 分鐘」。報告「基本資料」多「隱私」行（`Meeting.hostCleanup`，文字跟 Android `cleanupText` 一樣；舊主機也寫「都已刪除」）。刪除還在排隊的錄音會通知主機丟掉。
+- **管理者**：health / devices 回 `admin=false` 時，設定頁不顯示配對密碼、模型選單、裝置清單，多一行說明；管理者在裝置清單（科技模式）可「設管理者／改一般」。
+- **飲食語言**：飲食頁「記錄這一餐」上方 國語／台語・國台語／客語＋腔調（跟主頁同一個設定）；飲食詳情頁本來就能換語言重新產生；Gemini 飲食也帶台語／客語說明（同一個 prompt）。台語、客語的飲食不走 Apple 裝置上的模型（聽不懂）。
+- **「檔案」分頁**（`FilesView.swift`）：摘要、雲端備份卡（目前寫「準備中」）、全部／錄音／飲食篩選、每筆大小；點一筆：打開、分享錄音檔（m4a）、只刪錄音檔（保留報告）、刪除整筆，刪除前都確認。底部五個分頁平分寬度。
+- **驗證**：模擬器配真主機：匯入一段錄音 → `imp_20261125_003533_9pgp` → 主機佇列 → 完成 → 主機上那筆已刪、報告有「隱私」行；「檔案」分頁、只刪錄音檔、飲食頁語言選擇看過。**未做**：Google 雲端硬碟備份（要先在 Google Cloud 建 iOS OAuth 用戶端）；真機上背景長等待；Apple Watch 錄音的新編號只編譯過、沒實測。
