@@ -19,10 +19,12 @@ import javax.crypto.spec.GCMParameterSpec
  * 大D的主機：使用者自己的电脑跑 AI（语音辨识＋分说话者＋报告），免费、录音不出使用者的设备。
  * 服务在 repo 的 `local-ai/`（Mac 上 `~/dylan-local/`），API 跟 iOS 版 `LocalAI.swift` 同一组：
  *
- * - GET  /v1/health → {ok, asr, llm, asr_id, llm_id, model, state: ready|loading|error, error, busy}
+ * - GET  /v1/health → {ok, asr, llm, asr_id, llm_id, model, state: ready|loading|error, error, busy,
+ *                      admin, jobs, queue, ahead, wait_sec}（后面几个是新版主机才有）
  * - GET  /v1/models → health ＋ asr_options / llm_options（[{id, label}]）
- * - POST /v1/config {"asr", "llm"} → 202，背景换模型
- * - POST /v1/process 录音（或 X-Input: text 的文字）→ 处理期间每 20 秒送空白，最后 {"text", "model"} 或 {"error"}
+ * - POST /v1/config {"asr", "llm"} → 202，背景换模型（只有管理者，不是 → 403）
+ * - 工作伫列（多人共用一台主机，新版）：POST /v1/jobs 送出马上拿到编号 → GET /v1/jobs/<id> 查排队 / 结果 → DELETE 删掉
+ * - POST /v1/process 录音（或 X-Input: text 的文字）→ 处理期间每 20 秒送空白，最后 {"text", "model"} 或 {"error"}（旧主机用）
  *
  * text 的格式跟 Gemini 输出一样（TITLE / SUMMARY＋报告＋===TRANSCRIPT===＋逐字稿），直接用 Gemini 的解析。
  * 位址存设定档；存取码用 Android Keystore 加密后才存。
@@ -88,11 +90,18 @@ object LocalHost {
     data class Health(
         val ok: Boolean, val asr: String?, val llm: String?, val model: String?,
         val state: String?, val error: String?, val busy: Boolean,
+        /** 这台是不是主机的管理者（旧主机没有这栏 → 当成是，跟以前一样什么都能改）。 */
+        val admin: Boolean = true,
+        /** 主机有工作伫列（POST /v1/jobs）；旧主机 → false，改用 /v1/process。 */
+        val jobs: Boolean = false,
+        /** 现在送的话前面有几笔、大约要等几秒。 */
+        val ahead: Int = 0, val waitSec: Int = 0,
     )
     data class Option(val id: String, val label: String)
     data class Models(
         val asrId: String?, val llmId: String?, val state: String?, val model: String?,
         val asrOptions: List<Option>, val llmOptions: List<Option>,
+        val admin: Boolean = true,
     )
 
     private fun open(c: Context, base: String, token: String, path: String, method: String, readTimeoutMs: Int): HttpURLConnection =
@@ -136,6 +145,8 @@ object LocalHost {
             ok = j.optBoolean("ok"), asr = j.optString("asr").ifBlank { null }, llm = j.optString("llm").ifBlank { null },
             model = j.optString("model").ifBlank { null }, state = j.optString("state").ifBlank { null },
             error = j.optString("error").ifBlank { null }, busy = j.optBoolean("busy"),
+            admin = j.optBoolean("admin", true), jobs = j.optBoolean("jobs"),
+            ahead = j.optInt("ahead"), waitSec = j.optInt("wait_sec"),
         ).also { if (it.state != "loading") rememberTag(c, it.model) }
     }
 
@@ -154,6 +165,7 @@ object LocalHost {
             asrId = j.optString("asr_id").ifBlank { null }, llmId = j.optString("llm_id").ifBlank { null },
             state = j.optString("state").ifBlank { null }, model = j.optString("model").ifBlank { null },
             asrOptions = opts(j.optJSONArray("asr_options")), llmOptions = opts(j.optJSONArray("llm_options")),
+            admin = j.optBoolean("admin", true),
         ).also { if (it.state != "loading") rememberTag(c, it.model) }
     }
 
@@ -239,8 +251,10 @@ object LocalHost {
         throw AiException(last)
     }
 
-    data class Device(val id: String, val name: String, val created: Long, val lastSeen: Long?, val via: String?, val current: Boolean)
-    data class Devices(val devices: List<Device>, val passwordSet: Boolean)
+    data class Device(val id: String, val name: String, val created: Long, val lastSeen: Long?, val via: String?, val current: Boolean,
+                      val admin: Boolean = false)
+    /** [admin] = 这台是不是管理者（一般装置只看得到自己，不能改密码、不能取消别台）。 */
+    data class Devices(val devices: List<Device>, val passwordSet: Boolean, val admin: Boolean = true)
 
     fun devices(c: Context): Devices {
         val (code, body) = try {
@@ -253,9 +267,16 @@ object LocalHost {
         return Devices((0 until a.length()).map { i ->
             a.getJSONObject(i).let {
                 Device(it.optString("id"), it.optString("name"), it.optLong("created"),
-                    if (it.isNull("last_seen")) null else it.optLong("last_seen"), it.optString("via").ifBlank { null }, it.optBoolean("current"))
+                    if (it.isNull("last_seen")) null else it.optLong("last_seen"), it.optString("via").ifBlank { null }, it.optBoolean("current"),
+                    it.optBoolean("admin"))
             }
-        }, j.optBoolean("password_set"))
+        }, j.optBoolean("password_set"), j.optBoolean("admin", true))
+    }
+
+    /** 指定 / 取消别台当管理者（只有管理者能做；至少要留一台管理者，主机会挡）。 */
+    fun setAdmin(c: Context, id: String, admin: Boolean) {
+        val (code, body) = authedPost(c, "/v1/devices/admin", JSONObject().put("id", id).put("admin", admin))
+        if (code != 200) throw AiException(if (code == 401) errorOf(code, body) else jsonError(body, errorOf(code, body)))
     }
 
     fun revoke(c: Context, id: String) {
@@ -304,6 +325,92 @@ object LocalHost {
 
     data class Result(val text: String, val model: String)
 
+    // ---------------- 工作伫列（新版主机：多人共用时排队、轮流） ----------------
+
+    /** 主机上一笔工作的状态。state = queued / running / done / error。 */
+    data class Job(
+        val id: String, val state: String, val ahead: Int = 0, val waitSec: Int = 0,
+        val text: String? = null, val model: String? = null, val error: String? = null,
+    )
+
+    /** 主机找不到这笔工作（过期被删、被取消、主机换了）→ 要重新送。 */
+    class JobGone : Exception()
+
+    private fun parseJob(body: String): Job {
+        val j = runCatching { JSONObject(body.trim()) }.getOrElse { throw AiException("大D的主機回應看不懂：${body.trim().take(120)}") }
+        return Job(
+            id = j.optString("id"), state = j.optString("state"), ahead = j.optInt("ahead"), waitSec = j.optInt("wait_sec"),
+            text = j.optString("text").ifBlank { null }, model = j.optString("model").ifBlank { null },
+            error = j.optString("error").ifBlank { null },
+        )
+    }
+
+    /** 录音 / 文字的上传连线（/v1/jobs 跟旧的 /v1/process 一样的标头）。 */
+    private fun uploadConn(c: Context, path: String, kind: String, recordedAt: String, durationSec: Double,
+                           audio: File?, bytes: ByteArray?, lang: String?, dialect: String?, readTimeoutMs: Int): HttpURLConnection =
+        open(c, url(c), token(c), path, "POST", readTimeoutMs).apply {
+            connectTimeout = 15_000
+            doOutput = true
+            setRequestProperty("X-Kind", kind)
+            setRequestProperty("X-Recorded-At", recordedAt.filter { it.code in 32..126 })
+            setRequestProperty("X-Duration", durationSec.toInt().toString())
+            if (bytes != null) {
+                setRequestProperty("X-Input", "text")
+                setRequestProperty("Content-Type", "text/plain; charset=utf-8")
+                setFixedLengthStreamingMode(bytes.size)
+            } else {
+                // 国语 → FunASR；台语・国台语 → Breeze-ASR-26；客语 → Taiwan Tongues / 阳明交大客语 Whisper（加腔调）
+                lang?.let { setRequestProperty("X-Lang", it) }
+                dialect?.let { setRequestProperty("X-Dialect", it) }
+                setRequestProperty("Content-Type", "audio/m4a")
+                setFixedLengthStreamingMode(audio!!.length())
+            }
+        }
+
+    /** 送进主机的伫列：传完马上回来（不等处理），拿到工作编号和前面还有几笔。 */
+    fun submit(c: Context, kind: String, recordedAt: String, durationSec: Double, audio: File? = null, text: String? = null,
+               lang: String? = null, dialect: String? = null): Job {
+        val bytes = text?.toByteArray(Charsets.UTF_8)
+        val (code, body) = try {
+            val conn = uploadConn(c, "/v1/jobs", kind, recordedAt, durationSec, audio, bytes, lang, dialect, 60_000)
+            try {
+                conn.outputStream.use { out -> if (bytes != null) out.write(bytes) else audio!!.inputStream().use { it.copyTo(out, 64 * 1024) } }
+                read(conn)
+            } finally { conn.disconnect() }
+        } catch (e: AiException) { throw e } catch (e: Exception) { throw unreachable(e) }
+        if (code != 202 && code != 200) throw AiException(errorOf(code, body))
+        return parseJob(body).also { if (it.id.isBlank()) throw AiException("大D的主機沒有給工作編號") }
+    }
+
+    /** 查一笔工作。找不到 → [JobGone]；连不到 → [Unreachable]（暂时的，等一下再查）。 */
+    fun job(c: Context, id: String): Job {
+        val (code, body) = try {
+            val conn = open(c, url(c), token(c), "/v1/jobs/$id", "GET", 15_000)
+            try { read(conn) } finally { conn.disconnect() }
+        } catch (e: Exception) { throw Unreachable(unreachable(e).message!!) }
+        if (code == 404) throw JobGone()
+        if (code != 200) throw AiException(errorOf(code, body))
+        return parseJob(body).also { j -> if (j.state == "done") rememberTag(c, j.model) }
+    }
+
+    /** 删掉主机上的这笔（拿到结果后、或使用者中断时）。失败不要紧，主机 24 小时后会自己删。 */
+    fun deleteJob(c: Context, id: String) {
+        runCatching {
+            val conn = open(c, url(c), token(c), "/v1/jobs/$id", "DELETE", 10_000)
+            try { read(conn) } finally { conn.disconnect() }
+        }
+    }
+
+    /** 「前面還有 2 筆，約 6 分鐘」：给处理步骤和手表看。 */
+    fun queueText(ahead: Int, waitSec: Int): String {
+        val wait = when {
+            waitSec < 60 -> "不到 1 分鐘"
+            waitSec < 3600 -> "約 ${(waitSec + 59) / 60} 分鐘"
+            else -> "約 ${waitSec / 3600} 小時 ${(waitSec % 3600 + 59) / 60} 分"
+        }
+        return if (ahead <= 0) "輪到你了，$wait" else "排隊中：前面還有 $ahead 筆，$wait"
+    }
+
     /**
      * 送录音（[audio]）或文字（[text]）给主机产生报告。[kind] = meeting / food。
      * [recordedAt] 只能是 ASCII（例 2026/11/23 21:20）。会等很久：主机每 20 秒送一个空白防逾时。
@@ -313,25 +420,7 @@ object LocalHost {
                 onUploaded: () -> Unit = {}): Result {
         val bytes = text?.toByteArray(Charsets.UTF_8)
         val (code, body) = try {
-            val conn = open(c, url(c), token(c), "/v1/process", "POST", readTimeoutMs = 3 * 60_000).apply {
-                connectTimeout = 15_000
-                doOutput = true
-                setRequestProperty("X-Kind", kind)
-                setRequestProperty("X-Recorded-At", recordedAt.filter { it.code in 32..126 })
-                setRequestProperty("X-Duration", durationSec.toInt().toString())
-                if (bytes != null) {
-                    setRequestProperty("X-Input", "text")
-                    setRequestProperty("Content-Type", "text/plain; charset=utf-8")
-                    setFixedLengthStreamingMode(bytes.size)
-                } else {
-                    // 国语 → FunASR；台语・国台语 → Breeze-ASR-26（文字输入不用带）
-                    // 国语 → FunASR；台语 → Breeze-ASR-26；客语 → 阳明交大客语 Whisper（加腔调）
-                    lang?.let { setRequestProperty("X-Lang", it) }
-                    dialect?.let { setRequestProperty("X-Dialect", it) }
-                    setRequestProperty("Content-Type", "audio/m4a")
-                    setFixedLengthStreamingMode(audio!!.length())
-                }
-            }
+            val conn = uploadConn(c, "/v1/process", kind, recordedAt, durationSec, audio, bytes, lang, dialect, 3 * 60_000)
             try {
                 conn.outputStream.use { out -> if (bytes != null) out.write(bytes) else audio!!.inputStream().use { it.copyTo(out, 64 * 1024) } }
                 onUploaded()

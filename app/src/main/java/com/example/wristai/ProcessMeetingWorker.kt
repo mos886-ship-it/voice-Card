@@ -16,7 +16,10 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.example.voiceai.shared.MeetingSummary
+import com.example.wristai.ai.AiException
+import com.example.wristai.ai.LocalHost
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.text.SimpleDateFormat
@@ -45,9 +48,21 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
         const val STEP_HOST_UP = "上傳到大D的主機"
         const val STEP_HOST_AI = "大D的主機整理"
 
+        /** 送进大D的主机伫列的工作编号（Worker 被系统停掉、App 重开后接着查，不用重传）。 */
+        fun hostJobFile(context: Context, id: String) = File(MeetingStore.dir(context, id), "host_job.txt")
+
+        /** 主机连不到多久就放弃、改用别的引擎（短暂断线 / 主机重开机都会等）。 */
+        private const val HOST_GONE_MS = 15 * 60_000L
+
         /** 中断处理：停掉背景任务，标成「已中断」（按「重试」可以接着做）。 */
         fun cancel(context: Context, meetingId: String) {
             WorkManager.getInstance(context).cancelUniqueWork("meeting-$meetingId")
+            // 在大D的主机排队中 / 处理中：通知主机丢掉（不占别人的位置）；按「重試」会重新送
+            hostJobFile(context, meetingId).takeIf { it.exists() }?.let { f ->
+                val jid = f.readText().trim()
+                f.delete()
+                if (jid.isNotEmpty()) Thread { com.example.wristai.ai.LocalHost.deleteJob(context, jid) }.start()
+            }
             MeetingStore.update(context, meetingId) {
                 it.copy(status = MeetingStatus.FAILED, error = CANCELED, stepDetail = null, processEndedAt = System.currentTimeMillis())
             }
@@ -436,16 +451,30 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
             // 长录音在主机上可能超过 10 分钟：升成前台工作，避免被系统中途停掉
             runCatching { setForeground(getForegroundInfo()) }
             val res = withContext(Dispatchers.IO) {
-                host.health(ctx)   // 5 秒：连不到就马上改用别的引擎，不要卡在上传
-                val compact = File(ctx.cacheDir, "local_$id.m4a")
-                try {
-                    VoiceRecorderExporter.encodeM4a(MeetingStore.audioFile(ctx, id), compact, outRate = 16_000, bitRate = 32_000)
-                    host.process(ctx, if (food) "food" else "meeting", asciiAt, meeting.durationSec, audio = compact,
-                        lang = SpeechLang.of(meeting.lang).code,
-                        dialect = if (SpeechLang.of(meeting.lang) == SpeechLang.HAK) HakkaDialect.of(meeting.dialect).code else null,
-                        onUploaded = { stepTo(id, lastStep, "大D的主機") })
-                } finally {
-                    compact.delete()
+                val h = host.health(ctx)   // 5 秒：连不到就马上改用别的引擎，不要卡在上传
+                val lang = SpeechLang.of(meeting.lang).code
+                val dialect = if (SpeechLang.of(meeting.lang) == SpeechLang.HAK) HakkaDialect.of(meeting.dialect).code else null
+                val jobFile = hostJobFile(ctx, id)
+                if (!h.jobs && !jobFile.exists()) {
+                    // 旧版主机：连着等结果
+                    val compact = File(ctx.cacheDir, "local_$id.m4a")
+                    try {
+                        VoiceRecorderExporter.encodeM4a(MeetingStore.audioFile(ctx, id), compact, outRate = 16_000, bitRate = 32_000)
+                        host.process(ctx, if (food) "food" else "meeting", asciiAt, meeting.durationSec, audio = compact,
+                            lang = lang, dialect = dialect, onUploaded = { stepTo(id, lastStep, "大D的主機") })
+                    } finally {
+                        compact.delete()
+                    }
+                } else hostJob(id, node, food, lastStep, jobFile) {
+                    val compact = File(ctx.cacheDir, "local_$id.m4a")
+                    try {
+                        stepTo(id, STEP_HOST_UP, if (h.ahead > 0) host.queueText(h.ahead, h.waitSec) else "大D的主機")
+                        VoiceRecorderExporter.encodeM4a(MeetingStore.audioFile(ctx, id), compact, outRate = 16_000, bitRate = 32_000)
+                        host.submit(ctx, if (food) "food" else "meeting", asciiAt, meeting.durationSec, audio = compact,
+                            lang = lang, dialect = dialect)
+                    } finally {
+                        compact.delete()
+                    }
                 }
             }
             val (report, transcript) = GeminiReportGenerator("").parse(res.text)
@@ -479,6 +508,11 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
             if (isStopped) return Result.failure()   // 使用者按了「中断处理」
             val why = e.message ?: e.javaClass.simpleName
             Log.w(TAG, "$id: local host failed: $why")
+            // 改用别的引擎 / 标失败：主机上排着的那笔就不要了
+            hostJobFile(ctx, id).takeIf { it.exists() }?.let { f ->
+                f.readText().trim().takeIf { it.isNotEmpty() }?.let { jid -> withContext(Dispatchers.IO) { host.deleteJob(ctx, jid) } }
+                f.delete()
+            }
             if (fallback != null) {
                 MeetingStore.update(ctx, id) { it.copy(engineNote = why.trimEnd('。') + "。這次改用 $fallback。") }
                 if (before.isNotEmpty() && !food) plan(id, before)
@@ -488,6 +522,69 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
                 WatchNotifier.sendStatus(ctx, node, "處理失敗：$why（可在手機上重試）")
                 Result.failure()
             }
+        }
+    }
+
+    /**
+     * 新版主机：送进伫列（[submit]）→ 每 5 秒查一次排队 / 处理进度（处理步骤显示「前面還有 N 筆」，有变才通知手表）
+     * → 做完拿结果、删掉主机上的那笔。工作编号存在 [jobFile]：Worker 被停掉再跑时接着查，不重传。
+     * 主机找不到这笔（过期 / 主机换了）就重送一次；连不到超过 15 分钟才放弃。
+     */
+    private suspend fun hostJob(id: String, node: String?, food: Boolean, lastStep: String, jobFile: File,
+                                submit: () -> LocalHost.Job): LocalHost.Result {
+        val host = com.example.wristai.ai.LocalHost
+        var jid = jobFile.takeIf { it.exists() }?.readText()?.trim()?.ifEmpty { null }
+        var resent = false
+        var lastSaid = ""
+        var unreachableSince = 0L
+        while (true) {
+            if (jid == null) {
+                val j = submit()
+                jid = j.id
+                jobFile.writeText(j.id)
+            }
+            val j = try {
+                host.job(ctx, jid).also { unreachableSince = 0L }
+            } catch (e: LocalHost.JobGone) {
+                jobFile.delete()
+                if (resent) throw AiException("大D的主機找不到這筆工作")
+                resent = true
+                jid = null
+                continue
+            } catch (e: LocalHost.Unreachable) {
+                val now = System.currentTimeMillis()
+                if (unreachableSince == 0L) unreachableSince = now
+                if (now - unreachableSince > HOST_GONE_MS) throw AiException(e.message ?: "連不到大D的主機")
+                stepTo(id, lastStep, "暫時連不到大D的主機，等它回來…")
+                delay(15_000)
+                continue
+            }
+            when (j.state) {
+                "done" -> {
+                    host.deleteJob(ctx, jid)
+                    jobFile.delete()
+                    return LocalHost.Result(j.text ?: throw AiException("大D的主機沒有回傳報告"), j.model ?: host.DEFAULT_TAG)
+                }
+                "error" -> {
+                    host.deleteJob(ctx, jid)
+                    jobFile.delete()
+                    throw AiException(j.error ?: "大D的主機處理失敗")
+                }
+                "queued" -> {
+                    val say = host.queueText(j.ahead, j.waitSec)
+                    stepTo(id, lastStep, say)
+                    // 手表只在「前面还有几笔」变了才通知（不要每 5 秒震一次）
+                    val brief = if (j.ahead > 0) "大D的主機排隊中，前面還有 ${j.ahead} 筆" else ""
+                    if (brief.isNotEmpty() && brief != lastSaid) WatchNotifier.sendStatus(ctx, node, brief)
+                    lastSaid = brief
+                }
+                else -> {   // running
+                    stepTo(id, lastStep, "大D的主機" + if (j.waitSec > 60) "（約 ${(j.waitSec + 59) / 60} 分鐘）" else "")
+                    if (lastSaid != "running") WatchNotifier.sendStatus(ctx, node, if (food) "大D的主機估算熱量中…" else "大D的主機整理報告中…")
+                    lastSaid = "running"
+                }
+            }
+            delay(5_000)
         }
     }
 

@@ -35,6 +35,18 @@ bash local-ai/setup.sh
 - OpenAI 相容：`POST /v1/chat/completions`（messages、max_tokens、temperature、stream），`GET /v1/models` 也回 OpenAI 格式的 `data`。用法見 `交接/HOST_CONNECT.md` 5b。
 - `POST /v1/process`：body 是錄音檔；標頭 `X-Kind: meeting|food`、`X-Recorded-At`、`X-Duration`（秒）、`X-Lang: zh|nan|hak`（國語 → FunASR；台語・國台語 → Breeze-ASR-26；客語 → 數位部 Taiwan Tongues，加 `X-Dialect: sixian|hailu|dapu|raoping|zhaoan|nansixian`；沒帶就用設定的語音模型）→ `{"text": "<Gemini 格式>", "model": "local-funasr|qwen3-8b"}`，失敗回 `{"error": "..."}`。
   處理中每 20 秒先送一個空白保持連線（6 小時的錄音估計要 30 分鐘以上，App 的連線閒置上限是 30 分鐘），所以狀態碼一律 200，成功或失敗看 JSON。
+  （舊的方式，現在也是排進下面的佇列再等結果。）
+
+### 多人共用：工作佇列與管理者（2026-11-24，`jobs.py`）
+
+- 主機一次只能處理一筆。`POST /v1/jobs`（標頭、body 同 `/v1/process`）收完檔就回 202 `{"id", "state": "queued", "ahead", "wait_sec"}`；
+  `GET /v1/jobs/<id>` 查 `queued|running|done|error`，做完多 `text`、`model`；拿到後 `DELETE /v1/jobs/<id>`。`GET /v1/jobs` 列出自己的。
+- **每台裝置輪流**：最久沒輪到的裝置先，一個人一次送 10 筆不會卡住別人。每台最多排 20 筆；硬碟剩不到 1 GB 不收（503）。
+- 工作存在 `~/dylan-local/jobs/<id>/`（權限 700），錄音做完就刪、結果沒人拿 24 小時後刪；**服務重開會接著做**沒做完的。
+- 預估等待：照錄音長度 × 實測速度（`jobs/stats.json` 會自己學）。health 也回 `queue`、`ahead`、`wait_sec`，App 送出前就知道要排多久。
+- **管理者**：主存取碼、第一台配對的裝置、加這功能前已配對的裝置。只有管理者能換模型（`/v1/config`）、改配對密碼、看全部裝置、
+  取消別台、`POST /v1/devices/admin {"id", "admin"}` 指定別台當管理者。一般裝置只看得到、只能取消自己。health 回 `admin`。
+- 測試：`python jobs_test.py`（佇列，不用模型）；`python fake_host.py --seconds 8 --password testpass123`：跑真正的 server.py、模型換成假的，任何電腦都能測 App（Android 模擬器 `adb reverse tcp:8765 tcp:8765`）。
 
 ## 手機怎麼連到
 

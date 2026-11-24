@@ -216,5 +216,5 @@ T=$(python3 -c "import json;print(json.load(open('/Users/mac/dylan-local/config.
 ## 9. 維護
 
 - **換模型**：App 科技模式「設定 → 大D的主機」的兩個選單；或改 `config.json` 的 `asr` / `llm` 後重啟服務。
-- **更新服務程式**：改 repo 的 `local-ai/server.py` → 複製到 `~/dylan-local/server.py` → 重啟服務。
+- **更新服務程式**：改 repo 的 `local-ai/server.py`（還有 `pairing.py`、`jobs.py`）→ 複製到 `~/dylan-local/` → 重啟服務。2026-11-24 起多了 `jobs.py`（工作佇列），**沒複製它服務會起不來**。
 - **重新安裝**（新主機）：`bash local-ai/setup.sh`（建 Python 環境、下載模型、裝 LaunchAgent、產生存取碼），再照第 3、4 節設定自動登入、不睡眠、路由器。

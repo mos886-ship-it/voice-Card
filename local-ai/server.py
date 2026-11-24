@@ -5,10 +5,19 @@
 App 的報告解析、說話者名字、飲食 NUTRITION 解析都直接沿用。
 
 端點（都要 Authorization: Bearer <存取碼>，存取碼在 config.json）：
-  GET  /v1/health   → {"ok": true, "asr": 名稱, "llm": 名稱, "asr_id", "llm_id", "model", "state": ready|loading|error, "busy"}
+  GET  /v1/health   → {"ok": true, "asr": 名稱, "llm": 名稱, "asr_id", "llm_id", "model", "state": ready|loading|error, "busy",
+                        "admin": 這台是不是管理者, "jobs": true（有工作佇列）, "queue": 排隊＋處理中共幾筆,
+                        "ahead": 現在送的話前面有幾筆, "wait_sec": 大約要等幾秒才輪到}
   GET  /v1/models   → health 的內容 ＋ asr_options / llm_options（[{id, label}]）
-  POST /v1/config   → {"asr": id, "llm": id}；存進 config.json，背景換模型（第一次會下載），回 202
-  POST /v1/process  → body 是錄音檔（m4a / wav…）；標頭 X-Kind: meeting|food、X-Recorded-At、X-Duration（秒）
+  POST /v1/config   → {"asr": id, "llm": id}；存進 config.json，背景換模型（第一次會下載），回 202。只有管理者（403）
+  工作佇列（多人共用時用這組，見 jobs.py；每台裝置輪流、主機重開會接著做）：
+  POST   /v1/jobs       → 標頭、body 跟 /v1/process 一樣；收完檔馬上回 202 {"id", "state": "queued", "ahead", "wait_sec"}
+                          這台排太多筆 / 主機硬碟不夠 → 503 {"error"}
+  GET    /v1/jobs/<id>  → {"id", "state": queued|running|done|error, "ahead", "wait_sec"}；
+                          done 多 "text"、"model"（同 /v1/process）；error 多 "error"。別台的工作 → 404
+  DELETE /v1/jobs/<id>  → 排隊中就取消、做完的就刪結果（App 拿到結果後要刪）；正在做的做完直接丟掉
+  GET    /v1/jobs       → {"jobs": [這台的工作狀態]}（管理者看全部）
+  POST /v1/process  → （舊的，連著等結果；也是排進同一個佇列）body 是錄音檔（m4a / wav…）；標頭 X-Kind: meeting|food、X-Recorded-At、X-Duration（秒）
                        X-Input: text 時 body 是 UTF-8 文字（匯入的會議紀錄 / 逐字稿），跳過語音辨識直接寫報告
                        X-Lang: zh（國語 → FunASR）| nan（台語・國台語 → Breeze-ASR-26）| hak（客語 → 數位部 Taiwan Tongues；
                        X-Dialect: sixian|hailu|dapu|raoping|zhaoan|nansixian 寫進報告提示，有裝陽明交大客語模型時也當模型提示）；
@@ -17,9 +26,11 @@ App 的報告解析、說話者名字、飲食 NUTRITION 解析都直接沿用�
                      （處理中每 20 秒先送一個空白保持連線，所以狀態碼一律 200，結果看 JSON）
   配對（pairing.py）：
   POST /v1/pair           → {"password": …} 或 {"code": QR 配對碼}，加 "name"（裝置名）；不用存取碼 → {"token", "id"}
-  GET  /v1/devices        → {"devices": [{id, name, created, last_seen, via, current}], "password_set"}
-  POST /v1/devices/revoke → {"id": …} 取消某台裝置
-  POST /v1/password       → {"password": …} 設定 / 更換配對密碼（至少 8 個字）
+  GET  /v1/devices        → {"devices": [{id, name, created, last_seen, via, current, admin}], "password_set", "admin"}
+                            一般裝置只看得到自己
+  POST /v1/devices/revoke → {"id": …} 取消某台裝置（一般裝置只能取消自己）
+  POST /v1/devices/admin  → {"id": …, "admin": true|false} 指定 / 取消管理者（只有管理者）
+  POST /v1/password       → {"password": …} 設定 / 更換配對密碼（至少 8 個字；只有管理者）
   GET  /pair              → 配對用的 QR 碼網頁（只給區網 / 本機）
   設定密碼也可以在主機上：venv/bin/python server.py --set-password
   OpenAI 相容（給 VPS / 其他程式用目前載入的報告模型）：
@@ -27,7 +38,7 @@ App 的報告解析、說話者名字、飲食 NUTRITION 解析都直接沿用�
                               存取碼當 API key；跟 App 的工作共用一個佇列（一次一筆）
   GET  /v1/models          → 除了上面的欄位，也有 OpenAI 的 {"object": "list", "data": [...]}
 
-一次只處理一筆（同一顆 GPU），其他請求排隊。啟動：venv/bin/python server.py（launchd 會在登入時自動啟動）。
+一次只處理一筆（同一顆 GPU），其他請求排隊（jobs.py：每台裝置輪流）。啟動：venv/bin/python server.py（launchd 會在登入時自動啟動）。
 """
 import getpass
 import ipaddress
@@ -549,19 +560,52 @@ def save_config():
     os.chmod(CONFIG, 0o600)
 
 
-def status():
+def status(dev=None):
+    """[dev] = 發請求的裝置（"main" = 主存取碼）：加上它是不是管理者、現在送的話要排多久。"""
     with BUSY_LOCK:
         n = BUSY["n"]
+    q = JOBS.preview(dev or "main")
     return {"ok": True, "asr": ASR_OPTIONS.get(CUR["asr"], {}).get("label", CUR["asr"]),
             "llm": LLM_OPTIONS.get(CUR["llm"], {}).get("label", CUR["llm"]),
             "asr_id": CUR["asr"], "llm_id": CUR["llm"], "model": model_tag(),
-            "state": CUR["state"], "error": CUR["error"], "busy": n > 0}
+            "state": CUR["state"], "error": CUR["error"], "busy": n > 0 or q["queue"] > 0,
+            "admin": PAIR.is_admin(dev), "jobs": True, **q}
 
 
 sys.path.insert(0, HERE)
 from pairing import Pairing  # noqa: E402
 
 PAIR = Pairing(CFG, save_config, log)
+
+from jobs import Jobs, QueueFull  # noqa: E402
+
+
+def run_job(j, path):
+    """佇列裡的一筆：拿 GPU 鎖處理（換模型、OpenAI 相容的請求也用這把鎖，輪流用）。"""
+    asr = j.get("asr")
+    if asr and asr not in ASR_OPTIONS:
+        asr = None
+    busy(1)
+    try:
+        with GPU:
+            if not CUR["llm_obj"]:
+                raise RuntimeError(CUR["error"] or "模型還沒載入")
+            tag = model_tag(asr)
+            if j.get("text_input"):   # 沒用到語音辨識：代號的辨識部分寫 text
+                tag = "local-text|" + tag.split("|", 1)[-1]
+            log(f"job {j['id']} {j['kind']}{' text' if j.get('text_input') else ''} {j.get('size', 0) // 1024} KB, "
+                f"{float(j.get('duration') or 0):.0f}s, asr={asr or CUR['asr']}")
+            text = process(path, j["kind"], j.get("recorded_at", ""), float(j.get("duration") or 0),
+                           bool(j.get("text_input")), asr, j.get("dialect"))
+        return {"text": text, "model": tag}
+    except Exception as e:  # noqa: BLE001
+        log(f"  failed: {e}")
+        raise RuntimeError(f"大D的主機處理失敗：{e}") from e
+    finally:
+        busy(-1)
+
+
+JOBS = Jobs(os.path.join(HERE, "jobs"), run_job, log)
 
 
 def lan_url():
@@ -626,6 +670,67 @@ class Handler(BaseHTTPRequestHandler):
             raise ValueError("too big")
         return json.loads(self.rfile.read(n) or b"{}")
 
+    def _dev(self):
+        return getattr(self, "device_id", None)
+
+    def _admin_only(self):
+        """只有管理者能做的事（換模型、改配對密碼、管別台裝置）。不是 → 回 403。"""
+        if PAIR.is_admin(self._dev()):
+            return True
+        self._json(403, {"error": "只有大D的主機的管理者可以做這件事"})
+        return False
+
+    def _upload(self):
+        """/v1/jobs、/v1/process 共用：讀標頭 → (參數, 錯誤訊息)。body 還沒讀。"""
+        try:
+            length = int(self.headers.get("Content-Length", "0") or 0)
+        except ValueError:
+            length = 0
+        if length <= 0 or length > 1_000_000_000:
+            return None, "沒有錄音檔或檔案太大"
+        asr = lang_asr(self.headers.get("X-Lang", ""))   # None → 設定頁選的
+        if asr and asr not in ASR_OPTIONS:
+            asr = None
+        dialect = self.headers.get("X-Dialect", "")   # 客語腔調：sixian / hailu / dapu / raoping / zhaoan / nansixian
+        try:
+            duration = float(self.headers.get("X-Duration", "0") or 0)
+        except ValueError:
+            duration = 0.0
+        kind = self.headers.get("X-Kind", "meeting")
+        return {"size": length, "kind": kind if kind in ("meeting", "food") else "meeting",
+                "text_input": self.headers.get("X-Input", "") == "text",
+                "recorded_at": self.headers.get("X-Recorded-At", "")[:40], "duration": duration,
+                "asr": asr, "dialect": dialect if dialect in HAKKA_DIALECTS else None}, None
+
+    def _receive(self, params):
+        """把上傳的內容寫進佇列（JOBS.submit）。"""
+        def write(path):
+            left = params["size"]
+            with open(path, "wb") as f:
+                while left > 0:
+                    buf = self.rfile.read(min(1 << 20, left))
+                    if not buf:
+                        raise ConnectionError("上傳中斷")
+                    f.write(buf)
+                    left -= len(buf)
+        return JOBS.submit(self._dev() or "main", params, write)
+
+    def _jobs_post(self):
+        params, err = self._upload()
+        if err:
+            return self._json(400, {"error": err})
+        try:
+            j = self._receive(params)
+        except QueueFull as e:
+            return self._json(503, {"error": str(e)})
+        except (ConnectionError, OSError) as e:
+            log(f"  upload failed: {e}")
+            return
+        self._json(202, JOBS.view(j))
+
+    def _job_id(self):
+        return self.path.split("?")[0][len("/v1/jobs/"):]
+
     def _local_only(self):
         """配對頁只給區網 / 本機：從外面（經路由器轉埠）看不到 QR 碼。"""
         try:
@@ -649,17 +754,27 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/v1/devices":
             if not self._authorized():
                 return
-            return self._json(200, {"devices": PAIR.devices(getattr(self, "device_id", None)),
-                                    "password_set": PAIR.has_password})
+            return self._json(200, {"devices": PAIR.devices(self._dev()),
+                                    "password_set": PAIR.has_password, "admin": PAIR.is_admin(self._dev())})
+        if self.path.split("?")[0] == "/v1/jobs" or self.path.startswith("/v1/jobs/"):
+            if not self._authorized():
+                return
+            admin = PAIR.is_admin(self._dev())
+            if self.path.startswith("/v1/jobs/"):
+                j = JOBS.get(self._job_id(), self._dev(), admin)
+                return self._json(200, JOBS.view(j)) if j else self._json(404, {"error": "找不到這筆工作（可能已經過期被刪掉）"})
+            with JOBS.cond:
+                mine = [j for j in JOBS.jobs.values() if admin or j["dev"] == self._dev()]
+            return self._json(200, {"jobs": [{k: v for k, v in JOBS.view(j).items() if k != "text"} for j in mine]})
         if self.path not in ("/v1/health", "/v1/models"):
             return self._json(404, {"error": "not found"})
         if not self._authorized():
             return
         if self.path == "/v1/health":
-            return self._json(200, status())
+            return self._json(200, status(self._dev()))
         opts = lambda d: [{"id": k, "label": v["label"]} for k, v in d.items() if asr_ready(k)]  # noqa: E731
         oa = [{"id": llm_tag(), "object": "model", "created": 0, "owned_by": "dylan"}]
-        self._json(200, {**status(), "asr_options": opts(ASR_OPTIONS), "llm_options": opts(LLM_OPTIONS),
+        self._json(200, {**status(self._dev()), "asr_options": opts(ASR_OPTIONS), "llm_options": opts(LLM_OPTIONS),
                          "langs": [k for k in LANG_ASR if asr_ready(lang_asr(k))],
                          "object": "list", "data": oa})
 
@@ -678,14 +793,14 @@ class Handler(BaseHTTPRequestHandler):
         CFG["asr"], CFG["llm"] = asr, llm
         save_config()
         if asr == CUR["asr"] and llm == CUR["llm"]:
-            return self._json(200, status())
+            return self._json(200, status(self._dev()))
         CUR["state"] = "loading"
 
         def work():
             with GPU:   # 正在處理的那筆做完才換
                 apply_models(asr, llm)
         threading.Thread(target=work, daemon=True).start()
-        self._json(202, status())
+        self._json(202, status(self._dev()))
 
     def _pair(self):
         ip = self.client_address[0]
@@ -768,96 +883,90 @@ class Handler(BaseHTTPRequestHandler):
             return self._chat() if self._authorized() else None
         if self.path == "/v1/pair":
             return self._pair()
-        if self.path in ("/v1/password", "/v1/devices/revoke"):
+        if self.path in ("/v1/password", "/v1/devices/revoke", "/v1/devices/admin"):
             if not self._authorized():
                 return
             try:
                 body = self._body()
             except ValueError:
                 return self._json(400, {"error": "格式不對"})
+            target = str(body.get("id", ""))
+            # 一般裝置只能取消自己；其他都要管理者
+            if not (self.path == "/v1/devices/revoke" and target == self._dev()) and not self._admin_only():
+                return
+            if self.path == "/v1/devices/admin":
+                try:
+                    ok = PAIR.set_admin(target, bool(body.get("admin")))
+                except ValueError as e:
+                    return self._json(400, {"error": str(e)})
+                return self._json(200, {"ok": True}) if ok else self._json(404, {"error": "沒有這台裝置"})
             if self.path == "/v1/password":
                 try:
                     PAIR.set_password(str(body.get("password", "")))
                 except ValueError as e:
                     return self._json(400, {"error": str(e)})
                 return self._json(200, {"ok": True})
-            if not PAIR.revoke(str(body.get("id", ""))):
+            if not PAIR.revoke(target):
                 return self._json(404, {"error": "沒有這台裝置"})
             return self._json(200, {"ok": True})
         if self.path == "/v1/config":
-            return self._config() if self._authorized() else None
+            return self._config() if self._authorized() and self._admin_only() else None
+        if self.path == "/v1/jobs":
+            return self._jobs_post() if self._authorized() else None
         if self.path != "/v1/process":
             return self._json(404, {"error": "not found"})
         if not self._authorized():
             return
-        length = int(self.headers.get("Content-Length", "0"))
-        if length <= 0 or length > 1_000_000_000:
-            return self._json(400, {"error": "沒有錄音檔或檔案太大"})
-        kind = self.headers.get("X-Kind", "meeting")
-        text_input = self.headers.get("X-Input", "") == "text"
-        recorded_at = self.headers.get("X-Recorded-At", "")
-        duration = float(self.headers.get("X-Duration", "0") or 0)
-        asr = lang_asr(self.headers.get("X-Lang", ""))   # None → 設定頁選的
-        if asr and asr not in ASR_OPTIONS:
-            asr = None
-        dialect = self.headers.get("X-Dialect", "")   # 客語腔調：sixian / hailu / dapu / raoping / zhaoan / nansixian
-        dialect = dialect if dialect in HAKKA_DIALECTS else None
-        with tempfile.TemporaryDirectory() as tmp:
-            path = os.path.join(tmp, "audio")
-            with open(path, "wb") as f:
-                left = length
-                while left > 0:
-                    buf = self.rfile.read(min(1 << 20, left))
-                    if not buf:
-                        break
-                    f.write(buf)
-                    left -= len(buf)
-            log(f"job {kind}{' text' if text_input else ''} {length // 1024} KB, {duration:.0f}s, asr={asr or CUR['asr']}")
-            # 長錄音在這台 Mac 上可能要半小時以上：先回 200，處理期間每 20 秒送一個空白（JSON 前面的空白是合法的），
-            # App 的連線才不會因為太久沒資料而逾時；結果（或錯誤）最後用 JSON 送出。
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Connection", "close")
-            self.end_headers()
-            done = threading.Event()
-
-            def heartbeat():
-                while not done.wait(20):
-                    try:
-                        self.wfile.write(b" ")
-                        self.wfile.flush()
-                    except OSError:
-                        return   # App 斷線了；處理照常做完
-
-            hb = threading.Thread(target=heartbeat, daemon=True)
-            hb.start()
-            busy(1)
+        params, err = self._upload()
+        if err:
+            return self._json(400, {"error": err})
+        try:
+            j = self._receive(params)
+        except QueueFull as e:
+            return self._json(503, {"error": str(e)})
+        except (ConnectionError, OSError) as e:
+            log(f"  upload failed: {e}")
+            return
+        # 長錄音在這台 Mac 上可能要半小時以上（還要排隊）：先回 200，等待期間每 20 秒送一個空白（JSON 前面的空白是合法的），
+        # App 的連線才不會因為太久沒資料而逾時；結果（或錯誤）最後用 JSON 送出。
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Connection", "close")
+        self.end_headers()
+        while True:
+            done = JOBS.wait(j["id"], 20)
+            if done is not None:
+                break
             try:
-                with GPU:   # 一次一筆
-                    if not CUR["llm_obj"]:
-                        raise RuntimeError(CUR["error"] or "模型還沒載入")
-                    tag = model_tag(asr)
-                    if text_input:   # 沒用到語音辨識：代號的辨識部分寫 text
-                        tag = "local-text|" + tag.split("|", 1)[-1]
-                    result = {"text": process(path, kind, recorded_at, duration, text_input, asr, dialect), "model": tag}
-            except Exception as e:  # noqa: BLE001
-                log(f"  failed: {e}")
-                result = {"error": f"大D的主機處理失敗：{e}"}
-            finally:
-                busy(-1)
-                done.set()
-                hb.join()
-            try:
-                self.wfile.write(json.dumps(result, ensure_ascii=False).encode("utf-8"))
+                self.wfile.write(b" ")
                 self.wfile.flush()
             except OSError:
-                log("  client gone before result was sent")
+                # App 斷線了：這筆照樣做完，結果留著（24 小時後刪）
+                return log(f"  client gone while waiting for {j['id']}")
+        v = JOBS.view(done)
+        result = {"text": v["text"], "model": v["model"]} if v["state"] == "done" else {"error": v.get("error") or "大D的主機處理失敗"}
+        try:
+            self.wfile.write(json.dumps(result, ensure_ascii=False).encode("utf-8"))
+            self.wfile.flush()
+            JOBS.cancel(j["id"], None, admin=True)   # 結果已經送到，不用留
+        except OSError:
+            log("  client gone before result was sent")
+
+    def do_DELETE(self):
+        if not self.path.startswith("/v1/jobs/"):
+            return self._json(404, {"error": "not found"})
+        if not self._authorized():
+            return
+        if not JOBS.cancel(self._job_id(), self._dev(), PAIR.is_admin(self._dev())):
+            return self._json(404, {"error": "找不到這筆工作"})
+        self._json(200, {"ok": True})
 
     def log_message(self, fmt, *args):
         log(f"http {self.client_address[0]} " + fmt % args)
 
 
 if __name__ == "__main__":
+    JOBS.start()   # 一個執行緒依序處理佇列（重開前沒做完的會接著做）
     srv = ThreadingHTTPServer(("0.0.0.0", CFG.get("port", PORT)), Handler)
     log(f"listening on :{CFG.get('port', PORT)}")
     srv.serve_forever()

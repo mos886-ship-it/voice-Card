@@ -6,6 +6,9 @@ App 不用再手動貼 43 字元的存取碼：
 - QR 配對：在主機（或家裡的 Wi-Fi）打開 http://<主機>:8765/pair，用 iPhone / iPad 相機掃 →
   QR 裡是 dylan://pair?url=…&code=…（一次性、10 分鐘有效的配對碼）→ App 用它換到自己的長存取碼。
 - 每台裝置一個存取碼（主機只存雜湊），可以在 App 的裝置清單個別取消；原本的主存取碼（config.json 的 token）照樣有效。
+- 管理者：主存取碼、第一台配對的裝置、以及加這個功能前就配對好的裝置。只有管理者能換模型、改配對密碼、
+  看全部裝置、取消別台、指定別台當管理者；一般裝置只看得到、只能取消自己。多人共用一台主機時，
+  別人不會一換模型就影響所有人。
 
 防猜：配對失敗同一個 IP 5 次封 1 小時；全部來源 1 小時內失敗 30 次就暫停配對 1 小時。
 """
@@ -46,6 +49,11 @@ class Pairing:
         self.global_fails = []    # 失敗時間
         self.cfg.setdefault("devices", [])
         self._last_save = time.time()
+        if not self.cfg.get("admin_migrated"):   # 加管理者功能前配對的都是主人自己的裝置
+            for d in self.cfg["devices"]:
+                d.setdefault("admin", True)
+            self.cfg["admin_migrated"] = True
+            self.save()
 
     # ---------- 存取碼檢查（每個請求） ----------
 
@@ -144,8 +152,10 @@ class Pairing:
         with self.lock:
             self.fails.pop(ip, None)
         token = secrets.token_urlsafe(32)
+        first = not any(d.get("admin") for d in self.cfg["devices"])   # 還沒有管理者 → 這台就是
         dev = {"id": secrets.token_hex(4), "name": (name or "裝置").strip()[:60], "hash": _hash_token(token),
-               "created": int(time.time()), "last_seen": int(time.time()), "via": "qr" if code else "password"}
+               "created": int(time.time()), "last_seen": int(time.time()), "via": "qr" if code else "password",
+               "admin": first}
         self.cfg["devices"].append(dev)
         self.save()
         self.log(f"paired device {dev['id']} ({dev['name']}) from {ip} via {dev['via']}")
@@ -153,11 +163,36 @@ class Pairing:
 
     # ---------- 裝置清單 ----------
 
+    def is_admin(self, dev_id):
+        """主存取碼（"main"）或標成管理者的裝置。"""
+        if dev_id == "main":
+            return True
+        return any(d["id"] == dev_id and d.get("admin") for d in self.cfg["devices"])
+
     def devices(self, current):
+        """管理者看全部；一般裝置只看得到自己（不讓別人看到其他人的裝置名字）。"""
+        admin = self.is_admin(current)
         return [{"id": d["id"], "name": d["name"], "created": d["created"], "last_seen": d.get("last_seen"),
-                 "via": d.get("via"), "current": d["id"] == current} for d in self.cfg["devices"]]
+                 "via": d.get("via"), "current": d["id"] == current, "admin": bool(d.get("admin"))}
+                for d in self.cfg["devices"] if admin or d["id"] == current]
+
+    def set_admin(self, dev_id, admin):
+        """指定 / 取消管理者。至少要留一台管理者裝置（主存取碼不算，一般人手上沒有）。找不到 → False。"""
+        d = next((x for x in self.cfg["devices"] if x["id"] == dev_id), None)
+        if not d:
+            return False
+        if not admin and d.get("admin") and sum(1 for x in self.cfg["devices"] if x.get("admin")) <= 1:
+            raise ValueError("至少要留一台管理者裝置")
+        d["admin"] = bool(admin)
+        self.save()
+        self.log(f"device {dev_id} admin={d['admin']}")
+        return True
 
     def revoke(self, dev_id):
+        others = [d for d in self.cfg["devices"] if d["id"] != dev_id]
+        if others and not any(d.get("admin") for d in others) and self.is_admin(dev_id):
+            # 取消最後一台管理者：交給最早配對的那台，主機不會變成沒人能管
+            min(others, key=lambda d: d["created"])["admin"] = True
         before = len(self.cfg["devices"])
         self.cfg["devices"] = [d for d in self.cfg["devices"] if d["id"] != dev_id]
         if len(self.cfg["devices"]) == before:

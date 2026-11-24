@@ -104,7 +104,11 @@ fun LocalHostSection() {
                 result = true to when (h.state) {
                     "loading" -> "連線成功，主機正在載入模型（第一次會先下載，可能要幾分鐘）…"
                     "error" -> "連線成功，但主機的模型載入失敗：${h.error ?: "未知原因"}"
-                    else -> "連線成功：" + listOfNotNull(h.asr, h.llm).joinToString("、") + if (h.busy) "（主機正在處理別的錄音）" else ""
+                    else -> "連線成功：" + listOfNotNull(h.asr, h.llm).joinToString("、") + when {
+                        h.ahead > 0 -> "（現在送的話前面還有 ${h.ahead} 筆）"
+                        h.busy -> "（主機正在處理別的錄音）"
+                        else -> ""
+                    }
                 }
             }.onFailure { result = false to (it.message ?: "連線失敗") }
         }
@@ -226,11 +230,18 @@ fun LocalHostSection() {
         }
 
         if (connected) {
-            // ---------- 配对密码（给之后的装置用） ----------
+            // 一般装置（不是管理者）：模型、配对密码、别台装置都由主机管理者管
+            val isAdmin = devices?.admin ?: models?.admin ?: true
+            if (!isAdmin) {
+                Spacer(Modifier.height(10.dp))
+                Text("你是這台主機的一般使用者：模型和配對密碼由主機管理者設定。很多人同時送錄音時會輪流處理，處理步驟會顯示前面還有幾筆。",
+                    style = MaterialTheme.typography.bodySmall, color = Brand.TextFaint)
+            }
+            // ---------- 配对密码（给之后的装置用；只有管理者） ----------
             val pwSet = devices?.passwordSet == true
             // 读不到主机状态（连不到 / 存取码失效）就不显示密码列，免得误显示「還沒設定」
-            if (devices != null) Spacer(Modifier.height(14.dp))
-            if (devices != null) Row(verticalAlignment = Alignment.CenterVertically) {
+            if (devices != null && isAdmin) Spacer(Modifier.height(14.dp))
+            if (devices != null && isAdmin) Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text("配對密碼", style = MaterialTheme.typography.labelLarge, color = Brand.Text)
                     Text(if (pwSet) "已設定：其他手機或平板輸入位址和密碼就能連上" else "還沒設定：設定後，其他裝置人在外面也能配對",
@@ -240,7 +251,7 @@ fun LocalHostSection() {
                     Text(if (showPasswordField) "取消" else if (pwSet) "更換" else "設定", color = Brand.Cyan)
                 }
             }
-            if (showPasswordField && devices != null) {
+            if (showPasswordField && devices != null && isAdmin) {
                 OutlinedTextField(
                     value = newPassword, onValueChange = { newPassword = it },
                     label = { Text("新的配對密碼（至少 8 個字）") }, singleLine = true, visualTransformation = PasswordVisualTransformation(),
@@ -259,7 +270,7 @@ fun LocalHostSection() {
 
             // ---------- 科技模式：主机上的模型 ----------
             val m = models
-            if (UiMode.tech && m != null && (m.asrOptions.isNotEmpty() || m.llmOptions.isNotEmpty())) {
+            if (UiMode.tech && isAdmin && m != null && (m.asrOptions.isNotEmpty() || m.llmOptions.isNotEmpty())) {
                 Spacer(Modifier.height(14.dp))
                 fun choose(asr: String?, llm: String?) {
                     val a = asr ?: m.asrId ?: return
@@ -303,10 +314,16 @@ fun LocalHostSection() {
                                     "配對 " + fmt.format(Date(dev.created * 1000)),
                                     dev.lastSeen?.let { "最後使用 " + fmt.format(Date(it * 1000)) },
                                     when (dev.via) { "qr" -> "QR 碼"; "password" -> "密碼"; else -> null },
+                                    if (dev.admin) "管理者" else null,
                                 ).joinToString(" · "),
                                 style = MaterialTheme.typography.labelSmall, color = Brand.TextFaint,
                             )
                         }
+                        // 管理者可以把别台设成管理者（例如家人的手机），或取消
+                        if (d.admin && !dev.current) TextButton(onClick = {
+                            run({ LocalHost.setAdmin(context, dev.id, !dev.admin)
+                                if (dev.admin) "「${dev.name}」改成一般使用者" else "「${dev.name}」已設為管理者" }) { refresh() }
+                        }) { Text(if (dev.admin) "改一般" else "設管理者", color = Brand.Cyan) }
                         TextButton(onClick = { if (dev.current) confirmUnpair = true else revokeTarget = dev }) {
                             Text("取消", color = Brand.Error)
                         }
