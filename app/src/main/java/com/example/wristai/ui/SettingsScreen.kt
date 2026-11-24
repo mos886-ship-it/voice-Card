@@ -104,6 +104,10 @@ fun SettingsScreen(onBack: (() -> Unit)? = null) {
         while (true) { remoteOk = RemoteRecordActivity.canStartFromBackground(context); kotlinx.coroutines.delay(1_000) }
     }
 
+    // 「关于与授权」页（设定里的子页面）
+    var showAbout by remember { mutableStateOf(false) }
+    if (showAbout) { AboutScreen { showAbout = false }; return }
+
     fun save() {
         Settings.setGeminiKey(context, gemini)
         Settings.setApiKey(context, claude)
@@ -290,6 +294,7 @@ fun SettingsScreen(onBack: (() -> Unit)? = null) {
             GlassCard {
                 Note(Icons.Filled.Lock, "金鑰只儲存在這支手機，只用來呼叫對應的 AI 服務。上傳給 Gemini 的錄音在產生報告後立即刪除；錄音與報告都保存在本機。")
             }
+            GhostButton("關於與授權（開放原始碼、模型、條款）", { showAbout = true }, Modifier.fillMaxWidth())
             Text("大D · Dylan 1.0", style = MaterialTheme.typography.labelSmall, color = Brand.TextFaint,
                 modifier = Modifier.padding(vertical = 8.dp))
         }

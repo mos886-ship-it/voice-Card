@@ -274,3 +274,10 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 - **音量條**（`AudioLevel.kt`＋`LevelMeter`）：`PhoneRecordingService` 的 AudioRecord 迴圈每段 PCM `AudioLevel.feed`，湊滿約 85 ms 算一次 RMS → 一根柱，留 56 根；高度 `((dB+52)/44)` 夾 0…1 再平方；畫的時候除以最近最大值（至少 0.3）×0.92；左右對稱、越新越亮、太大聲最新 6 根琥珀色。狀態：收音正常 / 聲音太大（峰值 >0.97 後 1.2 秒）/ 幾乎沒有聲音（4 秒都 < -45 dB）；科技模式顯示 dB。Android 沒有 iOS 的「收音中斷」狀態（錄音被打斷時目前會直接停止）。手錶錄音不顯示。
 - 順手修：手機錄音中的狀態原本寫「手錶錄音中」「手錶正在錄音」，改成依來源顯示「手機」。
 - 測試：`LangLevelTest`（語言代碼、台語提示、dB 刻度、每 85 ms 一根、太大聲）。模擬器＋假主機：主頁選台語 → 錄音卡顯示「台語」與音量條（模擬器麥克風沒聲音，顯示「幾乎沒有聲音」-60 dB）→ 主機收到 `X-Lang: nan`；詳情頁改國語 → 確認 → 重新產生，主機收到 `X-Lang: zh`、meta 存 `zh`。**未測**：真機有聲音時柱子的動態、真正主機的 Breeze-ASR-26。
+
+## Android：設定 →「關於與授權」（2026-11-24）
+
+- `ui/AboutScreen.kt`（設定頁最下面「關於與授權」按鈕）：AI 內容免責、開放原始碼套件（依授權分組、可展開看清單）、Apache 2.0 / MIT 全文、各套件 NOTICE、Google 服務（Play 服務、ML Kit 條款連結）、雲端 AI 服務（Gemini / Anthropic / OpenAI 條款連結；百煉、訊飛、Meta 只列名稱）、大D的主機的模型（連到原始頁面）、商標說明。
+- 授權資料在 `app/src/main/assets/licenses/`，由 `python tools/gen_licenses.py` 從 Gradle 實際打包的套件產生（讀 POM 授權、從 jar / aar 取 NOTICE 與 Apache 全文；兩個 MIT 套件沒附全文，腳本照 POM 的著作權人寫標準 MIT 條文）。**加 / 升級套件後要重跑**。目前 161 個套件：Apache 2.0 150、Android SDK License 5（Play 服務）、ML Kit 條款 4、MIT 2（slf4j、standardwebhooks）。build.gradle 的 packaging 會排除 META-INF/LICENSE*、NOTICE*，所以要靠這頁附上。
+- 更正：Anthropic Java SDK 是 Apache 2.0（不是 MIT）。
+- **還沒確認授權**：FunASR 模型、Breeze-ASR-26（含 doggy8088 的 MLX 轉換）、SARC 台語 12B——頁面寫「依模型頁的授權」並連到原始頁面；商用前要逐一確認（特別是 SARC 是否有底層模型的使用條款與商用限制）。iOS 還沒有這一頁。
