@@ -73,7 +73,7 @@ object LocalHost {
     // ---------------- 名称 ----------------
 
     private val NAMES = mapOf(
-        "funasr" to "FunASR", "breeze" to "Breeze-ASR-26", "text" to "文字",
+        "funasr" to "FunASR", "breeze" to "Breeze-ASR-26", "hakka" to "客語 Whisper", "text" to "文字",
         "qwen3-8b" to "Qwen3-8B", "sarc-taigi-12b" to "SARC 台語 12B",
     )
 
@@ -309,7 +309,7 @@ object LocalHost {
      * [recordedAt] 只能是 ASCII（例 2026/11/23 21:20）。会等很久：主机每 20 秒送一个空白防逾时。
      */
     fun process(c: Context, kind: String, recordedAt: String, durationSec: Double, audio: File? = null, text: String? = null,
-                lang: String? = null,
+                lang: String? = null, dialect: String? = null,
                 onUploaded: () -> Unit = {}): Result {
         val bytes = text?.toByteArray(Charsets.UTF_8)
         val (code, body) = try {
@@ -325,7 +325,9 @@ object LocalHost {
                     setFixedLengthStreamingMode(bytes.size)
                 } else {
                     // 国语 → FunASR；台语・国台语 → Breeze-ASR-26（文字输入不用带）
+                    // 国语 → FunASR；台语 → Breeze-ASR-26；客语 → 阳明交大客语 Whisper（加腔调）
                     lang?.let { setRequestProperty("X-Lang", it) }
+                    dialect?.let { setRequestProperty("X-Dialect", it) }
                     setRequestProperty("Content-Type", "audio/m4a")
                     setFixedLengthStreamingMode(audio!!.length())
                 }

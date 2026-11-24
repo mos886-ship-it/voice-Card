@@ -54,7 +54,7 @@ object AudioImporter {
             MeetingStore.save(
                 context,
                 Meeting(id, MeetingStatus.RECEIVED, recordedAtOf(context, uri, duration, fallbackEnd) ?: importedAt, duration, null, title, null,
-                    source = source, importedAt = importedAt, lang = SpeechLang.currentCode(context)),
+                    source = source, importedAt = importedAt, lang = SpeechLang.currentCode(context), dialect = SpeechLang.currentDialect(context)),
             )
             ProcessMeetingWorker.enqueue(context, id)
             Log.d(TAG, "Imported $uri as $id (${duration}s)")

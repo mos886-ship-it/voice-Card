@@ -66,6 +66,7 @@ fun DetailScreen(id: String, onBack: () -> Unit, onOpenSettings: () -> Unit) {
     var confirmDelete by remember { mutableStateOf(false) }
     // 换辨识语言（已有报告时要先确认，会用新语言重新产生）
     var pendingLang by remember { mutableStateOf<com.example.wristai.SpeechLang?>(null) }
+    var pendingDialect by remember { mutableStateOf<com.example.wristai.HakkaDialect?>(null) }
     var renaming by remember { mutableStateOf<String?>(null) }
     var editingTitle by remember { mutableStateOf(false) }
 
@@ -150,9 +151,24 @@ fun DetailScreen(id: String, onBack: () -> Unit, onOpenSettings: () -> Unit) {
             // ---------- 辨识语言：可以换语言重新产生，方便对照 ----------
             if (!com.example.wristai.FoodLog.isFood(meeting.id)) {
                 val lang = com.example.wristai.SpeechLang.of(meeting.lang)
-                LangPicker(lang, enabled = !style.busy && meeting.status != MeetingStatus.RECORDING) { l ->
-                    if (report != null || meeting.status == MeetingStatus.DONE) pendingLang = l
-                    else MeetingStore.update(context, id) { it.copy(lang = l.code) }
+                val canChange = !style.busy && meeting.status != MeetingStatus.RECORDING
+                val hasReport = report != null || meeting.status == MeetingStatus.DONE
+                LangPicker(lang, enabled = canChange) { l ->
+                    if (hasReport) { pendingDialect = null; pendingLang = l }
+                    else MeetingStore.update(context, id) {
+                        it.copy(lang = l.code,
+                            dialect = if (l == com.example.wristai.SpeechLang.HAK) it.dialect ?: com.example.wristai.HakkaDialect.currentCode(context) else null)
+                    }
+                }
+                if (lang == com.example.wristai.SpeechLang.HAK) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("辨識語言：" + com.example.wristai.SpeechLang.display(meeting.lang, meeting.dialect) + "腔",
+                            style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted, modifier = Modifier.weight(1f))
+                        DialectMenu(com.example.wristai.HakkaDialect.of(meeting.dialect), enabled = canChange) { d ->
+                            if (hasReport) { pendingLang = lang; pendingDialect = d }
+                            else MeetingStore.update(context, id) { it.copy(dialect = d.code) }
+                        }
+                    }
                 }
             }
 
@@ -327,22 +343,33 @@ fun DetailScreen(id: String, onBack: () -> Unit, onOpenSettings: () -> Unit) {
         )
     }
 
+    /** 换成客语时用的腔调：刚选的，或这笔原本的，或目前设定。 */
+    fun hakDialect(l: com.example.wristai.SpeechLang): com.example.wristai.HakkaDialect? =
+        if (l != com.example.wristai.SpeechLang.HAK) null
+        else pendingDialect ?: com.example.wristai.HakkaDialect.of(
+            MeetingStore.get(context, id)?.dialect ?: com.example.wristai.HakkaDialect.currentCode(context))
+
     pendingLang?.let { l ->
         AlertDialog(
-            onDismissRequest = { pendingLang = null },
+            onDismissRequest = { pendingLang = null; pendingDialect = null },
             containerColor = Brand.SurfaceHigh,
-            title = { Text("改用「${l.label}」重新產生？", color = Brand.Text) },
+            title = { Text("改用「${l.label}${hakDialect(l)?.let { "・" + it.label + "腔" } ?: ""}」重新產生？", color = Brand.Text) },
             text = {
                 Text(
-                    (if (l == com.example.wristai.SpeechLang.NAN) "台語・國台語辨識比較慢（50 秒的錄音約 1 分鐘）。" else "") +
+                    (when (l) {
+                        com.example.wristai.SpeechLang.NAN -> "台語・國台語辨識比較慢（50 秒的錄音約 1 分鐘）。"
+                        com.example.wristai.SpeechLang.HAK -> "客語辨識比較慢；大D的主機還沒裝客語模型時會改用 Gemini。"
+                        else -> ""
+                    }) +
                         "目前的報告和逐字稿會被新的取代。",
                     color = Brand.TextMuted,
                 )
             },
             confirmButton = {
                 TextButton(onClick = {
-                    pendingLang = null
-                    MeetingStore.update(context, id) { it.copy(lang = l.code) }
+                    val d = hakDialect(l)
+                    pendingLang = null; pendingDialect = null
+                    MeetingStore.update(context, id) { it.copy(lang = l.code, dialect = d?.code) }
                     regenerate()
                 }) { Text("重新產生", color = Brand.Cyan) }
             },

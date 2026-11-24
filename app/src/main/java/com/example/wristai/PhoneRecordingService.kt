@@ -157,7 +157,7 @@ class PhoneRecordingService : Service() {
         MeetingStore.save(this, Meeting(
             id = id, status = MeetingStatus.RECORDING, createdAt = startedAt, durationSec = 0.0,
             watchNodeId = watchNode, title = null, error = null, source = "phone",
-            lang = SpeechLang.currentCode(this),
+            lang = SpeechLang.currentCode(this), dialect = SpeechLang.currentDialect(this),
         ))
         // GPS 戳记：开始录音时手机的位置（背景定位，最多等 30 秒）
         scope.launch {

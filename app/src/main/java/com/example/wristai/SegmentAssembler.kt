@@ -39,7 +39,7 @@ object SegmentAssembler {
         val segDir = MeetingStore.segmentsDir(context, id).apply { mkdirs() }
         var meeting = MeetingStore.get(context, id) ?: Meeting(
             id = id, status = MeetingStatus.RECORDING, createdAt = startTimeOf(id), durationSec = 0.0,
-            watchNodeId = nodeId, title = null, error = null, lang = SpeechLang.currentCode(context),
+            watchNodeId = nodeId, title = null, error = null, lang = SpeechLang.currentCode(context), dialect = SpeechLang.currentDialect(context),
         ).also { MeetingStore.save(context, it) }
 
         if (seg.seq < meeting.segmentsAppended || segFile(segDir, seg.seq) != null) {

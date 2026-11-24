@@ -92,7 +92,7 @@ class AudioReceiverService : WearableListenerService() {
                     watchNodeId = channel.nodeId,
                     title = null,
                     error = null,
-                    lang = SpeechLang.currentCode(this),
+                    lang = SpeechLang.currentCode(this), dialect = SpeechLang.currentDialect(this),
                 )
             )
             ack(channelClient, channel)

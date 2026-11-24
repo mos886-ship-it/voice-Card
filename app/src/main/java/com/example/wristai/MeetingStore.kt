@@ -58,6 +58,8 @@ data class Meeting(
     val engineNote: String? = null,
     /** 辨识语言：zh（国语）/ nan（台语・国台语）；null（旧资料）＝国语。见 [SpeechLang]。 */
     val lang: String? = null,
+    /** 客语腔调（lang = hak 时）：sixian / hailu / dapu / raoping / zhaoan / nansixian。见 [HakkaDialect]。 */
+    val dialect: String? = null,
 ) {
     fun toJson(): String = JSONObject()
         .put("id", id).put("status", status.name).put("createdAt", createdAt)
@@ -75,6 +77,7 @@ data class Meeting(
         .put("stepStartedAt", stepStartedAt).put("processStartedAt", processStartedAt).put("processEndedAt", processEndedAt)
         .put("engineNote", engineNote)
         .put("lang", lang)
+        .put("dialect", dialect)
         .toString(2)
 
     companion object {
@@ -110,6 +113,7 @@ data class Meeting(
                 processEndedAt = j.optLong("processEndedAt"),
                 engineNote = j.optStringOrNull("engineNote")?.takeIf { it.isNotBlank() },
                 lang = j.optStringOrNull("lang")?.takeIf { it.isNotBlank() },
+                dialect = j.optStringOrNull("dialect")?.takeIf { it.isNotBlank() },
             )
         }
     }

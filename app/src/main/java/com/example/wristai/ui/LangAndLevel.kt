@@ -20,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -54,7 +55,7 @@ fun LangPicker(value: SpeechLang, modifier: Modifier = Modifier, enabled: Boolea
                     .padding(vertical = 9.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(l.label, style = MaterialTheme.typography.labelLarge,
+                Text(l.label, style = MaterialTheme.typography.labelLarge, maxLines = 1,
                     color = if (on) Color.White else if (enabled) Brand.TextMuted else Brand.TextFaint)
             }
         }
@@ -102,6 +103,45 @@ fun LevelMeter(modifier: Modifier = Modifier, height: Dp = 40.dp, barColor: Colo
             Spacer(Modifier.width(6.dp))
             Text(text, style = MaterialTheme.typography.labelMedium, color = textColor, modifier = Modifier.weight(1f))
             if (UiMode.tech) Text("%.0f dB".format(s.db), style = MaterialTheme.typography.labelMedium, color = textColor.copy(alpha = 0.8f))
+        }
+    }
+}
+
+/** 客语腔调选单（小胶囊「四縣腔 ▾」）。 */
+@Composable
+fun DialectMenu(value: com.example.wristai.HakkaDialect, enabled: Boolean = true, onPick: (com.example.wristai.HakkaDialect) -> Unit) {
+    var open by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    val shape = RoundedCornerShape(50)
+    Box {
+        Text(
+            value.label + "腔 ▾", style = MaterialTheme.typography.labelLarge, color = if (enabled) Brand.Cyan else Brand.TextFaint,
+            modifier = Modifier.clip(shape).background(Brand.SurfaceHigh).border(1.dp, Brand.Outline, shape)
+                .clickable(enabled = enabled) { open = true }.padding(horizontal = 12.dp, vertical = 6.dp)
+                .semantics { contentDescription = "客語腔調：" + value.label },
+        )
+        androidx.compose.material3.DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            for (d in com.example.wristai.HakkaDialect.entries) {
+                androidx.compose.material3.DropdownMenuItem(
+                    text = { Text((if (d == value) "✓ " else "　") + d.label + "腔") },
+                    onClick = { open = false; if (d != value) onPick(d) },
+                )
+            }
+        }
+    }
+}
+
+/** 新录音的语言选择：三选一＋下面一行说明（选客语时右边多腔调选单）。主页、录音页共用。 */
+@Composable
+fun LangChooser(modifier: Modifier = Modifier) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val lang = SpeechLang.current
+    Column(modifier) {
+        LangPicker(lang) { SpeechLang.set(context, it) }
+        Spacer(Modifier.height(6.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(lang.hint, style = MaterialTheme.typography.bodySmall, color = Brand.TextFaint,
+                modifier = Modifier.weight(1f).padding(start = 4.dp))
+            if (lang == SpeechLang.HAK) DialectMenu(com.example.wristai.HakkaDialect.current) { com.example.wristai.HakkaDialect.set(context, it) }
         }
     }
 }

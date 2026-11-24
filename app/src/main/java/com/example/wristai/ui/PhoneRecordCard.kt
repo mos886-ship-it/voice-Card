@@ -120,7 +120,7 @@ fun PhoneRecordCard(onOpenMeeting: (String) -> Unit, foodMode: Boolean = false) 
             }
             Spacer(Modifier.height(14.dp))
             // 辨识语言：记住上次的选择，新录音用这个
-            LangPicker(com.example.wristai.SpeechLang.current) { com.example.wristai.SpeechLang.set(context, it) }
+            LangChooser()
             Spacer(Modifier.height(10.dp))
             GradientButton("開始手機錄音", { start() }, Modifier.fillMaxWidth(), recordDot = true)
         }
@@ -133,7 +133,7 @@ fun PhoneRecordCard(onOpenMeeting: (String) -> Unit, foodMode: Boolean = false) 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 PulseDot(Brand.Recording, 8.dp)
                 Spacer(Modifier.width(8.dp))
-                Text(if (food) "飲食記錄中" else "手機錄音中 · " + recLang(context, a.meetingId).short,
+                Text(if (food) "飲食記錄中" else "手機錄音中 · " + recLang(context, a.meetingId),
                     style = MaterialTheme.typography.labelLarge, color = Brand.Recording)
                 Spacer(Modifier.weight(1f))
             }
@@ -159,5 +159,5 @@ fun PhoneRecordCard(onOpenMeeting: (String) -> Unit, foodMode: Boolean = false) 
 }
 
 /** 这笔录音的辨识语言（录音中的卡片显示用）。 */
-private fun recLang(context: android.content.Context, id: String): com.example.wristai.SpeechLang =
-    com.example.wristai.SpeechLang.of(com.example.wristai.MeetingStore.get(context, id)?.lang)
+private fun recLang(context: android.content.Context, id: String): String =
+    com.example.wristai.MeetingStore.get(context, id).let { com.example.wristai.SpeechLang.display(it?.lang, it?.dialect) }

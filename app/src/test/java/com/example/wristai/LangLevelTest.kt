@@ -17,6 +17,17 @@ class LangLevelTest {
         assertTrue(SpeechLang.geminiNote("nan").contains("不要用台羅拼音"))
     }
 
+    @Test fun hakka() {
+        assertEquals(SpeechLang.HAK, SpeechLang.of("hak"))
+        assertEquals(HakkaDialect.SIXIAN, HakkaDialect.of(null))          // 预设四县
+        assertEquals(HakkaDialect.HAILU, HakkaDialect.of("hailu"))
+        assertEquals("客語・海陸", SpeechLang.display("hak", "hailu"))
+        assertEquals("客語・四縣", SpeechLang.display("hak", null))
+        assertEquals("台語", SpeechLang.display("nan", "hailu"))           // 不是客语就不显示腔调
+        val note = SpeechLang.geminiNote("hak", "dapu")
+        assertTrue(note.contains("客語（大埔腔") && note.contains("不要用客語拼音"))
+    }
+
     @Test fun levelScale() {
         assertEquals(-60f, AudioLevel.dB(0.0), 0.01f)               // 下限
         assertEquals(0f, AudioLevel.norm(1e-6), 0.0001f)            // -60 dB：安静 = 0

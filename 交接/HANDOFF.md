@@ -281,3 +281,9 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 - 授權資料在 `app/src/main/assets/licenses/`，由 `python tools/gen_licenses.py` 從 Gradle 實際打包的套件產生（讀 POM 授權、從 jar / aar 取 NOTICE 與 Apache 全文；兩個 MIT 套件沒附全文，腳本照 POM 的著作權人寫標準 MIT 條文）。**加 / 升級套件後要重跑**。目前 161 個套件：Apache 2.0 150、Android SDK License 5（Play 服務）、ML Kit 條款 4、MIT 2（slf4j、standardwebhooks）。build.gradle 的 packaging 會排除 META-INF/LICENSE*、NOTICE*，所以要靠這頁附上。
 - 更正：Anthropic Java SDK 是 Apache 2.0（不是 MIT）。
 - **還沒確認授權**：FunASR 模型、Breeze-ASR-26（含 doggy8088 的 MLX 轉換）、SARC 台語 12B——頁面寫「依模型頁的授權」並連到原始頁面；商用前要逐一確認（特別是 SARC 是否有底層模型的使用條款與商用限制）。iOS 還沒有這一頁。
+
+## Android：客語＋腔調（2026-11-24，IOS_TO_ANDROID 3b「客語」）
+
+- `SpeechLang` 加 `HAK`（客語）；`HakkaDialect`：四縣 `sixian`（預設）、海陸、大埔、饒平、詔安、南四縣，設定 `hakka_dialect`。`Meeting.dialect` 在建立錄音時存（只有客語才存）。主機送 `X-Lang: hak` ＋ `X-Dialect`；Gemini 提示詞加客語說明（跟 iOS 一字不差，含腔調名）；主機模型名稱認 `hakka` →「客語 Whisper」。
+- 畫面：`LangChooser`（主頁、「錄音」分頁）＝三選一＋下面一行說明，選客語時右邊「四縣腔 ▾」選單；錄音卡「手機錄音中 · 客語・海陸」；詳情頁選客語時多一行「辨識語言：客語・X腔」＋腔調選單，已有報告時換語言或腔調都要確認再重新產生（客語提醒比較慢、主機沒裝模型會改用 Gemini）。
+- 測試：`LangLevelTest.hakka`。模擬器＋假主機（照目前真主機的行為：客語回「客語模型還沒裝好」）：選客語・海陸 → 錄音 → 主機收到 `hak` / `hailu` → 主機失敗 → 改用其他引擎並寫進 engineNote；meta 存 `lang=hak`、`dialect=hailu`。主機的客語模型授權是 CC BY-NC 4.0（只能非商業使用），還在等 Hugging Face 申請。
