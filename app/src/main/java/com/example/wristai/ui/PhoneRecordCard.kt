@@ -93,6 +93,9 @@ fun PhoneRecordCard(onOpenMeeting: (String) -> Unit, foodMode: Boolean = false) 
         return
     }
     if (a == null && foodMode) {
+        // 辨识语言：跟录音一样（国语 / 台语・国台语 / 客语），记住上次的选择
+        LangChooser()
+        Spacer(Modifier.height(10.dp))
         GradientButton("記錄這一餐", { start(food = true) }, Modifier.fillMaxWidth().height(56.dp), recordDot = true)
         error?.let {
             Spacer(Modifier.height(8.dp))

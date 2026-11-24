@@ -148,8 +148,8 @@ fun DetailScreen(id: String, onBack: () -> Unit, onOpenSettings: () -> Unit) {
                 StatusChip(style)
             }
 
-            // ---------- 辨识语言：可以换语言重新产生，方便对照 ----------
-            if (!com.example.wristai.FoodLog.isFood(meeting.id)) {
+            // ---------- 辨识语言：可以换语言重新产生，方便对照（饮食记录也一样） ----------
+            run {
                 val lang = com.example.wristai.SpeechLang.of(meeting.lang)
                 val canChange = !style.busy && meeting.status != MeetingStatus.RECORDING
                 val hasReport = report != null || meeting.status == MeetingStatus.DONE

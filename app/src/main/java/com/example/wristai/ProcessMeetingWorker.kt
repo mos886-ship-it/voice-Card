@@ -404,7 +404,9 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
                 val compact = File(ctx.cacheDir, "gemini_$id.m4a")
                 try {
                     VoiceRecorderExporter.encodeM4a(MeetingStore.audioFile(ctx, id), compact, outRate = 16_000, bitRate = 32_000)
-                    GeminiReportGenerator(key).generate(compact, meeting.durationSec, recordedAt, system = FoodLog.PROMPT,
+                    // 台语 / 客语：提示词加语言说明（跟录音报告一样）
+                    GeminiReportGenerator(key, SpeechLang.geminiNote(meeting.lang, meeting.dialect))
+                        .generate(compact, meeting.durationSec, recordedAt, system = FoodLog.PROMPT,
                         onListening = { stepTo(id, "估算熱量", "Gemini") })
                 } finally {
                     compact.delete()
