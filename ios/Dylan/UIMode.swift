@@ -53,6 +53,25 @@ enum HakkaDialect: String, CaseIterable, Identifiable {
     }
 }
 
+/// 錄音語言與客語腔調的設定（存 UserDefaults）。
+/// 不用 @AppStorage：iOS 16 上連續切換時畫面不會跟著更新（要換頁回來才對），改用 ObservableObject 自己通知。
+@MainActor
+final class LangSettings: ObservableObject {
+    static let shared = LangSettings()
+
+    @Published var lang: SpeechLang {
+        didSet { UserDefaults.standard.set(lang.rawValue, forKey: SpeechLang.key) }
+    }
+    @Published var dialect: HakkaDialect {
+        didSet { UserDefaults.standard.set(dialect.rawValue, forKey: HakkaDialect.key) }
+    }
+
+    private init() {
+        lang = SpeechLang.current
+        dialect = HakkaDialect.current
+    }
+}
+
 extension Fmt {
     /// 給人看的時長：16 秒、2 分、1 小時 5 分。
     static func human(_ sec: Double) -> String {

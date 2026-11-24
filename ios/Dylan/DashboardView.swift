@@ -10,8 +10,9 @@ struct DashboardView: View {
     @ObservedObject private var rec = PhoneRecorder.shared
     @Environment(\.pageWidth) private var width
     @AppStorage(UIMode.key) private var mode: UIMode = .business
-    @AppStorage(SpeechLang.key) private var lang: SpeechLang = .zh
-    @AppStorage(HakkaDialect.key) private var dialect: HakkaDialect = .sixian
+    @ObservedObject private var langs = LangSettings.shared
+    private var lang: SpeechLang { langs.lang }
+    private var dialect: HakkaDialect { langs.dialect }
     @AppStorage(DeviceInfo.askedKey) private var askedName = false
     @AppStorage(DeviceInfo.key) private var deviceName = ""
     @State private var naming = false
@@ -51,12 +52,12 @@ struct DashboardView: View {
                                   detailed: mode == .tech) { rec.stop() }
                 } else {
                     VStack(alignment: .leading, spacing: 6) {
-                        LangPicker(value: lang) { lang = $0 }
+                        LangPicker(value: lang) { langs.lang = $0 }
                         HStack(spacing: 8) {
                             Text(LangPicker.hint(lang)).font(.labelMedium).foregroundStyle(Brand.textFaint)
                             Spacer(minLength: 0)
                             // 選單一直留在畫面上，只是藏起來：iOS 16 反覆插入／拿掉 Menu 會讓整個畫面點不動
-                            DialectMenu(value: dialect) { dialect = $0 }
+                            DialectMenu(value: dialect) { langs.dialect = $0 }
                                 .opacity(lang == .hak ? 1 : 0)
                                 .allowsHitTesting(lang == .hak)
                                 .accessibilityHidden(lang != .hak)
