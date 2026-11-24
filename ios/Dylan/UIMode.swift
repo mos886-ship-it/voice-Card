@@ -31,6 +31,10 @@ enum SpeechLang: String, CaseIterable, Identifiable {
     var short: String {
         switch self { case .zh: return "國語"; case .nan: return "台語"; case .hak: return "客語" }
     }
+    /// 逐字稿每段前的語言標籤（一個字）。
+    var tag: String {
+        switch self { case .zh: return "國"; case .nan: return "台"; case .hak: return "客" }
+    }
 }
 
 /// 客語腔調（陽明交大客語 Whisper 用腔調 id 當提示）。存在 `hakka_dialect`，錄音時跟著存到 Meeting.dialect。

@@ -35,7 +35,10 @@ struct ReportSection: View {
                     Label("預覽：Apple 在手機上產生的逐字稿，沒有分說話者；Gemini 報告完成後會換成完整版。", systemImage: "bolt.fill")
                         .font(.bodySmall).foregroundStyle(Brand.textMuted)
                 }
-                TranscriptView(lines: lines, names: names, player: player)
+                // 每段前標辨識語言（國／台／客）；匯入的文字不是辨識出來的，不標
+                TranscriptView(lines: lines, names: names, player: player,
+                               langTag: MeetingStore.isText(meeting.id) ? nil : meeting.speechLang,
+                               dialect: meeting.speechLang == .hak ? meeting.hakkaDialect : nil)
             }
         }
         .task(id: "\(meeting.id)|\(meeting.processEndedAt?.timeIntervalSince1970 ?? 0)|\(meeting.transcriptPreview == true)") {
@@ -219,6 +222,9 @@ struct TranscriptView: View {
     let lines: [Line]
     let names: [String: String]
     @ObservedObject var player: PlayerState
+    /// 這筆錄音的辨識語言：每段前顯示「國／台／客」標籤（nil = 不顯示）。
+    var langTag: SpeechLang? = nil
+    var dialect: HakkaDialect? = nil
 
     struct Line: Identifiable {
         let id: Int
@@ -241,6 +247,13 @@ struct TranscriptView: View {
                     Button { if let t = l.time { player.play(at: t) } } label: {
                         VStack(alignment: .leading, spacing: 4) {
                             HStack(spacing: 8) {
+                                if let langTag {
+                                    Text(langTag.tag).font(.labelSmall).foregroundStyle(Self.tagColor(langTag))
+                                        .padding(.horizontal, 6).padding(.vertical, 1)
+                                        .background(Capsule().fill(Self.tagColor(langTag).opacity(0.15)))
+                                        .overlay(Capsule().stroke(Self.tagColor(langTag).opacity(0.5), lineWidth: 1))
+                                        .accessibilityLabel(langTag == .hak && dialect != nil ? "客語\(dialect!.label)腔" : langTag.short)
+                                }
                                 if !l.speaker.isEmpty {
                                     Text(names[l.speaker] ?? l.speaker).font(.labelLarge).foregroundStyle(color)
                                 }
@@ -261,6 +274,15 @@ struct TranscriptView: View {
     }
 
     static var colors: [Color] { [Brand.cyan, Brand.violet, Brand.pink, Brand.success, Brand.warning, Brand.blue] }
+
+    /// 語言標籤顏色：國＝灰藍、台＝綠、客＝琥珀（跟說話者顏色分開，不搶眼）。
+    static func tagColor(_ l: SpeechLang) -> Color {
+        switch l {
+        case .zh: return Brand.textMuted
+        case .nan: return Brand.success
+        case .hak: return Brand.warning
+        }
+    }
 
     /// 「[mm:ss] 說話者A：內容」或「[h:mm:ss] …」；格式不符的整行當內容。
     static func parse(_ text: String) -> [Line] {
