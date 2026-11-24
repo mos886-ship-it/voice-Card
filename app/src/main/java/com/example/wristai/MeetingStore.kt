@@ -135,6 +135,8 @@ object MeetingStore {
     val meetings: StateFlow<List<Meeting>> = _meetings.asStateFlow()
 
     private fun root(context: Context) = File(context.filesDir, "meetings").apply { mkdirs() }
+    /** 所有录音的资料夹（备份 / 取回用；不会建出某一笔的资料夹）。 */
+    fun rootDir(context: Context) = root(context)
     fun dir(context: Context, id: String) = File(root(context), id).apply { mkdirs() }
     fun audioFile(context: Context, id: String) = File(dir(context, id), "audio.wav")
     fun transcriptFile(context: Context, id: String) = File(dir(context, id), "transcript.txt")
@@ -198,6 +200,9 @@ object MeetingStore {
         val current = get(context, id) ?: return null
         val updated = change(current)
         save(context, updated)
+        // 报告刚做完 → 自动备份到 Google 云端硬碟（有连结、有开自动备份才会排）
+        if (current.status != MeetingStatus.DONE && updated.status == MeetingStatus.DONE)
+            runCatching { com.example.wristai.backup.BackupWorker.scheduleAuto(context) }
         return updated
     }
 

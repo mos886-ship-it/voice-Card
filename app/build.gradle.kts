@@ -71,6 +71,9 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     // 扫大D的主機的配对 QR 码（Google 扫码画面，不用相机权限）
     implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
+    // Google 云端硬碟备份：帐号授权（Identity AuthorizationClient）＋ Task.await
+    implementation("com.google.android.gms:play-services-auth:21.3.0")
+    implementation(libs.kotlinx.coroutines.play.services)
     testImplementation(libs.junit)
     // 单元测试用真正的 org.json（Android 的版本在 JVM 测试里是空壳）
     testImplementation("org.json:json:20240303")
