@@ -297,16 +297,16 @@ private fun RecordPage(
     val today = food?.takeIf { it.day == WatchState.todayStart() }
     val goal = (food?.goal ?: 2000).coerceAtLeast(1)
     val kcal = today?.kcal ?: 0
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    BrandWatermark()
     Column(
         Modifier.fillMaxSize().padding(top = 26.dp, bottom = 18.dp, start = 8.dp, end = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        // 由上而下：品牌 → 辨识语言（大胶囊）→ 三颗按钮 → 按钮下方的说明 / 状态
-        BrandHeader()
-        Spacer(Modifier.height(6.dp))
+        // 由上而下：辨识语言（大胶囊）→ 三颗按钮 → 按钮下方的说明 / 状态（品牌 logo 是淡淡的背景）
         LangChip(lang, enabled = !sending, onClick = onLang)
-        Spacer(Modifier.height(2.dp))
+        Spacer(Modifier.height(6.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
             SideAction(
                 label = if (kcal > 0) "$kcal 大卡" else "飲食",
@@ -320,6 +320,7 @@ private fun RecordPage(
             }
         }
         Hero(recorder = recorder, phoneRec = null, phoneStatus = phoneStatus)
+    }
     }
 }
 
@@ -809,14 +810,17 @@ private fun WatchLevel(s: com.example.voiceai.shared.AudioLevel.Snapshot) {
     }
 }
 
-/** 品牌：dw 书法印章 logo ＋「大D」。 */
+/**
+ * 品牌：dw 书法 logo 只取笔画，放大当录音页的淡背景（跟着主题着色：深色＝淡白、水墨＝淡墨），
+ * 不占版面，按钮与文字都盖在上面。
+ */
 @Composable
-private fun BrandHeader() {
-    Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-        Image(painterResource(R.drawable.ic_logo), null, Modifier.size(22.dp).clip(CircleShape))
-        Spacer(Modifier.width(6.dp))
-        Text("大D", fontSize = 13.sp, letterSpacing = 1.sp, fontWeight = FontWeight.Bold, color = Brand.TextMuted)
-    }
+private fun BrandWatermark() {
+    Image(
+        painterResource(R.drawable.ic_logo_mark), null,
+        Modifier.size(236.dp),
+        colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Brand.Text.copy(alpha = if (Brand.isInk) 0.08f else 0.07f)),
+    )
 }
 
 /** 中间的主状态：待机标题 / 录音计时（脉冲红点）/ 传送中（旋转弧）/ 结果。 */
