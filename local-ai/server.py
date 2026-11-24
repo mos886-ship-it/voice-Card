@@ -19,6 +19,10 @@ App 的報告解析、說話者名字、飲食 NUTRITION 解析都直接沿用�
   POST /v1/password       → {"password": …} 設定 / 更換配對密碼（至少 8 個字）
   GET  /pair              → 配對用的 QR 碼網頁（只給區網 / 本機）
   設定密碼也可以在主機上：venv/bin/python server.py --set-password
+  OpenAI 相容（給 VPS / 其他程式用目前載入的報告模型）：
+  POST /v1/chat/completions → OpenAI Chat Completions 格式（messages、max_tokens、temperature、stream），
+                              存取碼當 API key；跟 App 的工作共用一個佇列（一次一筆）
+  GET  /v1/models          → 除了上面的欄位，也有 OpenAI 的 {"object": "list", "data": [...]}
 
 一次只處理一筆（同一顆 GPU），其他請求排隊。啟動：venv/bin/python server.py（launchd 會在登入時自動啟動）。
 """
@@ -380,6 +384,71 @@ def chat(system, user, max_tokens=2500):
     return tw(out).replace("語言者", "說話者").replace("發言者", "說話者")
 
 
+# ---------------- OpenAI 相容 ----------------
+OA_MAX_TOKENS = 8192
+
+
+def llm_tag():
+    return LLM_OPTIONS.get(CUR["llm"], {}).get("tag", (CUR["llm"] or "").rsplit("/", 1)[-1].lower())
+
+
+def oa_messages(raw):
+    """OpenAI 的 messages → 模型的對話。content 可以是字串或 [{type: text, text}]；tool 等其他角色當成 user。"""
+    out = []
+    for m in raw if isinstance(raw, list) else []:
+        if not isinstance(m, dict):
+            continue
+        c = m.get("content", "")
+        if isinstance(c, list):
+            c = "".join(p.get("text", "") for p in c if isinstance(p, dict) and p.get("type", "text") == "text")
+        role = m.get("role", "user")
+        out.append({"role": role if role in ("system", "user", "assistant") else "user", "content": str(c or "")})
+    return out
+
+
+def oa_generate(messages, max_tokens, temperature, think, on_text=None):
+    """用目前載入的報告模型回答。on_text(片段) 有給就邊產生邊回呼（串流）。回傳 (全文, prompt tokens, 產生 tokens, finish)。"""
+    kind, obj = CUR["llm_obj"]
+    parts, n_prompt, n_gen, finish = [], 0, 0, "stop"
+    if kind == "gguf":
+        stream = obj.create_chat_completion(messages=messages, temperature=temperature, max_tokens=max_tokens, stream=True)
+        for ch in stream:
+            choice = ch["choices"][0]
+            piece = choice.get("delta", {}).get("content") or ""
+            if piece:
+                parts.append(piece)
+                if on_text:
+                    on_text(piece)
+            if choice.get("finish_reason"):
+                finish = choice["finish_reason"]
+        text = "".join(parts)
+        try:
+            n_gen = len(obj.tokenize(text.encode("utf-8"), add_bos=False))
+            n_prompt = len(obj.tokenize("".join(m["content"] for m in messages).encode("utf-8")))
+        except Exception:  # noqa: BLE001
+            pass
+        return text, n_prompt, n_gen, finish
+    from mlx_lm import stream_generate
+    from mlx_lm.sample_utils import make_sampler
+    model, tok = obj
+    try:   # Qwen3：預設關掉「思考」，要的話 enable_thinking: true
+        prompt = tok.apply_chat_template(messages, add_generation_prompt=True, enable_thinking=think, tokenize=False)
+    except TypeError:
+        prompt = tok.apply_chat_template(messages, add_generation_prompt=True, tokenize=False)
+    for r in stream_generate(model, tok, prompt=prompt, max_tokens=max_tokens, sampler=make_sampler(temp=temperature)):
+        if r.text:
+            parts.append(r.text)
+            if on_text:
+                on_text(r.text)
+        n_prompt, n_gen = r.prompt_tokens, r.generation_tokens
+        if r.finish_reason:
+            finish = "length" if r.finish_reason == "length" else "stop"
+    text = "".join(parts)
+    if not think:
+        text = re.sub(r"<think>.*?</think>\s*", "", text, flags=re.S)
+    return text, n_prompt, n_gen, finish
+
+
 def chunks(text, size):
     out, cur = [], ""
     for line in text.split("\n"):
@@ -540,7 +609,9 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/v1/health":
             return self._json(200, status())
         opts = lambda d: [{"id": k, "label": v["label"]} for k, v in d.items()]  # noqa: E731
-        self._json(200, {**status(), "asr_options": opts(ASR_OPTIONS), "llm_options": opts(LLM_OPTIONS)})
+        oa = [{"id": llm_tag(), "object": "model", "created": 0, "owned_by": "dylan"}]
+        self._json(200, {**status(), "asr_options": opts(ASR_OPTIONS), "llm_options": opts(LLM_OPTIONS),
+                         "object": "list", "data": oa})
 
     def _config(self):
         """POST /v1/config {"asr": id, "llm": id} → 存起來，背景換模型（可能要下載，先回 202，App 用 /v1/health 看進度）。"""
@@ -578,7 +649,73 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(429 if "一小時" in str(e) else 401, {"error": str(e)})
         self._json(200, {"token": token, "id": dev})
 
+    def _chat(self):
+        """POST /v1/chat/completions（OpenAI 相容）。"""
+        def err(code, msg, kind="invalid_request_error"):
+            self._json(code, {"error": {"message": msg, "type": kind}})
+        try:
+            n = int(self.headers.get("Content-Length", "0") or 0)
+            if n <= 0 or n > 400_000:
+                return err(400, "請求太大或是空的（上限 400 KB）")
+            body = json.loads(self.rfile.read(n))
+        except ValueError:
+            return err(400, "格式不對（要 JSON）")
+        messages = oa_messages(body.get("messages"))
+        if not messages:
+            return err(400, "messages 是空的")
+        max_tokens = int(body.get("max_tokens") or body.get("max_completion_tokens") or 1024)
+        max_tokens = max(1, min(max_tokens, OA_MAX_TOKENS))
+        temperature = float(body.get("temperature", 0.7) if body.get("temperature") is not None else 0.7)
+        think = bool(body.get("enable_thinking", False))
+        stream = bool(body.get("stream", False))
+        cid = "chatcmpl-" + secrets.token_hex(12)
+        created = int(time.time())
+        t0 = time.time()
+        busy(1)
+        try:
+            with GPU:   # 跟 App 的錄音報告排同一個隊
+                if not CUR["llm_obj"]:
+                    return err(503, CUR["error"] or "模型還沒載入，請稍後再試", "server_error")
+                tag = llm_tag()
+                if not stream:
+                    text, n_p, n_g, finish = oa_generate(messages, max_tokens, temperature, think)
+                    self._json(200, {"id": cid, "object": "chat.completion", "created": created, "model": tag,
+                                     "choices": [{"index": 0, "message": {"role": "assistant", "content": text},
+                                                  "finish_reason": finish}],
+                                     "usage": {"prompt_tokens": n_p, "completion_tokens": n_g, "total_tokens": n_p + n_g}})
+                else:
+                    self.send_response(200)
+                    self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+                    self.send_header("Cache-Control", "no-cache")
+                    self.send_header("Connection", "close")
+                    self.end_headers()
+
+                    def send(delta, finish=None):
+                        chunk = {"id": cid, "object": "chat.completion.chunk", "created": created, "model": tag,
+                                 "choices": [{"index": 0, "delta": delta, "finish_reason": finish}]}
+                        self.wfile.write(b"data: " + json.dumps(chunk, ensure_ascii=False).encode("utf-8") + b"\n\n")
+                        self.wfile.flush()
+                    send({"role": "assistant", "content": ""})
+                    _, n_p, n_g, finish = oa_generate(messages, max_tokens, temperature, think,
+                                                      on_text=lambda t: send({"content": t}))
+                    send({}, finish)
+                    self.wfile.write(b"data: [DONE]\n\n")
+                    self.wfile.flush()
+                log(f"  chat {len(messages)} msgs, {n_p}+{n_g} tokens, {time.time() - t0:.1f}s{' stream' if stream else ''}")
+        except (BrokenPipeError, ConnectionResetError):
+            log("  chat client gone")
+        except Exception as e:  # noqa: BLE001
+            log(f"  chat failed: {e}")
+            try:
+                err(500, f"大D的主機處理失敗：{e}", "server_error")
+            except OSError:
+                pass
+        finally:
+            busy(-1)
+
     def do_POST(self):
+        if self.path == "/v1/chat/completions":
+            return self._chat() if self._authorized() else None
         if self.path == "/v1/pair":
             return self._pair()
         if self.path in ("/v1/password", "/v1/devices/revoke"):

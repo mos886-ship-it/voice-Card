@@ -32,6 +32,7 @@ bash local-ai/setup.sh
 - `GET /v1/models` → health 的內容＋`asr_options`、`llm_options`（`[{id, label}]`）
 - `POST /v1/config` `{"asr": id, "llm": id}` → 存進 config.json，等正在處理的那筆做完才在背景換（第一次會下載），回 202；用 health 的 `state` 看何時好
 - 配對（不用存取碼）：`POST /v1/pair`；已連上的裝置：`GET /v1/devices`、`POST /v1/devices/revoke`、`POST /v1/password`；配對頁 `GET /pair`（只給區網 / 本機）。詳見 `pairing.py` 開頭的說明。
+- OpenAI 相容：`POST /v1/chat/completions`（messages、max_tokens、temperature、stream），`GET /v1/models` 也回 OpenAI 格式的 `data`。用法見 `交接/HOST_CONNECT.md` 5b。
 - `POST /v1/process`：body 是錄音檔；標頭 `X-Kind: meeting|food`、`X-Recorded-At`、`X-Duration`（秒）→ `{"text": "<Gemini 格式>", "model": "local-funasr|qwen3-8b"}`，失敗回 `{"error": "..."}`。
   處理中每 20 秒先送一個空白保持連線（6 小時的錄音估計要 30 分鐘以上，App 的連線閒置上限是 30 分鐘），所以狀態碼一律 200，成功或失敗看 JSON。
 

@@ -76,6 +76,7 @@ iOS 版原本照 Android 版移植（見 `IOS_PORT.md`），之後在 iOS 上**�
 | GET | `/v1/devices` | `{"devices": [{id, name, created, last_seen, via: password\|qr, current}], "password_set": bool}` |
 | POST | `/v1/devices/revoke` | `{"id": …}` → 取消那台裝置的存取碼 |
 | POST | `/v1/password` | `{"password": …}`（至少 8 個字）→ 設定 / 更換配對密碼 |
+| POST | `/v1/chat/completions` | OpenAI 相容的聊天（給 VPS / 其他程式；App 目前不用）。見 `HOST_CONNECT.md` 5b |
 | POST | `/v1/process` | body 是錄音檔（m4a 等）；標頭 `X-Kind: meeting\|food`、`X-Recorded-At`（例 `2026/11/23 21:20`；標頭只能放 ASCII）、`X-Duration`（秒，整數）。**文字輸入**：加 `X-Input: text`、body 是 UTF-8 文字、`Content-Type: text/plain; charset=utf-8` |
 
 `/v1/process` 回應：主機先回 200，處理期間每 20 秒送一個空白（防逾時），最後送 JSON：`{"text": "<報告>\n\n===TRANSCRIPT===\n<逐字稿>", "model": "local-funasr|qwen3-8b"}` 或 `{"error": "大D的主機處理失敗：…"}`。`text` 的格式和 Gemini 輸出一樣（TITLE / SUMMARY 行＋Markdown 報告＋`===TRANSCRIPT===`＋`[mm:ss] 說話者A：…`），**直接用現有的 Gemini 解析**。逾時設長（iOS 用 30 分鐘請求、1 小時總時限）。
