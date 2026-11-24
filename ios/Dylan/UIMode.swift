@@ -31,6 +31,10 @@ enum SpeechLang: String, CaseIterable, Identifiable {
     var short: String {
         switch self { case .zh: return "國語"; case .nan: return "台語"; case .hak: return "客語" }
     }
+    /// 逐字稿每段前的語言標籤（一個字）。
+    var tag: String {
+        switch self { case .zh: return "國"; case .nan: return "台"; case .hak: return "客" }
+    }
 }
 
 /// 客語腔調（陽明交大客語 Whisper 用腔調 id 當提示）。存在 `hakka_dialect`，錄音時跟著存到 Meeting.dialect。
@@ -50,6 +54,25 @@ enum HakkaDialect: String, CaseIterable, Identifiable {
         case .zhaoan: return "詔安"
         case .nansixian: return "南四縣"
         }
+    }
+}
+
+/// 錄音語言與客語腔調的設定（存 UserDefaults）。
+/// 不用 @AppStorage：iOS 16 上連續切換時畫面不會跟著更新（要換頁回來才對），改用 ObservableObject 自己通知。
+@MainActor
+final class LangSettings: ObservableObject {
+    static let shared = LangSettings()
+
+    @Published var lang: SpeechLang {
+        didSet { UserDefaults.standard.set(lang.rawValue, forKey: SpeechLang.key) }
+    }
+    @Published var dialect: HakkaDialect {
+        didSet { UserDefaults.standard.set(dialect.rawValue, forKey: HakkaDialect.key) }
+    }
+
+    private init() {
+        lang = SpeechLang.current
+        dialect = HakkaDialect.current
     }
 }
 
@@ -98,7 +121,7 @@ struct LangPicker: View {
         switch lang {
         case .zh: return "國語：最快"
         case .nan: return "有台語就選這個（國台語夾雜也是），比較慢"
-        case .hak: return "客語：陽明交大客語模型，比較慢"
+        case .hak: return "客語（國客夾雜也可以），比較慢"
         }
     }
 

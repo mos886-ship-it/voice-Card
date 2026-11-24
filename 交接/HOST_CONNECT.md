@@ -39,6 +39,8 @@
 | 配對 | `~/dylan-local/pairing.py`（repo：`local-ai/pairing.py`） |
 | 紀錄 | `~/dylan-local/server.log`（每次請求、來源 IP、處理耗時、錯誤） |
 | 預設模型 | 語音辨識 FunASR、報告 Qwen3-8B（MLX 4bit） |
+| 依錄音語言（`X-Lang`） | 國語 `zh` → FunASR；台語 `nan` → Breeze-ASR-26（MLX 8bit，HF 快取）；客語 `hak` → 數位部 Taiwan Tongues（`~/dylan-local/models/taiwan-tongues-mlx-8bit`，1.5 GB，本機轉檔、不散布；TRAIL 授權）。說話者一律 FunASR 分 |
+| 磁碟 | 很緊（2026-11-24 約剩 6 GB）。轉模型時會吃大量記憶體 → swap 變大佔磁碟；`convert_whisper.py` 已改成逐層量化（峰值約 3.8 GB）。下載新模型前先看 `df -h ~` |
 
 ---
 
