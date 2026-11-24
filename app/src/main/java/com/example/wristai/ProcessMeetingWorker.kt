@@ -47,6 +47,10 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
         const val CANCELED = "已手動中斷處理"
         const val STEP_HOST_UP = "上傳到大D的主機"
         const val STEP_HOST_AI = "大D的主機整理"
+        /** 主机做完就删掉录音（含转档），只留报告文字。 */
+        const val STEP_HOST_PURGE = "主機刪除錄音"
+        /** 报告传回手机，主机上的报告也删掉。 */
+        const val STEP_HOST_BACK = "傳回報告"
 
         /** 送进大D的主机伫列的工作编号（Worker 被系统停掉、App 重开后接着查，不用重传）。 */
         fun hostJobFile(context: Context, id: String) = File(MeetingStore.dir(context, id), "host_job.txt")
@@ -441,7 +445,7 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
         }
         val before = MeetingStore.get(ctx, id)?.steps.orEmpty()
         val lastStep = if (food) "估算熱量" else STEP_HOST_AI
-        plan(id, before.filter { it == "接收錄音" || it == "存入錄音機" }.ifEmpty { listOf("接收錄音") } + listOf(STEP_HOST_UP, lastStep))
+        plan(id, before.filter { it == "接收錄音" || it == "存入錄音機" }.ifEmpty { listOf("接收錄音") } + listOf(STEP_HOST_UP, lastStep, STEP_HOST_PURGE, STEP_HOST_BACK))
         // 标头只能放 ASCII：录音时间用数字格式
         val asciiAt = SimpleDateFormat("yyyy/MM/dd HH:mm", Locale.US).format(Date(meeting.createdAt))
         return try {
@@ -462,6 +466,11 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
                         VoiceRecorderExporter.encodeM4a(MeetingStore.audioFile(ctx, id), compact, outRate = 16_000, bitRate = 32_000)
                         host.process(ctx, if (food) "food" else "meeting", asciiAt, meeting.durationSec, audio = compact,
                             lang = lang, dialect = dialect, onUploaded = { stepTo(id, lastStep, "大D的主機") })
+                            .also {
+                                // 旧主机处理完就把暂存的录音删掉；报告直接随回应传回、主机不留
+                                stepTo(id, STEP_HOST_PURGE, "主機上的錄音已刪除")
+                                stepTo(id, STEP_HOST_BACK, "已收到報告")
+                            }
                     } finally {
                         compact.delete()
                     }
@@ -561,7 +570,13 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
             }
             when (j.state) {
                 "done" -> {
-                    host.deleteJob(ctx, jid)
+                    // 显示给使用者看：主机上的录音已删、报告传回后主机上也删掉
+                    stepTo(id, STEP_HOST_PURGE, if (j.purged) "主機上的錄音已刪除，只留報告文字" else "主機會在 24 小時內刪除錄音")
+                    delay(600)
+                    stepTo(id, STEP_HOST_BACK, "下載報告中…")
+                    val gone = host.deleteJob(ctx, jid)
+                    stepTo(id, STEP_HOST_BACK, if (gone) "已收到報告，主機上的報告也已刪除" else "已收到報告（主機會在 24 小時內刪除）")
+                    delay(600)
                     jobFile.delete()
                     return LocalHost.Result(j.text ?: throw AiException("大D的主機沒有回傳報告"), j.model ?: host.DEFAULT_TAG)
                 }

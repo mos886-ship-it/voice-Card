@@ -178,8 +178,10 @@ class Jobs:
                 out["wait_sec"] = int(max(10.0, self._estimate(j) - (time.time() - j["started"])))
             elif j["state"] == "done":
                 out["text"], out["model"] = j.get("text", ""), j.get("model", "")
+                out["purged"] = bool(j.get("purged"))   # 主機上的錄音已刪除
             else:
                 out["error"] = j.get("error", "")
+                out["purged"] = bool(j.get("purged"))
             return out
 
     def preview(self, dev, duration=0.0):
@@ -266,6 +268,8 @@ class Jobs:
                         os.remove(os.path.join(self._dir(j["id"]), name))
                     except OSError:
                         pass
+            # 告訴 App 錄音真的刪掉了（App 的處理步驟顯示「主機刪除錄音」）
+            j["purged"] = os.listdir(self._dir(j["id"])) == ["job.json"]
             elapsed = j["finished"] - j["started"]
             dur = float(j.get("duration") or 0)
             if j["state"] == "done" and not j.get("text_input") and dur >= 30:

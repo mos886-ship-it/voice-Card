@@ -14,7 +14,7 @@ App 的報告解析、說話者名字、飲食 NUTRITION 解析都直接沿用�
   POST   /v1/jobs       → 標頭、body 跟 /v1/process 一樣；收完檔馬上回 202 {"id", "state": "queued", "ahead", "wait_sec"}
                           這台排太多筆 / 主機硬碟不夠 → 503 {"error"}
   GET    /v1/jobs/<id>  → {"id", "state": queued|running|done|error, "ahead", "wait_sec"}；
-                          done 多 "text"、"model"（同 /v1/process）；error 多 "error"。別台的工作 → 404
+                          done 多 "text"、"model"（同 /v1/process）；error 多 "error"；做完都有 "purged"（主機上的錄音已刪）。別台的工作 → 404
   DELETE /v1/jobs/<id>  → 排隊中就取消、做完的就刪結果（App 拿到結果後要刪）；正在做的做完直接丟掉
   GET    /v1/jobs       → {"jobs": [這台的工作狀態]}（管理者看全部）
   POST /v1/process  → （舊的，連著等結果；也是排進同一個佇列）body 是錄音檔（m4a / wav…）；標頭 X-Kind: meeting|food、X-Recorded-At、X-Duration（秒）

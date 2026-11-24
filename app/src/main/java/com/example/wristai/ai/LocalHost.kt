@@ -331,6 +331,8 @@ object LocalHost {
     data class Job(
         val id: String, val state: String, val ahead: Int = 0, val waitSec: Int = 0,
         val text: String? = null, val model: String? = null, val error: String? = null,
+        /** 主机上的录音（含转档）已经删掉，只留报告文字。 */
+        val purged: Boolean = false,
     )
 
     /** 主机找不到这笔工作（过期被删、被取消、主机换了）→ 要重新送。 */
@@ -341,7 +343,7 @@ object LocalHost {
         return Job(
             id = j.optString("id"), state = j.optString("state"), ahead = j.optInt("ahead"), waitSec = j.optInt("wait_sec"),
             text = j.optString("text").ifBlank { null }, model = j.optString("model").ifBlank { null },
-            error = j.optString("error").ifBlank { null },
+            error = j.optString("error").ifBlank { null }, purged = j.optBoolean("purged"),
         )
     }
 
@@ -393,13 +395,12 @@ object LocalHost {
         return parseJob(body).also { j -> if (j.state == "done") rememberTag(c, j.model) }
     }
 
-    /** 删掉主机上的这笔（拿到结果后、或使用者中断时）。失败不要紧，主机 24 小时后会自己删。 */
-    fun deleteJob(c: Context, id: String) {
-        runCatching {
-            val conn = open(c, url(c), token(c), "/v1/jobs/$id", "DELETE", 10_000)
-            try { read(conn) } finally { conn.disconnect() }
-        }
-    }
+    /** 删掉主机上的这笔（拿到结果后、或使用者中断时）。回传主机上是不是已经没有了（找不到也算）。
+     *  失败不要紧，主机 24 小时后会自己删。 */
+    fun deleteJob(c: Context, id: String): Boolean = runCatching {
+        val conn = open(c, url(c), token(c), "/v1/jobs/$id", "DELETE", 10_000)
+        try { read(conn).first } finally { conn.disconnect() }
+    }.getOrNull().let { it == 200 || it == 404 }
 
     /** 「前面還有 2 筆，約 6 分鐘」：给处理步骤和手表看。 */
     fun queueText(ahead: Int, waitSec: Int): String {

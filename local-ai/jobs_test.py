@@ -63,7 +63,7 @@ class JobsTest(unittest.TestCase):
         self.assertEqual(self.q.view(j)["state"], "queued")
         self.q.run_next(block=False)
         v = self.q.view(self.q.get(j["id"], "A"))
-        self.assertEqual((v["state"], v["text"], v["model"]), ("done", "TITLE: hello", "local-test|x"))
+        self.assertEqual((v["state"], v["text"], v["model"], v["purged"]), ("done", "TITLE: hello", "local-test|x", True))
         self.assertEqual(os.listdir(os.path.join(self.tmp.name, j["id"])), ["job.json"])   # 錄音、轉檔做完就刪
         self.assertIsNone(self.q.get(j["id"], "B"))                    # 別台看不到
         self.assertIsNotNone(self.q.get(j["id"], "B", admin=True))
