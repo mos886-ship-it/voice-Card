@@ -79,6 +79,8 @@ class PhoneRecordingService : Service() {
         private const val NOTIFICATION_ID = 3
         private const val MB = 1024L * 1024
         private const val MIN_FREE_TO_START = 500 * MB
+        /** 短于这个秒数 = 一按就停（误触），不送辨识。 */
+        const val MIN_RECORDING_SEC = 1.0
         private const val MIN_FREE_WHILE_RECORDING = 200 * MB
         private const val MAX_RECORDING_MS = 12 * 60 * 60 * 1000L
 
@@ -216,6 +218,24 @@ class PhoneRecordingService : Service() {
             WavFile.finalizeHeader(wav)
 
             val total = seq + 1
+            // 一按就停（不到 1 秒）：多半是误触，不送辨识、整笔丢掉；有照片的饮食记录照样只用照片处理
+            val seconds = WavFile.durationSeconds(wav)
+            if (seconds < MIN_RECORDING_SEC && stopReason == null && (!food || FoodPhotos.files(this@PhoneRecordingService, id).isEmpty())) {
+                MeetingStore.delete(this@PhoneRecordingService, id)
+                Log.d(TAG, "$id: stopped after ${"%.1f".format(seconds)}s, discarded")
+                PhoneRecorder.setError("錄音不到 1 秒，沒有送出辨識")
+                WatchNotifier.sendStatus(this@PhoneRecordingService, watchNode, "錄音不到 1 秒，已取消")
+                return@launch
+            }
+            if (seconds < MIN_RECORDING_SEC) {
+                // 有照片的「拍＋說」：口述太短就当成只有照片
+                runCatching { wav.delete() }
+                MeetingStore.update(this@PhoneRecordingService, id) {
+                    it.copy(status = MeetingStatus.RECEIVED, durationSec = 0.0, source = FoodPhotos.SOURCE, error = null)
+                }
+                ProcessMeetingWorker.enqueue(this@PhoneRecordingService, id)
+                return@launch
+            }
             MeetingStore.update(this@PhoneRecordingService, id) {
                 it.copy(status = MeetingStatus.RECEIVED, segmentsAppended = total, segmentsTotal = total,
                     durationSec = WavFile.durationSeconds(wav), error = null)

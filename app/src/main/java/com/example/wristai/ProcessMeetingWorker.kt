@@ -133,6 +133,21 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
             }
         }
 
+        // ---------- 一按就停（不到 1 秒，手表 / 手机都算）：误触，不送辨识，整笔丢掉 ----------
+        run {
+            val wav = MeetingStore.audioFile(ctx, id)
+            // 分段全部到齐才判断（手表边录边传，还没到齐的不能当成太短）
+            val complete = meeting.segmentsTotal >= 1 && meeting.segmentsAppended >= meeting.segmentsTotal
+            val tooShort = complete && wav.exists() && com.example.voiceai.shared.WavFile.durationSeconds(wav) < PhoneRecordingService.MIN_RECORDING_SEC
+            if (tooShort && meeting.importedAt == null && meeting.source != AudioImporter.SOURCE_CALL &&
+                FoodPhotos.files(ctx, id).isEmpty()) {
+                Log.d(TAG, "$id: shorter than ${PhoneRecordingService.MIN_RECORDING_SEC}s, discarded")
+                MeetingStore.delete(ctx, id)
+                WatchNotifier.sendStatus(ctx, node, "錄音不到 1 秒，已取消")
+                return Result.success()
+            }
+        }
+
         // ---------- 饮食记录：估算热量与营养素（需要云端 AI） ----------
         if (FoodLog.isFood(id)) {
             FoodDb.init(ctx)   // 食藥署资料：提示词清单＋重算热量
