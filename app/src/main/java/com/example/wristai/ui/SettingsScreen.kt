@@ -125,42 +125,45 @@ fun SettingsScreen(onBack: (() -> Unit)? = null) {
             Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // ---------- 介面模式：商用（简洁）/ 科技（细节） ----------
-            SectionLabel("介面模式")
-            GlassCard {
-                Chips(listOf("商用", "科技"), if (UiMode.tech) 1 else 0) { i -> UiMode.set(context, i == 1) }
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    if (UiMode.tech) "科技：顯示 AI 模型、耗時、編號、引擎切換原因與主機模型選單"
-                    else "商用：簡潔，只顯示結果與重點",
-                    style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted,
-                )
-            }
-
             SystemStatusCard()
 
-            // ---------- 排布：快錄 / 總覽（分页与主页的样子；之后会再加） ----------
-            SectionLabel("排布")
+            // ---------- 介面：一张卡放三个各自独立的选择——排布（版面）、資訊量（商用 / 科技）、配色 ----------
+            SectionLabel("介面")
             GlassCard {
+                // 排布：快錄 / 總覽（分页与主页的样子；之后会再加）
+                Text("排布", style = MaterialTheme.typography.titleSmall, color = Brand.Text)
+                Spacer(Modifier.height(8.dp))
                 Segmented(com.example.wristai.ui.theme.LayoutMode.entries.map { it.label },
                     com.example.wristai.ui.theme.LayoutMode.entries.indexOf(AppTheme.layout)) { i ->
                     val l = com.example.wristai.ui.theme.LayoutMode.entries[i]
                     AppTheme.layout = l
                     Settings.setLayoutMode(context, l.key)
                 }
-                Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(6.dp))
                 Text(AppTheme.layout.note, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
-            }
 
-            // ---------- 配色：清晰 / 暖和 / 深色 / 水墨（跟排布分开，哪个排布都能用） ----------
-            SectionLabel("配色")
-            GlassCard {
+                // 資訊量：商用（简洁）/ 科技（细节），哪个排布都适用
+                InterfaceDivider()
+                Text("資訊量", style = MaterialTheme.typography.titleSmall, color = Brand.Text)
+                Spacer(Modifier.height(8.dp))
+                Segmented(listOf("商用", "科技"), if (UiMode.tech) 1 else 0) { i -> UiMode.set(context, i == 1) }
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    if (UiMode.tech) "顯示 AI 模型、耗時、編號、引擎切換原因與主機模型選單"
+                    else "簡潔，只顯示結果與重點",
+                    style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted,
+                )
+
+                // 配色：清晰 / 暖和 / 深色 / 水墨
+                InterfaceDivider()
+                Text("配色", style = MaterialTheme.typography.titleSmall, color = Brand.Text)
+                Spacer(Modifier.height(8.dp))
                 ThemePicker(AppTheme.mode) { m ->
                     AppTheme.mode = m
                     Settings.setThemeMode(context, m.key)
                     com.example.wristai.WatchNotifier.broadcastTheme(context)
                 }
-                Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(6.dp))
                 Text(AppTheme.mode.note, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
             }
 
@@ -359,6 +362,14 @@ private fun Note(icon: androidx.compose.ui.graphics.vector.ImageVector, text: St
         Spacer(Modifier.width(8.dp))
         Text(text, style = MaterialTheme.typography.bodySmall, color = color)
     }
+}
+
+/** 「介面」卡里三个选择之间的分隔线。 */
+@Composable
+private fun InterfaceDivider() {
+    Spacer(Modifier.height(16.dp))
+    Box(Modifier.fillMaxWidth().height(1.dp).background(Brand.Outline))
+    Spacer(Modifier.height(16.dp))
 }
 
 /** 配色四选一（两行两格）：每格一个小色块（底色＋重点色圆点）＋名字，选中的有重点色框。 */
