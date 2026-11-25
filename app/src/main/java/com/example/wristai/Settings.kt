@@ -42,6 +42,9 @@ object Settings {
     /** 水墨配色的背景画：boat 孤舟 / lotus 荷塘 / shrimp 魚蝦 / none（[com.example.wristai.ui.theme.InkBackground]）。 */
     fun inkBackground(context: Context): String = prefs(context).getString("ink_bg", "boat") ?: "boat"
     fun setInkBackground(context: Context, value: String) = prefs(context).edit().putString("ink_bg", value).apply()
+    /** 浮世繪配色的背景画：geisha 藝伎武士 / crane 靈鶴 / castle 大阪城 / none。 */
+    fun ukiyoeBackground(context: Context): String = prefs(context).getString("ukiyoe_bg", "geisha") ?: "geisha"
+    fun setUkiyoeBackground(context: Context, value: String) = prefs(context).edit().putString("ukiyoe_bg", value).apply()
 
     /** 饮食同步到健康（Health Connect → Google / Samsung Health）；预设关。 */
     fun healthSync(context: Context): Boolean = prefs(context).getBoolean("health_sync", false)

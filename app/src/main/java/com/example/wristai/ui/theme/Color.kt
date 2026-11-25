@@ -18,14 +18,18 @@ class Palette(
     val accent: List<Color> = listOf(Color(0xFF22D3EE), Color(0xFF3B82F6), Color(0xFF8B5CF6)),
 )
 
-/** 深空蓝（预设，跟手表一致）。 */
-val DarkPalette = Palette(
-    bg = Color(0xFF070B16), surface = Color(0xFF0F1526), surfaceHigh = Color(0xFF161E33),
-    surfaceHigher = Color(0xFF1D2740), outline = Color(0xFF26314D),
-    cyan = Color(0xFF22D3EE), blue = Color(0xFF3B82F6), violet = Color(0xFF8B5CF6),
-    success = Color(0xFF34D399), warning = Color(0xFFFBBF24), error = Color(0xFFF87171), recording = Color(0xFFFF4D6D),
-    text = Color(0xFFE8ECF5), textMuted = Color(0xFF8C97B2), textFaint = Color(0xFF5B6684),
-    backdropTop = Color(0xFF0B1224), pink = Color(0xFFF472B6),
+/**
+ * 浮世繪（取代原本的深色）：和纸米黄底、墨黑字、普鲁士蓝重点、朱红录音，
+ * 配色取自木刻版画（tools/ukiyoe_bg.py 的背景画同一套颜色）。
+ */
+val UkiyoePalette = Palette(
+    bg = Color(0xFFF0E4C8), surface = Color(0xFFF8F2E4), surfaceHigh = Color(0xFFEADCBC),
+    surfaceHigher = Color(0xFFE0CFA8), outline = Color(0xFFB9A57F),
+    cyan = Color(0xFF1E3A6E), blue = Color(0xFF3C6AA8), violet = Color(0xFFC8402B),   // 普鲁士蓝、中蓝、朱红
+    success = Color(0xFF2F5E4C), warning = Color(0xFF9A6B16), error = Color(0xFFB3261E), recording = Color(0xFFC8402B),
+    text = Color(0xFF2A2522), textMuted = Color(0xFF5E5245), textFaint = Color(0xFF8C7D68),
+    backdropTop = Color(0xFFF0E4C8), pink = Color(0xFFB4566B),
+    accent = listOf(Color(0xFF1E3A6E), Color(0xFF1E3A6E)),
 )
 
 /** 浅色：白底 + 同一组品牌渐层，文字与强调色加深，户外 / 白天比较好读。 */
@@ -72,23 +76,23 @@ val WarmPalette = Palette(
 )
 
 /**
- * 大D 品牌色。数值来自目前的配色（[theme]：clear 清晰 / warm 暖和日常 / dark 深色 / ink 水墨）；
+ * 大D 品牌色。数值来自目前的配色（[theme]：clear 清晰 / warm 暖和日常 / ukiyoe 浮世繪 / ink 水墨）；
  * [theme] 是 Compose 状态，切换配色时所有用到 Brand 的画面会自动重画。
  */
 object Brand {
     var theme by mutableStateOf("clear")
-    val isDark get() = theme == "dark"
     val isInk get() = theme == "ink"
-    /** 新配色（清晰 / 暖和日常）：单色重点、不用渐层。 */
-    val isNew get() = theme == "clear" || theme == "warm"
+    val isUkiyoe get() = theme == "ukiyoe"
+    /** 单色重点、不用渐层的配色（清晰 / 暖和日常 / 浮世繪）。 */
+    val isNew get() = theme == "clear" || theme == "warm" || theme == "ukiyoe"
     private val p get() = when (theme) {
         "warm" -> WarmPalette
-        "dark" -> DarkPalette
+        "ukiyoe" -> UkiyoePalette
         "ink" -> InkPalette
         else -> ClearPalette
     }
-    /** 卡片圆角：清晰 16、暖和日常 22（比较圆润）、深色 / 水墨 20。 */
-    val CardRadius get() = when (theme) { "warm" -> 22.dp; "clear" -> 16.dp; else -> 20.dp }
+    /** 卡片圆角：清晰 16、暖和日常 22（比较圆润）、浮世繪 12（版画方正）、水墨 20。 */
+    val CardRadius get() = when (theme) { "warm" -> 22.dp; "clear" -> 16.dp; "ukiyoe" -> 12.dp; else -> 20.dp }
 
     val Bg get() = p.bg
     val Surface get() = p.surface

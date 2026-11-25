@@ -27,7 +27,7 @@ object WatchNotifier {
      * 把外观主题推给所有连着的手表：手机选「水墨」→ 手表水墨；其他 → 手表深色（OLED 省电）。
      */
     fun broadcastTheme(context: Context) {
-        val key = if (Settings.themeMode(context) == "ink") "ink" else "dark"   // 手表：水墨跟着换，其他维持深色（OLED 省电）
+        val key = if (Settings.themeMode(context) == "ink") "ink" else "dark"   // 手表：水墨跟着换，其他（含浮世繪）维持深色（OLED 省电）
         broadcast(context, WristAiProtocol.PATH_THEME, key)
     }
 

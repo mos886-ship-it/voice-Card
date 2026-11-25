@@ -166,6 +166,25 @@ fun SettingsScreen(onBack: (() -> Unit)? = null) {
                 Spacer(Modifier.height(6.dp))
                 Text(AppTheme.mode.note, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
 
+                // 浮世繪才有：背景画（藝伎武士 / 靈鶴 / 大阪城 / 無）
+                if (AppTheme.mode == com.example.wristai.ui.theme.ThemeMode.UKIYOE) {
+                    InterfaceDivider()
+                    Text("背景畫", style = MaterialTheme.typography.titleSmall, color = Brand.Text)
+                    Spacer(Modifier.height(8.dp))
+                    val ubs = com.example.wristai.ui.theme.UkiyoeBackground.entries
+                    Segmented(ubs.map { it.label }, ubs.indexOf(AppTheme.ukiyoeBg)) { i ->
+                        AppTheme.ukiyoeBg = ubs[i]
+                        Settings.setUkiyoeBackground(context, ubs[i].key)
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Text(when (AppTheme.ukiyoeBg) {
+                        com.example.wristai.ui.theme.UkiyoeBackground.GEISHA -> "藝伎武士：朱紅拱橋上，撐紙傘的藝伎與佩雙刀的武士。"
+                        com.example.wristai.ui.theme.UkiyoeBackground.CRANE -> "靈鶴：三隻丹頂鶴、朱紅的日與松枝。"
+                        com.example.wristai.ui.theme.UkiyoeBackground.CASTLE -> "大阪城：白牆、銅綠屋頂的天守，石垣、護城河與櫻花。"
+                        com.example.wristai.ui.theme.UkiyoeBackground.NONE -> "不放背景畫，只有和紙底。"
+                    }, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
+                }
+
                 // 水墨才有：背景画（孤舟 / 荷塘 / 魚蝦 / 無）
                 if (AppTheme.mode == com.example.wristai.ui.theme.ThemeMode.INK) {
                     InterfaceDivider()
