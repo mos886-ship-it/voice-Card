@@ -14,6 +14,7 @@ struct RecordsView: View {
     @AppStorage(UIMode.key) private var mode: UIMode = .business
     @State private var importing = false
     @State private var managing = false
+    @AppStorage(LayoutMode.key) private var layout: LayoutMode = .quick
 
     var body: some View {
         let meetings = store.meetings.filter { !$0.isFood }
@@ -30,14 +31,14 @@ struct RecordsView: View {
                 // ---------- 標題 ----------
                 HStack {
                     VStack(alignment: .leading, spacing: 0) {
-                        Text("資料庫").font(.headlineSmall).foregroundStyle(Brand.text)
+                        Text(layout == .overview ? "錄音" : "資料庫").font(.headlineSmall).foregroundStyle(Brand.text)
                         Text(meetings.isEmpty ? "會議、課堂、訪談、通話、靈感筆記"
                              : "共 \(meetings.count) 段 · \(Fmt.duration(meetings.reduce(0) { $0 + $1.durationSec }))")
                             .font(.bodySmall).foregroundStyle(Brand.textMuted)
                     }
                     Spacer()
                     // 原本的「檔案」分頁：大小、分享錄音檔、只刪錄音檔、刪除整筆
-                    GhostButton(text: "管理", tint: Brand.cyan) { managing = true }
+                    if layout == .quick { GhostButton(text: "管理", tint: Brand.cyan) { managing = true } }
                     GhostButton(text: importing ? "匯入中…" : "匯入", systemImage: "plus", tint: Brand.cyan) {
                         if !importing { picking = true }
                     }

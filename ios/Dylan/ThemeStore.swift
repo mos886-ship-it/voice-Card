@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// 外觀設定：清晰（A）/ 暖和日常（C）。存在 UserDefaults "theme_mode"，預設清晰；舊的值（dark / light / ink / auto）都當清晰。
-/// 手錶維持深色（OLED 省電），一律推「dark」。
+/// 配色：清晰 / 暖和日常 / 深色 / 水墨。存在 UserDefaults "theme_mode"，預設清晰；舊的 light / auto 當清晰。
+/// 手錶只有兩種：水墨跟手機一起，其他一律深色（OLED 省電）。
 @MainActor
 final class ThemeStore: ObservableObject {
     static let shared = ThemeStore()
@@ -15,13 +15,14 @@ final class ThemeStore: ObservableObject {
     }
 
     init() {
+        LayoutMode.migrate()
         mode = ThemeMode(rawValue: UserDefaults.standard.string(forKey: Self.key) ?? "") ?? .clear
     }
 
     func palette(system: ColorScheme) -> Palette { mode.palette }
 
-    /// 手錶的主題：一律深色。
-    var watchTheme: String { "dark" }
+    /// 手錶的主題："ink"（水墨）或 "dark"。
+    var watchTheme: String { mode == .ink ? "ink" : "dark" }
 }
 
 /// 最外層：依設定決定 Brand.current，主題一換就整個重畫（Android 是 Compose 狀態自動重畫）。

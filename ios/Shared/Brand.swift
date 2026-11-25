@@ -93,17 +93,27 @@ struct Palette: Equatable {
     #endif
 }
 
-/// 外觀設定：A 清晰（預設）/ C 暖和日常（2026-11-25 重新設計，舊的深色 / 淺色 / 水墨 / 自動先拿掉）。
+/// 配色（設定 → 配色，跟排布分開）：清晰（預設）/ 暖和日常 / 深色 / 水墨。
+/// 深色、水墨用原本的調色盤；舊的「淺色」「自動」當清晰。
 enum ThemeMode: String, CaseIterable, Identifiable {
-    case clear, warm
+    case clear, warm, dark, ink
     var id: String { rawValue }
     var label: String {
         switch self {
         case .clear: return "清晰"
         case .warm: return "暖和日常"
+        case .dark: return "深色"
+        case .ink: return "水墨"
         }
     }
-    var palette: Palette { self == .warm ? .warm : .clear }
+    var palette: Palette {
+        switch self {
+        case .clear: return .clear
+        case .warm: return .warm
+        case .dark: return .dark
+        case .ink: return .ink
+        }
+    }
 }
 
 /// 品牌色。數值來自目前的主題（Brand.current，由最外層畫面依設定換掉並整個重畫）。

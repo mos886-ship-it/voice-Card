@@ -2,21 +2,49 @@ import SwiftUI
 
 /// 底部分頁：今天 / 資料庫 /（中間錄音鍵）/ 飲食 / 設定。檔案管理在資料庫的「管理」。，從詳情返回回到原分頁。
 enum Tab: String, CaseIterable {
-    case home, records, food, settings
+    case home, records, food, files, settings
 
-    var label: String {
+    /// 「總覽」排布才有「檔案」分頁（快錄在資料庫的「管理」）。
+    static func tabs(_ layout: LayoutMode) -> [Tab] { layout == .overview ? allCases : [.home, .records, .food, .settings] }
+
+    func label(_ layout: LayoutMode) -> String {
         switch self {
-        case .home: return "今天"
-        case .records: return "資料庫"
+        case .home: return layout == .overview ? "主頁" : "今天"
+        case .records: return layout == .overview ? "錄音" : "資料庫"
         case .food: return "飲食"
+        case .files: return "檔案"
         case .settings: return "設定"
         }
+    }
+    var label: String { label(.quick) }
+}
+
+/// 排布（設定 → 排布，照用途取名，之後還會加）：快錄＝今天＋中間錄音鍵；總覽＝主頁＋五個分頁（含檔案）。跟配色分開設定。
+enum LayoutMode: String, CaseIterable, Identifiable {
+    case quick, overview
+    static let key = "layout_mode"
+    var id: String { rawValue }
+    var label: String { self == .overview ? "總覽" : "快錄" }
+
+    /// 1.1.87 存的 new / classic → quick / overview（App 啟動時換一次）。
+    static func migrate() {
+        let d = UserDefaults.standard
+        switch d.string(forKey: key) {
+        case "new": d.set(Self.quick.rawValue, forKey: key)
+        case "classic": d.set(Self.overview.rawValue, forKey: key)
+        default: break
+        }
+    }
+    var note: String {
+        self == .overview ? "主頁有快捷方塊、今日統計與最新報告；底部五個分頁：主頁、錄音、飲食、檔案、設定。"
+            : "「今天」只放現在要做的事；底部中間的錄音鍵任何分頁一按就錄；檔案管理在資料庫的「管理」。"
     }
 }
 
 struct RootView: View {
     // SceneStorage：換主題整個重畫時，仍停在原本的分頁（設定）
     @SceneStorage("tab") private var tab: Tab = .home
+    @AppStorage(LayoutMode.key) private var layout: LayoutMode = .quick
     @State private var path: [String] = []
     @State private var toast: String?
 
@@ -26,14 +54,20 @@ struct RootView: View {
             VStack(spacing: 0) {
                 Group {
                     switch tab {
-                    case .home: DashboardView(open: open, select: select, toast: $toast)
+                    case .home:
+                        if layout == .overview { OverviewDashboardView(open: open, select: select, toast: $toast) }
+                        else { DashboardView(open: open, select: select, toast: $toast) }
                     case .records: RecordsView(open: open, toast: $toast)
                     case .food: FoodView(toast: $toast)
+                    case .files:
+                        if layout == .overview { FilesView(open: open, toast: $toast) }
+                        else { RecordsView(open: open, toast: $toast) }
                     case .settings: SettingsView()
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                BottomNav(current: tab, onSelect: select)
+                if layout == .overview { OverviewBottomNav(current: tab, onSelect: select) }
+                else { BottomNav(current: tab == .files ? .records : tab, onSelect: select) }
             }
             .ignoresSafeArea(.keyboard, edges: .bottom)   // 鍵盤出來時分頁列不要跟著浮上來
             .background(Brand.backdrop.ignoresSafeArea())
@@ -137,7 +171,66 @@ private struct NavItem: View {
         case .home: Image(systemName: "sun.max").font(.system(size: 17)).foregroundStyle(tint)
         case .records: Image(systemName: "list.bullet.rectangle").font(.system(size: 17)).foregroundStyle(tint)
         case .food: BowlGlyph(color: tint).frame(width: 20, height: 20)
+        case .files: Image(systemName: "folder").font(.system(size: 17)).foregroundStyle(tint)
         case .settings: Image(systemName: "gearshape").font(.system(size: 17)).foregroundStyle(tint)
+        }
+    }
+}
+
+/// 「總覽」排布的分頁列：主頁 / 錄音 / 飲食 / 檔案 / 設定，選中的是漸層膠囊。
+struct OverviewBottomNav: View {
+    let current: Tab
+    let onSelect: (Tab) -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Rectangle().fill(Brand.outline).frame(height: 1)
+            HStack {
+                ForEach(Tab.allCases, id: \.self) { t in
+                    OverviewNavItem(tab: t, selected: t == current) { onSelect(t) }
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            .padding(.horizontal, 4)
+            .frame(maxWidth: 560)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+            .background(Brand.bg.ignoresSafeArea(edges: .bottom))
+        }
+    }
+}
+
+private struct OverviewNavItem: View {
+    let tab: Tab
+    let selected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        let tint = selected ? Color.white : Brand.textMuted
+        Button(action: action) {
+            VStack(spacing: 4) {
+                ZStack {
+                    // 選中的分頁：圖示後面一個漸層膠囊
+                    if selected { Capsule().fill(Brand.accent) }
+                    icon(tint)
+                }
+                .frame(maxWidth: 56).frame(height: 30)
+                Text(tab.label(.overview)).font(.labelMedium).foregroundStyle(selected ? Brand.text : Brand.textMuted)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(tab.label)
+        .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+
+    @ViewBuilder private func icon(_ tint: Color) -> some View {
+        switch tab {
+        case .home: Image(systemName: "house.fill").font(.system(size: 17)).foregroundStyle(tint)
+        case .records: Waveform(color: tint).frame(width: 20, height: 16)
+        case .food: BowlGlyph(color: tint).frame(width: 20, height: 20)
+        case .files: Image(systemName: "folder.fill").font(.system(size: 17)).foregroundStyle(tint)
+        case .settings: Image(systemName: "gearshape.fill").font(.system(size: 17)).foregroundStyle(tint)
         }
     }
 }

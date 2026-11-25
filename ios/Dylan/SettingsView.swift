@@ -7,12 +7,15 @@ struct SettingsView: View {
     @AppStorage(UIMode.key) private var mode: UIMode = .business
     @EnvironmentObject private var link: PhoneLink
     @EnvironmentObject private var theme: ThemeStore
+    @AppStorage(LayoutMode.key) private var layout: LayoutMode = .quick
     @ObservedObject private var ai = AiStatus.shared
 
     private var themeNote: String {
         switch theme.mode {
         case .clear: return "淺灰紙底、白卡片、藍色重點：資訊清楚，適合工作。手錶維持深色。"
         case .warm: return "米白底、珊瑚紅與鼠尾草綠：溫和好讀，適合日常與家人。手錶維持深色。"
+        case .dark: return "深空藍底、品牌漸層。手錶也是深色（OLED 省電）。"
+        case .ink: return "宣紙底、墨黑字、朱紅點綴，跟 logo 同一套。手錶也會換成水墨。"
         }
     }
 
@@ -33,9 +36,19 @@ struct SettingsView: View {
                     Text(mode.note).font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 10)
                 }
 
-                SectionLabel(text: "外觀主題")
+                SectionLabel(text: "排布")
                 GlassCard {
                     HStack(spacing: 8) {
+                        ForEach(LayoutMode.allCases) { l in
+                            LayoutChip(mode: l, selected: layout == l) { layout = l }
+                        }
+                    }
+                    Text(layout.note).font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 10)
+                }
+                SectionLabel(text: "配色")
+                GlassCard {
+                    // 兩行兩格：清晰、暖和日常 / 深色、水墨
+                    LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
                         ForEach(ThemeMode.allCases) { m in
                             ThemeChip(mode: m, selected: theme.mode == m) { theme.mode = m }
                         }
@@ -150,6 +163,30 @@ struct SettingsView: View {
 
     private func placeholder(_ text: String) -> some View {
         GlassCard { Text(text).font(.bodySmall).foregroundStyle(Brand.textMuted) }
+    }
+}
+
+/// 排布選項（快錄 / 總覽）：選中的用重點色底。
+private struct LayoutChip: View {
+    let mode: LayoutMode
+    let selected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: mode == .overview ? "square.grid.2x2" : "mic").font(.system(size: 15, weight: .semibold))
+                Text(mode.label).font(.labelLarge)
+            }
+            .foregroundStyle(selected ? Color.white : Brand.textMuted)
+            .frame(maxWidth: .infinity, minHeight: 48)
+            .background(RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(selected ? AnyShapeStyle(Brand.accent) : AnyShapeStyle(Brand.surfaceHigh)))
+            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(selected ? Color.clear : Brand.outline, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
 
