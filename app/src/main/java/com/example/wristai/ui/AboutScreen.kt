@@ -135,6 +135,15 @@ fun AboutScreen(onBack: () -> Unit) {
                 LinkRow("Android 軟體開發套件授權") { open("https://developer.android.com/studio/terms") }
             }
 
+            // ---------- 内建资料：食藥署营养成分（政府资料开放授权条款要标示来源） ----------
+            SectionLabel("內建資料")
+            GlassCard {
+                Text("飲食熱量計算使用衛生福利部食品藥物管理署「食品營養成分資料集」（2026/10/05 版，只取熱量、蛋白質、脂肪、碳水、膳食纖維、糖、鈉，每 100 克），依政府資料開放授權條款－第1版使用。",
+                    style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
+                LinkRow("食品營養成分資料集（政府資料開放平臺）") { open("https://data.gov.tw/dataset/8543") }
+                LinkRow("政府資料開放授權條款－第1版") { open("https://data.gov.tw/license") }
+            }
+
             // ---------- 云端 AI ----------
             SectionLabel("雲端 AI 服務")
             GlassCard {

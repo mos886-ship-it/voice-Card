@@ -135,6 +135,7 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
 
         // ---------- 饮食记录：估算热量与营养素（需要云端 AI） ----------
         if (FoodLog.isFood(id)) {
+            FoodDb.init(ctx)   // 食藥署资料：提示词清单＋重算热量
             tryLocalHost(id, meeting, food = true)?.let { return it }
             return if (mode == com.example.wristai.ai.AiConfig.MODE_PIPELINE) processPipeline(id, meeting, recordedAt, startedAt, food = true)
             else processFood(id, meeting, recordedAt)
@@ -353,14 +354,14 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
             val report = ReportGenerator.parseReport(raw.substringBefore(GeminiReportGenerator.TRANSCRIPT_MARKER).trim())
             val model = "${stt.modelId}|${llm.modelId}"
             if (food) {
-                val nutrition = FoodLog.parseNutrition(raw)
-                MeetingStore.reportFile(ctx, id).writeText(FoodLog.stripNutrition(report.markdown))
+                val done = FoodLog.finish(raw, report.markdown, report.shortSummary)
+                MeetingStore.reportFile(ctx, id).writeText(done.markdown)
                 MeetingStore.update(ctx, id) {
-                    it.copy(status = MeetingStatus.DONE, title = report.title, nutrition = nutrition, aiModel = model)
+                    it.copy(status = MeetingStatus.DONE, title = report.title, nutrition = done.nutrition, aiModel = model)
                 }
-                WatchNotifier.sendSummary(ctx, node, MeetingSummary(id, report.title, report.shortSummary))
+                WatchNotifier.sendSummary(ctx, node, MeetingSummary(id, report.title, done.summary))
                 WatchNotifier.broadcastFoodToday(ctx)
-                ReadyNotification.showReport(ctx, id, report.title, report.shortSummary)
+                ReadyNotification.showReport(ctx, id, report.title, done.summary)
             } else {
                 MeetingStore.reportFile(ctx, id).writeText(report.markdown)
                 val names = Speakers.namesFromReport(report.markdown)
@@ -412,17 +413,18 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
                     compact.delete()
                 }
             }
-            val nutrition = FoodLog.parseNutrition(result.raw)
+            val done = FoodLog.finish(result.raw, result.report.markdown, result.report.shortSummary)
+            val nutrition = done.nutrition
             MeetingStore.transcriptFile(ctx, id).writeText(result.transcript)
-            MeetingStore.reportFile(ctx, id).writeText(FoodLog.stripNutrition(result.report.markdown))
+            MeetingStore.reportFile(ctx, id).writeText(done.markdown)
             MeetingStore.update(ctx, id) {
                 it.copy(status = MeetingStatus.DONE, title = result.report.title, nutrition = nutrition, aiModel = result.model)
             }
             finishSteps(id)
             Log.d(TAG, "$id: food log ${nutrition?.kcal} kcal by ${result.model}")
-            WatchNotifier.sendSummary(ctx, node, MeetingSummary(id, result.report.title, result.report.shortSummary))
+            WatchNotifier.sendSummary(ctx, node, MeetingSummary(id, result.report.title, done.summary))
             WatchNotifier.broadcastFoodToday(ctx)
-            ReadyNotification.showReport(ctx, id, result.report.title, result.report.shortSummary)
+            ReadyNotification.showReport(ctx, id, result.report.title, done.summary)
             Result.success()
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
@@ -502,15 +504,15 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
             val (report, transcript) = GeminiReportGenerator("").parse(res.text)
             MeetingStore.transcriptFile(ctx, id).writeText(transcript)
             if (food) {
-                val nutrition = FoodLog.parseNutrition(res.text)
-                MeetingStore.reportFile(ctx, id).writeText(FoodLog.stripNutrition(report.markdown))
+                val done = FoodLog.finish(res.text, report.markdown, report.shortSummary)
+                MeetingStore.reportFile(ctx, id).writeText(done.markdown)
                 MeetingStore.update(ctx, id) {
-                    it.copy(status = MeetingStatus.DONE, title = report.title, nutrition = nutrition, aiModel = res.model)
+                    it.copy(status = MeetingStatus.DONE, title = report.title, nutrition = done.nutrition, aiModel = res.model)
                 }
                 finishSteps(id)
-                WatchNotifier.sendSummary(ctx, node, MeetingSummary(id, report.title, report.shortSummary))
+                WatchNotifier.sendSummary(ctx, node, MeetingSummary(id, report.title, done.summary))
                 WatchNotifier.broadcastFoodToday(ctx)
-                ReadyNotification.showReport(ctx, id, report.title, report.shortSummary)
+                ReadyNotification.showReport(ctx, id, report.title, done.summary)
             } else {
                 MeetingStore.reportFile(ctx, id).writeText(report.markdown)
                 val names = Speakers.namesFromReport(report.markdown)

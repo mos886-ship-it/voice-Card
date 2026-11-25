@@ -361,3 +361,11 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 - **Google** ＝ Health Connect 本身；**Samsung Health** 沒開放一般 App 直接寫入，靠 Samsung Health → 設定 → Health Connect 同步（卡片上有「開啟」按鈕帶過去）。
 - **Apple 健康**：只在 iOS，用 HealthKit 寫 `dietaryEnergyConsumed`、`dietaryProtein`、`dietaryCarbohydrates`、`dietaryFatTotal`（同一個 HKCorrelation food，metadata 放記錄 id 以便更新 / 刪除）。設定卡片一樣叫「健康同步」，列出 Apple 健康；Android 卡片上 Apple 那列只寫「只在 iPhone 版」。
 - 隱私說明頁：`HealthPrivacyActivity`（Health Connect 授權畫面的「privacy policy」連結會開它）。
+
+## 飲食熱量改用食藥署資料（1.1.92）
+
+- App 內建 `app/src/main/assets/nutrition/tfnd.json`（278 KB，2,122 種食物，每 100 克的熱量、蛋白質、脂肪、碳水、纖維、糖、鈉）。來源：衛福部食藥署「食品營養成分資料集」（政府資料開放授權條款－第1版，可商用、要標示來源；「關於與授權」→「內建資料」有寫）。更新：下載 ZIP 後跑 `python -I tools/gen_tfnd.py <zip>`（同一食物不同取樣月份會合併取平均）。
+- 提示詞（`FoodLog.PROMPT` / `TEXT_PROMPT`）附上資料庫名稱清單（約 1.3 萬字），AI 把一餐拆成食材，每樣一行 `ITEM: 食物=…; 份量=…; 克=…; 對照=<清單完全相同的名稱或 無>; kcal=…; protein=…; carbs=…; fat=…`，油、糖、醬料另列一行。
+- `FoodLog.finish`：對照名稱完全相同、而且跟 AI 自己估的熱量差在 0.4～2.5 倍內，才用資料庫數字（克數 × 每 100 克）；否則用 AI 的。App 自己產生「## 飲食內容」表格（多一欄「來源」：食藥署：名稱 / AI 估算）與「## 合計」，摘要改成「午餐約 X 大卡，蛋白質 Yg」。沒有 ITEM 行（舊格式、大D的主機目前的提示詞）就照舊。
+- 大D的主機的飲食提示詞還沒改（Qwen3-8B 多 1.3 萬字清單會慢），之後再評估。
+- iOS 要照做：同一份 tfnd.json、同樣的提示詞與 ITEM 格式、同樣的 0.4～2.5 倍檢查與表格。測試：`FoodDbTest`。
