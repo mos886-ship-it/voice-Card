@@ -30,8 +30,17 @@ struct DashboardView: View {
                 // ---------- 日期 + 今天 + 狀態 ----------
                 HStack(alignment: .bottom) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(Fmt.stamp(Date(), "M 月 d 日 EEEE")).font(.bodySmall).foregroundStyle(Brand.textMuted)
-                        Text("今天").font(.system(size: 30, weight: .bold)).foregroundStyle(Brand.text)
+                        // 問候（照 Android Greeting.kt）：每分鐘更新，跟著時段換
+                        TimelineView(.everyMinute) { ctx in
+                            let g = Greeting.now(ctx.date, meetings: store.meetings)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(Fmt.stamp(ctx.date, "M 月 d 日 EEEE")).font(.bodySmall).foregroundStyle(Brand.textMuted)
+                                Text(g.title).font(.system(size: 30, weight: .bold, design: Brand.serifTitles ? .serif : .default))
+                                    .foregroundStyle(Brand.text)
+                                Text(g.line).font(.bodyMedium).foregroundStyle(Brand.textMuted)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
                         if mode == .tech {
                             Text("AI：" + engineLabel).font(.labelMedium).foregroundStyle(Brand.textFaint).lineLimit(1)
                         }
@@ -166,15 +175,6 @@ struct DashboardView: View {
         if LocalAI.configured { return LocalAI.modelLabel }
         if MeetingStore.hasGeminiKey && !MeetingStore.privacyMode { return "Google Gemini" }
         return "Apple（手機上）"
-    }
-
-    private var greeting: String {
-        switch Calendar.current.component(.hour, from: Date()) {
-        case 5...10: return "早安"
-        case 11...13: return "午安"
-        case 14...17: return "下午好"
-        default: return "晚安"
-        }
     }
 
     static func minutes(_ sec: Double) -> String {

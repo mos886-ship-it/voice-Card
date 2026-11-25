@@ -29,8 +29,16 @@ struct OverviewDashboardView: View {
                 HStack(spacing: 12) {
                     BrandMark(size: 40)
                     VStack(alignment: .leading, spacing: 0) {
-                        Text(greeting).font(.headlineSmall).foregroundStyle(Brand.text)
-                        Text(Fmt.stamp(Date(), "M 月 d 日 EEEE")).font(.bodySmall).foregroundStyle(Brand.textMuted)
+                        // 問候（照 Android Greeting.kt）：大標、一句小字、日期（淡色）
+                        TimelineView(.everyMinute) { ctx in
+                            let g = Greeting.now(ctx.date, meetings: store.meetings)
+                            VStack(alignment: .leading, spacing: 0) {
+                                Text(g.title).font(.headlineSmall).foregroundStyle(Brand.text)
+                                Text(g.line).font(.bodySmall).foregroundStyle(Brand.textMuted)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                Text(Fmt.stamp(ctx.date, "M 月 d 日 EEEE")).font(.labelSmall).foregroundStyle(Brand.textFaint)
+                            }
+                        }
                         if mode == .tech {
                             Text("AI：" + engineLabel).font(.labelMedium).foregroundStyle(Brand.textFaint).lineLimit(1)
                         }
@@ -167,14 +175,6 @@ struct OverviewDashboardView: View {
         return "Apple（手機上）"
     }
 
-    private var greeting: String {
-        switch Calendar.current.component(.hour, from: Date()) {
-        case 5...10: return "早安"
-        case 11...13: return "午安"
-        case 14...17: return "下午好"
-        default: return "晚安"
-        }
-    }
 
 }
 
