@@ -12,6 +12,10 @@ import androidx.compose.runtime.setValue
 /** 目前选的配色与排布（Compose 状态：设定页一改，整个 App 马上换）。 */
 object AppTheme {
     var mode by androidx.compose.runtime.mutableStateOf(ThemeMode.CLEAR)
+    /** 水墨配色的背景画（存在设定 ink_bg）。 */
+    var inkBg by androidx.compose.runtime.mutableStateOf(InkBackground.BOAT)
+    /** 现在有没有背景画（水墨配色＋选了一张画）：卡片、分页列会稍微透明，让画隐约透出来。 */
+    val hasArt get() = mode == ThemeMode.INK && inkBg != InkBackground.NONE
     var layout by androidx.compose.runtime.mutableStateOf(LayoutMode.QUICK)
 }
 
@@ -48,6 +52,21 @@ enum class LayoutMode(val key: String, val label: String, val note: String) {
             "classic" -> OVERVIEW
             else -> entries.firstOrNull { it.key == key } ?: QUICK
         }
+    }
+}
+
+/**
+ * 水墨配色的背景画（原创，tools/ink_bg.py 产生，设计/水墨背景 有原图；res/drawable-nodpi 是 1080×2400 WebP，各约 20 KB）。
+ * 画都放在边角与下方，日期、标题、卡片的位置留白。
+ */
+enum class InkBackground(val key: String, val label: String, val res: Int?) {
+    BOAT("boat", "孤舟", com.example.wristai.R.drawable.ink_bg_boat),
+    LOTUS("lotus", "荷塘", com.example.wristai.R.drawable.ink_bg_lotus),
+    SHRIMP("shrimp", "魚蝦", com.example.wristai.R.drawable.ink_bg_shrimp),
+    NONE("none", "無", null);
+
+    companion object {
+        fun from(key: String?) = entries.firstOrNull { it.key == key } ?: BOAT
     }
 }
 

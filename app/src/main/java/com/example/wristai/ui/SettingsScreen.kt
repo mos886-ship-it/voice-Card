@@ -165,6 +165,25 @@ fun SettingsScreen(onBack: (() -> Unit)? = null) {
                 }
                 Spacer(Modifier.height(6.dp))
                 Text(AppTheme.mode.note, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
+
+                // 水墨才有：背景画（孤舟 / 荷塘 / 魚蝦 / 無）
+                if (AppTheme.mode == com.example.wristai.ui.theme.ThemeMode.INK) {
+                    InterfaceDivider()
+                    Text("背景畫", style = MaterialTheme.typography.titleSmall, color = Brand.Text)
+                    Spacer(Modifier.height(8.dp))
+                    val bgs = com.example.wristai.ui.theme.InkBackground.entries
+                    Segmented(bgs.map { it.label }, bgs.indexOf(AppTheme.inkBg)) { i ->
+                        AppTheme.inkBg = bgs[i]
+                        Settings.setInkBackground(context, bgs[i].key)
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Text(when (AppTheme.inkBg) {
+                        com.example.wristai.ui.theme.InkBackground.BOAT -> "孤舟寒江：淡月、遠岸、一葉小舟與蘆葦。"
+                        com.example.wristai.ui.theme.InkBackground.LOTUS -> "荷塘清趣：荷葉、淡荷花與三尾小魚。"
+                        com.example.wristai.ui.theme.InkBackground.SHRIMP -> "魚蝦戲水：荷葉一角、水草，小蝦與小魚。"
+                        com.example.wristai.ui.theme.InkBackground.NONE -> "不放背景畫，只有宣紙底。"
+                    }, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
+                }
             }
 
             // ---------- 三星录音机 ----------

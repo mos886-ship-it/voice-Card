@@ -81,7 +81,8 @@ fun BottomNav(current: Tab, onSelect: (Tab) -> Unit) {
     Column {
         Box(Modifier.fillMaxWidth().height(1.dp).background(Brand.Outline))
         Row(
-            Modifier.fillMaxWidth().background(Brand.Surface).padding(horizontal = 4.dp, vertical = 8.dp),
+            Modifier.fillMaxWidth().background(if (AppTheme.hasArt) Brand.Surface.copy(alpha = 0.9f) else Brand.Surface)
+                .padding(horizontal = 4.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             // 每格平分宽度：Fold5 封面萤幕只有约 344dp
@@ -168,7 +169,8 @@ private fun NavItem(tab: Tab, selected: Boolean, modifier: Modifier = Modifier, 
 private fun OverviewBottomNav(current: Tab, onSelect: (Tab) -> Unit) {
     Column {
         Box(Modifier.fillMaxWidth().height(1.dp).background(Brand.Outline))
-        Row(Modifier.fillMaxWidth().background(Brand.Bg).padding(horizontal = 4.dp, vertical = 8.dp)) {
+        Row(Modifier.fillMaxWidth().background(if (AppTheme.hasArt) Brand.Bg.copy(alpha = 0.9f) else Brand.Bg)
+            .padding(horizontal = 4.dp, vertical = 8.dp)) {
             for (t in Tab.entries) {
                 val selected = t == current
                 val tint = if (selected) Color.White else Brand.TextMuted

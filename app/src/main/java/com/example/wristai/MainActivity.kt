@@ -62,6 +62,7 @@ class MainActivity : ComponentActivity() {
         // 浅色主题 → 状态列 / 导航列用深色图示
         AppTheme.mode = ThemeMode.from(Settings.themeMode(this))
         AppTheme.layout = com.example.wristai.ui.theme.LayoutMode.from(Settings.layoutMode(this))
+        AppTheme.inkBg = com.example.wristai.ui.theme.InkBackground.from(Settings.inkBackground(this))
         com.example.wristai.ui.UiMode.load(this)
         SpeechLang.load(this)
         applySystemBars(dark = false)
@@ -71,7 +72,16 @@ class MainActivity : ComponentActivity() {
         handleShare(intent)
         setContent {
             WristAI_ProjectTheme(AppTheme.mode, onDarkChanged = ::applySystemBars) {
-                Box(Modifier.fillMaxSize().background(Brand.Backdrop).safeDrawingPadding()) { App() }
+                Box(Modifier.fillMaxSize().background(Brand.Backdrop)) {
+                    // 水墨配色的背景画：铺满整个萤幕（含状态列后面），画面内容照常在上面
+                    if (AppTheme.hasArt) AppTheme.inkBg.res?.let { res ->
+                        androidx.compose.foundation.Image(
+                            androidx.compose.ui.res.painterResource(res), null, Modifier.fillMaxSize(),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                        )
+                    }
+                    Box(Modifier.fillMaxSize().safeDrawingPadding()) { App() }
+                }
             }
         }
     }

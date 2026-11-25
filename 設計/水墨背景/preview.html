@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<style>
+  body { margin: 0; background: #d9d2c4; font-family: "Microsoft JhengHei", "Noto Sans TC", sans-serif; }
+  .row { display: flex; gap: 36px; padding: 36px; }
+  .col { width: 405px; }
+  .name { font: 600 26px "Noto Serif TC", "PMingLiU", serif; color: #1A1A1A; margin: 0 0 14px 4px; }
+  .phone { width: 405px; height: 900px; border-radius: 36px; overflow: hidden; position: relative;
+           background-size: cover; box-shadow: 0 8px 30px rgba(0,0,0,.18); border: 6px solid #1A1A1A; box-sizing: border-box; }
+  .ui { position: absolute; inset: 0; padding: 40px 20px 0; }
+  .date { font-size: 13px; color: #5A5246; }
+  .title { font: 700 32px "Noto Serif TC", "PMingLiU", serif; color: #1A1A1A; margin: 2px 0 14px; }
+  .card { background: rgba(250,245,234,.86); border: 1px solid #D3C6AE; border-radius: 20px; padding: 14px 16px; margin-bottom: 12px; }
+  .rec { display: flex; align-items: center; gap: 14px; }
+  .dot { width: 54px; height: 54px; border-radius: 50%; background: #C8102E; display: grid; place-items: center; }
+  .dot i { width: 18px; height: 18px; border-radius: 50%; background: #fff; }
+  .t1 { font: 600 18px "Noto Serif TC", serif; color: #1A1A1A; }
+  .t2 { font-size: 12px; color: #5A5246; margin-top: 2px; }
+  .seg { display: flex; background: rgba(239,230,212,.9); border-radius: 12px; padding: 3px; margin-top: 12px; font-size: 13px; }
+  .seg span { flex: 1; text-align: center; padding: 7px 0; color: #5A5246; }
+  .seg .on { background: #FAF5EA; border-radius: 9px; color: #1A1A1A; font-weight: 600; }
+  .label { font-size: 13px; color: #5A5246; margin: 16px 2px 8px; display: flex; justify-content: space-between; }
+  .item { display: flex; gap: 12px; }
+  .time { font-size: 13px; color: #5A5246; width: 40px; }
+  .kcal { color: #A8322D; font-size: 12px; }
+  .nav { position: absolute; left: 0; right: 0; bottom: 0; height: 74px; background: rgba(242,234,219,.92);
+         border-top: 1px solid #D3C6AE; display: flex; align-items: center; justify-content: space-around; font-size: 11px; color: #5A5246; }
+  .nav b { width: 46px; height: 46px; border-radius: 50%; background: #1A1A1A; }
+  .nav .sel { color: #A8322D; }
+  .note { font-size: 14px; color: #5A5246; margin: 12px 4px 0; line-height: 1.6; }
+</style></head><body>
+<div class="row" id="row"></div>
+<script>
+const all = [
+  ["1_遠山煙雨", "遠山煙雨", "上下兩層遠山沒入雲霧，中間留白放卡片。最安靜、最不搶字。"],
+  ["2_孤舟寒江", "孤舟寒江", "淡月、遠岸、一葉小舟與蘆葦。留白最多，意境最空。"],
+  ["3_竹影清風", "竹影清風", "右上竹子、左下落葉與石頭。筆觸最明顯，最有個性。"],
+  ["4_荷塘清趣", "荷塘清趣", "右上荷葉與一朵淡荷花，左下荷葉、花苞，三尾小魚。"],
+  ["5_魚蝦戲水", "魚蝦戲水", "右上荷葉一角與水草，下方三隻小蝦、兩尾魚、氣泡。"],
+];
+const set = new URLSearchParams(location.search).get("set");
+const items = set === "pond" ? all.slice(3) : all.slice(0, 3);
+const row = document.getElementById("row");
+for (const [file, name, note] of items) {
+  row.insertAdjacentHTML("beforeend", `
+  <div class="col">
+    <div class="name">${name}</div>
+    <div class="phone" style="background-image:url('${file}.png')">
+      <div class="ui">
+        <div class="date">11 月 26 日 星期四</div>
+        <div class="title">今天</div>
+        <div class="card">
+          <div class="rec"><div class="dot"><i></i></div><div><div class="t1">開始錄音</div><div class="t2">會議、課堂、訪談、靈感</div></div></div>
+          <div class="seg"><span class="on">國語</span><span>台語・國台語</span><span>客語</span></div>
+        </div>
+        <div class="label"><span>今天的記錄</span><span>1,240 / 2000 大卡</span></div>
+        <div class="card item"><div class="time">12:30</div><div><div class="t1" style="font-size:15px">午餐：牛肉麵＋燙青菜</div><div class="t2">約 780 大卡 <span class="kcal">· 食藥署 3 樣</span></div></div></div>
+        <div class="card item"><div class="time">10:00</div><div><div class="t1" style="font-size:15px">專案週會</div><div class="t2">3 個待辦 · 下週二前交初稿</div></div></div>
+      </div>
+      <div class="nav"><span class="sel">今天</span><span>資料庫</span><b></b><span>飲食</span><span>設定</span></div>
+    </div>
+    <div class="note">${note}</div>
+  </div>`);
+}
+</script>
+</body></html>

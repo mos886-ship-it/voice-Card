@@ -91,7 +91,8 @@ fun GlassCard(
     Surface(
         modifier = modifier.fillMaxWidth().clip(shape).let { if (onClick != null) it.clickable(onClick = onClick) else it },
         shape = shape,
-        color = Brand.Surface,
+        // 水墨背景画：卡片稍微透明，画隐约透出来（字照样清楚）
+        color = if (com.example.wristai.ui.theme.AppTheme.hasArt) Brand.Surface.copy(alpha = 0.86f) else Brand.Surface,
         border = if (highlight) BorderStroke(1.dp, Brand.Cyan.copy(alpha = 0.35f)) else BorderStroke(1.dp, Brand.Outline),
     ) {
         Box(if (highlight) Modifier.background(Brand.AccentSoft) else Modifier) {

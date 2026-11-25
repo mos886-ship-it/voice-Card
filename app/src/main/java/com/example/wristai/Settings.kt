@@ -39,6 +39,10 @@ object Settings {
     fun themeMode(context: Context): String = prefs(context).getString("theme_mode", "clear") ?: "clear"
     fun setThemeMode(context: Context, value: String) = prefs(context).edit().putString("theme_mode", value).apply()
 
+    /** 水墨配色的背景画：boat 孤舟 / lotus 荷塘 / shrimp 魚蝦 / none（[com.example.wristai.ui.theme.InkBackground]）。 */
+    fun inkBackground(context: Context): String = prefs(context).getString("ink_bg", "boat") ?: "boat"
+    fun setInkBackground(context: Context, value: String) = prefs(context).edit().putString("ink_bg", value).apply()
+
     /** 饮食同步到健康（Health Connect → Google / Samsung Health）；预设关。 */
     fun healthSync(context: Context): Boolean = prefs(context).getBoolean("health_sync", false)
     fun setHealthSync(context: Context, on: Boolean) = prefs(context).edit().putBoolean("health_sync", on).apply()
