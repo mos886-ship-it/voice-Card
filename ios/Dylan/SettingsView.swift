@@ -14,7 +14,7 @@ struct SettingsView: View {
         switch theme.mode {
         case .clear: return "淺灰紙底、白卡片、藍色重點：資訊清楚，適合工作。手錶維持深色。"
         case .warm: return "米白底、珊瑚紅與鼠尾草綠：溫和好讀，適合日常與家人。手錶維持深色。"
-        case .dark: return "深空藍底、品牌漸層。手錶也是深色（OLED 省電）。"
+        case .ukiyoe: return "和紙底、普魯士藍與朱紅，木刻版畫的平塗色塊與墨線，可選背景畫。手錶維持深色。"
         case .ink: return "宣紙底、墨黑字、朱紅點綴，跟 logo 同一套。手錶也會換成水墨。"
         }
     }
@@ -83,6 +83,13 @@ struct SettingsView: View {
                         }
                         .pickerStyle(.segmented).padding(.top, 8)
                         Text(theme.inkBg.note).font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 8)
+                    } else if theme.mode == .ukiyoe {
+                        Text("背景畫").font(.labelLarge).foregroundStyle(Brand.text).padding(.top, 14)
+                        Picker("背景畫", selection: $theme.ukiyoeBg) {
+                            ForEach(UkiyoeBg.allCases) { Text($0.label).tag($0) }
+                        }
+                        .pickerStyle(.segmented).padding(.top, 8)
+                        Text(theme.ukiyoeBg.note).font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 8)
                     }
                 }
 

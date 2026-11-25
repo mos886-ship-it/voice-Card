@@ -411,6 +411,8 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 - 畫的最上面一道普魯士藍漸層（版畫天空），只在狀態列後面 → 有背景畫時狀態列改淺色圖示（導航列維持深色圖示）。`AppTheme.art` 是目前要鋪的畫（水墨或浮世繪），卡片 86%、分頁列 90%。
 - iOS 要照做。
 
+- **iOS 已跟上**：`ThemeMode.ukiyoe`（取代 dark；存的 dark 讀成 ukiyoe；`Palette.dark` 只剩手錶用）、`Palette.ukiyoe`（照上面的色碼，平塗、圓角 12、`Brand.serifTitles` 襯線標題、`isNew` 樣式）、`UkiyoeBg`（`ukiyoe_bg`，預設 geisha）、`ios/Dylan/InkBG/ukiyoe_bg_*.webp`；`ThemeStore.art` 是要鋪的畫（水墨或浮世繪）。狀態列：SwiftUI 沒有 API，`StatusBar`（ThemeStore.swift）把根 UIHostingController 的 preferredStatusBarStyle 換成依 `statusOnDark` 回答（有浮世繪畫 → 淺色圖示，其他 → 深色圖示）。模擬器看過：舊的深色開起來是浮世繪＋藝伎武士、狀態列白字；選「無」變回深色字。
+
 ## 飲食內容改成清單（1.1.97）
 
 - 報告裡有「熱量」欄的表格（飲食內容）不再一欄一欄排（7 欄擠在一行，「來源」被擠成一字一行），改成一張卡、一樣食物一段：「食物名 …… 366 大卡」／「一碗 · 約 200g · 蛋白質 6g · 碳水 82g · 脂肪 1g」／來源小標籤（食藥署：名稱＝綠、營養標示＝藍、AI 估算＝灰）。欄位用表頭名字找，舊格式（沒有來源欄）也適用。`ReportViews.kt` 的 `FoodTable`。

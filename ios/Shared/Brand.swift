@@ -86,6 +86,17 @@ struct Palette: Equatable {
         text: Color(hex: 0x2B2622), textMuted: Color(hex: 0x6E655D), textFaint: Color(hex: 0x8C8279),
         accent: [Color(hex: 0xC4492C), Color(hex: 0xC4492C)], record: [Color(hex: 0xC4492C), Color(hex: 0xC4492C)])
 
+    /// 浮世繪：和紙底、普魯士藍與朱紅，木刻版畫的平塗色塊（不用漸層）；標題襯線字（照 Android UkiyoePalette）。只有手機。
+    static let ukiyoe = Palette(
+        id: "ukiyoe", isDark: false,
+        bg: Color(hex: 0xF0E4C8), bgCenter: Color(hex: 0xF8F2E4), backdropTop: Color(hex: 0xF0E4C8),
+        surface: Color(hex: 0xF8F2E4), surfaceHigh: Color(hex: 0xEADCBC), surfaceHigher: Color(hex: 0xE0CFA8),
+        outline: Color(hex: 0xB9A57F),
+        cyan: Color(hex: 0x1E3A6E), blue: Color(hex: 0x3C6AA8), violet: Color(hex: 0xC8402B), pink: Color(hex: 0xB4566B),
+        success: Color(hex: 0x2F5E4C), warning: Color(hex: 0x9A6B16), error: Color(hex: 0xB3261E), recording: Color(hex: 0xC8402B),
+        text: Color(hex: 0x2A2522), textMuted: Color(hex: 0x5E5245), textFaint: Color(hex: 0x8C7D68),
+        accent: [Color(hex: 0x1E3A6E), Color(hex: 0x1E3A6E)], record: [Color(hex: 0xC8402B), Color(hex: 0xC8402B)])
+
     #if os(watchOS)
     private static let isWatch = true
     #else
@@ -93,16 +104,16 @@ struct Palette: Equatable {
     #endif
 }
 
-/// 配色（設定 → 配色，跟排布分開）：清晰（預設）/ 暖和日常 / 深色 / 水墨。
-/// 深色、水墨用原本的調色盤；舊的「淺色」「自動」當清晰。
+/// 配色（設定 → 配色，跟排布分開）：清晰（預設）/ 暖和日常 / 浮世繪 / 水墨。
+/// 舊的「深色」讀成浮世繪；「淺色」「自動」當清晰。Palette.dark 只剩手錶用。
 enum ThemeMode: String, CaseIterable, Identifiable {
-    case clear, warm, dark, ink
+    case clear, warm, ukiyoe, ink
     var id: String { rawValue }
     var label: String {
         switch self {
         case .clear: return "清晰"
         case .warm: return "暖和日常"
-        case .dark: return "深色"
+        case .ukiyoe: return "浮世繪"
         case .ink: return "水墨"
         }
     }
@@ -110,7 +121,7 @@ enum ThemeMode: String, CaseIterable, Identifiable {
         switch self {
         case .clear: return .clear
         case .warm: return .warm
-        case .dark: return .dark
+        case .ukiyoe: return .ukiyoe
         case .ink: return .ink
         }
     }
@@ -125,10 +136,14 @@ enum Brand {
     static var cardFill: Color { painting == nil ? surface : surface.opacity(0.86) }
     #endif
     static var isInk: Bool { current.id == "ink" }
+    /// 標題用襯線字：水墨、浮世繪。
+    static var serifTitles: Bool { current.id == "ink" || current.id == "ukiyoe" }
     /// 卡片圓角：清晰 16、暖和日常 22（比較圓潤）。
-    static var cardRadius: CGFloat { current.id == "warm" ? 22 : current.id == "clear" ? 16 : 20 }
+    static var cardRadius: CGFloat {
+        switch current.id { case "warm": 22; case "clear": 16; case "ukiyoe": 12; default: 20 }
+    }
     /// 新設計（清晰 / 暖和日常）：不用漸層、標題不用等寬字。
-    static var isNew: Bool { current.id == "clear" || current.id == "warm" }
+    static var isNew: Bool { current.id == "clear" || current.id == "warm" || current.id == "ukiyoe" }
     private static var p: Palette { current }
 
     static var bg: Color { p.bg }
@@ -166,7 +181,7 @@ enum Brand {
 /// 字級照 Android `ui/theme/Type.kt`；水墨主題的標題改用襯線字（InkTypography）。
 /// iPhone / iPad 上跟著系統「文字大小」縮放（預設大小時跟原本一樣）；手錶維持固定大小。
 extension Font {
-    private static var titleDesign: Font.Design { Brand.isInk ? .serif : .default }
+    private static var titleDesign: Font.Design { Brand.serifTitles ? .serif : .default }
     static var headlineMedium: Font { .system(size: TextScale.size(26, .title1), weight: .bold, design: titleDesign) }
     static var headlineSmall: Font { .system(size: TextScale.size(22, .title2), weight: .bold, design: titleDesign) }
     static var titleLarge: Font { .system(size: TextScale.size(19, .title3), weight: .semibold, design: titleDesign) }
