@@ -14,10 +14,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -46,20 +50,30 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.wristai.PhoneRecorder
 import com.example.wristai.PhoneRecordingService
+import com.example.wristai.ui.theme.AppTheme
 import com.example.wristai.ui.theme.Brand
+import com.example.wristai.ui.theme.LayoutMode
 import kotlin.math.cos
 import kotlin.math.sin
 
-/** 底部分页：今天｜資料庫｜（中间录音键）｜飲食｜設定（跟 iOS 一样）。档案管理在资料库右上的「管理」。 */
-enum class Tab(val route: String, val label: String) {
-    HOME("tab:home", "今天"),
-    RECORDS("tab:records", "資料庫"),
-    FOOD("tab:food", "飲食"),
-    SETTINGS("tab:settings", "設定"),
+/**
+ * 底部分页。新版：今天｜資料庫｜（中间录音键）｜飲食｜設定（跟 iOS 一样），档案管理在资料库右上的「管理」；
+ * 旧版：主頁｜錄音｜飲食｜檔案｜設定。
+ */
+enum class Tab(val route: String, private val newLabel: String, private val classicLabel: String) {
+    HOME("tab:home", "今天", "主頁"),
+    RECORDS("tab:records", "資料庫", "錄音"),
+    FOOD("tab:food", "飲食", "飲食"),
+    /** 档案管理：旧版是一个分页；新版在资料库的「管理」。 */
+    FILES("tab:files", "檔案", "檔案"),
+    SETTINGS("tab:settings", "設定", "設定");
+
+    val label get() = if (AppTheme.layout == LayoutMode.CLASSIC) classicLabel else newLabel
 }
 
 @Composable
 fun BottomNav(current: Tab, onSelect: (Tab) -> Unit) {
+    if (AppTheme.layout == LayoutMode.CLASSIC) { ClassicBottomNav(current, onSelect); return }
     Column {
         Box(Modifier.fillMaxWidth().height(1.dp).background(Brand.Outline))
         Row(
@@ -124,12 +138,64 @@ private fun NavItem(tab: Tab, selected: Boolean, modifier: Modifier = Modifier, 
                 Tab.HOME -> SunGlyph(tint)
                 Tab.RECORDS -> ListGlyph(tint)
                 Tab.FOOD -> BowlGlyph(tint)
+                Tab.FILES -> FolderGlyph(tint)
                 Tab.SETTINGS -> Icon(Icons.Outlined.Settings, null, tint = tint, modifier = Modifier.size(20.dp))
             }
         }
         Spacer(Modifier.height(4.dp))
         Text(tab.label, fontSize = 11.sp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
             color = tint, maxLines = 1, softWrap = false)
+    }
+}
+
+/** 旧版分页列：五个分页平分宽度，选中的图示后面一个渐层胶囊。 */
+@Composable
+private fun ClassicBottomNav(current: Tab, onSelect: (Tab) -> Unit) {
+    Column {
+        Box(Modifier.fillMaxWidth().height(1.dp).background(Brand.Outline))
+        Row(Modifier.fillMaxWidth().background(Brand.Bg).padding(horizontal = 4.dp, vertical = 8.dp)) {
+            for (t in Tab.entries) {
+                val selected = t == current
+                val tint = if (selected) Color.White else Brand.TextMuted
+                Column(
+                    Modifier.weight(1f).clip(RoundedCornerShape(16.dp))
+                        .clickable(remember { MutableInteractionSource() }, indication = null) { onSelect(t) }
+                        .padding(2.dp)
+                        .semantics { this.selected = selected },
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Box(
+                        Modifier.widthIn(max = 56.dp).fillMaxWidth().height(30.dp).clip(RoundedCornerShape(15.dp))
+                            .then(if (selected) Modifier.background(Brand.Accent) else Modifier),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        when (t) {
+                            Tab.HOME -> Icon(Icons.Filled.Home, null, tint = tint, modifier = Modifier.size(20.dp))
+                            Tab.RECORDS -> Waveform(Modifier.size(width = 20.dp, height = 16.dp), tint)
+                            Tab.FOOD -> BowlGlyph(tint)
+                            Tab.FILES -> FolderGlyph(tint)
+                            Tab.SETTINGS -> Icon(Icons.Filled.Settings, null, tint = tint, modifier = Modifier.size(20.dp))
+                        }
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    Text(t.label, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = if (selected) Brand.Text else Brand.TextMuted,
+                        maxLines = 1, softWrap = false)
+                }
+            }
+        }
+    }
+}
+
+/** 档案：资料夹（上面的小签＋外框）。 */
+@Composable
+private fun FolderGlyph(color: Color) {
+    Canvas(Modifier.size(20.dp)) {
+        val w = size.width
+        val h = size.height
+        val s = 2.dp.toPx()
+        val r = CornerRadius(2.dp.toPx())
+        drawRoundRect(color, Offset(w * 0.06f, h * 0.14f), Size(w * 0.38f, h * 0.22f), r)
+        drawRoundRect(color, Offset(w * 0.06f, h * 0.26f), Size(w * 0.88f, h * 0.60f), r, style = Stroke(s))
     }
 }
 

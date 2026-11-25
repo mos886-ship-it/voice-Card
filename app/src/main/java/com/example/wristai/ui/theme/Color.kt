@@ -72,16 +72,23 @@ val WarmPalette = Palette(
 )
 
 /**
- * 大D 品牌色。数值来自目前的主题（[theme]：clear 清晰 / warm 暖和日常，2026-11-25 重新设计，跟 iOS 一样）；
- * [theme] 是 Compose 状态，切换主题时所有用到 Brand 的画面会自动重画。
- * 旧的深色 / 浅色 / 水墨调色盘留着没用到（手表有自己的深色）。
+ * 大D 品牌色。数值来自目前的配色（[theme]：clear 清晰 / warm 暖和日常 / dark 深色 / ink 水墨）；
+ * [theme] 是 Compose 状态，切换配色时所有用到 Brand 的画面会自动重画。
  */
 object Brand {
     var theme by mutableStateOf("clear")
-    val isDark get() = false
-    private val p get() = if (theme == "warm") WarmPalette else ClearPalette
-    /** 卡片圆角：清晰 16、暖和日常 22（比较圆润）。 */
-    val CardRadius get() = if (theme == "warm") 22.dp else 16.dp
+    val isDark get() = theme == "dark"
+    val isInk get() = theme == "ink"
+    /** 新配色（清晰 / 暖和日常）：单色重点、不用渐层。 */
+    val isNew get() = theme == "clear" || theme == "warm"
+    private val p get() = when (theme) {
+        "warm" -> WarmPalette
+        "dark" -> DarkPalette
+        "ink" -> InkPalette
+        else -> ClearPalette
+    }
+    /** 卡片圆角：清晰 16、暖和日常 22（比较圆润）、深色 / 水墨 20。 */
+    val CardRadius get() = when (theme) { "warm" -> 22.dp; "clear" -> 16.dp; else -> 20.dp }
 
     val Bg get() = p.bg
     val Surface get() = p.surface
@@ -105,7 +112,8 @@ object Brand {
 
     /** 渐层用两种主题都好看的亮色（按钮上是白字）。 */
     val Accent: Brush get() = Brush.linearGradient(p.accent)
-    val AccentSoft: Brush get() = Brush.linearGradient(listOf(Cyan.copy(alpha = 0.06f), Cyan.copy(alpha = 0.06f)))
+    val AccentSoft: Brush get() = if (isNew) Brush.linearGradient(listOf(Cyan.copy(alpha = 0.06f), Cyan.copy(alpha = 0.06f)))
+        else Brush.linearGradient(listOf(Cyan.copy(alpha = 0.18f), Violet.copy(alpha = 0.18f)))
     val Backdrop: Brush get() = Brush.verticalGradient(listOf(p.backdropTop, Bg, Bg))
 
     /** 逐字稿里不同说话者的颜色。 */

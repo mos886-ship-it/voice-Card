@@ -139,12 +139,26 @@ fun SettingsScreen(onBack: (() -> Unit)? = null) {
 
             SystemStatusCard()
 
-            // ---------- 外观主题：清晰 / 暖和日常（跟 iOS 一样；手表维持深色） ----------
-            SectionLabel("外觀主題")
+            // ---------- 排布：新版 / 旧版（分页与主页的样子） ----------
+            SectionLabel("排布")
+            GlassCard {
+                Segmented(com.example.wristai.ui.theme.LayoutMode.entries.map { it.label },
+                    com.example.wristai.ui.theme.LayoutMode.entries.indexOf(AppTheme.layout)) { i ->
+                    val l = com.example.wristai.ui.theme.LayoutMode.entries[i]
+                    AppTheme.layout = l
+                    Settings.setLayoutMode(context, l.key)
+                }
+                Spacer(Modifier.height(10.dp))
+                Text(AppTheme.layout.note, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
+            }
+
+            // ---------- 配色：清晰 / 暖和 / 深色 / 水墨（跟排布分开，哪个排布都能用） ----------
+            SectionLabel("配色")
             GlassCard {
                 ThemePicker(AppTheme.mode) { m ->
                     AppTheme.mode = m
                     Settings.setThemeMode(context, m.key)
+                    com.example.wristai.WatchNotifier.broadcastTheme(context)
                 }
                 Spacer(Modifier.height(10.dp))
                 Text(AppTheme.mode.note, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
@@ -347,11 +361,11 @@ private fun Note(icon: androidx.compose.ui.graphics.vector.ImageVector, text: St
     }
 }
 
-/** 主题二选一：每格一个小色块（底色＋重点色圆点）＋名字，选中的有重点色框。 */
+/** 配色四选一（两行两格）：每格一个小色块（底色＋重点色圆点）＋名字，选中的有重点色框。 */
 @Composable
 private fun ThemePicker(selected: ThemeMode, onSelect: (ThemeMode) -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        for (m in ThemeMode.entries) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { for (row in ThemeMode.entries.chunked(2)) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        for (m in row) {
             val on = m == selected
             val shape = RoundedCornerShape(12.dp)
             val p = m.palette
@@ -369,6 +383,6 @@ private fun ThemePicker(selected: ThemeMode, onSelect: (ThemeMode) -> Unit) {
                 Text(m.label, style = MaterialTheme.typography.labelLarge, color = if (on) Brand.Text else Brand.TextMuted)
             }
         }
-    }
+    } }
 }
 
