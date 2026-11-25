@@ -9,7 +9,7 @@ struct GlassCard<Content: View>: View {
     @ViewBuilder var content: Content
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: Brand.cardRadius, style: .continuous)
         VStack(alignment: .leading, spacing: 0) { content }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(padding)
@@ -30,9 +30,9 @@ struct GlassCard<Content: View>: View {
 struct SectionLabel: View {
     let text: String
     var body: some View {
-        Text(text.uppercased())
-            .font(.labelSmall)
-            .tracking(1.2)
+        Text(Brand.isNew ? text : text.uppercased())
+            .font(Brand.isNew ? .labelLarge : .labelSmall)
+            .tracking(Brand.isNew ? 0 : 1.2)
             .foregroundStyle(Brand.textMuted)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.top, 8)

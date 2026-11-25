@@ -93,6 +93,8 @@ struct LevelMeter: View {
     var paused = false
     var detailed = false
     var height: CGFloat = 40
+    /// 放在一般卡片上（淺色主題）：柱子用重點色、字用一般顏色；false = 放在彩色底上用白色。
+    var onSurface = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -111,9 +113,10 @@ struct LevelMeter: View {
                     // 越新越亮；太大聲時最新的幾根變暖色
                     let age = CGFloat(i) / CGFloat(max(1, n - 1))
                     let hot = level.loud && i >= n - 6
-                    let color: Color = hot ? Color(red: 1, green: 0.78, blue: 0.35) : .white
+                    let base: Color = onSurface ? Brand.cyan : .white
+                    let color: Color = hot ? (onSurface ? Brand.warning : Color(red: 1, green: 0.78, blue: 0.35)) : base
                     ctx.fill(Path(roundedRect: rect, cornerRadius: w / 2),
-                             with: .color(color.opacity(0.28 + 0.72 * Double(age) * Double(0.45 + 0.55 * lv))))
+                             with: .color(color.opacity((onSurface ? 0.22 : 0.28) + (onSurface ? 0.78 : 0.72) * Double(age) * Double(0.45 + 0.55 * lv))))
                 }
             }
             .frame(height: height)
@@ -121,11 +124,11 @@ struct LevelMeter: View {
 
             HStack(spacing: 6) {
                 Circle().fill(statusColor).frame(width: 6, height: 6)
-                Text(status).font(.labelMedium).foregroundColor(Color.white.opacity(0.85))
+                Text(status).font(.labelMedium).foregroundColor(onSurface ? Brand.text : Color.white.opacity(0.85))
                 Spacer(minLength: 0)
                 if detailed && !paused {
                     Text(String(format: "%.0f dB", level.db))
-                        .font(.labelMedium).monospacedDigit().foregroundColor(Color.white.opacity(0.7))
+                        .font(.labelMedium).monospacedDigit().foregroundColor(onSurface ? Brand.textMuted : Color.white.opacity(0.7))
                 }
             }
             .accessibilityElement(children: .combine)
@@ -140,6 +143,10 @@ struct LevelMeter: View {
     }
 
     private var statusColor: Color {
+        if onSurface {
+            if paused || level.loud { return Brand.warning }
+            return level.quiet ? Brand.textFaint : Brand.success
+        }
         if paused || level.loud { return Color(red: 1, green: 0.78, blue: 0.35) }
         if level.quiet { return Color.white.opacity(0.5) }
         return Color(red: 0.45, green: 1, blue: 0.7)

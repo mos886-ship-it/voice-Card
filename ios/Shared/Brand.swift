@@ -64,6 +64,28 @@ struct Palette: Equatable {
         text: Color(hex: 0x1A1A1A), textMuted: Color(hex: 0x5A5246), textFaint: Color(hex: 0x9A8F7E),
         accent: inkAccent, record: inkRecord)
 
+    /// A 清晰工作台：淺灰紙底、白卡片、深藍黑字、單一藍色重點（不用漸層），錄音用紅色。
+    static let clear = Palette(
+        id: "clear", isDark: false,
+        bg: Color(hex: 0xF5F6F8), bgCenter: Color(hex: 0xFFFFFF), backdropTop: Color(hex: 0xF5F6F8),
+        surface: Color(hex: 0xFFFFFF), surfaceHigh: Color(hex: 0xF0F2F5), surfaceHigher: Color(hex: 0xE4E7EC),
+        outline: Color(hex: 0xE3E6EB),
+        cyan: Color(hex: 0x1F5BD8), blue: Color(hex: 0x1F5BD8), violet: Color(hex: 0x6941C6), pink: Color(hex: 0xC11574),
+        success: Color(hex: 0x1E7A4C), warning: Color(hex: 0xA35A00), error: Color(hex: 0xC4221F), recording: Color(hex: 0xD0312D),
+        text: Color(hex: 0x101828), textMuted: Color(hex: 0x5D6675), textFaint: Color(hex: 0x7A8494),
+        accent: [Color(hex: 0x1F5BD8), Color(hex: 0x1F5BD8)], record: [Color(hex: 0xD0312D), Color(hex: 0xD0312D)])
+
+    /// C 暖和日常：米白底、暖灰字、珊瑚紅重點（也是錄音色）、鼠尾草綠給飲食與成功狀態。
+    static let warm = Palette(
+        id: "warm", isDark: false,
+        bg: Color(hex: 0xFBF8F4), bgCenter: Color(hex: 0xFFFFFF), backdropTop: Color(hex: 0xFBF8F4),
+        surface: Color(hex: 0xFFFFFF), surfaceHigh: Color(hex: 0xF5F0EA), surfaceHigher: Color(hex: 0xEDE6DD),
+        outline: Color(hex: 0xEDE6DD),
+        cyan: Color(hex: 0xC4492C), blue: Color(hex: 0x3B6E8F), violet: Color(hex: 0x8A6A3D), pink: Color(hex: 0xB4566B),
+        success: Color(hex: 0x3E7A58), warning: Color(hex: 0x9A6510), error: Color(hex: 0xB3261E), recording: Color(hex: 0xC4492C),
+        text: Color(hex: 0x2B2622), textMuted: Color(hex: 0x6E655D), textFaint: Color(hex: 0x8C8279),
+        accent: [Color(hex: 0xC4492C), Color(hex: 0xC4492C)], record: [Color(hex: 0xC4492C), Color(hex: 0xC4492C)])
+
     #if os(watchOS)
     private static let isWatch = true
     #else
@@ -71,24 +93,27 @@ struct Palette: Equatable {
     #endif
 }
 
-/// 外觀設定（照 Android `Settings.themeMode`）：深色（預設）/ 淺色 / 水墨 / 自動（跟隨系統）。
+/// 外觀設定：A 清晰（預設）/ C 暖和日常（2026-11-25 重新設計，舊的深色 / 淺色 / 水墨 / 自動先拿掉）。
 enum ThemeMode: String, CaseIterable, Identifiable {
-    case dark, light, ink, auto
+    case clear, warm
     var id: String { rawValue }
     var label: String {
         switch self {
-        case .dark: return "深色"
-        case .light: return "淺色"
-        case .ink: return "水墨"
-        case .auto: return "自動"
+        case .clear: return "清晰"
+        case .warm: return "暖和日常"
         }
     }
+    var palette: Palette { self == .warm ? .warm : .clear }
 }
 
 /// 品牌色。數值來自目前的主題（Brand.current，由最外層畫面依設定換掉並整個重畫）。
 enum Brand {
     static var current: Palette = .dark
     static var isInk: Bool { current.id == "ink" }
+    /// 卡片圓角：清晰 16、暖和日常 22（比較圓潤）。
+    static var cardRadius: CGFloat { current.id == "warm" ? 22 : current.id == "clear" ? 16 : 20 }
+    /// 新設計（清晰 / 暖和日常）：不用漸層、標題不用等寬字。
+    static var isNew: Bool { current.id == "clear" || current.id == "warm" }
     private static var p: Palette { current }
 
     static var bg: Color { p.bg }
@@ -116,7 +141,8 @@ enum Brand {
     /// 主要按鈕 / 選中狀態的漸層（Compose linearGradient 預設是左上 → 右下），按鈕上是白字。
     static var accent: LinearGradient { LinearGradient(colors: p.accent, startPoint: .topLeading, endPoint: .bottomTrailing) }
     static var accentSoft: LinearGradient {
-        LinearGradient(colors: [cyan.opacity(0.18), violet.opacity(0.18)], startPoint: .topLeading, endPoint: .bottomTrailing)
+        isNew ? LinearGradient(colors: [cyan.opacity(0.06), cyan.opacity(0.06)], startPoint: .top, endPoint: .bottom)
+            : LinearGradient(colors: [cyan.opacity(0.18), violet.opacity(0.18)], startPoint: .topLeading, endPoint: .bottomTrailing)
     }
     static var record: LinearGradient { LinearGradient(colors: p.record, startPoint: .topLeading, endPoint: .bottomTrailing) }
     static var backdrop: LinearGradient { LinearGradient(colors: [backdropTop, bg, bg], startPoint: .top, endPoint: .bottom) }
@@ -136,7 +162,10 @@ extension Font {
     static var bodySmall: Font { .system(size: TextScale.size(12, .footnote)) }
     static var labelLarge: Font { .system(size: TextScale.size(14, .subheadline), weight: .semibold) }
     static var labelMedium: Font { .system(size: TextScale.size(12, .caption1), weight: .medium) }
-    static var labelSmall: Font { .system(size: TextScale.size(10, .caption2), weight: .semibold, design: Brand.isInk ? .serif : .monospaced) }
+    static var labelSmall: Font {
+        Brand.isNew ? .system(size: TextScale.size(12, .caption1), weight: .semibold)
+            : .system(size: TextScale.size(10, .caption2), weight: .semibold, design: Brand.isInk ? .serif : .monospaced)
+    }
 }
 
 /// 字級縮放：設計稿的大小 × 系統文字大小的比例。

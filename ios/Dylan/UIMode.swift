@@ -107,9 +107,9 @@ struct LangPicker: View {
                 segment(l)
             }
         }
-        .padding(4)
-        .background(Capsule().fill(Brand.surfaceHigh))
-        .overlay(Capsule().stroke(Brand.outline, lineWidth: 1))
+        .padding(Brand.isNew ? 3 : 4)
+        .background(track.fill(Brand.surfaceHigh))
+        .overlay(track.stroke(Brand.isNew ? Color.clear : Brand.outline, lineWidth: 1))
         .opacity(disabled ? 0.5 : 1)
         .disabled(disabled)
         .accessibilityElement(children: .contain)
@@ -125,15 +125,19 @@ struct LangPicker: View {
         }
     }
 
+    /// 新設計（清晰 / 暖和日常）：灰底軌道上一塊白色滑塊（iOS 分段控制的樣子）；舊主題：漸層膠囊。
+    private var track: RoundedRectangle { RoundedRectangle(cornerRadius: Brand.isNew ? 10 : 100, style: .continuous) }
+
     private func segment(_ l: SpeechLang) -> some View {
         let on = value == l
-        let fg: Color = on ? .white : Brand.textMuted
-        let bg = on ? AnyShapeStyle(Brand.accent) : AnyShapeStyle(Color.clear)
+        let fg: Color = on ? (Brand.isNew ? Brand.text : .white) : Brand.textMuted
+        let bg = on ? (Brand.isNew ? AnyShapeStyle(Brand.surface) : AnyShapeStyle(Brand.accent)) : AnyShapeStyle(Color.clear)
+        let shape = RoundedRectangle(cornerRadius: Brand.isNew ? 8 : 100, style: .continuous)
         return Button { if !on { pick(l) } } label: {
-            Text(l.label).font(.labelLarge).foregroundColor(fg)
-                .frame(maxWidth: .infinity).padding(.vertical, 9)
-                .background(Capsule().fill(bg))
-                .contentShape(Capsule())
+            Text(l.label).font(on ? .labelLarge : .bodyMedium).foregroundColor(fg)
+                .frame(maxWidth: .infinity).padding(.vertical, Brand.isNew ? 8 : 9)
+                .background(shape.fill(bg).shadow(color: on && Brand.isNew ? Color.black.opacity(0.12) : .clear, radius: 1.5, y: 1))
+                .contentShape(shape)
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(on ? .isSelected : [])

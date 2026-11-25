@@ -13,6 +13,7 @@ struct RecordsView: View {
     @State private var deleting: Meeting?
     @AppStorage(UIMode.key) private var mode: UIMode = .business
     @State private var importing = false
+    @State private var managing = false
 
     var body: some View {
         let meetings = store.meetings.filter { !$0.isFood }
@@ -29,12 +30,14 @@ struct RecordsView: View {
                 // ---------- 標題 ----------
                 HStack {
                     VStack(alignment: .leading, spacing: 0) {
-                        Text("錄音").font(.headlineSmall).foregroundStyle(Brand.text)
+                        Text("資料庫").font(.headlineSmall).foregroundStyle(Brand.text)
                         Text(meetings.isEmpty ? "會議、課堂、訪談、通話、靈感筆記"
                              : "共 \(meetings.count) 段 · \(Fmt.duration(meetings.reduce(0) { $0 + $1.durationSec }))")
                             .font(.bodySmall).foregroundStyle(Brand.textMuted)
                     }
                     Spacer()
+                    // 原本的「檔案」分頁：大小、分享錄音檔、只刪錄音檔、刪除整筆
+                    GhostButton(text: "管理", tint: Brand.cyan) { managing = true }
                     GhostButton(text: importing ? "匯入中…" : "匯入", systemImage: "plus", tint: Brand.cyan) {
                         if !importing { picking = true }
                     }
@@ -105,6 +108,11 @@ struct RecordsView: View {
             .padding(.vertical, 12)
         }
         .refreshable { store.reload() }
+        .sheet(isPresented: $managing) {
+            FilesView(open: { id in managing = false; open(id) }, toast: $toast, onClose: { managing = false })
+                .environmentObject(store)
+                .background(Brand.bg.ignoresSafeArea())
+        }
         .confirmationDialog("刪除「\(deleting?.title ?? "")」？", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }),
                             titleVisibility: .visible) {
             Button("刪除錄音與報告", role: .destructive) {

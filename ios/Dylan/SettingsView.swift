@@ -11,10 +11,8 @@ struct SettingsView: View {
 
     private var themeNote: String {
         switch theme.mode {
-        case .dark: return "深空藍底。手錶也是深色（OLED 省電）。"
-        case .light: return "白底，戶外 / 白天比較好讀。手錶維持深色。"
-        case .ink: return "宣紙底、墨黑字、朱紅點綴，跟 logo 同一套。手錶也會換成水墨。"
-        case .auto: return "跟著 iPhone 的深色 / 淺色模式。手錶維持深色。"
+        case .clear: return "淺灰紙底、白卡片、藍色重點：資訊清楚，適合工作。手錶維持深色。"
+        case .warm: return "米白底、珊瑚紅與鼠尾草綠：溫和好讀，適合日常與家人。手錶維持深色。"
         }
     }
 
@@ -33,6 +31,16 @@ struct SettingsView: View {
                     }
                     .padding(.top, 10)
                     Text(mode.note).font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 10)
+                }
+
+                SectionLabel(text: "外觀主題")
+                GlassCard {
+                    HStack(spacing: 8) {
+                        ForEach(ThemeMode.allCases) { m in
+                            ThemeChip(mode: m, selected: theme.mode == m) { theme.mode = m }
+                        }
+                    }
+                    Text(themeNote).font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 10)
                 }
 
                 TwoColumns(wide: Wide.twoColumns(width)) {
@@ -90,15 +98,6 @@ struct SettingsView: View {
                 GeminiKeyCard { Task { await ai.refresh() } }
                 SectionLabel(text: "這台裝置")
                 DeviceNameCard()
-                SectionLabel(text: "外觀")
-                GlassCard {
-                    HStack(spacing: 8) {
-                        ForEach(ThemeMode.allCases) { m in
-                            ThemeChip(mode: m, selected: theme.mode == m) { theme.mode = m }
-                        }
-                    }
-                    Text(themeNote).font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 10)
-                }
                 SectionLabel(text: "隱私")
                 placeholder("錄音存在這支 iPhone 與你的 Apple Watch。用大D的主機 處理時，錄音只傳到大D的主機，處理完不保留。使用 Gemini 時，錄音會上傳到 Google 分析，分析完立刻刪除上傳的檔案；免費方案的內容可能被 Google 用來改進產品。金鑰與存取碼只存在這支 iPhone 的鑰匙圈。")
 
@@ -179,13 +178,8 @@ private struct ThemeChip: View {
     }
 
     @ViewBuilder private var swatch: some View {
-        switch mode {
-        case .dark: Palette.dark.bg.overlay(Circle().fill(Palette.dark.cyan).frame(width: 10, height: 10))
-        case .light: Palette.light.bg.overlay(Circle().fill(Palette.light.blue).frame(width: 10, height: 10))
-        case .ink: Palette.ink.bg.overlay(Circle().fill(Palette.ink.recording).frame(width: 10, height: 10))
-        case .auto:
-            HStack(spacing: 0) { Palette.light.bg; Palette.dark.bg }
-        }
+        let p = mode.palette
+        p.bg.overlay(Circle().fill(p.cyan).frame(width: 10, height: 10))
     }
 }
 

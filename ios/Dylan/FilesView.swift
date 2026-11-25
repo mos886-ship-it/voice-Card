@@ -1,10 +1,11 @@
 import SwiftUI
 
-/// 「檔案」分頁（照 Android `ui/FilesScreen.kt`）：一行摘要、雲端備份卡、全部／錄音／飲食篩選、
+/// 「資料庫 → 管理」（照 Android `ui/FilesScreen.kt` 的「檔案」分頁）：一行摘要、雲端備份卡、全部／錄音／飲食篩選、
 /// 每一筆的大小；點一筆可以打開、分享錄音檔（m4a）、只刪錄音檔（保留報告）、刪除整筆（都要先確認）。
 struct FilesView: View {
     let open: (String) -> Void
     @Binding var toast: String?
+    var onClose: (() -> Void)? = nil
     @EnvironmentObject private var store: MeetingStore
     @State private var kind = Kind.all
     @State private var sizes: [String: Size] = [:]
@@ -24,10 +25,16 @@ struct FilesView: View {
 
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("檔案").font(.headlineSmall).foregroundStyle(Brand.text)
-                    Text("\(all.count) 筆 · 錄音檔 \(Self.bytes(audio)) · 報告等 \(Self.bytes(other))")
-                        .font(.bodySmall).foregroundStyle(Brand.textMuted)
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("管理檔案").font(.headlineSmall).foregroundStyle(Brand.text)
+                        Text("\(all.count) 筆 · 錄音檔 \(Self.bytes(audio)) · 報告等 \(Self.bytes(other))")
+                            .font(.bodySmall).foregroundStyle(Brand.textMuted)
+                    }
+                    Spacer()
+                    if let onClose {
+                        Button("完成", action: onClose).font(.labelLarge).foregroundStyle(Brand.cyan).frame(minHeight: 44)
+                    }
                 }
 
                 GlassCard {
