@@ -140,6 +140,8 @@ fun ReportView(
 /** 表格改成卡片列：手机宽度放不下多栏表格，每一列一张小卡，第一栏当标题。 */
 @Composable
 private fun ReportTable(t: ReportBlock.Table, names: Map<String, String>, onRenameSpeaker: ((String) -> Unit)?) {
+    // 饮食内容表格（有「熱量」栏）：用紧凑的清单，不用一栏一栏排
+    if (t.header.any { it.contains("熱量") }) { FoodTable(t); return }
     // 「說話者」表格：第一栏是代号（或已套用的名字）
     val speakerTable = t.header.firstOrNull()?.contains("說話者") == true
     val nameCol = t.header.indexOfFirst { it.contains("名字") || it.contains("姓名") || it.contains("稱呼") }
@@ -171,7 +173,10 @@ private fun ReportTable(t: ReportBlock.Table, names: Map<String, String>, onRena
                 }
                 if (row.size > 1) {
                     Spacer(Modifier.height(6.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    // 栏位多时自动换行（不要挤成一字一行）
+                    @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+                    androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         for (c in 1 until row.size) {
                             if (row[c] == row[0]) continue // 改名后「說話者」与「名字」栏重复，略过
                             if (row[c] in EMPTY_VALUES || row[c].startsWith("未知")) continue // 「未知」之类的空白栏位不显示
@@ -181,6 +186,64 @@ private fun ReportTable(t: ReportBlock.Table, names: Map<String, String>, onRena
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 饮食内容：一张卡、一样食物一段，每段三行——
+ * 「食物名 …… 366 大卡」／「一碗 · 約 200g · 蛋白質 6g · 碳水 82g · 脂肪 1g」／来源小标签（食藥署 / 營養標示 / AI 估算）。
+ * 栏位用表头名字找（AI 旧格式没有「來源」栏、栏位顺序也可能不同）。
+ */
+@Composable
+private fun FoodTable(t: ReportBlock.Table) {
+    fun col(vararg keys: String) = t.header.indexOfFirst { h -> keys.any { h.contains(it) } }
+    val iName = col("食物", "品項", "名稱").takeIf { it >= 0 } ?: 0
+    val iPortion = col("份量")
+    val iKcal = col("熱量")
+    val iP = col("蛋白")
+    val iC = col("碳水")
+    val iF = col("脂肪")
+    val iSrc = col("來源")
+    val rows = t.rows.filter { r -> r.getOrNull(iName).orEmpty().isNotBlank() }
+    fun cell(r: List<String>, i: Int) = if (i < 0) "" else r.getOrNull(i).orEmpty().trim()
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Brand.SurfaceHigh)
+            .border(1.dp, Brand.Outline, RoundedCornerShape(14.dp)).padding(horizontal = 14.dp, vertical = 4.dp)
+    ) {
+        rows.forEachIndexed { idx, r ->
+            if (idx > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(Brand.Outline))
+            Column(Modifier.padding(vertical = 10.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(richText(cell(r, iName)), style = MaterialTheme.typography.titleSmall, color = Brand.Text, modifier = Modifier.weight(1f))
+                    val kcal = cell(r, iKcal)
+                    if (kcal.isNotEmpty()) {
+                        Spacer(Modifier.width(8.dp))
+                        Text("$kcal 大卡", style = MaterialTheme.typography.titleSmall, color = Brand.Cyan)
+                    }
+                }
+                val detail = listOf(
+                    cell(r, iPortion),
+                    cell(r, iP).takeIf { it.isNotEmpty() }?.let { "蛋白質 ${it}g" }.orEmpty(),
+                    cell(r, iC).takeIf { it.isNotEmpty() }?.let { "碳水 ${it}g" }.orEmpty(),
+                    cell(r, iF).takeIf { it.isNotEmpty() }?.let { "脂肪 ${it}g" }.orEmpty(),
+                ).filter { it.isNotEmpty() }.joinToString(" · ")
+                if (detail.isNotEmpty()) {
+                    Spacer(Modifier.height(3.dp))
+                    Text(detail, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
+                }
+                val src = cell(r, iSrc)
+                if (src.isNotEmpty()) {
+                    val color = when {
+                        src.startsWith("食藥署") -> Brand.Success
+                        src.startsWith("營養標示") -> Brand.Blue
+                        else -> Brand.TextFaint
+                    }
+                    Spacer(Modifier.height(5.dp))
+                    Text(src, style = MaterialTheme.typography.labelSmall, color = color,
+                        modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(color.copy(alpha = 0.1f)).padding(horizontal = 6.dp, vertical = 2.dp))
                 }
             }
         }
