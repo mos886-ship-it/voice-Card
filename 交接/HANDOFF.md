@@ -374,6 +374,8 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 - 大D的主機的飲食提示詞還沒改（Qwen3-8B 多 1.3 萬字清單會慢），之後再評估。
 - iOS 要照做：同一份 tfnd.json、同樣的提示詞與 ITEM 格式、同樣的 0.4～2.5 倍檢查與表格。測試：`FoodDbTest`。
 
+- **iOS 已跟上**：`ios/Dylan/Nutrition/tfnd.json`（同一份，複製過來；更新時兩邊一起換）、`FoodDB.swift`（`FoodDB.find` / `promptList`，`FoodLog.parseItems` / `finish`，同樣的完全相同名稱＋0.4～2.5 倍檢查、表格「來源」欄、合計、摘要）、`GeminiClient.foodPrompt`（有資料就用 `foodDBPrompt`，照抄 Android dbPrompt；舊版留 `legacyFoodPrompt`）、`MeetingStore.geminiReplied` 走 `FoodLog.finish`（大D的主機沒 ITEM 行 → 照舊）。Apple 裝置端模型（飲食用 `AppleAI.food`）沒有帶清單（1.3 萬字超過它的上下文），照舊 AI 估。設定最下面「內建資料」卡（iOS 沒有關於頁）。FoodDbTest 的案例用 Swift 跑過全過；真的 Gemini 飲食錄音還沒在 iOS 跑過。
+
 ## 拍照記錄飲食（1.1.93）
 
 - 入口：快錄的中間錄音鍵長按 → 選單「說：記錄飲食」「拍：拍照記錄」「拍＋說：拍照再補一句」；飲食分頁「記錄這一餐」下面多一顆「拍照記錄（最多 3 張）」（兩種排布都有）。拍照畫面可以切換「只拍照 / 拍照＋口述」，相機或相簿，一餐最多 3 張。

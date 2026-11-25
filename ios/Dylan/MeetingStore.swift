@@ -424,8 +424,13 @@ final class MeetingStore: ObservableObject {
         guard var m = load(id) else { return }   // 分析期間被刪掉了：不要寫檔
         var (report, transcript) = GeminiClient.split(text)
         if m.isFood {
-            m.nutrition = GeminiClient.parseNutrition(text)
-            report.markdown = GeminiClient.stripNutrition(report.markdown)
+            // 有 ITEM 行：對到食藥署資料的用資料庫重算，App 自己產生表格與合計（照 Android FoodLog.finish）
+            let heading = "# \(report.title)\n\n"
+            let body = report.markdown.hasPrefix(heading) ? String(report.markdown.dropFirst(heading.count)) : report.markdown
+            let done = FoodLog.finish(raw: text, body: body, aiSummary: report.shortSummary)
+            m.nutrition = done.nutrition
+            report.markdown = (report.markdown.hasPrefix(heading) ? heading : "") + done.body
+            report.shortSummary = done.summary
         }
         if truncated {
             transcript += "\n\n（錄音太長，Gemini 一次輸出不完，後面的逐字稿被截斷；長錄音分段分析在之後的版本加上）"

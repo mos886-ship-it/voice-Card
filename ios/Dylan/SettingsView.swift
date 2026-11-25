@@ -122,6 +122,16 @@ struct SettingsView: View {
                 DeviceNameCard()
                 SectionLabel(text: "隱私")
                 placeholder("錄音存在這支 iPhone 與你的 Apple Watch。用大D的主機 處理時，錄音只傳到大D的主機，處理完不保留。使用 Gemini 時，錄音會上傳到 Google 分析，分析完立刻刪除上傳的檔案；免費方案的內容可能被 Google 用來改進產品。金鑰與存取碼只存在這支 iPhone 的鑰匙圈。")
+                SectionLabel(text: "內建資料")
+                GlassCard {
+                    Text("飲食熱量計算使用衛生福利部食品藥物管理署「食品營養成分資料集」（2026/10/05 版，只取熱量、蛋白質、脂肪、碳水，每 100 克），依政府資料開放授權條款－第1版使用。")
+                        .font(.bodySmall).foregroundStyle(Brand.textMuted)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Link("食品營養成分資料集（政府資料開放平臺）", destination: URL(string: "https://data.gov.tw/dataset/8543")!)
+                        Link("政府資料開放授權條款－第1版", destination: URL(string: "https://data.gov.tw/license")!)
+                    }
+                    .font(.labelLarge).tint(Brand.cyan).padding(.top, 10)
+                }
 
                 }
 
