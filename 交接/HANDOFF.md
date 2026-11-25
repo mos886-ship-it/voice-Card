@@ -353,3 +353,11 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 - **配色**（`theme_mode`：`clear` 預設 / `warm` / `dark` / `ink`，兩行兩格選）：深色、水墨用原本的調色盤（深色有漸層，水墨標題用襯線字）；手錶：水墨→水墨，其他→深色。舊值 light / system 當清晰。卡片圓角：清晰 16、暖和 22、深色 / 水墨 20。
 
 **設定「介面」整合（2026-11-25，使用者要求）**：原本分開的「介面模式」「排布」「配色」三個區塊合成一個「介面」卡，裡面三列：排布（快錄 / 總覽）、資訊量（商用 / 科技，原介面模式，存值不變 ui_mode）、配色（四格）；三個選擇各自獨立。放在系統狀態卡後面。iOS 照做。
+
+## 飲食同步到健康（1.1.90）
+
+- 設定 →「健康同步」：一個開關「飲食同步到健康」，預設關。打開時跳系統授權（只要求「寫入營養」，不讀任何健康資料）。
+- **Android**：寫 Health Connect（`HealthSync.kt`，`androidx.health.connect:connect-client:1.1.0`）。每筆飲食一筆 `NutritionRecord`：時間＝錄音時間、餐別（早/午/晚/點心）、名稱、熱量、蛋白質、碳水、脂肪；`clientRecordId` ＝ 記錄 id（重複同步是更新不是重複），刪除記錄也從健康刪除。觸發點在 `MeetingStore.update`（飲食變成 DONE 或營養改了）與 `MeetingStore.delete`。打開開關時與「同步過去的記錄」會補寫所有已完成的飲食。
+- **Google** ＝ Health Connect 本身；**Samsung Health** 沒開放一般 App 直接寫入，靠 Samsung Health → 設定 → Health Connect 同步（卡片上有「開啟」按鈕帶過去）。
+- **Apple 健康**：只在 iOS，用 HealthKit 寫 `dietaryEnergyConsumed`、`dietaryProtein`、`dietaryCarbohydrates`、`dietaryFatTotal`（同一個 HKCorrelation food，metadata 放記錄 id 以便更新 / 刪除）。設定卡片一樣叫「健康同步」，列出 Apple 健康；Android 卡片上 Apple 那列只寫「只在 iPhone 版」。
+- 隱私說明頁：`HealthPrivacyActivity`（Health Connect 授權畫面的「privacy policy」連結會開它）。

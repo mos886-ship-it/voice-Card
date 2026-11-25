@@ -39,6 +39,15 @@ object Settings {
     fun themeMode(context: Context): String = prefs(context).getString("theme_mode", "clear") ?: "clear"
     fun setThemeMode(context: Context, value: String) = prefs(context).edit().putString("theme_mode", value).apply()
 
+    /** 饮食同步到健康（Health Connect → Google / Samsung Health）；预设关。 */
+    fun healthSync(context: Context): Boolean = prefs(context).getBoolean("health_sync", false)
+    fun setHealthSync(context: Context, on: Boolean) = prefs(context).edit().putBoolean("health_sync", on).apply()
+    /** 上次同步的时间与笔数（设定页显示）。 */
+    fun healthSyncLast(context: Context): Pair<Long, Int> =
+        prefs(context).getLong("health_sync_at", 0L) to prefs(context).getInt("health_sync_count", 0)
+    fun setHealthSyncLast(context: Context, at: Long, count: Int) =
+        prefs(context).edit().putLong("health_sync_at", at).putInt("health_sync_count", count).apply()
+
     /** 排布：quick 快錄 / overview 總覽（[com.example.wristai.ui.theme.LayoutMode]）。 */
     fun layoutMode(context: Context): String = prefs(context).getString("layout_mode", "quick") ?: "quick"
     fun setLayoutMode(context: Context, value: String) = prefs(context).edit().putString("layout_mode", value).apply()

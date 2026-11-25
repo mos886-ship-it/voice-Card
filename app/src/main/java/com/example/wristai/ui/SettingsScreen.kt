@@ -220,6 +220,9 @@ fun SettingsScreen(onBack: (() -> Unit)? = null) {
                 Note(Icons.Filled.Info, "熱量為 AI 依口述估算，僅供參考，不能取代營養師或醫療建議。")
             }
 
+            // ---------- 健康同步：饮食写进 Health Connect（Google / Samsung Health）；Apple 健康在 iPhone 版 ----------
+            HealthSection()
+
             // ---------- 通话录音 ----------
             SectionLabel("通話錄音")
             GlassCard(highlight = callOn) {

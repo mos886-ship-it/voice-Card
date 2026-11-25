@@ -74,6 +74,8 @@ dependencies {
     // Google 云端硬碟备份：帐号授权（Identity AuthorizationClient）＋ Task.await
     implementation("com.google.android.gms:play-services-auth:21.3.0")
     implementation(libs.kotlinx.coroutines.play.services)
+    // 饮食同步到健康：Health Connect（Google 健康资料中心；Samsung Health 也跟它同步）
+    implementation("androidx.health.connect:connect-client:1.1.0")
     testImplementation(libs.junit)
     // 单元测试用真正的 org.json（Android 的版本在 JVM 测试里是空壳）
     testImplementation("org.json:json:20240303")

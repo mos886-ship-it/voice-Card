@@ -203,6 +203,10 @@ object MeetingStore {
         // 报告刚做完 → 自动备份到 Google 云端硬碟（有连结、有开自动备份才会排）
         if (current.status != MeetingStatus.DONE && updated.status == MeetingStatus.DONE)
             runCatching { com.example.wristai.backup.BackupWorker.scheduleAuto(context) }
+        // 饮食记录做完（或营养数字改了）→ 同步到健康（有开才会写）
+        if (updated.status == MeetingStatus.DONE && updated.nutrition != null &&
+            (current.status != MeetingStatus.DONE || current.nutrition != updated.nutrition))
+            HealthSync.push(context, updated)
         return updated
     }
 
@@ -210,6 +214,7 @@ object MeetingStore {
     fun delete(context: Context, id: String) {
         File(root(context), id).deleteRecursively()
         reload(context)
+        HealthSync.remove(context, id)
     }
 
     @Synchronized
