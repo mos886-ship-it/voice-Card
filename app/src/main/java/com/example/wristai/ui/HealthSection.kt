@@ -124,11 +124,16 @@ fun HealthSection() {
             },
             onAction = { HealthSync.openHealthConnect(context) },
         )
+        // Samsung Health 读的是 Health Connect：我们写进去了，它就会同步过去（读不到它那边的开关，只能照我们这边的状态亮灯）
+        val samsungOn = hasSamsung && on && granted
         Target(
             name = "Samsung Health",
-            state = if (hasSamsung) "經 Health Connect 同步：在 Samsung Health → 設定 → Health Connect 開啟「飲食」"
-                else "這支手機沒有安裝 Samsung Health",
-            ok = null,
+            state = when {
+                !hasSamsung -> "這支手機沒有安裝 Samsung Health"
+                samsungOn -> "經 Health Connect 同步（Samsung Health → 設定 → Health Connect 開著就會收到）"
+                else -> "經 Health Connect 同步：打開上面的開關，並在 Samsung Health → 設定 → Health Connect 開啟「飲食」"
+            },
+            ok = if (!hasSamsung) null else samsungOn,
             action = if (hasSamsung) "開啟" else null,
             onAction = { HealthSync.openSamsungHealth(context) },
         )
