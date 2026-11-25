@@ -102,6 +102,7 @@ struct Meeting: Codable, Identifiable, Equatable {
         case "import": return "匯入"
         case "call": return "通話"
         case "food": return "飲食"
+        case "photo": return "拍照"
         default: return source
         }
     }
@@ -142,6 +143,7 @@ struct Meeting: Codable, Identifiable, Equatable {
 
     /// 「2026/11/21 15:00:03 – 15:30:10（30:07）」，跨日會寫結束日期（照 Android recordingRange）。
     var recordingRange: String {
+        if source == "photo" { return "拍照 " + Fmt.stamp(createdAt, "yyyy/MM/dd HH:mm") }
         if durationSec < 1 { return Fmt.stamp(createdAt, "yyyy/MM/dd HH:mm") }   // 匯入的文字：沒有長度
         let end = createdAt.addingTimeInterval(durationSec)
         let sameDay = Calendar.current.isDate(createdAt, inSameDayAs: end)

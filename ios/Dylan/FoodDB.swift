@@ -75,6 +75,8 @@ enum FoodLog {
         let name: String, portion: String, grams: Int
         let db: FoodDB.Entry?
         let kcal: Int, protein: Int, carbs: Int, fat: Int
+        /// 照片裡的包裝營養標示算的（數字是 AI 照標示換算）
+        var label = false
     }
 
     /// 解析 ITEM 行；對照的名稱在資料庫裡，而且跟 AI 自己估的差不多（0.4～2.5 倍），才用資料庫的數字。
@@ -99,7 +101,12 @@ enum FoodLog {
                 let grams = num("克")
                 let aiKcal = num("kcal")
                 let g = Double(grams) / 100
-                if grams > 0, let db = FoodDB.find(kv["對照"] ?? kv["对照"]) {
+                let ref = (kv["對照"] ?? kv["对照"])?.trimmingCharacters(in: .whitespaces)
+                if ref == "營養標示" || ref == "营养标示" {
+                    return Item(name: name, portion: portion, grams: grams, db: nil, kcal: aiKcal,
+                                protein: num("protein"), carbs: num("carbs"), fat: num("fat"), label: true)
+                }
+                if grams > 0, let db = FoodDB.find(ref) {
                     let dbKcal = Int((db.kcal * g).rounded())
                     let ratio = aiKcal == 0 ? 1 : Double(dbKcal) / Double(aiKcal)
                     if aiKcal == 0 || (0.4...2.5).contains(ratio) {
@@ -127,11 +134,14 @@ enum FoodLog {
         var t = "## 飲食內容\n| 食物 | 份量 | 熱量(kcal) | 蛋白質(g) | 碳水(g) | 脂肪(g) | 來源 |\n|---|---|---|---|---|---|---|\n"
         for i in items {
             let portion = [i.portion, i.grams > 0 ? "約 \(i.grams)g" : ""].filter { !$0.isEmpty }.joined(separator: " · ")
-            let src = i.db.map { "食藥署：\($0.name)" } ?? "AI 估算"
+            let src = i.db.map { "食藥署：\($0.name)" } ?? (i.label ? "營養標示" : "AI 估算")
             t += "| \(i.name) | \(portion) | \(i.kcal) | \(i.protein) | \(i.carbs) | \(i.fat) | \(src) |\n"
         }
+        let fromLabel = items.filter(\.label).count
+        let sources = [fromDb > 0 ? "\(fromDb) 樣依食藥署「食品營養成分資料集」計算" : nil,
+                       fromLabel > 0 ? "\(fromLabel) 樣依包裝營養標示" : nil].compactMap { $0 }
         t += "\n## 合計\n約 \(n.kcal) 大卡；蛋白質 \(n.protein)g、碳水 \(n.carbs)g、脂肪 \(n.fat)g"
-            + (fromDb > 0 ? "（\(items.count) 樣中 \(fromDb) 樣依食藥署「食品營養成分資料集」計算）" : "（皆為 AI 估算）") + "\n\n"
+            + (sources.isEmpty ? "（皆為 AI 估算）" : "（\(items.count) 樣中 \(sources.joined(separator: "、"))）") + "\n\n"
         let meal = n.meal.isEmpty ? "這餐" : n.meal
         return (n, t + cleaned.trimmingCharacters(in: .whitespacesAndNewlines), "\(meal)約 \(n.kcal) 大卡，蛋白質 \(n.protein)g")
     }

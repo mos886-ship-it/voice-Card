@@ -37,9 +37,13 @@ struct DetailView: View {
                                 }
                             }
                             .buttonStyle(.plain)
-                            Text("錄音  \(m.recordingRange)").font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 6)
+                            Text(m.source == "photo" ? m.recordingRange : "錄音  \(m.recordingRange)")
+                                .font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 6)
                             StatusChip(style: m.statusStyle).padding(.top, 10)
                         }
+
+                        // ---------- 飲食照片（最上面，點一下全螢幕） ----------
+                        if m.isFood { FoodPhotoStrip(id: m.id) }
 
                         // ---------- 狀態卡 ----------
                         if m.status == .recording {
@@ -92,7 +96,7 @@ struct DetailView: View {
                             GlassCard {
                                 Text("處理失敗").font(.titleMedium).foregroundStyle(Brand.error)
                                 Text(e).font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 4)
-                                if hasAudio(m) || MeetingStore.isText(m.id) {
+                                if hasAudio(m) || MeetingStore.isText(m.id) || FoodPhotos.has(m.id) {
                                     GradientButton(text: "重試") { Task { await store.process(m.id) } }.padding(.top, 12)
                                 }
                             }

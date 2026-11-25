@@ -191,7 +191,14 @@ final class MeetingStore: ObservableObject {
     /// 產生（或重新產生）報告。
     func process(_ id: String) async {
         guard !processing.contains(id), let m = load(id),
-              FileManager.default.fileExists(atPath: Self.audioURL(id).path) || Self.isText(id) else { return }
+              FileManager.default.fileExists(atPath: Self.audioURL(id).path) || Self.isText(id) || FoodPhotos.has(id) else { return }
+        // 有照片的飲食：只有 Gemini 看得懂圖片（免費 flash 模型），大D的主機與 Apple 先不走
+        if m.isFood && FoodPhotos.has(id) {
+            if Self.privacyMode { aiFailed(id, message: "隱私模式不上傳到雲端；照片辨識飲食需要 Gemini（免費），請先關掉隱私模式") }
+            else if Self.hasGeminiKey { await runGemini(id) }
+            else { aiFailed(id, message: "照片辨識飲食需要 Gemini（免費）：請到設定填 Gemini 金鑰") }
+            return
+        }
         if Self.isText(id) {   // 匯入的文字：Mac → Gemini；Apple 不處理文字
             if LocalAI.configured { await runLocal(id) }
             else if Self.hasGeminiKey && !Self.privacyMode { await runGeminiText(id) }
@@ -273,7 +280,8 @@ final class MeetingStore: ObservableObject {
         guard var m = load(id) else { return }
         processing.insert(id)
         defer { processing.remove(id) }
-        begin(&m, step: "上傳錄音中")
+        let photoOnly = !FileManager.default.fileExists(atPath: Self.audioURL(id).path)
+        begin(&m, step: photoOnly ? "AI 辨識照片中" : "上傳錄音中")
         PhoneLink.shared.sendStatus(id: id, text: "AI 分析中…")
         // 即時預覽：Gemini 在跑的同時，先用 Apple 秒出逐字稿（不分說話者），Gemini 完成後換掉
         if !m.isFood && m.speechLang == .zh {   // Apple 不會台語：台語錄音不出預覽

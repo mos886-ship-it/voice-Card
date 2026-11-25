@@ -78,6 +78,11 @@ final class GeminiJobs: NSObject, URLSessionDataDelegate, URLSessionDownloadDele
     /// ① 開始：resumable 上傳的第一個小請求，然後把大檔交給系統上傳。
     func start(meetingId: String, key: String) async throws {
         let audio = MeetingStore.audioURL(meetingId)
+        // 只有照片（拍照記錄飲食）：不用上傳，直接把照片夾在 generateContent 裡
+        if !FileManager.default.fileExists(atPath: audio.path) && FoodPhotos.has(meetingId) {
+            try await generate(Job(meetingId: meetingId, stage: .generate, food: true), key: key)
+            return
+        }
         let size = (try? audio.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
         let uploadURL = try await GeminiClient(apiKey: key).uploadStart(size: size)
         var r = URLRequest(url: uploadURL)
@@ -131,22 +136,29 @@ final class GeminiJobs: NSObject, URLSessionDataDelegate, URLSessionDownloadDele
 
     /// ② 上傳好了：等檔案 ACTIVE，再把 generateContent 交給系統（回應可能很久）。
     private func generate(_ job: Job, key: String) async throws {
-        guard let name = job.fileName, let uri = job.fileURI, let m = await MeetingStore.shared.load(job.meetingId) else { return }
+        guard let m = await MeetingStore.shared.load(job.meetingId) else { return }
+        let photos = job.food == true ? FoodPhotos.files(job.meetingId).compactMap { try? Data(contentsOf: $0) } : []
+        guard job.fileURI != nil || !photos.isEmpty else { return }
         let client = GeminiClient(apiKey: key)
-        try await client.waitUntilActive(name)
+        if let name = job.fileName { try await client.waitUntilActive(name) }
         let model = GeminiClient.models[job.model]
-        let prompt = GeminiClient.prompt(durationSec: m.durationSec, recordedAt: Fmt.stamp(m.createdAt, "yyyy/MM/dd HH:mm"),
-                                         lang: m.speechLang, dialect: m.hakkaDialect)
+        let recordedAt = Fmt.stamp(m.createdAt, "yyyy/MM/dd HH:mm")
+        let photoNote = photos.isEmpty ? "" : "附上 \(photos.count) 張這一餐的照片。"
+        let prompt = job.fileURI == nil
+            ? "拍照時間：\(recordedAt)。\(photoNote)沒有錄音，請依照片與格式整理，逐字稿留空。"
+            : GeminiClient.prompt(durationSec: m.durationSec, recordedAt: recordedAt, lang: m.speechLang, dialect: m.hakkaDialect,
+                                  photoNote: photoNote)
         // 背景上傳任務只能從檔案上傳 → 請求內容先寫成暫存檔
         let body = FileManager.default.temporaryDirectory.appendingPathComponent("gemini-\(job.meetingId)-\(job.model).json")
-        try GeminiClient.generateBody(fileURI: uri, prompt: prompt,
-                                      system: job.food == true ? GeminiClient.foodPrompt : GeminiClient.systemPrompt).write(to: body)
+        try GeminiClient.generateBody(fileURI: job.fileURI, prompt: prompt,
+                                      system: job.food == true ? GeminiClient.foodPrompt : GeminiClient.systemPrompt,
+                                      images: photos).write(to: body)
         var r = client.request("\(GeminiClient.base)/v1beta/models/\(model):generateContent", "POST", timeout: 600)
         r.setValue("application/json", forHTTPHeaderField: "Content-Type")
         let task = session.uploadTask(with: r, fromFile: body)
         task.taskDescription = Self.encode(job)
         task.resume()
-        await MeetingStore.shared.setAiStep(job.meetingId, "AI 聆聽整理中")
+        await MeetingStore.shared.setAiStep(job.meetingId, job.fileURI == nil ? "AI 辨識照片中" : "AI 聆聽整理中")
         NSLog("[GeminiJobs] \(job.meetingId) generate (\(model)) handed to system")
     }
 

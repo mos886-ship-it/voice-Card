@@ -191,6 +191,7 @@ struct SourceIcon: View {
             case "phone": return Meeting.isPad ? "ipad" : "iphone"
             case "call": return "phone.fill"
             case "import": return "square.and.arrow.down.fill"
+            case "photo": return "camera.fill"
             default: return "waveform"
             }
         }()

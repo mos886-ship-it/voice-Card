@@ -85,6 +85,8 @@ struct GeminiClient {
     - 依台灣常見的份量與做法估算（便當、小吃、麵店、手搖飲、便利商店等）。
     - 使用者明確說出的份量、杯型、甜度、冰塊、加料一定照用，不可以改成別的（例如說「大杯半糖」就是大杯、半糖），只有沒說的部分才用預設。
     - 沒說清楚的地方（份量、甜度、加料、烹調方式）用常見預設，並在「假設與待確認」寫出來。
+    - 若附有照片：依照片辨識食物與份量（參考碗盤、餐具、杯子、包裝的大小估克數）；照片與口述不一致時以口述為準；看不清楚或被擋住的寫進「假設與待確認」。
+    - 照片裡看得到包裝的「營養標示」：照標示的熱量、營養素與份量（每份 / 每 100 克）換算吃下的量，「對照」填「營養標示」。
     - 把這一餐拆成食材或單品，每樣一行 ITEM，估算重量（克，可食部分）。煎炒炸用的油、勾芡、糖、醬料要另外列一行（例如「調合植物油」）。
     - 「對照」：從下面的【食藥署食品營養成分資料】清單挑一個「完全相同」的名稱（不要寫「·生」「·熟」）；清單裡沒有相近的就填「無」，不要硬湊。
       清單標「·生」的是生重：克數要填烹調前的生重。整道小吃（例如牛肉麵）清單沒有就拆成麵、肉、湯、青菜各自對照，拆不了就填「無」。
@@ -255,13 +257,15 @@ struct GeminiClient {
     }
 
     /// generateContent（非串流）的請求內容。
-    static func generateBody(fileURI: String, prompt: String, system: String = systemPrompt) throws -> Data {
+    /// images：飲食照片（已縮小的 JPEG）直接用 inline_data 夾在請求裡；fileURI 可以是 nil（只有照片）。
+    static func generateBody(fileURI: String?, prompt: String, system: String = systemPrompt, images: [Data] = []) throws -> Data {
+        var parts: [[String: Any]] = []
+        if let fileURI { parts.append(["file_data": ["mime_type": uploadMime, "file_uri": fileURI]]) }
+        for img in images { parts.append(["inline_data": ["mime_type": "image/jpeg", "data": img.base64EncodedString()]]) }
+        parts.append(["text": prompt])
         let body: [String: Any] = [
             "systemInstruction": ["parts": [["text": system]]],
-            "contents": [["role": "user", "parts": [
-                ["file_data": ["mime_type": uploadMime, "file_uri": fileURI]],
-                ["text": prompt],
-            ]]],
+            "contents": [["role": "user", "parts": parts]],
             "generationConfig": ["temperature": 0.2],
         ]
         return try JSONSerialization.data(withJSONObject: body)
@@ -286,8 +290,8 @@ struct GeminiClient {
     }
 
     static func prompt(durationSec: Double, recordedAt: String, lang: SpeechLang = .zh,
-                       dialect: HakkaDialect = .sixian) -> String {
-        let base = "錄音時間：\(recordedAt)，長度約 \(String(format: "%.1f", durationSec / 60)) 分鐘。請依格式整理這段錄音。"
+                       dialect: HakkaDialect = .sixian, photoNote: String = "") -> String {
+        let base = "錄音時間：\(recordedAt)，長度約 \(String(format: "%.1f", durationSec / 60)) 分鐘。\(photoNote)請依格式整理這段錄音。"
         if lang == .hak {
             return base + "這段錄音是客語（\(dialect.label)腔，可能和國語夾雜）。逐字稿請一律用台灣繁體中文的華語字寫出意思（客語的部分翻成通順的華語，"
                 + "國語照說的寫），不要用客語拼音，也不要寫成同音的錯字。"

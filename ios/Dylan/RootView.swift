@@ -47,6 +47,7 @@ struct RootView: View {
     @AppStorage(LayoutMode.key) private var layout: LayoutMode = .quick
     @State private var path: [String] = []
     @State private var toast: String?
+    @ObservedObject private var photoCapture = FoodPhotoCapture.shared
 
     var body: some View {
         GeometryReader { geo in
@@ -80,6 +81,12 @@ struct RootView: View {
         .environment(\.pageWidth, geo.size.width)
         }
         .toast($toast)
+        .sheet(isPresented: $photoCapture.presented) {
+            FoodPhotoSheet { id in
+                if let id { path = []; tab = .food; toast = "照片已送出，AI 估算中" }
+                else { tab = .home }   // 拍＋說：錄音卡在「今天」
+            }
+        }
         .onReceive(NotificationCenter.default.publisher(for: AudioImport.didImport)) { note in
             path = []
             tab = (note.userInfo?["tab"] as? String) == "settings" ? .settings : .records
@@ -139,7 +146,9 @@ private struct RecordKey: View {
         .accessibilityLabel(recording ? "停止錄音" : "開始錄音")
         .contextMenu {
             if !recording {
-                Button { PhoneRecorder.shared.start(food: true) } label: { Label("記錄飲食", systemImage: "fork.knife") }
+                Button { PhoneRecorder.shared.start(food: true) } label: { Label("說：記錄飲食", systemImage: "fork.knife") }
+                Button { FoodPhotoCapture.shared.open(withVoice: false) } label: { Label("拍：拍照記錄", systemImage: "camera") }
+                Button { FoodPhotoCapture.shared.open(withVoice: true) } label: { Label("拍＋說：拍照再補一句", systemImage: "camera.badge.ellipsis") }
             }
         }
     }

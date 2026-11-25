@@ -385,6 +385,8 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 - 提示詞多兩條：依照片估份量、照片與口述不同以口述為準；看到包裝「營養標示」就照標示算，「對照」填「營養標示」→ 表格來源欄寫「營養標示」，合計寫幾樣依營養標示。其他照樣對照食藥署資料。
 - 詳情頁上方顯示照片（點一下全螢幕）。iOS 要照做（PHPicker / 相機需要 NSCameraUsageDescription）。
 
+- **iOS 已跟上**：`FoodPhotos.swift`（縮圖：`UIGraphicsImageRenderer` 轉正、長邊 768、`jpegData(0.8)` 重新編碼不帶 GPS；`FoodPhotoSheet` 只拍照／拍照＋口述、相機＋`PhotosPicker`、最多 3 張；`FoodPhotoStrip` 詳情頁最上面、點一下全螢幕）。入口：快錄中間錄音鍵長按「說：記錄飲食」「拍：拍照記錄」「拍＋說：拍照再補一句」，飲食分頁「拍照記錄（最多 3 張）」。只拍照 source = photo、長度 0、沒有 lang，詳情「拍照 時間」、沒有辨識語言；拍＋說照片放 `FoodPhotos.pendingForVoice`，`PhoneRecorder.begin` 接進記錄（錄不了音就改成只拍照的記錄）。有照片一律 Gemini（只有照片時跳過上傳直接 generate，`generateBody` 夾 inline_data；免費 flash 模型），隱私模式或沒金鑰就失敗並寫原因。提示詞兩條、對照=營養標示 → 來源「營養標示」、合計寫幾樣依營養標示。NSCameraUsageDescription 繁中。模擬器驗過：相簿選 2 張 → 768 px、沒有 GPS；沒金鑰的失敗訊息；詳情照片與全螢幕。真的 Gemini 照片辨識、相機（模擬器沒有）、拍＋說（模擬器麥克風不能錄）還沒驗。
+
 ## 不到 1 秒的錄音不送辨識（1.1.94）
 
 - 手機錄音（會議、飲食口述）一按就停、不到 1 秒（`PhoneRecordingService.MIN_RECORDING_SEC`）：整筆刪掉、不送辨識，錄音卡顯示「錄音不到 1 秒，沒有送出辨識」，手錶遙控的會收到「錄音不到 1 秒，已取消」。「拍＋說」有照片時口述太短 → 當成只有照片照樣處理。

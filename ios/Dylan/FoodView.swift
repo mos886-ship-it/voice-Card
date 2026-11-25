@@ -49,6 +49,13 @@ struct FoodView: View {
                     GradientButton(text: rec.isRecording ? "停止錄音" : "記錄這一餐", recordDot: !rec.isRecording) {
                         if rec.isRecording { rec.stop() } else { rec.start(food: true) }
                     }
+                    if !rec.isRecording {
+                        Button { FoodPhotoCapture.shared.open(withVoice: false) } label: {
+                            Label("拍照記錄（最多 \(FoodPhotos.max) 張）", systemImage: "camera")
+                                .font(.labelLarge).frame(maxWidth: .infinity).frame(height: 44)
+                        }
+                        .buttonStyle(.bordered).tint(Brand.cyan).padding(.top, 8)
+                    }
                     HStack(spacing: 20) {
                         ZStack {
                             Circle().stroke(Brand.surfaceHigher, lineWidth: 10)

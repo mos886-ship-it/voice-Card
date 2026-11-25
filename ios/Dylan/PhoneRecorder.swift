@@ -83,11 +83,21 @@ final class PhoneRecorder: ObservableObject {
             try installTapAndStart()
             state = .recording(id: id, since: Date())
             startWatchdog()
+            // 「拍＋說」：先拍的照片接進這筆飲食記錄
+            if food, !FoodPhotos.pendingForVoice.isEmpty {
+                FoodPhotos.save(FoodPhotos.pendingForVoice, to: id)
+                FoodPhotos.pendingForVoice = []
+            }
         } catch {
             NSLog("[PhoneRecorder] start failed: \(error)")
             engine.inputNode.removeTap(onBus: 0)
             writer = nil
             state = .failed("無法開始錄音")
+            // 「拍＋說」錄不了音：照片不要丟，改成只拍照的記錄
+            if food, !FoodPhotos.pendingForVoice.isEmpty {
+                _ = FoodPhotos.createPhotoOnly(FoodPhotos.pendingForVoice)
+                FoodPhotos.pendingForVoice = []
+            }
         }
     }
 
