@@ -190,6 +190,11 @@ final class PhoneRecorder: ObservableObject {
         }
     }
 
+    /// 錄音不到 1 秒、整筆刪掉了（MeetingStore.assemble）：錄音卡顯示原因。
+    func tooShort() {
+        if !isRecording { state = .failed("錄音不到 1 秒，沒有送出辨識") }
+    }
+
     func clearMessage() {
         if case .failed = state { state = .idle }
         if state == .denied { state = .idle }

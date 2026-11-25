@@ -159,6 +159,23 @@ final class MeetingStore: ObservableObject {
             m.error = "分段合併失敗：\(error.localizedDescription)"
         }
         m.updatedAt = Date()
+        // 不到 1 秒（一按就停）：不送辨識（照 Android MIN_RECORDING_SEC）；匯入、通話不受影響
+        if m.status == .received, m.durationSec < Self.minRecordingSec, m.source == "phone" || m.source == "watch" {
+            if m.isFood && FoodPhotos.has(m.id) {
+                // 拍＋說但口述太短：當成只有照片照樣處理
+                try? FileManager.default.removeItem(at: Self.audioURL(m.id))
+                try? FileManager.default.removeItem(at: Self.segmentsDir(m.id))
+                m.durationSec = 0
+                save(m)
+                await process(m.id)
+                return m
+            }
+            NSLog("[MeetingStore] \(m.id) shorter than \(Self.minRecordingSec)s, discarded")
+            delete(m.id)
+            if m.source == "watch" { PhoneLink.shared.sendStatus(id: m.id, text: "錄音不到 1 秒，已取消") }
+            else { PhoneRecorder.shared.tooShort() }
+            return nil
+        }
         save(m)
         // 直接接著開始 AI（在同一段背景時間內把上傳交給系統，App 暗著也能繼續）
         if m.status == .received, await Self.canReport() { await process(m.id) }
@@ -174,6 +191,9 @@ final class MeetingStore: ObservableObject {
     //   沒金鑰 / Gemini 失敗（連不上、額度用完…）→ Apple 輔助。
 
     private var processing: Set<String> = []
+
+    /// 比這短的手機 / 手錶錄音不送辨識，整筆刪掉。
+    static let minRecordingSec: Double = 1.0
 
     static let privacyKey = "privacy_mode"
     static var privacyMode: Bool { UserDefaults.standard.bool(forKey: privacyKey) }
