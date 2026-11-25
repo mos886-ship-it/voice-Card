@@ -31,7 +31,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -100,7 +102,16 @@ fun PhoneRecordCard(onOpenMeeting: (String) -> Unit, foodMode: Boolean = false) 
         // 辨识语言：跟录音一样（国语 / 台语・国台语 / 客语），记住上次的选择
         LangChooser()
         Spacer(Modifier.height(10.dp))
-        GradientButton("記錄這一餐", { start(food = true) }, Modifier.fillMaxWidth().height(56.dp), recordDot = true)
+        GradientButton("記錄這一餐", { com.example.wristai.FoodPhotos.pendingForVoice = null; start(food = true) },
+            Modifier.fillMaxWidth().height(56.dp), recordDot = true)
+        // 拍照记录（两种排布都有；快錄的中间录音键长按也有）
+        var photo by remember { mutableStateOf<Boolean?>(null) }
+        Spacer(Modifier.height(8.dp))
+        GhostButton("拍照記錄（最多 3 張）", { photo = false }, Modifier.fillMaxWidth())
+        photo?.let { voice ->
+            FoodPhotoCapture(withVoice = voice, onDismiss = { photo = null },
+                onStartVoice = { start(food = true) }, onFinished = { photo = null })
+        }
         error?.let {
             Spacer(Modifier.height(8.dp))
             Text(it, style = MaterialTheme.typography.bodySmall, color = Brand.Warning)

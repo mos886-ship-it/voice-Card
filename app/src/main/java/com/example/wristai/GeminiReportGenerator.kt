@@ -226,28 +226,33 @@ class GeminiReportGenerator(
 
     /** [audio] 是 m4a（AAC）。阻塞执行，请在后台线程调用。 */
     fun generate(
-        audio: File, durationSec: Double, recordedAt: String,
+        audio: File?, durationSec: Double, recordedAt: String,
         /** 换成别的用途（例如 [FoodLog.PROMPT]）时传入 */
         system: String = SYSTEM_PROMPT,
         /** 音档上传完、AI 开始聆听时呼叫（画面进度用） */
         onListening: () -> Unit = {},
+        /** 饮食照片（JPEG，已缩小）：直接夹在请求里（每张约 100 KB）；[audio] 可以是 null（只有照片） */
+        images: List<File> = emptyList(),
     ): Result {
         if (apiKey.isBlank()) throw GeminiException("尚未設定 Gemini API Key（請在手機 App 設定）")
+        require(audio != null || images.isNotEmpty())
         val t0 = System.currentTimeMillis()
-        val file = upload(audio)
-        Log.d(TAG, "uploaded ${audio.length()} bytes as ${file.optString("name")} state=${file.optString("state")} (${System.currentTimeMillis() - t0}ms)")
+        val file = audio?.let { a ->
+            upload(a).also { Log.d(TAG, "uploaded ${a.length()} bytes as ${it.optString("name")} state=${it.optString("state")} (${System.currentTimeMillis() - t0}ms)") }
+        }
         try {
-            waitUntilActive(file.getString("name"))
-            Log.d(TAG, "file ACTIVE (${System.currentTimeMillis() - t0}ms)")
+            file?.let { waitUntilActive(it.getString("name")); Log.d(TAG, "file ACTIVE (${System.currentTimeMillis() - t0}ms)") }
             onListening()
             val minutes = "%.1f".format(durationSec / 60)
-            val prompt = "錄音時間：$recordedAt，長度約 $minutes 分鐘。請依格式整理這段錄音。" + note
+            val photos = if (images.isEmpty()) "" else "附上 ${images.size} 張這一餐的照片。"
+            val prompt = (if (audio != null) "錄音時間：$recordedAt，長度約 $minutes 分鐘。${photos}請依格式整理這段錄音。"
+                else "拍照時間：$recordedAt。${photos}沒有錄音，請依照片與格式整理，逐字稿留空。") + note
             var last: GeminiException? = null
             for (model in MODELS) {
                 try {
                     val tm = System.currentTimeMillis()
                     Log.d(TAG, "calling $model")
-                    val text = generateContent(model, file.getString("uri"), prompt, system)
+                    val text = generateContent(model, file?.getString("uri"), prompt, system, images)
                     Log.d(TAG, "$model replied ${text.length} chars (${System.currentTimeMillis() - tm}ms)")
                     return parse(text).let { (report, transcript) -> Result(report, transcript, model, text) }
                 } catch (e: GeminiException) {
@@ -259,7 +264,7 @@ class GeminiReportGenerator(
             }
             throw last ?: GeminiException("沒有可用的 Gemini 模型")
         } finally {
-            runCatching { delete(file.getString("name")) }
+            if (file != null) runCatching { delete(file.getString("name")) }
                 .onFailure { Log.w(TAG, "delete uploaded file failed", it) }
         }
     }
@@ -315,9 +320,12 @@ class GeminiReportGenerator(
         throw GeminiException("Gemini 處理錄音檔逾時")
     }
 
-    private fun generateContent(model: String, fileUri: String?, prompt: String, system: String = SYSTEM_PROMPT): String {
+    private fun generateContent(model: String, fileUri: String?, prompt: String, system: String = SYSTEM_PROMPT,
+                                images: List<File> = emptyList()): String {
         val parts = JSONArray()
         if (fileUri != null) parts.put(JSONObject().put("file_data", JSONObject().put("mime_type", UPLOAD_MIME).put("file_uri", fileUri)))
+        for (img in images) parts.put(JSONObject().put("inline_data", JSONObject().put("mime_type", "image/jpeg")
+            .put("data", android.util.Base64.encodeToString(img.readBytes(), android.util.Base64.NO_WRAP))))
         parts.put(JSONObject().put("text", prompt))
         val body = JSONObject()
             .put("systemInstruction", JSONObject().put("parts", JSONArray().put(JSONObject().put("text", system))))

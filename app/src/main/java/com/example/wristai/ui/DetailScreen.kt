@@ -139,7 +139,8 @@ fun DetailScreen(id: String, onBack: () -> Unit, onOpenSettings: () -> Unit) {
                 Spacer(Modifier.height(6.dp))
                 // 录音时间与汇入时间分开显示（汇入的档案 createdAt 是推回来的原始录音时间）
                 // 录音起讫（含最后录到的时间）；汇入的另外显示汇入时间
-                Text("錄音  ${recordingRange(meeting)}",
+                Text(if (meeting.source == com.example.wristai.FoodPhotos.SOURCE) "拍照  ${formatWhen(meeting.createdAt)}"
+                    else "錄音  ${recordingRange(meeting)}",
                     style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
                 meeting.importedAt?.let {
                     Text("匯入  ${formatWhen(it)}", style = MaterialTheme.typography.bodySmall, color = Brand.TextFaint)
@@ -148,8 +149,8 @@ fun DetailScreen(id: String, onBack: () -> Unit, onOpenSettings: () -> Unit) {
                 StatusChip(style)
             }
 
-            // ---------- 辨识语言：可以换语言重新产生，方便对照（饮食记录也一样） ----------
-            run {
+            // ---------- 辨识语言：可以换语言重新产生，方便对照（饮食记录也一样；只有照片的没有语言） ----------
+            if (meeting.source != com.example.wristai.FoodPhotos.SOURCE) run {
                 val lang = com.example.wristai.SpeechLang.of(meeting.lang)
                 val canChange = !style.busy && meeting.status != MeetingStatus.RECORDING
                 val hasReport = report != null || meeting.status == MeetingStatus.DONE
@@ -171,6 +172,9 @@ fun DetailScreen(id: String, onBack: () -> Unit, onOpenSettings: () -> Unit) {
                     }
                 }
             }
+
+            // ---------- 饮食照片（点一下看大图） ----------
+            if (com.example.wristai.FoodLog.isFood(id)) FoodPhotoStrip(id, meeting.status)
 
             // ---------- 饮食记录的营养 ----------
             if (meeting.nutrition != null) NutritionHeader(meeting)

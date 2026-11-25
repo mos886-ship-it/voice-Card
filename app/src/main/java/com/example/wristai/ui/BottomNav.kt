@@ -48,6 +48,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.wristai.FoodPhotos
 import com.example.wristai.PhoneRecorder
 import com.example.wristai.PhoneRecordingService
 import com.example.wristai.ui.theme.AppTheme
@@ -101,6 +102,8 @@ private fun RecordKey(onStarted: () -> Unit) {
     val active by PhoneRecorder.active.collectAsState()
     val starter = rememberRecordStarter()
     var menu by remember { mutableStateOf(false) }
+    /** 拍照记录：null = 没开；false = 只拍照；true = 拍照＋口述 */
+    var photo by remember { mutableStateOf<Boolean?>(null) }
     val recording = active != null
     Box {
         Box(
@@ -118,10 +121,19 @@ private fun RecordKey(onStarted: () -> Unit) {
             if (recording) Box(Modifier.size(16.dp).clip(RoundedCornerShape(4.dp)).background(Color.White))
             else MicGlyph(Brand.Bg)
         }
+        // 长按：记录饮食的三种方式——说 / 拍 / 拍＋说
         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-            DropdownMenuItem(text = { Text("記錄飲食") }, leadingIcon = { BowlGlyph(Brand.Text) },
-                onClick = { menu = false; starter(true); onStarted() })
+            DropdownMenuItem(text = { Text("說：記錄飲食") }, leadingIcon = { BowlGlyph(Brand.Text) },
+                onClick = { menu = false; FoodPhotos.pendingForVoice = null; starter(true); onStarted() })
+            DropdownMenuItem(text = { Text("拍：拍照記錄") }, leadingIcon = { BowlGlyph(Brand.Text) },
+                onClick = { menu = false; photo = false })
+            DropdownMenuItem(text = { Text("拍＋說：拍照再補一句") }, leadingIcon = { BowlGlyph(Brand.Text) },
+                onClick = { menu = false; photo = true })
         }
+    }
+    photo?.let { voice ->
+        FoodPhotoCapture(withVoice = voice, onDismiss = { photo = null },
+            onStartVoice = { starter(true) }, onFinished = { photo = null; onStarted() })
     }
 }
 

@@ -136,6 +136,9 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
         // ---------- 饮食记录：估算热量与营养素（需要云端 AI） ----------
         if (FoodLog.isFood(id)) {
             FoodDb.init(ctx)   // 食藥署资料：提示词清单＋重算热量
+            // 有照片：只有 Gemini 看得懂图片（免费额度就够），主机 / 组合式先不走
+            val photos = FoodPhotos.files(ctx, id)
+            if (photos.isNotEmpty()) return processFood(id, meeting, recordedAt, photos)
             tryLocalHost(id, meeting, food = true)?.let { return it }
             return if (mode == com.example.wristai.ai.AiConfig.MODE_PIPELINE) processPipeline(id, meeting, recordedAt, startedAt, food = true)
             else processFood(id, meeting, recordedAt)
@@ -387,28 +390,35 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
         }
     }
 
-    private suspend fun processFood(id: String, meeting: Meeting, recordedAt: String): Result {
+    private suspend fun processFood(id: String, meeting: Meeting, recordedAt: String, photos: List<File> = emptyList()): Result {
         val node = meeting.watchNodeId
         val key = Settings.geminiKey(ctx)
+        // 只有照片、没有口述
+        val hasAudio = meeting.durationSec > 0.3 && MeetingStore.audioFile(ctx, id).exists()
         if (key.isBlank()) {
-            val msg = "飲食記錄需要雲端 AI 估算熱量：請到設定啟用 Gemini（免費）"
+            val msg = if (photos.isNotEmpty()) "照片辨識飲食需要 Gemini（免費）：請到設定填 Gemini 金鑰"
+                else "飲食記錄需要雲端 AI 估算熱量：請到設定啟用 Gemini（免費）"
             MeetingStore.update(ctx, id) { it.copy(status = MeetingStatus.FAILED, error = msg) }
             WatchNotifier.sendStatus(ctx, node, "請在手機啟用雲端 AI")
             return Result.success()
         }
         return try {
             MeetingStore.update(ctx, id) { it.copy(status = MeetingStatus.SUMMARIZING, error = null) }
-            plan(id, listOf("接收錄音", "上傳音檔", "估算熱量"))
-            stepTo(id, "上傳音檔", "Gemini")
+            plan(id, buildList {
+                add(if (hasAudio) "接收錄音" else "接收照片")
+                if (hasAudio) add("上傳音檔")
+                add("估算熱量")
+            })
+            stepTo(id, if (hasAudio) "上傳音檔" else "估算熱量", "Gemini")
             WatchNotifier.sendStatus(ctx, node, "估算熱量中…")
             val result = withContext(Dispatchers.IO) {
                 val compact = File(ctx.cacheDir, "gemini_$id.m4a")
                 try {
-                    VoiceRecorderExporter.encodeM4a(MeetingStore.audioFile(ctx, id), compact, outRate = 16_000, bitRate = 32_000)
+                    if (hasAudio) VoiceRecorderExporter.encodeM4a(MeetingStore.audioFile(ctx, id), compact, outRate = 16_000, bitRate = 32_000)
                     // 台语 / 客语：提示词加语言说明（跟录音报告一样）
-                    GeminiReportGenerator(key, SpeechLang.geminiNote(meeting.lang, meeting.dialect))
-                        .generate(compact, meeting.durationSec, recordedAt, system = FoodLog.PROMPT,
-                        onListening = { stepTo(id, "估算熱量", "Gemini") })
+                    GeminiReportGenerator(key, if (hasAudio) SpeechLang.geminiNote(meeting.lang, meeting.dialect) else "")
+                        .generate(if (hasAudio) compact else null, meeting.durationSec, recordedAt, system = FoodLog.PROMPT,
+                        onListening = { stepTo(id, "估算熱量", "Gemini") }, images = photos)
                 } finally {
                     compact.delete()
                 }

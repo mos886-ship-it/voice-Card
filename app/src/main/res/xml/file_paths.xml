@@ -2,4 +2,6 @@
 <!-- 「檔案」分页分享录音档：只开放 cache/share/ 这个资料夹（分享前才压好的 m4a） -->
 <paths>
     <cache-path name="share" path="share/" />
+    <!-- 饮食拍照：系统相机把照片写到这里（大D 读进来缩小后就删） -->
+    <cache-path name="camera" path="camera/" />
 </paths>

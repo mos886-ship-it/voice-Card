@@ -161,6 +161,8 @@ class PhoneRecordingService : Service() {
             watchNodeId = watchNode, title = null, error = null, source = "phone",
             lang = SpeechLang.currentCode(this), dialect = SpeechLang.currentDialect(this),
         ))
+        // 「拍照＋口述」：先拍好的照片接进这笔饮食记录
+        if (food) FoodPhotos.pendingForVoice?.let { FoodPhotos.attach(this, id, it); FoodPhotos.pendingForVoice = null }
         // GPS 戳记：开始录音时手机的位置（背景定位，最多等 30 秒）
         scope.launch {
             com.example.voiceai.shared.GeoFix.current(this@PhoneRecordingService)?.let { MeetingStore.saveGeo(this@PhoneRecordingService, id, it.copy(source = "phone")) }

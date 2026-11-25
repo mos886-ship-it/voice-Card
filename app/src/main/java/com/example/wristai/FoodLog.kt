@@ -49,6 +49,8 @@ object FoodLog {
         - 把這一餐拆成食材或單品，每樣一行 ITEM，估算重量（克，可食部分）。煎炒炸用的油、勾芡、糖、醬料要另外列一行（例如「調合植物油」）。
         - 「對照」：從下面的【食藥署食品營養成分資料】清單挑一個「完全相同」的名稱（不要寫「·生」「·熟」）；清單裡沒有相近的就填「無」，不要硬湊。
           清單標「·生」的是生重：克數要填烹調前的生重。整道小吃（例如牛肉麵）清單沒有就拆成麵、肉、湯、青菜各自對照，拆不了就填「無」。
+        - 若附有照片：依照片辨識食物與份量（參考碗盤、餐具、杯子、包裝的大小估克數）；照片與口述不一致時以口述為準；看不清楚或被擋住的寫進「假設與待確認」。
+        - 照片裡看得到包裝的「營養標示」：照標示的熱量、營養素與份量（每份 / 每 100 克）換算吃下的量，「對照」填「營養標示」。
         - 每行也寫你自己估的熱量與營養素（App 對不到資料時用）。數字一律取整數；熱量單位大卡（kcal），營養素單位公克（g）。
         - 餐別依描述與錄音時間判斷：早餐、午餐、晚餐、點心、宵夜、飲料。
         - 若錄音內容不是在描述飲食，TITLE 寫「非飲食內容」，NUTRITION 全部填 0，不要寫 ITEM，並照實摘要內容。
@@ -71,6 +73,8 @@ object FoodLog {
     data class Item(
         val name: String, val portion: String, val grams: Int, val db: FoodDb.Entry?,
         val kcal: Int, val protein: Int, val carbs: Int, val fat: Int,
+        /** 照片里的包装营养标示算的（数字是 AI 照标示换算） */
+        val label: Boolean = false,
     )
 
     /** 做完的饮食记录：营养合计、报告（含 App 产生的表格）、一句话摘要。 */
@@ -92,13 +96,18 @@ object FoodLog {
             appendLine("|---|---|---|---|---|---|---|")
             for (it in items) {
                 val portion = listOf(it.portion, if (it.grams > 0) "約 ${it.grams}g" else "").filter { s -> s.isNotBlank() }.joinToString(" · ")
-                val src = it.db?.let { d -> "食藥署：${d.name}" } ?: "AI 估算"
+                val src = it.db?.let { d -> "食藥署：${d.name}" } ?: if (it.label) "營養標示" else "AI 估算"
                 appendLine("| ${it.name} | $portion | ${it.kcal} | ${it.protein} | ${it.carbs} | ${it.fat} | $src |")
             }
             appendLine()
             appendLine("## 合計")
+            val fromLabel = items.count { it.label }
+            val sources = listOfNotNull(
+                if (fromDb > 0) "$fromDb 樣依食藥署「食品營養成分資料集」計算" else null,
+                if (fromLabel > 0) "$fromLabel 樣依包裝營養標示" else null,
+            )
             appendLine("約 ${n.kcal} 大卡；蛋白質 ${n.protein}g、碳水 ${n.carbs}g、脂肪 ${n.fat}g" +
-                if (fromDb > 0) "（${items.size} 樣中 $fromDb 樣依食藥署「食品營養成分資料集」計算）" else "（皆為 AI 估算）")
+                if (sources.isNotEmpty()) "（${items.size} 樣中 ${sources.joinToString("、")}）" else "（皆為 AI 估算）")
             appendLine()
         }
         val meal = n.meal.ifBlank { "這餐" }
@@ -118,7 +127,10 @@ object FoodLog {
             val name = kv["食物"].orEmpty().ifBlank { return@mapNotNull null }
             val grams = num("克")
             val aiKcal = num("kcal")
-            val db = FoodDb.find(kv["對照"] ?: kv["对照"])?.takeIf { grams > 0 }
+            val ref = kv["對照"] ?: kv["对照"]
+            if (ref?.trim() == "營養標示" || ref?.trim() == "营养标示")
+                return@mapNotNull Item(name, kv["份量"].orEmpty(), grams, null, num("kcal"), num("protein"), num("carbs"), num("fat"), label = true)
+            val db = FoodDb.find(ref)?.takeIf { grams > 0 }
             val dbKcal = db?.let { Math.round(it.kcal * grams / 100).toInt() }
             val plausible = db != null && (aiKcal == 0 || dbKcal!!.toDouble() / aiKcal in 0.4..2.5)
             if (plausible) Item(name, kv["份量"].orEmpty(), grams, db, dbKcal!!,

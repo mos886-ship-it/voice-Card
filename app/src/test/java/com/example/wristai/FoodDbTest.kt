@@ -71,6 +71,17 @@ class FoodDbTest {
         assertEquals("午餐約 ${n.kcal} 大卡，蛋白質 ${n.protein}g", done.summary)
     }
 
+    @Test fun nutritionLabelRows() {
+        val raw = "NUTRITION: meal=點心; kcal=250; protein=4; carbs=30; fat=12\n" +
+            "ITEM: 食物=洋芋片; 份量=半包; 克=40; 對照=營養標示; kcal=220; protein=3; carbs=22; fat=14"
+        val items = FoodLog.parseItems(raw)
+        assertTrue(items.single().label)
+        assertEquals(220, items.single().kcal)
+        val done = FoodLog.finish(raw, "## 營養小提醒", "")
+        assertTrue(done.markdown.contains("| 營養標示 |"))
+        assertTrue(done.markdown.contains("1 樣依包裝營養標示"))
+    }
+
     @Test fun oldFormatStaysAsIs() {
         val old = "TITLE: 早餐\nSUMMARY: 早餐約 400 大卡\nNUTRITION: meal=早餐; kcal=400; protein=15; carbs=50; fat=12\n## 飲食內容\n| a | b |"
         val done = FoodLog.finish(old, old.lines().drop(2).joinToString("\n"), "早餐約 400 大卡")
