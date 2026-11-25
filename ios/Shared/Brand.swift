@@ -119,6 +119,11 @@ enum ThemeMode: String, CaseIterable, Identifiable {
 /// 品牌色。數值來自目前的主題（Brand.current，由最外層畫面依設定換掉並整個重畫）。
 enum Brand {
     static var current: Palette = .dark
+    #if os(iOS)
+    /// 水墨背景畫（nil = 沒有）：有的時候卡片 86%、分頁列 90% 不透明，畫隱約透出來。
+    static var painting: UIImage?
+    static var cardFill: Color { painting == nil ? surface : surface.opacity(0.86) }
+    #endif
     static var isInk: Bool { current.id == "ink" }
     /// 卡片圓角：清晰 16、暖和日常 22（比較圓潤）。
     static var cardRadius: CGFloat { current.id == "warm" ? 22 : current.id == "clear" ? 16 : 20 }

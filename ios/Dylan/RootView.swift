@@ -71,7 +71,7 @@ struct RootView: View {
                 else { BottomNav(current: tab == .files ? .records : tab, onSelect: select) }
             }
             .ignoresSafeArea(.keyboard, edges: .bottom)   // 鍵盤出來時分頁列不要跟著浮上來
-            .background(Brand.backdrop.ignoresSafeArea())
+            .background(AppBackdrop())
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: String.self) { id in
                 DetailView(id: id) { if !path.isEmpty { path.removeLast() } }
@@ -121,7 +121,7 @@ struct BottomNav: View {
             .frame(maxWidth: 560)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 8)
-            .background(Brand.surface.ignoresSafeArea(edges: .bottom))
+            .background(Brand.surface.opacity(Brand.painting == nil ? 1 : 0.90).ignoresSafeArea(edges: .bottom))
         }
     }
 }
@@ -204,7 +204,7 @@ struct OverviewBottomNav: View {
             .frame(maxWidth: 560)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 8)
-            .background(Brand.bg.ignoresSafeArea(edges: .bottom))
+            .background(Brand.bg.opacity(Brand.painting == nil ? 1 : 0.90).ignoresSafeArea(edges: .bottom))
         }
     }
 }

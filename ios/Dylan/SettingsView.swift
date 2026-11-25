@@ -76,6 +76,14 @@ struct SettingsView: View {
                     }
                     .padding(.top, 8)
                     Text(themeNote).font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 8)
+                    if theme.mode == .ink {
+                        Text("背景畫").font(.labelLarge).foregroundStyle(Brand.text).padding(.top, 14)
+                        Picker("背景畫", selection: $theme.inkBg) {
+                            ForEach(InkBg.allCases) { Text($0.label).tag($0) }
+                        }
+                        .pickerStyle(.segmented).padding(.top, 8)
+                        Text(theme.inkBg.note).font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 8)
+                    }
                 }
 
                 SectionLabel(text: "健康同步")

@@ -401,6 +401,8 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 - 有背景畫時：卡片底色 86% 不透明、分頁列 90%，畫隱約透出來，字照樣清楚。畫都放在邊角與下方，日期、標題、卡片位置留白。
 - iOS 要照做：同樣三張 WebP（iOS 14+ 支援）、同樣的選擇與透明度。
 
+- **iOS 已跟上**：`ios/Dylan/InkBG/ink_bg_{boat,lotus,shrimp}.webp`（同三張，複製過來）；`InkBg`（`ink_bg`，預設 boat）與 `AppBackdrop`（`ThemeStore.swift`：宣紙底＋畫 aspect-fill 鋪滿含狀態列、捲動不動）；`Brand.painting` / `Brand.cardFill`（卡片 86%）、兩種分頁列 90%。設定「配色」下面水墨才出現「背景畫」分段＋說明。換畫不會整頁重畫（只有切到 / 切離「無」才重畫，因為卡片透明度要變）。模擬器看過三張畫、快錄與總覽。
+
 ## 深色改成浮世繪（1.1.96）
 
 - 配色「深色」（dark）拿掉，改成「浮世繪」（`ukiyoe`）。舊的 `theme_mode = dark` 讀成浮世繪。手錶照樣是深色（OLED 省電；只有水墨會推到手錶）。

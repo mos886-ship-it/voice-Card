@@ -165,7 +165,7 @@ struct DetailView: View {
                 Spacer()
             }
         }
-        .background(Brand.backdrop.ignoresSafeArea())
+        .background(AppBackdrop())
         .confirmationDialog("刪除這筆錄音？", isPresented: $confirmDelete, titleVisibility: .visible) {
             Button("刪除", role: .destructive) {
                 player.stop()

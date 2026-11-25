@@ -15,7 +15,7 @@ struct GlassCard<Content: View>: View {
             .padding(padding)
             .background {
                 ZStack {
-                    shape.fill(Brand.surface)
+                    shape.fill(Brand.cardFill)
                     if highlight { shape.fill(Brand.accentSoft) }
                 }
             }

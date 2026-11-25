@@ -125,7 +125,7 @@ struct FoodPhotoSheet: View {
                 }
                 .padding(20)
             }
-            .background(Brand.backdrop.ignoresSafeArea())
+            .background(AppBackdrop())
             .navigationTitle("拍照記錄")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() } } }
