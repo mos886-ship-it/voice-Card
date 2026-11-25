@@ -1,7 +1,6 @@
 package com.example.wristai.ui
 
-import android.Manifest
-import android.content.pm.PackageManager
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -12,10 +11,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -23,6 +24,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Call
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,19 +40,23 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
+import androidx.compose.ui.unit.sp
+import com.example.wristai.CallRecordingWatcher
 import com.example.wristai.FoodLog
 import com.example.wristai.Meeting
 import com.example.wristai.MeetingStatus
 import com.example.wristai.MeetingStore
 import com.example.wristai.PhoneRecorder
-import com.example.wristai.PhoneRecordingService
 import com.example.wristai.Settings
+import com.example.wristai.SpeechLang
+import com.example.wristai.importAudio
 import com.example.wristai.ui.theme.Brand
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -56,7 +65,10 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-/** 「主頁」分页：只放总览与快捷动作，列表在各自的分页。 */
+/**
+ * 「今天」分页（2026-11-25 重新设计，跟 iOS DashboardView 一样）：
+ * 日期＋「今天」大标、「开始录音」卡（录音中 → 计时卡）、处理中（排队位置）、今天的记录（右上今日热量）。
+ */
 @Composable
 fun DashboardScreen(
     onOpen: (String) -> Unit,
@@ -67,6 +79,7 @@ fun DashboardScreen(
     val context = LocalContext.current
     val all by MeetingStore.meetings.collectAsState()
     val active by PhoneRecorder.active.collectAsState()
+    val error by PhoneRecorder.error.collectAsState()
     val watch = rememberWatchName()
     val engine = remember(all) { currentEngine(context) }
     LaunchedEffect(Unit) { MeetingStore.reload(context) }
@@ -76,34 +89,44 @@ fun DashboardScreen(
             set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
         }.timeInMillis
     }
-    val recordings = all.filter { !FoodLog.isFood(it.id) }
-    val todayRec = recordings.filter { it.createdAt >= todayStart }
+    val todays = all.filter { it.createdAt >= todayStart && it.status != MeetingStatus.RECORDING }
     val todayKcal = todayFood(all).sumOf { it.nutrition?.kcal ?: 0 }
     val goal = Settings.dailyKcalGoal(context)
     val usesFood = all.any { FoodLog.isFood(it.id) }
     val busy = all.filter { it.statusStyle().busy && it.status != MeetingStatus.RECORDING }
-    val latest = recordings.firstOrNull { it.status == MeetingStatus.DONE }
+
+    // 今天每笔的一行摘要（报告的「摘要」段）
+    var summaries by remember { mutableStateOf<Map<String, String?>>(emptyMap()) }
+    LaunchedEffect(todays.map { it.id to it.status }) {
+        summaries = withContext(Dispatchers.IO) {
+            todays.associate { m ->
+                val f = MeetingStore.reportFile(context, m.id)
+                m.id to (if (f.exists()) summaryOf(f.readText()) else null)
+            }
+        }
+    }
 
     val starter = rememberRecordStarter()
-    fun start(food: Boolean) = starter(food)
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) importAudio(context, uri)
+    }
 
     LazyColumn(
         Modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        // ---------- 问候 + 手表 ----------
+        // ---------- 日期 + 今天 + 手表 ----------
         item {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                BrandMark(40.dp)
-                Spacer(Modifier.width(12.dp))
+            Row(verticalAlignment = Alignment.Bottom) {
                 Column(Modifier.weight(1f)) {
-                    Text(greeting(), style = MaterialTheme.typography.headlineSmall, color = Brand.Text)
                     Text(SimpleDateFormat("M 月 d 日 EEEE", Locale.TAIWAN).format(Date()),
                         style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
+                    Text("今天", fontSize = 30.sp, fontWeight = FontWeight.Bold, color = Brand.Text)
                     // 科技模式：目前会用的 AI 引擎
-                    if (UiMode.tech && engine.ready) Text("AI：${engine.name}", style = MaterialTheme.typography.labelSmall,
-                        color = Brand.TextFaint, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    if (UiMode.tech) Text("AI：" + (if (engine.ready) engine.name else "還沒設定"),
+                        style = MaterialTheme.typography.labelMedium, color = Brand.TextFaint,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 // 商用模式：手表只在有连线时显示
                 if (watch != null || UiMode.tech) WatchPill(watch, onOpenSettings)
@@ -121,133 +144,162 @@ fun DashboardScreen(
             }
         }
 
-        // ---------- 快捷动作（录音中 → 显示计时与停止） ----------
+        // ---------- 录音：一张卡放开始录音、语言、其他记录方式；录音中 → 计时卡 ----------
         item {
-            val a = active
-            if (a != null) {
-                PhoneRecordCard(onOpenMeeting = onOpen, foodMode = FoodLog.isFood(a.meetingId))
-            } else Column {
-                // 辨识语言（记住上次）：国语 → 最快；有台语就选台语・国台语
-                LangChooser()
-                Spacer(Modifier.height(12.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    QuickTile("開始錄音", "會議、課堂、訪談、靈感", filled = true, modifier = Modifier.weight(1f)) { start(false) }
-                    QuickTile("記錄飲食", "說出吃了什麼", filled = false, modifier = Modifier.weight(1f)) { start(true) }
-                }
-            }
-        }
-
-        // ---------- 今天 ----------
-        item {
-            GlassCard {
-                Text("今天", style = MaterialTheme.typography.labelSmall, color = Brand.TextMuted)
-                Spacer(Modifier.height(10.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    StatTile("${todayRec.size}", "段錄音", Modifier.weight(1f).clickable(onClick = onOpenRecords))
-                    StatTile(formatMinutes(todayRec.sumOf { it.durationSec }), "錄音時長", Modifier.weight(1f).clickable(onClick = onOpenRecords))
-                    if (usesFood) StatTile("$todayKcal/$goal", "大卡", Modifier.weight(1f).clickable(onClick = onOpenFood))
-                }
-            }
+            if (active != null) PhoneRecordCard(onOpenMeeting = onOpen, foodMode = FoodLog.isFood(active!!.meetingId))
+            else CaptureCard(
+                error = error,
+                record = { starter(false) },
+                food = { starter(true) },
+                call = {
+                    if (CallRecordingWatcher.isEnabled(context)) {
+                        CallRecordingWatcher.schedule(context)
+                        Toast.makeText(context, "通話錄音會自動整理，新的通話結束後幾分鐘內出現在資料庫", Toast.LENGTH_LONG).show()
+                    } else onOpenSettings()   // 到设定打开「自动整理通话录音」
+                },
+                importFile = { picker.launch(arrayOf("audio/*")) },
+            )
         }
 
         // ---------- 处理中 ----------
         if (busy.isNotEmpty()) {
             item { SectionLabel("處理中") }
-            items(busy, key = { it.id }) { m ->
+            items(busy, key = { "b_" + it.id }) { m ->
                 GlassCard(onClick = { onOpen(m.id) }, contentPadding = 14.dp) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(meetingTitle(m), style = MaterialTheme.typography.titleSmall, color = Brand.Text,
                             maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                        StatusChip(m.statusStyle())
+                        if (m.durationSec >= 1) Text(clockText(m.durationSec), style = MaterialTheme.typography.labelMedium,
+                            color = Brand.TextMuted)
                     }
                     Spacer(Modifier.height(10.dp))
                     ScanningBar()
+                    Spacer(Modifier.height(8.dp))
+                    Text(busyText(m), style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
                 }
             }
         }
 
-        // ---------- 最新报告 ----------
-        if (latest != null) {
-            item { SectionLabel("最新報告") }
-            item { LatestReportCard(latest) { onOpen(latest.id) } }
-        } else if (recordings.isEmpty()) {
-            item {
+        // ---------- 今天的记录 ----------
+        item {
+            SectionLabel("今天的記錄") {
+                if (usesFood) Text("$todayKcal / $goal 大卡", style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted,
+                    modifier = Modifier.clickable(onClick = onOpenFood))
+            }
+        }
+        item {
+            if (todays.isEmpty()) {
                 GlassCard {
-                    Text("開始第一段錄音", style = MaterialTheme.typography.titleMedium, color = Brand.Text)
+                    Text("今天還沒有記錄", style = MaterialTheme.typography.titleSmall, color = Brand.Text)
                     Spacer(Modifier.height(4.dp))
-                    Text("按上面的「開始錄音」，或在手錶按下錄音。錄完會自動整理出重點、待辦與逐字稿。",
+                    Text("按「開始錄音」或手錶的錄音鍵，錄完會自動整理出重點、待辦與逐字稿。",
                         style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
                 }
+            } else {
+                val shape = RoundedCornerShape(Brand.CardRadius)
+                Column(Modifier.fillMaxWidth().clip(shape).background(Brand.Surface).border(1.dp, Brand.Outline, shape)) {
+                    todays.forEachIndexed { i, m ->
+                        TodayRow(m, summaries[m.id]) { onOpen(m.id) }
+                        if (i < todays.size - 1) Box(Modifier.padding(start = 72.dp).fillMaxWidth().height(1.dp).background(Brand.Outline))
+                    }
+                }
             }
         }
-        item { Spacer(Modifier.height(16.dp)) }
+        item {
+            Text("所有記錄 →", style = MaterialTheme.typography.labelLarge, color = Brand.Cyan,
+                modifier = Modifier.clickable(onClick = onOpenRecords).heightIn(min = 44.dp).padding(vertical = 12.dp))
+        }
     }
 }
 
-private fun greeting(): String = when (Calendar.getInstance().get(Calendar.HOUR_OF_DAY)) {
-    in 5..10 -> "早安"
-    in 11..13 -> "午安"
-    in 14..17 -> "下午好"
-    else -> "晚安"
+/** 处理中卡片下面那一行：排队位置、或在哪一步。 */
+private fun busyText(m: Meeting): String {
+    val d = m.stepDetail
+    if (d != null && (d.startsWith("排隊中") || d.startsWith("輪到你了"))) return d
+    val cur = m.steps.getOrNull(m.step)
+    if (cur != null && cur.contains("大D的主機")) return "大D的主機整理中"
+    return m.statusStyle().label
 }
 
-private fun formatMinutes(sec: Double): String {
-    val m = (sec / 60).toInt()
-    return when {
-        m >= 60 -> "${m / 60}h ${m % 60}m"
-        m >= 1 -> "${m}m"
-        sec >= 1 -> "${sec.toInt()}s"
-        else -> "0"
-    }
+private fun clockText(sec: Double): String {
+    val s = sec.toLong().coerceAtLeast(0)
+    return if (s >= 3600) "%d:%02d:%02d".format(s / 3600, s / 60 % 60, s % 60) else "%d:%02d".format(s / 60, s % 60)
 }
 
-/** 快捷按钮：大方块，主要的用渐层，次要的用外框。 */
+/** 「开始录音」卡：主要动作一个（红色录音键）、辨识语言、其他记录方式（饮食／通话／汇入）。 */
 @Composable
-private fun QuickTile(title: String, sub: String, filled: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    val shape = RoundedCornerShape(22.dp)
-    Column(
-        modifier.clip(shape)
-            .background(if (filled) Brand.Accent else Brush.linearGradient(listOf(Brand.Surface, Brand.Surface)))
-            .border(1.dp, if (filled) Color.Transparent else Brand.Outline, shape)
-            .clickable(onClick = onClick)
-            .padding(16.dp),
-    ) {
-        Box(
-            Modifier.size(40.dp).clip(CircleShape).background(if (filled) Color.White.copy(alpha = 0.18f) else Brand.SurfaceHigh),
-            contentAlignment = Alignment.Center,
+private fun CaptureCard(error: String?, record: () -> Unit, food: () -> Unit, call: () -> Unit, importFile: () -> Unit) {
+    GlassCard {
+        Row(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable(onClick = record)
+                .semantics { contentDescription = "開始錄音" },
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            RecordDot(20.dp)
+            Box(Modifier.size(56.dp).clip(CircleShape).background(Brand.Recording), contentAlignment = Alignment.Center) {
+                Box(Modifier.size(18.dp).clip(CircleShape).background(Color.White))
+            }
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Text("開始錄音", style = MaterialTheme.typography.titleMedium, color = Brand.Text)
+                Text("會議、課堂、訪談、靈感", style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
+            }
+        }
+        error?.let {
+            Spacer(Modifier.height(8.dp))
+            Text(it, style = MaterialTheme.typography.bodySmall, color = Brand.Warning)
         }
         Spacer(Modifier.height(14.dp))
-        Text(title, style = MaterialTheme.typography.titleMedium, color = if (filled) Color.White else Brand.Text)
-        Text(sub, style = MaterialTheme.typography.bodySmall,
-            color = if (filled) Color.White.copy(alpha = 0.8f) else Brand.TextMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        LangChooser()
+        Spacer(Modifier.height(12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Mini("飲食", food) { BowlGlyph(Brand.Cyan) }
+            Mini("通話", call) { Icon(Icons.Filled.Call, null, tint = Brand.Cyan, modifier = Modifier.size(16.dp)) }
+            Mini("匯入", importFile) { Icon(Icons.Filled.Add, null, tint = Brand.Cyan, modifier = Modifier.size(18.dp)) }
+        }
     }
 }
 
-/** 最新报告：标题 + 摘要前几句。 */
 @Composable
-private fun LatestReportCard(m: Meeting, onClick: () -> Unit) {
-    val context = LocalContext.current
-    var summary by remember(m.id) { mutableStateOf("") }
-    LaunchedEffect(m.id) {
-        summary = withContext(Dispatchers.IO) {
-            val f = MeetingStore.reportFile(context, m.id)
-            if (!f.exists()) "" else reportSummary(f.readText())
-        }
+private fun RowScope.Mini(title: String, onClick: () -> Unit, icon: @Composable () -> Unit) {
+    val shape = RoundedCornerShape(10.dp)
+    Row(
+        Modifier.weight(1f).heightIn(min = 44.dp).clip(shape).background(Brand.Surface).border(1.dp, Brand.Outline, shape)
+            .clickable(onClick = onClick),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        icon()
+        Spacer(Modifier.width(6.dp))
+        Text(title, style = MaterialTheme.typography.bodyMedium, color = Brand.Text, maxLines = 1)
     }
-    GlassCard(onClick = onClick) {
-        Text(meetingTitle(m), style = MaterialTheme.typography.titleMedium, color = Brand.Text,
-            maxLines = 2, overflow = TextOverflow.Ellipsis)
-        Text("${m.origin().label} · ${shortWhen(m.createdAt)} · ${humanDuration(m.durationSec)}",
-            style = MaterialTheme.typography.bodySmall, color = Brand.TextFaint)
-        if (summary.isNotBlank()) {
-            Spacer(Modifier.height(10.dp))
-            Text(summary, style = MaterialTheme.typography.bodyMedium, color = Brand.TextMuted,
-                maxLines = 4, overflow = TextOverflow.Ellipsis)
+}
+
+/** 今天的记录一列：时间、语言或「餐」标签、标题、摘要。 */
+@Composable
+private fun TodayRow(m: Meeting, summary: String?, onClick: () -> Unit) {
+    val food = FoodLog.isFood(m.id)
+    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 14.dp)) {
+        Text(SimpleDateFormat("HH:mm", Locale.TAIWAN).format(Date(m.createdAt)), style = MaterialTheme.typography.labelMedium,
+            color = Brand.TextMuted, modifier = Modifier.width(44.dp).padding(top = 2.dp))
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(if (food) "餐" else SpeechLang.of(m.lang).tag, fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
+                    color = if (food) Brand.Success else Brand.TextMuted,
+                    modifier = Modifier.clip(RoundedCornerShape(4.dp))
+                        .background(if (food) Brand.Success.copy(alpha = 0.12f) else Brand.SurfaceHigh)
+                        .padding(horizontal = 5.dp, vertical = 1.dp))
+                Spacer(Modifier.width(6.dp))
+                Text(meetingTitle(m), style = MaterialTheme.typography.titleSmall, color = Brand.Text,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            val sub = m.nutrition?.takeIf { food }?.let { "${it.kcal} 大卡 · 蛋白質 ${it.protein} g · 碳水 ${it.carbs} g" }
+                ?: if (m.status == MeetingStatus.FAILED) "處理失敗，點開重試" else summary
+            if (!sub.isNullOrBlank()) {
+                Spacer(Modifier.height(3.dp))
+                Text(sub, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
         }
-        Spacer(Modifier.height(10.dp))
-        Text("查看完整報告 →", style = MaterialTheme.typography.labelLarge, color = Brand.Cyan)
     }
 }
 

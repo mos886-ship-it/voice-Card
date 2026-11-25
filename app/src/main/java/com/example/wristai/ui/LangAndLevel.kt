@@ -24,6 +24,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -38,39 +39,43 @@ import com.example.wristai.ui.theme.Brand
 import kotlin.math.max
 import kotlin.math.min
 
-/** 辨识语言二选一（胶囊分段）：主页 / 录音页录音键上方、录音详情页都用。 */
+/** 辨识语言三选一：灰色轨道＋白色滑块（跟 iOS 分段控制一样）。主页 / 饮食、录音详情页都用。 */
 @Composable
 fun LangPicker(value: SpeechLang, modifier: Modifier = Modifier, enabled: Boolean = true, onPick: (SpeechLang) -> Unit) {
-    val shape = RoundedCornerShape(50)
-    Row(
-        modifier.fillMaxWidth().clip(shape).background(Brand.SurfaceHigh).border(1.dp, Brand.Outline, shape).padding(4.dp)
-            .semantics { contentDescription = "辨識語言" },
-    ) {
-        for (l in SpeechLang.entries) {
-            val on = l == value
+    Segmented(SpeechLang.entries.map { it.label }, SpeechLang.entries.indexOf(value), modifier.semantics { contentDescription = "辨識語言" }, enabled) {
+        onPick(SpeechLang.entries[it])
+    }
+}
+
+/** 分段控制：灰色轨道、选中的那格是白色滑块＋淡阴影。语言、主题、介面模式都用。 */
+@Composable
+fun Segmented(labels: List<String>, selected: Int, modifier: Modifier = Modifier, enabled: Boolean = true, onPick: (Int) -> Unit) {
+    val track = RoundedCornerShape(10.dp)
+    val thumb = RoundedCornerShape(8.dp)
+    Row(modifier.fillMaxWidth().clip(track).background(Brand.SurfaceHigh).padding(3.dp)) {
+        labels.forEachIndexed { i, label ->
+            val on = i == selected
             Box(
-                Modifier.weight(1f).clip(shape)
-                    .background(if (on) Brand.Accent else androidx.compose.ui.graphics.Brush.linearGradient(listOf(Color.Transparent, Color.Transparent)))
-                    .clickable(enabled = enabled && !on) { onPick(l) }
-                    .padding(vertical = 9.dp),
+                Modifier.weight(1f)
+                    .then(if (on) Modifier.shadow(1.dp, thumb).background(Brand.Surface, thumb) else Modifier)
+                    .clip(thumb)
+                    .clickable(enabled = enabled && !on) { onPick(i) }
+                    .padding(vertical = 8.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(l.label, style = MaterialTheme.typography.labelLarge, maxLines = 1,
-                    color = if (on) Color.White else if (enabled) Brand.TextMuted else Brand.TextFaint)
+                Text(label, style = MaterialTheme.typography.labelLarge, maxLines = 1,
+                    color = if (!enabled) Brand.TextFaint else if (on) Brand.Text else Brand.TextMuted)
             }
         }
     }
 }
-
-private val Amber = Color(0xFFFFC759)
-private val Ok = Color(0xFF73FFB3)
 
 /**
  * 录音卡上的音量条：左右对称（以中线上下长）的圆角细柱，最新在右，越新越亮；
  * 太大声时最新 6 根变琥珀色。下面一行收音状态；科技模式右边显示 dB。
  */
 @Composable
-fun LevelMeter(modifier: Modifier = Modifier, height: Dp = 40.dp, barColor: Color = Brand.Text, textColor: Color = Brand.TextMuted) {
+fun LevelMeter(modifier: Modifier = Modifier, height: Dp = 40.dp, barColor: Color = Brand.Cyan, textColor: Color = Brand.Text) {
     val s by AudioLevel.state.collectAsState()
     Column(modifier) {
         Canvas(Modifier.fillMaxWidth().height(height)) {
@@ -85,9 +90,9 @@ fun LevelMeter(modifier: Modifier = Modifier, height: Dp = 40.dp, barColor: Colo
                 val h = max(3.dp.toPx(), lv * size.height)
                 val age = i.toFloat() / max(1, n - 1)
                 val hot = s.loud && i >= n - 6
-                val alpha = 0.28f + 0.72f * age * (0.45f + 0.55f * lv)
+                val alpha = 0.22f + 0.78f * age * (0.45f + 0.55f * lv)
                 drawRoundRect(
-                    color = (if (hot) Amber else barColor).copy(alpha = alpha),
+                    color = (if (hot) Brand.Warning else barColor).copy(alpha = alpha),
                     topLeft = Offset(i * (w + gap), mid - h / 2), size = Size(w, h), cornerRadius = CornerRadius(w / 2),
                 )
             }
@@ -95,14 +100,14 @@ fun LevelMeter(modifier: Modifier = Modifier, height: Dp = 40.dp, barColor: Colo
         Spacer(Modifier.height(6.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             val (text, color) = when {
-                s.loud -> "聲音太大，請離遠一點" to Amber
-                s.quiet -> "幾乎沒有聲音，請靠近一點" to textColor.copy(alpha = 0.6f)
-                else -> "收音正常" to Ok
+                s.loud -> "聲音太大，請離遠一點" to Brand.Warning
+                s.quiet -> "幾乎沒有聲音，請靠近一點" to Brand.TextFaint
+                else -> "收音正常" to Brand.Success
             }
             Box(Modifier.size(6.dp).clip(CircleShape).background(color))
             Spacer(Modifier.width(6.dp))
             Text(text, style = MaterialTheme.typography.labelMedium, color = textColor, modifier = Modifier.weight(1f))
-            if (UiMode.tech) Text("%.0f dB".format(s.db), style = MaterialTheme.typography.labelMedium, color = textColor.copy(alpha = 0.8f))
+            if (UiMode.tech) Text("%.0f dB".format(s.db), style = MaterialTheme.typography.labelMedium, color = Brand.TextMuted)
         }
     }
 }

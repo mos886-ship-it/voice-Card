@@ -87,12 +87,12 @@ fun GlassCard(
     contentPadding: Dp = 16.dp,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val shape = RoundedCornerShape(20.dp)
+    val shape = RoundedCornerShape(Brand.CardRadius)
     Surface(
         modifier = modifier.fillMaxWidth().clip(shape).let { if (onClick != null) it.clickable(onClick = onClick) else it },
         shape = shape,
         color = Brand.Surface,
-        border = if (highlight) BorderStroke(1.dp, Brand.Accent) else BorderStroke(1.dp, Brand.Outline),
+        border = if (highlight) BorderStroke(1.dp, Brand.Cyan.copy(alpha = 0.35f)) else BorderStroke(1.dp, Brand.Outline),
     ) {
         Box(if (highlight) Modifier.background(Brand.AccentSoft) else Modifier) {
             Column(Modifier.padding(contentPadding), content = content)
@@ -100,11 +100,11 @@ fun GlassCard(
     }
 }
 
-/** 小节标题：等宽小字 + 字距（科技感）。 */
+/** 小节标题（新设计：一般字、不转大写、不加字距，跟 iOS PlainLabel 一样）。 */
 @Composable
 fun SectionLabel(text: String, modifier: Modifier = Modifier, trailing: @Composable RowScope.() -> Unit = {}) {
     Row(modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(text.uppercase(), style = MaterialTheme.typography.labelSmall, color = Brand.TextMuted, modifier = Modifier.weight(1f))
+        Text(text, style = MaterialTheme.typography.labelLarge, color = Brand.TextMuted, modifier = Modifier.weight(1f))
         trailing()
     }
 }

@@ -59,11 +59,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // 深色品牌底 → 状态列 / 导航列用浅色图示
+        // 浅色主题 → 状态列 / 导航列用深色图示
         AppTheme.mode = ThemeMode.from(Settings.themeMode(this))
         com.example.wristai.ui.UiMode.load(this)
         SpeechLang.load(this)
-        applySystemBars(dark = true)
+        applySystemBars(dark = false)
         MeetingStore.reload(this)
         CallRecordingWatcher.schedule(this)
         WatchNotifier.broadcastTheme(this)
@@ -147,7 +147,8 @@ private fun App() {
                     go(if (cloud) Tab.SETTINGS.route else Tab.HOME.route)
                 }
                 r == Tab.SETTINGS.route -> SettingsScreen()
-                r == Tab.FILES.route -> com.example.wristai.ui.FilesScreen(onBack = null, onOpen = { route = "detail:$it" }, onOpenSettings = { go(Tab.SETTINGS.route) })
+                // 档案管理：资料库右上的「管理」打开（不是分页）
+                r == "files" -> com.example.wristai.ui.FilesScreen(onBack = { route = lastTab }, onOpen = { route = "detail:$it" }, onOpenSettings = { go(Tab.SETTINGS.route) })
                 r == Tab.HOME.route -> DashboardScreen(
                     onOpen = { route = "detail:$it" },
                     onOpenRecords = { go(Tab.RECORDS.route) },
@@ -167,6 +168,7 @@ private fun App() {
                     onOpen = { route = "detail:$it" },
                     onOpenSettings = { go(Tab.SETTINGS.route) },
                     onImport = { ctx, uri -> importAudio(ctx, uri) },
+                    onManage = { route = "files" },
                 )
             }
         }

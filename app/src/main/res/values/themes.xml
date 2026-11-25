@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- 深色品牌主题：启动时就是深色底，不会先闪白屏 -->
+    <!-- 浅色品牌主题（清晰 / 暖和日常）：启动时就是浅灰底，状态列深色图示 -->
     <!-- 手錶遙控錄音用的透明跳板畫面 -->
     <style name="Theme.WristAI_Project.Transparent" parent="android:Theme.Translucent.NoTitleBar">
         <item name="android:windowAnimationStyle">@null</item>
         <item name="android:windowNoTitle">true</item>
     </style>
 
-    <style name="Theme.WristAI_Project" parent="android:Theme.Material.NoActionBar">
+    <style name="Theme.WristAI_Project" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowBackground">@color/brand_bg</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
-        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightStatusBar">true</item>
         <item name="android:windowSplashScreenBackground">@color/brand_bg</item>
         <item name="android:windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
     </style>

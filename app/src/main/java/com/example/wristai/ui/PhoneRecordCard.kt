@@ -3,6 +3,11 @@ package com.example.wristai.ui
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
 import android.Manifest
@@ -30,7 +35,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -132,31 +136,39 @@ fun PhoneRecordCard(onOpenMeeting: (String) -> Unit, foodMode: Boolean = false) 
         LaunchedEffect(a.startedAt) { while (true) { now.longValue = System.currentTimeMillis(); delay(500) } }
         val sec = ((now.longValue - a.startedAt) / 1000).coerceAtLeast(0)
         val food = com.example.wristai.FoodLog.isFood(a.meetingId)
-        GlassCard(highlight = true, onClick = { onOpenMeeting(a.meetingId) }) {
+        // 新设计：一般卡片底；上面红点＋状态＋语言，中间大计时＋红色停止键，下面音量条（重点色）
+        GlassCard(onClick = { onOpenMeeting(a.meetingId) }) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 PulseDot(Brand.Recording, 8.dp)
                 Spacer(Modifier.width(8.dp))
-                Text(if (food) "飲食記錄中" else "手機錄音中 · " + recLang(context, a.meetingId),
-                    style = MaterialTheme.typography.labelLarge, color = Brand.Recording)
+                Text(if (food) "正在記錄飲食" else "手機錄音中", style = MaterialTheme.typography.labelLarge, color = Brand.Recording)
+                Spacer(Modifier.width(8.dp))
+                Text(recLang(context, a.meetingId), style = MaterialTheme.typography.labelMedium, color = Brand.Cyan,
+                    modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(Brand.Cyan.copy(alpha = 0.1f))
+                        .padding(horizontal = 8.dp, vertical = 3.dp))
                 Spacer(Modifier.weight(1f))
             }
             Spacer(Modifier.height(8.dp))
-            Text(
-                "%d:%02d:%02d".format(sec / 3600, sec / 60 % 60, sec % 60),
-                fontSize = 40.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, color = Brand.Text,
-            )
-            Text(if (food) "說出吃了什麼、大概份量（例如：牛肉麵一碗、半糖紅茶），說完按停止"
-                else "每 30 分鐘先在背景分析，錄完很快就有報告 · 螢幕關掉也會繼續錄",
-                style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
-            // 即时音量条＋收音状态
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    if (sec >= 3600) "%d:%02d:%02d".format(sec / 3600, sec / 60 % 60, sec % 60) else "%d:%02d".format(sec / 60, sec % 60),
+                    fontSize = 40.sp, fontWeight = FontWeight.SemiBold, color = Brand.Text,
+                    style = androidx.compose.ui.text.TextStyle(fontFeatureSettings = "tnum"),
+                    modifier = Modifier.weight(1f),
+                )
+                Box(
+                    Modifier.size(60.dp).clip(CircleShape).background(Brand.Recording)
+                        .clickable { PhoneRecordingService.stop(context) }
+                        .semantics { contentDescription = "停止並產生報告" },
+                    contentAlignment = Alignment.Center,
+                ) { Box(Modifier.size(20.dp).clip(RoundedCornerShape(5.dp)).background(Color.White)) }
+            }
             Spacer(Modifier.height(12.dp))
-            Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Brand.Bg.copy(alpha = 0.45f)).padding(12.dp)) {
-                LevelMeter()
-            }
-            Spacer(Modifier.height(14.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                GhostButton("停止錄音", { PhoneRecordingService.stop(context) }, Modifier.weight(1f), tint = Brand.Recording)
-            }
+            LevelMeter()
+            Spacer(Modifier.height(10.dp))
+            Text(if (food) "說出吃了什麼、大概份量（例如：牛肉麵一碗、半糖紅茶），說完按停止"
+                else "可以關螢幕，會繼續錄；停止後自動整理",
+                style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
         }
     }
 }

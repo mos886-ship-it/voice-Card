@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 
 /** 一组主题颜色。 */
 class Palette(
@@ -48,15 +49,39 @@ val InkPalette = Palette(
     accent = listOf(Color(0xFF3A3A3A), Color(0xFF1F1F1F), Color(0xFF111111)),
 )
 
+/** A 清晰工作台：浅灰纸底、白卡片、深蓝黑字、单一蓝色重点（不用渐层），录音用红色（跟 iOS Palette.clear 一样）。 */
+val ClearPalette = Palette(
+    bg = Color(0xFFF5F6F8), surface = Color(0xFFFFFFFF), surfaceHigh = Color(0xFFF0F2F5),
+    surfaceHigher = Color(0xFFE4E7EC), outline = Color(0xFFE3E6EB),
+    cyan = Color(0xFF1F5BD8), blue = Color(0xFF1F5BD8), violet = Color(0xFF6941C6),
+    success = Color(0xFF1E7A4C), warning = Color(0xFFA35A00), error = Color(0xFFC4221F), recording = Color(0xFFD0312D),
+    text = Color(0xFF101828), textMuted = Color(0xFF5D6675), textFaint = Color(0xFF7A8494),
+    backdropTop = Color(0xFFF5F6F8), pink = Color(0xFFC11574),
+    accent = listOf(Color(0xFF1F5BD8), Color(0xFF1F5BD8)),
+)
+
+/** C 暖和日常：米白底、暖灰字、珊瑚红重点（也是录音色）、鼠尾草绿给饮食与成功状态（跟 iOS Palette.warm 一样）。 */
+val WarmPalette = Palette(
+    bg = Color(0xFFFBF8F4), surface = Color(0xFFFFFFFF), surfaceHigh = Color(0xFFF5F0EA),
+    surfaceHigher = Color(0xFFEDE6DD), outline = Color(0xFFEDE6DD),
+    cyan = Color(0xFFC4492C), blue = Color(0xFF3B6E8F), violet = Color(0xFF8A6A3D),
+    success = Color(0xFF3E7A58), warning = Color(0xFF9A6510), error = Color(0xFFB3261E), recording = Color(0xFFC4492C),
+    text = Color(0xFF2B2622), textMuted = Color(0xFF6E655D), textFaint = Color(0xFF8C8279),
+    backdropTop = Color(0xFFFBF8F4), pink = Color(0xFFB4566B),
+    accent = listOf(Color(0xFFC4492C), Color(0xFFC4492C)),
+)
+
 /**
- * WristAI 品牌色。数值来自目前的主题（[isDark]）；[isDark] 是 Compose 状态，
- * 切换主题时所有用到 Brand 的画面会自动重画，不用每个画面改写法。
+ * 大D 品牌色。数值来自目前的主题（[theme]：clear 清晰 / warm 暖和日常，2026-11-25 重新设计，跟 iOS 一样）；
+ * [theme] 是 Compose 状态，切换主题时所有用到 Brand 的画面会自动重画。
+ * 旧的深色 / 浅色 / 水墨调色盘留着没用到（手表有自己的深色）。
  */
 object Brand {
-    var isDark by mutableStateOf(true)
-    /** 水墨主题（浅色的一种） */
-    var isInk by mutableStateOf(false)
-    private val p get() = when { isInk -> InkPalette; isDark -> DarkPalette; else -> LightPalette }
+    var theme by mutableStateOf("clear")
+    val isDark get() = false
+    private val p get() = if (theme == "warm") WarmPalette else ClearPalette
+    /** 卡片圆角：清晰 16、暖和日常 22（比较圆润）。 */
+    val CardRadius get() = if (theme == "warm") 22.dp else 16.dp
 
     val Bg get() = p.bg
     val Surface get() = p.surface
@@ -80,7 +105,7 @@ object Brand {
 
     /** 渐层用两种主题都好看的亮色（按钮上是白字）。 */
     val Accent: Brush get() = Brush.linearGradient(p.accent)
-    val AccentSoft: Brush get() = Brush.linearGradient(listOf(Cyan.copy(alpha = 0.18f), Violet.copy(alpha = 0.18f)))
+    val AccentSoft: Brush get() = Brush.linearGradient(listOf(Cyan.copy(alpha = 0.06f), Cyan.copy(alpha = 0.06f)))
     val Backdrop: Brush get() = Brush.verticalGradient(listOf(p.backdropTop, Bg, Bg))
 
     /** 逐字稿里不同说话者的颜色。 */

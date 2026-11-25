@@ -2,7 +2,6 @@ package com.example.wristai.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
@@ -18,15 +17,5 @@ val Typography = Typography(
     bodySmall = TextStyle(fontSize = 12.sp, lineHeight = 18.sp),
     labelLarge = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 14.sp, letterSpacing = 0.2.sp),
     labelMedium = TextStyle(fontWeight = FontWeight.Medium, fontSize = 12.sp, letterSpacing = 0.4.sp),
-    labelSmall = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 10.sp, letterSpacing = 1.2.sp, fontFamily = FontFamily.Monospace),
-)
-
-/** 水墨主题：标题改用衬线（宋体 / 明体），跟书法 logo 比较搭；内文维持无衬线好读。 */
-val InkTypography = Typography.copy(
-    headlineMedium = Typography.headlineMedium.copy(fontFamily = FontFamily.Serif),
-    headlineSmall = Typography.headlineSmall.copy(fontFamily = FontFamily.Serif),
-    titleLarge = Typography.titleLarge.copy(fontFamily = FontFamily.Serif),
-    titleMedium = Typography.titleMedium.copy(fontFamily = FontFamily.Serif),
-    titleSmall = Typography.titleSmall.copy(fontFamily = FontFamily.Serif),
-    labelSmall = Typography.labelSmall.copy(fontFamily = FontFamily.Serif, letterSpacing = 0.6.sp),
+    labelSmall = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 12.sp, lineHeight = 16.sp),   // 新设计：不用等宽字、不加字距
 )

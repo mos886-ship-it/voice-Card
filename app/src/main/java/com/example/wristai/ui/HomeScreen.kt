@@ -214,9 +214,12 @@ fun formatDuration(sec: Double): String {
     return if (s >= 3600) "%d:%02d:%02d".format(s / 3600, s / 60 % 60, s % 60) else "%d:%02d".format(s / 60, s % 60)
 }
 
-/** 「錄音」分页：录音按钮 + 搜寻 + 来源筛选 + 完整列表（总览在「主頁」，饮食记录在「飲食」分页）。 */
+/**
+ * 「資料庫」分页：搜寻 + 来源筛选 + 完整列表（录音用底部中间的录音键；今天的总览在「今天」，饮食在「飲食」分页）。
+ * 右上「管理」= 档案管理（原本的「檔案」分页）。
+ */
 @Composable
-fun HomeScreen(onOpen: (String) -> Unit, onOpenSettings: () -> Unit, onImport: (Context, Uri) -> Unit) {
+fun HomeScreen(onOpen: (String) -> Unit, onOpenSettings: () -> Unit, onImport: (Context, Uri) -> Unit, onManage: () -> Unit = {}) {
     val context = LocalContext.current
     val all by MeetingStore.meetings.collectAsState()
     val meetings = remember(all) { all.filter { it.origin() != Origin.FOOD } }
@@ -262,16 +265,15 @@ fun HomeScreen(onOpen: (String) -> Unit, onOpenSettings: () -> Unit, onImport: (
         item {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 4.dp)) {
                 Column(Modifier.weight(1f)) {
-                    Text("錄音", style = MaterialTheme.typography.headlineSmall, color = Brand.Text)
+                    Text("資料庫", style = MaterialTheme.typography.headlineSmall, color = Brand.Text)
                     Text(if (meetings.isEmpty()) "會議、課堂、訪談、通話、靈感筆記" else "共 ${meetings.size} 段 · ${humanDuration(meetings.sumOf { it.durationSec })}",
                         style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
                 }
+                GhostButton("管理", onManage, tint = Brand.Cyan)
+                Spacer(Modifier.width(8.dp))
                 GhostButton("匯入", { picker.launch(arrayOf("audio/*")) }, icon = Icons.Filled.Add, tint = Brand.Cyan)
             }
         }
-
-        // ---------- 手机录音 ----------
-        item { PhoneRecordCard(onOpenMeeting = onOpen) }
 
         // ---------- 列表 ----------
         if (meetings.isNotEmpty()) {

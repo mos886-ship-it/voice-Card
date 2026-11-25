@@ -35,8 +35,8 @@ object Settings {
     fun setDailyKcalGoal(context: Context, value: Int) =
         prefs(context).edit().putInt("daily_kcal_goal", value.coerceIn(800, 6000)).apply()
 
-    /** 外观主题：dark / light / system（[com.example.wristai.ui.theme.ThemeMode]）。 */
-    fun themeMode(context: Context): String = prefs(context).getString("theme_mode", "dark") ?: "dark"
+    /** 外观主题：clear 清晰 / warm 暖和日常（[com.example.wristai.ui.theme.ThemeMode]；旧值 dark / light / ink / system 当清晰）。 */
+    fun themeMode(context: Context): String = prefs(context).getString("theme_mode", "clear") ?: "clear"
     fun setThemeMode(context: Context, value: String) = prefs(context).edit().putString("theme_mode", value).apply()
 
     /** 第一次使用的引导是否已完成。 */

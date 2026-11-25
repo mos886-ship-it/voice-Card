@@ -139,17 +139,15 @@ fun SettingsScreen(onBack: (() -> Unit)? = null) {
 
             SystemStatusCard()
 
-            // ---------- 外观 ----------
-            SectionLabel("外觀")
+            // ---------- 外观主题：清晰 / 暖和日常（跟 iOS 一样；手表维持深色） ----------
+            SectionLabel("外觀主題")
             GlassCard {
-                Text("主題", style = MaterialTheme.typography.titleMedium, color = Brand.Text)
-                Text("深色省電、適合會議室；淺色在戶外好讀；水墨是宣紙與墨色，和 logo 同一套風格", style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
-                Spacer(Modifier.height(12.dp))
                 ThemePicker(AppTheme.mode) { m ->
                     AppTheme.mode = m
                     Settings.setThemeMode(context, m.key)
-                    com.example.wristai.WatchNotifier.broadcastTheme(context)
                 }
+                Spacer(Modifier.height(10.dp))
+                Text(AppTheme.mode.note, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
             }
 
             // ---------- 三星录音机 ----------
@@ -349,20 +347,26 @@ private fun Note(icon: androidx.compose.ui.graphics.vector.ImageVector, text: St
     }
 }
 
-/** 三选一的主题切换（胶囊分段）。 */
+/** 主题二选一：每格一个小色块（底色＋重点色圆点）＋名字，选中的有重点色框。 */
 @Composable
 private fun ThemePicker(selected: ThemeMode, onSelect: (ThemeMode) -> Unit) {
-    val shape = RoundedCornerShape(14.dp)
-    Row(Modifier.fillMaxWidth().clip(shape).background(Brand.SurfaceHigh).border(1.dp, Brand.Outline, shape).padding(4.dp)) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         for (m in ThemeMode.entries) {
             val on = m == selected
-            Box(
-                Modifier.weight(1f).height(40.dp).clip(RoundedCornerShape(10.dp))
-                    .then(if (on) Modifier.background(Brand.Accent) else Modifier)
-                    .clickable { onSelect(m) },
-                contentAlignment = Alignment.Center,
+            val shape = RoundedCornerShape(12.dp)
+            val p = m.palette
+            Row(
+                Modifier.weight(1f).height(52.dp).clip(shape).background(Brand.Surface)
+                    .border(if (on) 2.dp else 1.dp, if (on) Brand.Cyan else Brand.Outline, shape)
+                    .clickable { onSelect(m) }.padding(horizontal = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(m.label, style = MaterialTheme.typography.labelLarge, color = if (on) androidx.compose.ui.graphics.Color.White else Brand.TextMuted)
+                Box(Modifier.size(26.dp).clip(RoundedCornerShape(7.dp)).background(p.bg).border(1.dp, p.outline, RoundedCornerShape(7.dp)),
+                    contentAlignment = Alignment.Center) {
+                    Box(Modifier.size(10.dp).clip(androidx.compose.foundation.shape.CircleShape).background(p.cyan))
+                }
+                Spacer(Modifier.width(10.dp))
+                Text(m.label, style = MaterialTheme.typography.labelLarge, color = if (on) Brand.Text else Brand.TextMuted)
             }
         }
     }
