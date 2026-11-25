@@ -78,6 +78,9 @@ struct SettingsView: View {
                     Text(themeNote).font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 8)
                 }
 
+                SectionLabel(text: "健康同步")
+                HealthSyncCard()
+
                 if mode == .tech {
                 SectionLabel(text: "AI 引擎")
                 GlassCard {
@@ -564,6 +567,73 @@ private struct PrivacyCard: View {
                 }
             }
             .tint(Brand.success)
+        }
+    }
+}
+
+/// 飲食同步到健康（照 Android 設定的「健康同步」卡）：只寫入飲食，不讀健康資料。
+private struct HealthSyncCard: View {
+    @EnvironmentObject private var store: MeetingStore
+    @ObservedObject private var health = HealthSync.shared
+
+    private var binding: Binding<Bool> {
+        Binding(get: { health.enabled },
+                set: { on in Task { await health.setEnabled(on, records: store.meetings) } })
+    }
+
+    var body: some View {
+        GlassCard {
+            Toggle(isOn: binding) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("飲食同步到健康").font(.titleMedium).foregroundStyle(Brand.text)
+                    Text(health.lastText ?? "每筆飲食的熱量、蛋白質、碳水、脂肪寫進 Apple 健康。")
+                        .font(.bodySmall).foregroundStyle(Brand.textMuted)
+                }
+            }
+            .tint(Brand.success)
+            .disabled(health.busy || !HealthSync.available)
+
+            DividerLine().padding(.vertical, 12)
+            VStack(spacing: 8) {
+                DestRow(name: "Apple 健康", value: !HealthSync.available ? "這台裝置沒有"
+                            : !health.enabled ? "未開啟" : (health.authorized ? "同步中" : "沒有寫入權限"),
+                        ok: health.enabled && health.authorized)
+                DestRow(name: "Google 健康", value: "只在 Android 版（Health Connect）", ok: false)
+                DestRow(name: "Samsung Health", value: "只在 Android 版（Health Connect）", ok: false)
+            }
+
+            if health.enabled {
+                Button {
+                    Task { await health.syncAll(store.meetings) }
+                } label: {
+                    HStack(spacing: 6) {
+                        if health.busy { ProgressView().controlSize(.small) }
+                        Text(health.busy ? "同步中…" : "同步過去的記錄")
+                    }
+                }
+                .font(.labelLarge).foregroundStyle(Brand.cyan)
+                .disabled(health.busy)
+                .padding(.top, 12)
+            }
+            if let msg = health.message {
+                Text(msg).font(.bodySmall).foregroundStyle(Brand.warning).padding(.top, 8)
+            }
+            Text("只寫入飲食，不讀取任何健康資料。熱量為 AI 估算，僅供參考。")
+                .font(.bodySmall).foregroundStyle(Brand.textFaint).padding(.top, 10)
+        }
+    }
+}
+
+private struct DestRow: View {
+    let name: String
+    let value: String
+    let ok: Bool
+    var body: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(name).font(.bodyMedium).foregroundStyle(Brand.text)
+            Spacer(minLength: 8)
+            Text(value).font(.bodySmall).foregroundStyle(ok ? Brand.success : Brand.textMuted)
+                .multilineTextAlignment(.trailing)
         }
     }
 }

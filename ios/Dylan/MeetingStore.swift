@@ -55,6 +55,13 @@ final class MeetingStore: ObservableObject {
     }
 
     func save(_ m: Meeting) {
+        // 飲食完成、營養或標題改了 → 同步到 Apple 健康（設定裡有打開才會寫）
+        if m.isFood, m.status == .done {
+            let old = meetings.first { $0.id == m.id }
+            if old?.status != .done || old?.nutrition != m.nutrition || old?.title != m.title || old?.createdAt != m.createdAt {
+                HealthSync.shared.recordChanged(m)
+            }
+        }
         try? FileManager.default.createDirectory(at: Self.dir(m.id), withIntermediateDirectories: true)
         if let data = try? Self.encoder.encode(m) {
             try? data.write(to: Self.dir(m.id).appendingPathComponent("meta.json"), options: .atomic)
@@ -75,6 +82,7 @@ final class MeetingStore: ObservableObject {
     func delete(_ id: String) {
         // 還在大D的主機排隊 / 處理中：通知主機丟掉，不占別人的位置
         if let job = Self.hostJob(id) { Task { await LocalAI.deleteJob(job) } }
+        HealthSync.shared.recordDeleted(id)
         try? FileManager.default.removeItem(at: Self.dir(id))
         meetings.removeAll { $0.id == id }
     }

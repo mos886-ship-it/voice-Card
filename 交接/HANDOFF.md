@@ -364,6 +364,8 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 - **Apple 健康**：只在 iOS，用 HealthKit 寫 `dietaryEnergyConsumed`、`dietaryProtein`、`dietaryCarbohydrates`、`dietaryFatTotal`（同一個 HKCorrelation food，metadata 放記錄 id 以便更新 / 刪除）。設定卡片一樣叫「健康同步」，列出 Apple 健康；Android 卡片上 Apple 那列只寫「只在 iPhone 版」。
 - 隱私說明頁：`HealthPrivacyActivity`（Health Connect 授權畫面的「privacy policy」連結會開它）。
 
+- **iOS 已跟上**：`HealthSync.swift`（HealthKit，只要求寫入 4 種營養、`read: []`）。每筆一個 `HKCorrelation(.food)`，correlation 與四個樣本都帶 `HKMetadataKeySyncIdentifier`＝記錄 id、`HKMetadataKeySyncVersion`＝現在毫秒，`HKMetadataKeyFoodType`＝標題「：」後面；kcal＝0 不寫（之前寫過就刪）。觸發：`MeetingStore.save`（飲食變 DONE 或營養/標題/時間改了）、`MeetingStore.delete`。設定「健康同步」卡在「介面」卡後面（iOS 沒有飲食記錄區塊），列 Apple 健康 / Google 健康 / Samsung Health（後兩個寫「只在 Android 版（Health Connect）」），「同步過去的記錄」、「上次同步 M/d HH:mm · N 筆」。entitlement `com.apple.developer.healthkit`，`NSHealthUpdateUsageDescription` / `NSHealthShareUsageDescription`（繁中）。模擬器驗過：授權畫面只有寫入、補寫、重複同步是更新不是重複、刪除記錄健康也刪。真機簽章需要 App ID 有 HealthKit（Xcode 自動簽章會加；使用者自己按）。
+
 ## 飲食熱量改用食藥署資料（1.1.92）
 
 - App 內建 `app/src/main/assets/nutrition/tfnd.json`（278 KB，2,122 種食物，每 100 克的熱量、蛋白質、脂肪、碳水、纖維、糖、鈉）。來源：衛福部食藥署「食品營養成分資料集」（政府資料開放授權條款－第1版，可商用、要標示來源；「關於與授權」→「內建資料」有寫）。更新：下載 ZIP 後跑 `python -I tools/gen_tfnd.py <zip>`（同一食物不同取樣月份會合併取平均）。
