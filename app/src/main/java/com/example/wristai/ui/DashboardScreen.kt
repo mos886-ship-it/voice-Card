@@ -122,7 +122,16 @@ fun DashboardScreen(
                 Column(Modifier.weight(1f)) {
                     Text(SimpleDateFormat("M 月 d 日 EEEE", Locale.TAIWAN).format(Date()),
                         style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
-                    Text("今天", fontSize = 30.sp, fontWeight = FontWeight.Bold, color = Brand.Text)
+                    // 有温度的问候（依时段、星期、今天记了什么）
+                    val now = rememberNowMinute()
+                    val g = remember(now.timeInMillis / 60_000, todays.size, todayKcal) {
+                        val meals = todayFood(all).mapNotNull { it.nutrition?.meal }
+                        greetingFor(now, todays.count { !FoodLog.isFood(it.id) },
+                            ateLunch = meals.any { "午" in it }, ateDinner = meals.any { "晚" in it },
+                            todayKcal = todayKcal, goal = goal, usesFood = usesFood)
+                    }
+                    Text(g.title, fontSize = 30.sp, fontWeight = FontWeight.Bold, color = Brand.Text)
+                    Text(g.line, style = MaterialTheme.typography.bodyMedium, color = Brand.TextMuted)
                     // 科技模式：目前会用的 AI 引擎
                     if (UiMode.tech) Text("AI：" + (if (engine.ready) engine.name else "還沒設定"),
                         style = MaterialTheme.typography.labelMedium, color = Brand.TextFaint,

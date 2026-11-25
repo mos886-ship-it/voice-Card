@@ -98,9 +98,23 @@ fun OverviewDashboardScreen(
                 BrandMark(40.dp)
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(greeting(), style = MaterialTheme.typography.headlineSmall, color = Brand.Text)
+                    // 跟「快錄」的今天页同一套有温度的问候
+                    val now = rememberNowMinute()
+                    val dayStart = remember(now.get(java.util.Calendar.DAY_OF_YEAR)) {
+                        (now.clone() as java.util.Calendar).apply {
+                            set(java.util.Calendar.HOUR_OF_DAY, 0); set(java.util.Calendar.MINUTE, 0); set(java.util.Calendar.SECOND, 0); set(java.util.Calendar.MILLISECOND, 0)
+                        }.timeInMillis
+                    }
+                    val food = todayFood(all)
+                    val g = greetingFor(now,
+                        all.count { it.createdAt >= dayStart && !com.example.wristai.FoodLog.isFood(it.id) && it.status != com.example.wristai.MeetingStatus.RECORDING },
+                        ateLunch = food.any { "午" in (it.nutrition?.meal ?: "") }, ateDinner = food.any { "晚" in (it.nutrition?.meal ?: "") },
+                        todayKcal = food.sumOf { it.nutrition?.kcal ?: 0 }, goal = com.example.wristai.Settings.dailyKcalGoal(LocalContext.current),
+                        usesFood = all.any { com.example.wristai.FoodLog.isFood(it.id) })
+                    Text(g.title, style = MaterialTheme.typography.headlineSmall, color = Brand.Text)
+                    Text(g.line, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
                     Text(SimpleDateFormat("M 月 d 日 EEEE", Locale.TAIWAN).format(Date()),
-                        style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
+                        style = MaterialTheme.typography.labelSmall, color = Brand.TextFaint)
                     // 科技模式：目前会用的 AI 引擎
                     if (UiMode.tech && engine.ready) Text("AI：${engine.name}", style = MaterialTheme.typography.labelSmall,
                         color = Brand.TextFaint, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -182,13 +196,6 @@ fun OverviewDashboardScreen(
         }
         item { Spacer(Modifier.height(16.dp)) }
     }
-}
-
-private fun greeting(): String = when (Calendar.getInstance().get(Calendar.HOUR_OF_DAY)) {
-    in 5..10 -> "早安"
-    in 11..13 -> "午安"
-    in 14..17 -> "下午好"
-    else -> "晚安"
 }
 
 private fun formatMinutes(sec: Double): String {
