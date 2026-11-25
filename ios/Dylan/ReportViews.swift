@@ -121,7 +121,12 @@ struct ReportView: View {
                         if sec.isEmpty {
                             Text("無").font(.bodyMedium).foregroundStyle(Brand.textFaint)
                         } else {
-                            ForEach(Array(sec.blocks.enumerated()), id: \.offset) { _, b in block(b) }
+                            ForEach(Array(Self.grouped(sec.blocks).enumerated()), id: \.offset) { _, g in
+                                switch g {
+                                case let .one(b): block(b)
+                                case let .food(header, rows): FoodList(header: header, rows: rows)
+                                }
+                            }
                         }
                     }
                     .padding(.top, 10)
@@ -156,6 +161,21 @@ struct ReportView: View {
             .padding(10)
             .background(RoundedRectangle(cornerRadius: 12).fill(Brand.surfaceHigh))
         }
+    }
+
+    /// 有「熱量」欄的表格（飲食內容）→ 連續的列合成一張清單卡（照 Android FoodTable）；其他照原樣。
+    enum Group { case one(Block), food(header: [String], rows: [[String]]) }
+    static func grouped(_ blocks: [Block]) -> [Group] {
+        var out: [Group] = []
+        for b in blocks {
+            if case let .row(header, cells) = b, header.contains(where: { $0.contains("熱量") }) {
+                if case let .food(h, rows)? = out.last, h == header { out[out.count - 1] = .food(header: h, rows: rows + [cells]) }
+                else { out.append(.food(header: header, rows: [cells])) }
+            } else {
+                out.append(.one(b))
+            }
+        }
+        return out
     }
 
     // MARK: 解析
@@ -213,6 +233,64 @@ struct ReportView: View {
     static func inline(_ s: String) -> AttributedString {
         (try? AttributedString(markdown: s, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)))
             ?? AttributedString(s)
+    }
+}
+
+/// 飲食內容清單：一樣食物一段——「名稱 …… N 大卡」／「份量 · 蛋白質 Xg · 碳水 Xg · 脂肪 Xg」／來源小標籤。
+/// 欄位用表頭名字找（食物 / 份量 / 熱量 / 蛋白 / 碳水 / 脂肪 / 來源），舊報告沒有來源欄也可以。
+struct FoodList: View {
+    let header: [String]
+    let rows: [[String]]
+
+    private func col(_ key: String) -> Int? { header.firstIndex { $0.contains(key) } }
+    private func cell(_ r: [String], _ key: String) -> String {
+        guard let i = col(key), i < r.count else { return "" }
+        return r[i].trimmingCharacters(in: .whitespaces)
+    }
+    private func num(_ s: String) -> String {
+        s.range(of: #"\d+(\.\d+)?"#, options: .regularExpression).map { String(s[$0]) } ?? s
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(rows.enumerated()), id: \.offset) { i, r in
+                if i > 0 { DividerLine().padding(.vertical, 10) }
+                item(r)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(RoundedRectangle(cornerRadius: 12).fill(Brand.surfaceHigh))
+    }
+
+    @ViewBuilder private func item(_ r: [String]) -> some View {
+        let name = col("食物").flatMap { $0 < r.count ? r[$0] : nil } ?? r.first ?? ""
+        let kcal = cell(r, "熱量")
+        let detail = [cell(r, "份量"),
+                      cell(r, "蛋白").isEmpty ? "" : "蛋白質 \(num(cell(r, "蛋白")))g",
+                      cell(r, "碳水").isEmpty ? "" : "碳水 \(num(cell(r, "碳水")))g",
+                      cell(r, "脂肪").isEmpty ? "" : "脂肪 \(num(cell(r, "脂肪")))g"].filter { !$0.isEmpty }.joined(separator: " · ")
+        let src = cell(r, "來源")
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(ReportView.inline(name)).font(.titleSmall).foregroundStyle(Brand.text)
+                Spacer(minLength: 8)
+                if !kcal.isEmpty {
+                    Text("\(num(kcal)) 大卡").font(.titleSmall).foregroundStyle(Brand.cyan).fixedSize()
+                }
+            }
+            if !detail.isEmpty {
+                Text(detail).font(.bodySmall).foregroundStyle(Brand.textMuted).fixedSize(horizontal: false, vertical: true)
+            }
+            if !src.isEmpty {
+                let c = src.hasPrefix("食藥署") ? Brand.success : src.contains("營養標示") ? Brand.blue : Brand.textFaint
+                Text(src).font(.labelMedium).foregroundStyle(c)
+                    .padding(.horizontal, 8).padding(.vertical, 2)
+                    .background(Capsule().fill(c.opacity(0.10)))
+                    .padding(.top, 2)
+            }
+        }
+        .accessibilityElement(children: .combine)
     }
 }
 
