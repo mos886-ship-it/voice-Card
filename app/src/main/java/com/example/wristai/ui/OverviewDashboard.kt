@@ -56,9 +56,9 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-/** 旧版排布的「主頁」：问候、快捷方块、今日统计、处理中、最新报告（设定 → 排布 → 舊版）。 */
+/** 「總覽」排布的主页：问候、快捷方块、今日统计、处理中、最新报告（设定 → 排布 → 總覽）。 */
 @Composable
-fun ClassicDashboardScreen(
+fun OverviewDashboardScreen(
     onOpen: (String) -> Unit,
     onOpenRecords: () -> Unit,
     onOpenFood: () -> Unit,

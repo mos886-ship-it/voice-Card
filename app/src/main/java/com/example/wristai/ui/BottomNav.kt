@@ -57,23 +57,26 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 /**
- * 底部分页。新版：今天｜資料庫｜（中间录音键）｜飲食｜設定（跟 iOS 一样），档案管理在资料库右上的「管理」；
- * 旧版：主頁｜錄音｜飲食｜檔案｜設定。
+ * 底部分页（依排布）。快錄：今天｜資料庫｜（中间录音键）｜飲食｜設定（跟 iOS 一样），档案管理在资料库右上的「管理」；
+ * 總覽：主頁｜錄音｜飲食｜檔案｜設定。
  */
-enum class Tab(val route: String, private val newLabel: String, private val classicLabel: String) {
+enum class Tab(val route: String, private val quickLabel: String, private val overviewLabel: String) {
     HOME("tab:home", "今天", "主頁"),
     RECORDS("tab:records", "資料庫", "錄音"),
     FOOD("tab:food", "飲食", "飲食"),
-    /** 档案管理：旧版是一个分页；新版在资料库的「管理」。 */
+    /** 档案管理：總覽是一个分页；快錄在资料库的「管理」。 */
     FILES("tab:files", "檔案", "檔案"),
     SETTINGS("tab:settings", "設定", "設定");
 
-    val label get() = if (AppTheme.layout == LayoutMode.CLASSIC) classicLabel else newLabel
+    val label get() = when (AppTheme.layout) {
+        LayoutMode.QUICK -> quickLabel
+        LayoutMode.OVERVIEW -> overviewLabel
+    }
 }
 
 @Composable
 fun BottomNav(current: Tab, onSelect: (Tab) -> Unit) {
-    if (AppTheme.layout == LayoutMode.CLASSIC) { ClassicBottomNav(current, onSelect); return }
+    if (AppTheme.layout == LayoutMode.OVERVIEW) { OverviewBottomNav(current, onSelect); return }
     Column {
         Box(Modifier.fillMaxWidth().height(1.dp).background(Brand.Outline))
         Row(
@@ -148,9 +151,9 @@ private fun NavItem(tab: Tab, selected: Boolean, modifier: Modifier = Modifier, 
     }
 }
 
-/** 旧版分页列：五个分页平分宽度，选中的图示后面一个渐层胶囊。 */
+/** 總覽排布的分页列：五个分页平分宽度，选中的图示后面一个渐层胶囊。 */
 @Composable
-private fun ClassicBottomNav(current: Tab, onSelect: (Tab) -> Unit) {
+private fun OverviewBottomNav(current: Tab, onSelect: (Tab) -> Unit) {
     Column {
         Box(Modifier.fillMaxWidth().height(1.dp).background(Brand.Outline))
         Row(Modifier.fillMaxWidth().background(Brand.Bg).padding(horizontal = 4.dp, vertical = 8.dp)) {

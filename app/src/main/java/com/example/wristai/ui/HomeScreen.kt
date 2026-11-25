@@ -219,7 +219,7 @@ fun formatDuration(sec: Double): String {
  * 右上「管理」= 档案管理（原本的「檔案」分页）。
  */
 @Composable
-fun HomeScreen(onOpen: (String) -> Unit, onOpenSettings: () -> Unit, onImport: (Context, Uri) -> Unit, onManage: () -> Unit = {}, classic: Boolean = false) {
+fun HomeScreen(onOpen: (String) -> Unit, onOpenSettings: () -> Unit, onImport: (Context, Uri) -> Unit, onManage: () -> Unit = {}, overview: Boolean = false) {
     val context = LocalContext.current
     val all by MeetingStore.meetings.collectAsState()
     val meetings = remember(all) { all.filter { it.origin() != Origin.FOOD } }
@@ -265,11 +265,11 @@ fun HomeScreen(onOpen: (String) -> Unit, onOpenSettings: () -> Unit, onImport: (
         item {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 4.dp)) {
                 Column(Modifier.weight(1f)) {
-                    Text(if (classic) "錄音" else "資料庫", style = MaterialTheme.typography.headlineSmall, color = Brand.Text)
+                    Text(if (overview) "錄音" else "資料庫", style = MaterialTheme.typography.headlineSmall, color = Brand.Text)
                     Text(if (meetings.isEmpty()) "會議、課堂、訪談、通話、靈感筆記" else "共 ${meetings.size} 段 · ${humanDuration(meetings.sumOf { it.durationSec })}",
                         style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
                 }
-                if (!classic) {
+                if (!overview) {
                     GhostButton("管理", onManage, tint = Brand.Cyan)
                     Spacer(Modifier.width(8.dp))
                 }
@@ -277,8 +277,8 @@ fun HomeScreen(onOpen: (String) -> Unit, onOpenSettings: () -> Unit, onImport: (
             }
         }
 
-        // ---------- 旧版排布：手机录音卡（新版用底部中间的录音键） ----------
-        if (classic) item { PhoneRecordCard(onOpenMeeting = onOpen) }
+        // ---------- 總覽排布：手机录音卡（快錄用底部中间的录音键） ----------
+        if (overview) item { PhoneRecordCard(onOpenMeeting = onOpen) }
 
         // ---------- 列表 ----------
         if (meetings.isNotEmpty()) {

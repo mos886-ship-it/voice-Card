@@ -39,8 +39,8 @@ object Settings {
     fun themeMode(context: Context): String = prefs(context).getString("theme_mode", "clear") ?: "clear"
     fun setThemeMode(context: Context, value: String) = prefs(context).edit().putString("theme_mode", value).apply()
 
-    /** 排布：new 新版 / classic 旧版（[com.example.wristai.ui.theme.LayoutMode]）。 */
-    fun layoutMode(context: Context): String = prefs(context).getString("layout_mode", "new") ?: "new"
+    /** 排布：quick 快錄 / overview 總覽（[com.example.wristai.ui.theme.LayoutMode]）。 */
+    fun layoutMode(context: Context): String = prefs(context).getString("layout_mode", "quick") ?: "quick"
     fun setLayoutMode(context: Context, value: String) = prefs(context).edit().putString("layout_mode", value).apply()
 
     /** 第一次使用的引导是否已完成。 */

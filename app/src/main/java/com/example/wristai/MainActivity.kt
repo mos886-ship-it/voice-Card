@@ -134,9 +134,9 @@ private fun App() {
     LaunchedEffect(com.example.wristai.ui.PendingPair.link) {
         if (com.example.wristai.ui.PendingPair.link != null) go(Tab.SETTINGS.route)
     }
-    val classic = com.example.wristai.ui.theme.AppTheme.layout == com.example.wristai.ui.theme.LayoutMode.CLASSIC
-    // 新版没有「檔案」分页：从旧版换过来时停在档案分页 → 回今天
-    if (!classic && route == Tab.FILES.route) route = Tab.HOME.route
+    val overview = com.example.wristai.ui.theme.AppTheme.layout == com.example.wristai.ui.theme.LayoutMode.OVERVIEW
+    // 快錄排布没有「檔案」分页：从總覽换过来时停在档案分页 → 回今天
+    if (!overview && route == Tab.FILES.route) route = Tab.HOME.route
     val tab = Tab.entries.firstOrNull { it.route == route }
     // 返回键：详情 → 原分页；其他分页 → 主页
     if (route.startsWith("detail:")) BackHandler { route = lastTab }
@@ -153,9 +153,9 @@ private fun App() {
                 r == Tab.SETTINGS.route -> SettingsScreen()
                 // 档案管理：资料库右上的「管理」打开（不是分页）
                 r == "files" -> com.example.wristai.ui.FilesScreen(onBack = { route = lastTab }, onOpen = { route = "detail:$it" }, onOpenSettings = { go(Tab.SETTINGS.route) })
-                // 旧版排布：档案是一个分页
+                // 總覽排布：档案是一个分页
                 r == Tab.FILES.route -> com.example.wristai.ui.FilesScreen(onBack = null, onOpen = { route = "detail:$it" }, onOpenSettings = { go(Tab.SETTINGS.route) })
-                r == Tab.HOME.route && classic -> com.example.wristai.ui.ClassicDashboardScreen(
+                r == Tab.HOME.route && overview -> com.example.wristai.ui.OverviewDashboardScreen(
                     onOpen = { route = "detail:$it" },
                     onOpenRecords = { go(Tab.RECORDS.route) },
                     onOpenFood = { go(Tab.FOOD.route) },
@@ -181,7 +181,7 @@ private fun App() {
                     onOpenSettings = { go(Tab.SETTINGS.route) },
                     onImport = { ctx, uri -> importAudio(ctx, uri) },
                     onManage = { route = "files" },
-                    classic = classic,
+                    overview = overview,
                 )
             }
         }

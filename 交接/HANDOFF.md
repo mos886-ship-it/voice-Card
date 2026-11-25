@@ -349,5 +349,5 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 **Android 已跟上（2026-11-25）**：`ui/theme/Color.kt` 的 `ClearPalette` / `WarmPalette`（同上色碼），`ThemeMode` 只剩 清晰 / 暖和日常（舊值當清晰），`Brand.CardRadius` 16 / 22；手錶一律推 dark。底部分頁 `BottomNav.kt`：今天｜資料庫｜中間錄音鍵（長按「記錄飲食」）｜飲食｜設定；「檔案」分頁改成資料庫右上「管理」（route `files`）。「今天」= `DashboardScreen.kt`（開始錄音卡、處理中含排隊、今天的記錄＋今日熱量）。語言選擇改成灰軌道白滑塊（`Segmented`）；錄音中卡片改一般卡片＋紅色停止鍵。啟動畫面改淺色。未做的項目同 iOS。
 
 **排布與配色分開（2026-11-25，使用者要求，Android 已做，iOS 要跟上）**：設定裡兩個獨立選項，任意組合。
-- **排布**（`layout_mode`：`new` 預設 / `classic`）：新版＝今天｜資料庫｜中間錄音鍵｜飲食｜設定（檔案在資料庫「管理」）；舊版＝主頁｜錄音｜飲食｜檔案｜設定（主頁是問候、快捷方塊、今日統計、最新報告，錄音頁有手機錄音卡，選中分頁是漸層膠囊）。Android：`LayoutMode`、`ClassicDashboard.kt`、`BottomNav.kt` 的 `ClassicBottomNav`。
+- **排布**（`layout_mode`：`quick` 預設 / `overview`；名字照用途取，**不要叫新版 / 舊版**，之後還會加其他排布）：**快錄**＝今天｜資料庫｜中間錄音鍵｜飲食｜設定（檔案在資料庫「管理」）；**總覽**＝主頁｜錄音｜飲食｜檔案｜設定（主頁是問候、快捷方塊、今日統計、最新報告，錄音頁有手機錄音卡，選中分頁是漸層膠囊）。1.1.87 存的 `new` / `classic` 讀成快錄 / 總覽。Android：`LayoutMode`、`OverviewDashboard.kt`、`BottomNav.kt` 的 `OverviewBottomNav`。
 - **配色**（`theme_mode`：`clear` 預設 / `warm` / `dark` / `ink`，兩行兩格選）：深色、水墨用原本的調色盤（深色有漸層，水墨標題用襯線字）；手錶：水墨→水墨，其他→深色。舊值 light / system 當清晰。卡片圓角：清晰 16、暖和 22、深色 / 水墨 20。

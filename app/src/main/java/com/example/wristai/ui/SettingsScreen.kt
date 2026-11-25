@@ -139,7 +139,7 @@ fun SettingsScreen(onBack: (() -> Unit)? = null) {
 
             SystemStatusCard()
 
-            // ---------- 排布：新版 / 旧版（分页与主页的样子） ----------
+            // ---------- 排布：快錄 / 總覽（分页与主页的样子；之后会再加） ----------
             SectionLabel("排布")
             GlassCard {
                 Segmented(com.example.wristai.ui.theme.LayoutMode.entries.map { it.label },

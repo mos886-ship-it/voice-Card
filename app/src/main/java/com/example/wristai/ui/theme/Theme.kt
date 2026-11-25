@@ -12,7 +12,7 @@ import androidx.compose.runtime.setValue
 /** 目前选的配色与排布（Compose 状态：设定页一改，整个 App 马上换）。 */
 object AppTheme {
     var mode by androidx.compose.runtime.mutableStateOf(ThemeMode.CLEAR)
-    var layout by androidx.compose.runtime.mutableStateOf(LayoutMode.NEW)
+    var layout by androidx.compose.runtime.mutableStateOf(LayoutMode.QUICK)
 }
 
 /**
@@ -33,16 +33,21 @@ enum class ThemeMode(val key: String, val label: String, val note: String) {
 }
 
 /**
- * 排布（存在设定 layout_mode）：
- * - 新版（预设）：今天｜資料庫｜中间录音键｜飲食｜設定，档案管理在资料库的「管理」。
- * - 旧版：主頁｜錄音｜飲食｜檔案｜設定，主页是问候、快捷方块、今日统计、最新报告。
+ * 排布（存在设定 layout_mode；之后还会加别的排布，名字照用途取，不用「新 / 旧」）：
+ * - 快錄 quick（预设）：今天｜資料庫｜中间录音键｜飲食｜設定，档案管理在资料库的「管理」。
+ * - 總覽 overview：主頁｜錄音｜飲食｜檔案｜設定，主页是问候、快捷方块、今日统计、最新报告。
  */
 enum class LayoutMode(val key: String, val label: String, val note: String) {
-    NEW("new", "新版", "今天｜資料庫｜中間錄音鍵｜飲食｜設定。一按就錄，檔案管理在資料庫的「管理」。"),
-    CLASSIC("classic", "舊版", "主頁｜錄音｜飲食｜檔案｜設定。主頁有問候、快捷方塊、今日統計與最新報告。");
+    QUICK("quick", "快錄", "今天｜資料庫｜中間錄音鍵｜飲食｜設定。任何分頁一按就錄，檔案管理在資料庫的「管理」。"),
+    OVERVIEW("overview", "總覽", "主頁｜錄音｜飲食｜檔案｜設定。主頁有問候、快捷方塊、今日統計與最新報告。");
 
     companion object {
-        fun from(key: String?) = entries.firstOrNull { it.key == key } ?: NEW
+        /** 1.1.87 存的是 new / classic，照样认得。 */
+        fun from(key: String?) = when (key) {
+            "new" -> QUICK
+            "classic" -> OVERVIEW
+            else -> entries.firstOrNull { it.key == key } ?: QUICK
+        }
     }
 }
 
