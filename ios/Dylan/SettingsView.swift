@@ -19,42 +19,14 @@ struct SettingsView: View {
         }
     }
 
+    private func rowLabel(_ t: String) -> some View {
+        Text(t).font(.titleSmall).foregroundStyle(Brand.text)
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 Text("設定").font(.headlineSmall).foregroundStyle(Brand.text)
-
-                // ---------- 介面模式 ----------
-                GlassCard {
-                    Text("介面模式").font(.labelSmall).tracking(1.2).foregroundStyle(Brand.textMuted)
-                    HStack(spacing: 8) {
-                        ForEach(UIMode.allCases) { m in
-                            ModeChip(mode: m, selected: mode == m) { mode = m }
-                        }
-                    }
-                    .padding(.top, 10)
-                    Text(mode.note).font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 10)
-                }
-
-                SectionLabel(text: "排布")
-                GlassCard {
-                    HStack(spacing: 8) {
-                        ForEach(LayoutMode.allCases) { l in
-                            LayoutChip(mode: l, selected: layout == l) { layout = l }
-                        }
-                    }
-                    Text(layout.note).font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 10)
-                }
-                SectionLabel(text: "配色")
-                GlassCard {
-                    // 兩行兩格：清晰、暖和日常 / 深色、水墨
-                    LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
-                        ForEach(ThemeMode.allCases) { m in
-                            ThemeChip(mode: m, selected: theme.mode == m) { theme.mode = m }
-                        }
-                    }
-                    Text(themeNote).font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 10)
-                }
 
                 TwoColumns(wide: Wide.twoColumns(width)) {
                 // ---------- 系統狀態 ----------
@@ -70,6 +42,40 @@ struct SettingsView: View {
                         DividerLine().padding(.vertical, 12)
                         StatusRow(label: "智慧手錶", value: watchValue, detail: watchDetail, color: watchColor)
                     }
+                }
+
+                // ---------- 介面：排布、資訊量、配色（三個各自獨立） ----------
+                SectionLabel(text: "介面")
+                GlassCard {
+                    rowLabel("排布")
+                    HStack(spacing: 8) {
+                        ForEach(LayoutMode.allCases) { l in
+                            LayoutChip(mode: l, selected: layout == l) { layout = l }
+                        }
+                    }
+                    .padding(.top, 8)
+                    Text(layout.note).font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 8)
+
+                    DividerLine().padding(.vertical, 14)
+                    rowLabel("資訊量")
+                    HStack(spacing: 8) {
+                        ForEach(UIMode.allCases) { m in
+                            ModeChip(mode: m, selected: mode == m) { mode = m }
+                        }
+                    }
+                    .padding(.top, 8)
+                    Text(mode.note).font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 8)
+
+                    DividerLine().padding(.vertical, 14)
+                    rowLabel("配色")
+                    // 兩行兩格：清晰、暖和日常 / 深色、水墨
+                    LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
+                        ForEach(ThemeMode.allCases) { m in
+                            ThemeChip(mode: m, selected: theme.mode == m) { theme.mode = m }
+                        }
+                    }
+                    .padding(.top, 8)
+                    Text(themeNote).font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 8)
                 }
 
                 if mode == .tech {
