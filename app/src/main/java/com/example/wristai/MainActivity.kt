@@ -64,6 +64,7 @@ class MainActivity : ComponentActivity() {
         AppTheme.layout = com.example.wristai.ui.theme.LayoutMode.from(Settings.layoutMode(this))
         AppTheme.inkBg = com.example.wristai.ui.theme.InkBackground.from(Settings.inkBackground(this))
         AppTheme.ukiyoeBg = com.example.wristai.ui.theme.UkiyoeBackground.from(Settings.ukiyoeBackground(this))
+        AppTheme.taiwanBg = com.example.wristai.ui.theme.TaiwanBackground.from(Settings.taiwanBackground(this))
         com.example.wristai.ui.UiMode.load(this)
         SpeechLang.load(this)
         applySystemBars(statusOnDark = false)
@@ -72,7 +73,7 @@ class MainActivity : ComponentActivity() {
         WatchNotifier.broadcastTheme(this)
         handleShare(intent)
         setContent {
-            WristAI_ProjectTheme(AppTheme.mode, onDarkChanged = ::applySystemBars) {
+            WristAI_ProjectTheme(AppTheme.mode, onBarsChanged = ::applySystemBars) {
                 Box(Modifier.fillMaxSize().background(Brand.Backdrop)) {
                     // 水墨配色的背景画：铺满整个萤幕（含状态列后面），画面内容照常在上面
                     AppTheme.art?.let { res ->
@@ -88,16 +89,16 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * 状态列 / 导航列图示。配色都是浅色 → 深色图示；[statusOnDark] = 状态列后面是深色（浮世繪背景画最上面的靛蓝），
-     * 只有状态列改用浅色图示，导航列维持深色图示。
+     * 状态列 / 导航列图示：后面是深色就用浅色图示。[statusOnDark] = 状态列后面是深色（台灣，或浮世繪背景画最上面的靛蓝），
+     * [navOnDark] = 导航列后面是深色（台灣）。
      */
-    private var barsDark: Boolean? = null
-    private fun applySystemBars(statusOnDark: Boolean) {
-        if (barsDark == statusOnDark) return
-        barsDark = statusOnDark
+    private var bars: Pair<Boolean, Boolean>? = null
+    private fun applySystemBars(statusOnDark: Boolean, navOnDark: Boolean = false) {
+        if (bars == statusOnDark to navOnDark) return
+        bars = statusOnDark to navOnDark
         val light = SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
-        enableEdgeToEdge(statusBarStyle = if (statusOnDark) SystemBarStyle.dark(android.graphics.Color.TRANSPARENT) else light,
-            navigationBarStyle = light)
+        val dark = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+        enableEdgeToEdge(statusBarStyle = if (statusOnDark) dark else light, navigationBarStyle = if (navOnDark) dark else light)
     }
 
     override fun onNewIntent(intent: Intent) {

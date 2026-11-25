@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<style>
+  body { margin: 0; background: #1c2430; font-family: "Microsoft JhengHei", "Noto Sans TC", sans-serif; }
+  .row { display: flex; gap: 36px; padding: 36px 36px 20px; }
+  .col { width: 405px; }
+  .name { font: 700 26px "Noto Serif TC", "PMingLiU", serif; color: #E6F1F5; margin: 0 0 14px 4px; }
+  .phone { width: 405px; height: 900px; border-radius: 36px; overflow: hidden; position: relative;
+           background-size: cover; border: 6px solid #05090f; box-sizing: border-box; }
+  .ui { position: absolute; inset: 0; padding: 40px 20px 0; }
+  .date { font-size: 13px; color: #8FA8B6; }
+  .title { font: 700 32px "Microsoft JhengHei", sans-serif; color: #E6F1F5; margin: 2px 0 2px; }
+  .line { font-size: 13px; color: #8FA8B6; margin-bottom: 14px; }
+  .card { background: rgba(18,33,47,.86); border: 1px solid #24435A; border-radius: 16px; padding: 14px 16px; margin-bottom: 12px; }
+  .rec { display: flex; align-items: center; gap: 14px; }
+  .dot { width: 54px; height: 54px; border-radius: 50%; background: #E0475B; display: grid; place-items: center; box-shadow: 0 0 18px rgba(224,71,91,.5); }
+  .dot i { width: 18px; height: 18px; border-radius: 50%; background: #fff; }
+  .t1 { font: 700 18px "Microsoft JhengHei", sans-serif; color: #E6F1F5; }
+  .t2 { font-size: 12px; color: #8FA8B6; margin-top: 2px; }
+  .seg { display: flex; background: #0D1B2A; border-radius: 10px; padding: 3px; margin-top: 12px; font-size: 13px; }
+  .seg span { flex: 1; text-align: center; padding: 7px 0; color: #8FA8B6; }
+  .seg .on { background: #2CC8D8; border-radius: 8px; color: #06222A; font-weight: 700; }
+  .label { font-size: 13px; color: #E6F1F5; margin: 16px 2px 8px; display: flex; justify-content: space-between; font-weight: 600; }
+  .item { display: flex; gap: 12px; }
+  .time { font-size: 13px; color: #8FA8B6; width: 40px; }
+  .kcal { color: #2CC8D8; font-size: 12px; }
+  .nav { position: absolute; left: 0; right: 0; bottom: 0; height: 74px; background: rgba(13,27,42,.92);
+         border-top: 1px solid #24435A; display: flex; align-items: center; justify-content: space-around; font-size: 11px; color: #8FA8B6; }
+  .nav b { width: 46px; height: 46px; border-radius: 50%; background: #2CC8D8; box-shadow: 0 0 16px rgba(44,200,216,.5); }
+  .nav .sel { color: #2CC8D8; font-weight: 700; }
+  .note { font-size: 14px; color: #B8C9D3; margin: 12px 4px 0; line-height: 1.6; }
+  .pal { display: flex; gap: 8px; margin: 0 36px 30px; align-items: center; color: #B8C9D3; font-size: 14px; flex-wrap: wrap; }
+  .pal i { width: 30px; height: 30px; border-radius: 6px; border: 1px solid #24435A; display: inline-block; }
+</style></head><body>
+<div class="row" id="row"></div>
+<div class="pal">配色：<i style="background:#08121D"></i>夜藍底 <i style="background:#12212F"></i>卡片 <i style="background:#E6F1F5"></i>字 <i style="background:#2CC8D8"></i>晶片青 <i style="background:#E0475B"></i>梅花紅 <i style="background:#E9B949"></i>金 <i style="background:#3DD6A0"></i>綠</div>
+<script>
+const all = [
+  ["1_島嶼電路", "島嶼電路", "點陣組成的台灣、北回歸線，五座城市用細線連起來，兩朵線描梅花。"],
+  ["2_晶圓", "晶圓", "右下一片晶圓（裸晶格子、反光），電路從晶圓往上延伸。"],
+  ["3_夜城", "夜城", "夜晚的城市天際線、分節的高塔、遠山與河面倒影，滿月。"],
+];
+const items = all;
+const row = document.getElementById("row");
+for (const [file, name, note] of items) {
+  row.insertAdjacentHTML("beforeend", `
+  <div class="col">
+    <div class="name">${name}</div>
+    <div class="phone" style="background-image:url('${file}.png')">
+      <div class="ui">
+        <div class="date">11 月 26 日 星期四</div>
+        <div class="title">晚上好</div><div class="line">今天記了 3 筆，辛苦了，好好休息。</div>
+        <div class="card">
+          <div class="rec"><div class="dot"><i></i></div><div><div class="t1">開始錄音</div><div class="t2">會議、課堂、訪談、靈感</div></div></div>
+          <div class="seg"><span class="on">國語</span><span>台語・國台語</span><span>客語</span></div>
+        </div>
+        <div class="label"><span>今天的記錄</span><span>1,240 / 2000 大卡</span></div>
+        <div class="card item"><div class="time">12:30</div><div><div class="t1" style="font-size:15px">午餐：牛肉麵＋燙青菜</div><div class="t2">約 780 大卡 <span class="kcal">· 食藥署 3 樣</span></div></div></div>
+        <div class="card item"><div class="time">10:00</div><div><div class="t1" style="font-size:15px">專案週會</div><div class="t2">3 個待辦 · 下週二前交初稿</div></div></div>
+      </div>
+      <div class="nav"><span class="sel">今天</span><span>資料庫</span><b></b><span>飲食</span><span>設定</span></div>
+    </div>
+    <div class="note">${note}</div>
+  </div>`);
+}
+</script>
+</body></html>

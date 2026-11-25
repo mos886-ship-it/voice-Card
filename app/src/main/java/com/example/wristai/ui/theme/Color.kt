@@ -64,35 +64,41 @@ val ClearPalette = Palette(
     accent = listOf(Color(0xFF1F5BD8), Color(0xFF1F5BD8)),
 )
 
-/** C 暖和日常：米白底、暖灰字、珊瑚红重点（也是录音色）、鼠尾草绿给饮食与成功状态（跟 iOS Palette.warm 一样）。 */
-val WarmPalette = Palette(
-    bg = Color(0xFFFBF8F4), surface = Color(0xFFFFFFFF), surfaceHigh = Color(0xFFF5F0EA),
-    surfaceHigher = Color(0xFFEDE6DD), outline = Color(0xFFEDE6DD),
-    cyan = Color(0xFFC4492C), blue = Color(0xFF3B6E8F), violet = Color(0xFF8A6A3D),
-    success = Color(0xFF3E7A58), warning = Color(0xFF9A6510), error = Color(0xFFB3261E), recording = Color(0xFFC4492C),
-    text = Color(0xFF2B2622), textMuted = Color(0xFF6E655D), textFaint = Color(0xFF8C8279),
-    backdropTop = Color(0xFFFBF8F4), pink = Color(0xFFB4566B),
-    accent = listOf(Color(0xFFC4492C), Color(0xFFC4492C)),
+/**
+ * 台灣（取代原本的「暖和」）：以科技为主题的夜蓝深色——夜蓝底、芯片青重点、梅花红录音（梅花是国花）、一点金。
+ * 现在唯一的深色主题（晚上、会议室用）；背景画是 tools/taiwan_bg.py 产生的岛屿电路 / 晶圆 / 夜城。
+ */
+val TaiwanPalette = Palette(
+    bg = Color(0xFF08121D), surface = Color(0xFF12212F), surfaceHigh = Color(0xFF1A2D3E),
+    surfaceHigher = Color(0xFF223A4F), outline = Color(0xFF24435A),
+    cyan = Color(0xFF2CC8D8), blue = Color(0xFF4F9BE0), violet = Color(0xFFE0475B),   // 芯片青、蓝、梅花红
+    success = Color(0xFF3DD6A0), warning = Color(0xFFE9B949), error = Color(0xFFFF6B6B), recording = Color(0xFFE0475B),
+    text = Color(0xFFE6F1F5), textMuted = Color(0xFF8FA8B6), textFaint = Color(0xFF5E7685),
+    backdropTop = Color(0xFF08121D), pink = Color(0xFFF28CA0),
+    // 主要按钮底色（上面是白字）：深一点的青，白字才看得清楚
+    accent = listOf(Color(0xFF178C9C), Color(0xFF178C9C)),
 )
 
 /**
- * 大D 品牌色。数值来自目前的配色（[theme]：clear 清晰 / warm 暖和日常 / ukiyoe 浮世繪 / ink 水墨）；
+ * 大D 品牌色。数值来自目前的配色（[theme]：clear 清晰 / taiwan 台灣 / ukiyoe 浮世繪 / ink 水墨）；
  * [theme] 是 Compose 状态，切换配色时所有用到 Brand 的画面会自动重画。
  */
 object Brand {
     var theme by mutableStateOf("clear")
     val isInk get() = theme == "ink"
     val isUkiyoe get() = theme == "ukiyoe"
-    /** 单色重点、不用渐层的配色（清晰 / 暖和日常 / 浮世繪）。 */
-    val isNew get() = theme == "clear" || theme == "warm" || theme == "ukiyoe"
+    /** 台灣：唯一的深色配色。 */
+    val isDark get() = theme == "taiwan"
+    /** 单色重点、不用渐层的配色（清晰 / 台灣 / 浮世繪）。 */
+    val isNew get() = theme == "clear" || theme == "taiwan" || theme == "ukiyoe"
     private val p get() = when (theme) {
-        "warm" -> WarmPalette
+        "taiwan" -> TaiwanPalette
         "ukiyoe" -> UkiyoePalette
         "ink" -> InkPalette
         else -> ClearPalette
     }
-    /** 卡片圆角：清晰 16、暖和日常 22（比较圆润）、浮世繪 12（版画方正）、水墨 20。 */
-    val CardRadius get() = when (theme) { "warm" -> 22.dp; "clear" -> 16.dp; "ukiyoe" -> 12.dp; else -> 20.dp }
+    /** 卡片圆角：清晰 / 台灣 16、浮世繪 12（版画方正）、水墨 20。 */
+    val CardRadius get() = when (theme) { "clear", "taiwan" -> 16.dp; "ukiyoe" -> 12.dp; else -> 20.dp }
 
     val Bg get() = p.bg
     val Surface get() = p.surface

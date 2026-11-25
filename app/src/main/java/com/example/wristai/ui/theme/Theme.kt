@@ -16,10 +16,13 @@ object AppTheme {
     var inkBg by androidx.compose.runtime.mutableStateOf(InkBackground.BOAT)
     /** 浮世繪配色的背景画（存在设定 ukiyoe_bg）。 */
     var ukiyoeBg by androidx.compose.runtime.mutableStateOf(UkiyoeBackground.GEISHA)
+    /** 台灣配色的背景画（存在设定 taiwan_bg）。 */
+    var taiwanBg by androidx.compose.runtime.mutableStateOf(TaiwanBackground.ISLAND)
     /** 现在要铺的背景画（null = 没有）。 */
     val art: Int? get() = when (mode) {
         ThemeMode.INK -> inkBg.res
         ThemeMode.UKIYOE -> ukiyoeBg.res
+        ThemeMode.TAIWAN -> taiwanBg.res
         else -> null
     }
     /** 现在有没有背景画：卡片、分页列会稍微透明，让画隐约透出来。 */
@@ -33,15 +36,19 @@ object AppTheme {
  */
 enum class ThemeMode(val key: String, val label: String, val note: String) {
     CLEAR("clear", "清晰", "淺灰紙底、白卡片、藍色重點：資訊清楚，適合工作。"),
-    WARM("warm", "暖和", "米白底、珊瑚紅與鼠尾草綠：溫和好讀，適合日常與家人。"),
+    TAIWAN("taiwan", "台灣", "夜藍底、晶片青與梅花紅，以科技為主題，可選背景畫。深色，適合晚上與會議室。"),
     UKIYOE("ukiyoe", "浮世繪", "和紙底、普魯士藍與朱紅，木刻版畫的平塗色塊與墨線，可選背景畫。手錶維持深色。"),
     INK("ink", "水墨", "宣紙底、墨黑字、朱紅點綴，跟 logo 同一套。手錶也會換成水墨。");
 
-    val palette get() = when (this) { CLEAR -> ClearPalette; WARM -> WarmPalette; UKIYOE -> UkiyoePalette; INK -> InkPalette }
+    val palette get() = when (this) { CLEAR -> ClearPalette; TAIWAN -> TaiwanPalette; UKIYOE -> UkiyoePalette; INK -> InkPalette }
 
     companion object {
-        /** 旧的「深色」（dark）已改成浮世繪；light、system 当清晰。 */
-        fun from(key: String?) = if (key == "dark") UKIYOE else entries.firstOrNull { it.key == key } ?: CLEAR
+        /** light、system 当清晰。 */
+        fun from(key: String?) = when (key) {
+            "dark" -> UKIYOE     // 旧的「深色」改成浮世繪
+            "warm" -> TAIWAN     // 旧的「暖和」改成台灣
+            else -> entries.firstOrNull { it.key == key } ?: CLEAR
+        }
     }
 }
 
@@ -72,6 +79,21 @@ enum class LayoutMode(val key: String, val label: String, val note: String) {
  * 浮世繪配色的背景画（原创，tools/ukiyoe_bg.py 产生，設計/浮世繪背景 有原图；res/drawable-nodpi 是 1080×2400 WebP）。
  * 最上面一道普鲁士蓝渐层（只在状态列后面）、右上题签与朱红落款，画都在下半部。
  */
+/**
+ * 台灣配色的背景画（原创，tools/taiwan_bg.py 产生，設計/台灣背景 有原图；res/drawable-nodpi 是 1080×2400 WebP）。
+ * 不用任何公司名称或商标。
+ */
+enum class TaiwanBackground(val key: String, val label: String, val res: Int?) {
+    ISLAND("island", "島嶼電路", com.example.wristai.R.drawable.taiwan_bg_island),
+    WAFER("wafer", "晶圓", com.example.wristai.R.drawable.taiwan_bg_wafer),
+    CITY("city", "夜城", com.example.wristai.R.drawable.taiwan_bg_city),
+    NONE("none", "無", null);
+
+    companion object {
+        fun from(key: String?) = entries.firstOrNull { it.key == key } ?: ISLAND
+    }
+}
+
 enum class UkiyoeBackground(val key: String, val label: String, val res: Int?) {
     GEISHA("geisha", "藝伎武士", com.example.wristai.R.drawable.ukiyoe_bg_geisha),
     CRANE("crane", "靈鶴", com.example.wristai.R.drawable.ukiyoe_bg_crane),
@@ -111,14 +133,16 @@ private fun scheme(dark: Boolean): ColorScheme {
 
 /**
  * 品牌主题（不用系统的动态取色，各品牌手机外观一致）。
- * [onDarkChanged] 让 Activity 跟着换状态列图示颜色。
+ * [onBarsChanged] 让 Activity 跟着换状态列 / 导航列图示颜色。
  */
 @Composable
-fun WristAI_ProjectTheme(mode: ThemeMode = ThemeMode.CLEAR, onDarkChanged: (Boolean) -> Unit = {}, content: @Composable () -> Unit) {
+fun WristAI_ProjectTheme(mode: ThemeMode = ThemeMode.CLEAR, onBarsChanged: (statusDark: Boolean, navDark: Boolean) -> Unit = { _, _ -> },
+                         content: @Composable () -> Unit) {
     if (Brand.theme != mode.key) Brand.theme = mode.key
-    // 现在所有配色都是浅色；浮世繪有背景画时，最上面是一道深靛蓝（版画的天空），状态列要用浅色图示
-    val statusOnDark = mode == ThemeMode.UKIYOE && AppTheme.hasArt
-    SideEffect { onDarkChanged(statusOnDark) }
-    MaterialTheme(colorScheme = scheme(false),
+    // 台灣是深色：状态列、导航列都用浅色图示；浮世繪有背景画时最上面是一道深靛蓝，只有状态列用浅色图示
+    val dark = mode == ThemeMode.TAIWAN
+    val statusOnDark = dark || (mode == ThemeMode.UKIYOE && AppTheme.hasArt)
+    SideEffect { onBarsChanged(statusOnDark, dark) }
+    MaterialTheme(colorScheme = scheme(dark),
         typography = if (mode == ThemeMode.INK || mode == ThemeMode.UKIYOE) InkTypography else Typography, content = content)
 }

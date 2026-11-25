@@ -166,6 +166,25 @@ fun SettingsScreen(onBack: (() -> Unit)? = null) {
                 Spacer(Modifier.height(6.dp))
                 Text(AppTheme.mode.note, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
 
+                // 台灣才有：背景画（島嶼電路 / 晶圓 / 夜城 / 無）
+                if (AppTheme.mode == com.example.wristai.ui.theme.ThemeMode.TAIWAN) {
+                    InterfaceDivider()
+                    Text("背景畫", style = MaterialTheme.typography.titleSmall, color = Brand.Text)
+                    Spacer(Modifier.height(8.dp))
+                    val tbs = com.example.wristai.ui.theme.TaiwanBackground.entries
+                    Segmented(tbs.map { it.label }, tbs.indexOf(AppTheme.taiwanBg)) { i ->
+                        AppTheme.taiwanBg = tbs[i]
+                        Settings.setTaiwanBackground(context, tbs[i].key)
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Text(when (AppTheme.taiwanBg) {
+                        com.example.wristai.ui.theme.TaiwanBackground.ISLAND -> "島嶼電路：點陣組成的台灣、北回歸線與五座城市的連線。"
+                        com.example.wristai.ui.theme.TaiwanBackground.WAFER -> "晶圓：一片晶圓與往上延伸的電路，點綴梅花。"
+                        com.example.wristai.ui.theme.TaiwanBackground.CITY -> "夜城：夜晚的城市天際線、遠山與河面倒影。"
+                        com.example.wristai.ui.theme.TaiwanBackground.NONE -> "不放背景畫，只有夜藍底。"
+                    }, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
+                }
+
                 // 浮世繪才有：背景画（藝伎武士 / 靈鶴 / 大阪城 / 無）
                 if (AppTheme.mode == com.example.wristai.ui.theme.ThemeMode.UKIYOE) {
                     InterfaceDivider()
