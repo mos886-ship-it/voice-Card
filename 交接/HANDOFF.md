@@ -433,3 +433,4 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 - 深色：狀態列、導航列都用淺色圖示（`WristAI_ProjectTheme(onBarsChanged = (statusDark, navDark))`；浮世繪有背景畫時只有狀態列淺色）。
 - 背景畫（配色選台灣才出現「背景畫」）：島嶼電路（預設）/ 晶圓 / 夜城 / 無，存在 `taiwan_bg`（island / wafer / city / none）。圖在 `res/drawable-nodpi/taiwan_bg_*.webp`（各約 26–34 KB），原創、`tools/taiwan_bg.py` 產生，不用任何公司名稱或商標；島嶼電路是照實際海岸經緯度畫的點陣台灣、北回歸線、台北—新竹—台中—台南—高雄的連線。
 - iOS 要照做。
+- **iOS 已跟上**：`ThemeMode.taiwan`（取代 warm；存的 warm 讀成 taiwan）、`Palette.taiwan`（照上面色碼，isDark、accent 單色 #178C9C 給按鈕、cyan #2CC8D8 當重點字色、圓角 16、isNew 樣式）、`TaiwanBg`（`taiwan_bg`，預設 island）、`ios/Dylan/InkBG/taiwan_bg_*.webp`。深色 → `preferredColorScheme(.dark)`（home indicator 淺色），`statusOnDark` 對任何深色配色都成立（狀態列淺色圖示）。模擬器看過三張畫、狀態列白字，換回浮世繪後狀態列照舊。

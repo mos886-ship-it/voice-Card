@@ -75,16 +75,16 @@ struct Palette: Equatable {
         text: Color(hex: 0x101828), textMuted: Color(hex: 0x5D6675), textFaint: Color(hex: 0x7A8494),
         accent: [Color(hex: 0x1F5BD8), Color(hex: 0x1F5BD8)], record: [Color(hex: 0xD0312D), Color(hex: 0xD0312D)])
 
-    /// C 暖和日常：米白底、暖灰字、珊瑚紅重點（也是錄音色）、鼠尾草綠給飲食與成功狀態。
-    static let warm = Palette(
-        id: "warm", isDark: false,
-        bg: Color(hex: 0xFBF8F4), bgCenter: Color(hex: 0xFFFFFF), backdropTop: Color(hex: 0xFBF8F4),
-        surface: Color(hex: 0xFFFFFF), surfaceHigh: Color(hex: 0xF5F0EA), surfaceHigher: Color(hex: 0xEDE6DD),
-        outline: Color(hex: 0xEDE6DD),
-        cyan: Color(hex: 0xC4492C), blue: Color(hex: 0x3B6E8F), violet: Color(hex: 0x8A6A3D), pink: Color(hex: 0xB4566B),
-        success: Color(hex: 0x3E7A58), warning: Color(hex: 0x9A6510), error: Color(hex: 0xB3261E), recording: Color(hex: 0xC4492C),
-        text: Color(hex: 0x2B2622), textMuted: Color(hex: 0x6E655D), textFaint: Color(hex: 0x8C8279),
-        accent: [Color(hex: 0xC4492C), Color(hex: 0xC4492C)], record: [Color(hex: 0xC4492C), Color(hex: 0xC4492C)])
+    /// 台灣：夜藍底、晶片青與梅花紅，以科技為主題（唯一的深色配色；照 Android TaiwanPalette）。主要按鈕底 #178C9C、白字。只有手機。
+    static let taiwan = Palette(
+        id: "taiwan", isDark: true,
+        bg: Color(hex: 0x08121D), bgCenter: Color(hex: 0x12212F), backdropTop: Color(hex: 0x08121D),
+        surface: Color(hex: 0x12212F), surfaceHigh: Color(hex: 0x1A2D3E), surfaceHigher: Color(hex: 0x223A4F),
+        outline: Color(hex: 0x24435A),
+        cyan: Color(hex: 0x2CC8D8), blue: Color(hex: 0x4F9BE0), violet: Color(hex: 0xE0475B), pink: Color(hex: 0xE0475B),
+        success: Color(hex: 0x3DD6A0), warning: Color(hex: 0xE9B949), error: Color(hex: 0xFF6B6B), recording: Color(hex: 0xE0475B),
+        text: Color(hex: 0xE6F1F5), textMuted: Color(hex: 0x8FA8B6), textFaint: Color(hex: 0x5E7685),
+        accent: [Color(hex: 0x178C9C), Color(hex: 0x178C9C)], record: [Color(hex: 0xE0475B), Color(hex: 0xE0475B)])
 
     /// 浮世繪：和紙底、普魯士藍與朱紅，木刻版畫的平塗色塊（不用漸層）；標題襯線字（照 Android UkiyoePalette）。只有手機。
     static let ukiyoe = Palette(
@@ -104,15 +104,15 @@ struct Palette: Equatable {
     #endif
 }
 
-/// 配色（設定 → 配色，跟排布分開）：清晰（預設）/ 暖和日常 / 浮世繪 / 水墨。
-/// 舊的「深色」讀成浮世繪；「淺色」「自動」當清晰。Palette.dark 只剩手錶用。
+/// 配色（設定 → 配色，跟排布分開）：清晰（預設）/ 台灣 / 浮世繪 / 水墨。
+/// 舊的「深色」讀成浮世繪、「暖和日常」讀成台灣；「淺色」「自動」當清晰。Palette.dark 只剩手錶用。
 enum ThemeMode: String, CaseIterable, Identifiable {
-    case clear, warm, ukiyoe, ink
+    case clear, taiwan, ukiyoe, ink
     var id: String { rawValue }
     var label: String {
         switch self {
         case .clear: return "清晰"
-        case .warm: return "暖和日常"
+        case .taiwan: return "台灣"
         case .ukiyoe: return "浮世繪"
         case .ink: return "水墨"
         }
@@ -120,7 +120,7 @@ enum ThemeMode: String, CaseIterable, Identifiable {
     var palette: Palette {
         switch self {
         case .clear: return .clear
-        case .warm: return .warm
+        case .taiwan: return .taiwan
         case .ukiyoe: return .ukiyoe
         case .ink: return .ink
         }
@@ -140,10 +140,10 @@ enum Brand {
     static var serifTitles: Bool { current.id == "ink" || current.id == "ukiyoe" }
     /// 卡片圓角：清晰 16、暖和日常 22（比較圓潤）。
     static var cardRadius: CGFloat {
-        switch current.id { case "warm": 22; case "clear": 16; case "ukiyoe": 12; default: 20 }
+        switch current.id { case "clear", "taiwan": 16; case "ukiyoe": 12; default: 20 }
     }
     /// 新設計（清晰 / 暖和日常）：不用漸層、標題不用等寬字。
-    static var isNew: Bool { current.id == "clear" || current.id == "warm" || current.id == "ukiyoe" }
+    static var isNew: Bool { ["clear", "taiwan", "ukiyoe"].contains(current.id) }
     private static var p: Palette { current }
 
     static var bg: Color { p.bg }

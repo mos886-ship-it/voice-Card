@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 配色：清晰 / 暖和日常 / 浮世繪 / 水墨。存在 UserDefaults "theme_mode"，預設清晰；舊的 light / auto 當清晰。
+/// 配色：清晰 / 台灣 / 浮世繪 / 水墨。存在 UserDefaults "theme_mode"，預設清晰；舊的 light / auto 當清晰。
 /// 手錶只有兩種：水墨跟手機一起，其他一律深色（OLED 省電）。
 @MainActor
 final class ThemeStore: ObservableObject {
@@ -14,6 +14,11 @@ final class ThemeStore: ObservableObject {
         }
     }
 
+    /// 台灣的背景畫（配色選台灣才出現）。
+    @Published var taiwanBg: TaiwanBg {
+        didSet { UserDefaults.standard.set(taiwanBg.rawValue, forKey: TaiwanBg.key) }
+    }
+
     /// 浮世繪的背景畫（配色選浮世繪才出現）。
     @Published var ukiyoeBg: UkiyoeBg {
         didSet { UserDefaults.standard.set(ukiyoeBg.rawValue, forKey: UkiyoeBg.key) }
@@ -24,11 +29,13 @@ final class ThemeStore: ObservableObject {
         switch mode {
         case .ink: inkBg.image
         case .ukiyoe: ukiyoeBg.image
+        case .taiwan: taiwanBg.image
         default: nil
         }
     }
     /// 浮世繪的畫最上面是靛藍（狀態列後面）→ 狀態列用淺色圖示。
-    var statusOnDark: Bool { mode == .ukiyoe && art != nil }
+    /// 台灣（深色）整個配色都用淺色圖示。
+    var statusOnDark: Bool { mode.palette.isDark || (mode == .ukiyoe && art != nil) }
 
     /// 水墨的背景畫（設定 → 介面 → 配色選水墨才出現）。
     @Published var inkBg: InkBg {
@@ -38,9 +45,11 @@ final class ThemeStore: ObservableObject {
     init() {
         inkBg = InkBg(rawValue: UserDefaults.standard.string(forKey: InkBg.key) ?? "") ?? .boat
         ukiyoeBg = UkiyoeBg(rawValue: UserDefaults.standard.string(forKey: UkiyoeBg.key) ?? "") ?? .geisha
+        taiwanBg = TaiwanBg(rawValue: UserDefaults.standard.string(forKey: TaiwanBg.key) ?? "") ?? .island
         LayoutMode.migrate()
         let saved = UserDefaults.standard.string(forKey: Self.key) ?? ""
-        mode = saved == "dark" ? .ukiyoe : ThemeMode(rawValue: saved) ?? .clear   // 1.1.95 以前的「深色」→ 浮世繪
+        // 1.1.95 以前的「深色」→ 浮世繪；1.1.98 以前的「暖和日常」→ 台灣
+        mode = saved == "dark" ? .ukiyoe : saved == "warm" ? .taiwan : ThemeMode(rawValue: saved) ?? .clear
     }
 
     func palette(system: ColorScheme) -> Palette { mode.palette }
@@ -138,7 +147,7 @@ enum UkiyoeBg: String, CaseIterable, Identifiable {
     }
 }
 
-/// 狀態列圖示顏色：浮世繪有背景畫時，狀態列後面是靛藍 → 用淺色圖示（照 Android statusOnDark）。
+/// 狀態列圖示顏色：台灣（深色）整個配色、浮世繪有背景畫時（狀態列後面是靛藍）用淺色圖示（照 Android statusOnDark）。
 /// SwiftUI 沒有直接設定狀態列樣式的方法：把根畫面控制器的 preferredStatusBarStyle 換成我們決定的值。
 private struct StatusBarStyler: UIViewControllerRepresentable {
     let lightContent: Bool
@@ -170,5 +179,31 @@ enum StatusBar {
             }
         }
         root.setNeedsStatusBarAppearanceUpdate()
+    }
+}
+
+/// 台灣背景畫（照 Android：taiwan_bg = island / wafer / city / none）。原創、程式產生（tools/taiwan_bg.py），不用任何公司名稱或商標。
+enum TaiwanBg: String, CaseIterable, Identifiable {
+    case island, wafer, city, none
+    static let key = "taiwan_bg"
+    var id: String { rawValue }
+    var label: String {
+        switch self { case .island: "島嶼電路"; case .wafer: "晶圓"; case .city: "夜城"; case .none: "無" }
+    }
+    var note: String {
+        switch self {
+        case .island: "島嶼電路：點陣組成的台灣、北回歸線與五座城市的連線。"
+        case .wafer: "晶圓：一片晶圓與往上延伸的電路，點綴梅花。"
+        case .city: "夜城：夜晚的城市天際線、遠山與河面倒影。"
+        case .none: "不放背景畫，只有夜藍底。"
+        }
+    }
+    private static var cache: [TaiwanBg: UIImage] = [:]
+    var image: UIImage? {
+        if let img = Self.cache[self] { return img }
+        guard self != .none, let url = Bundle.main.url(forResource: "taiwan_bg_\(rawValue)", withExtension: "webp"),
+              let img = UIImage(contentsOfFile: url.path) else { return nil }
+        Self.cache[self] = img
+        return img
     }
 }
