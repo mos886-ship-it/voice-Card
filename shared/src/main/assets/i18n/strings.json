@@ -4714,5 +4714,21 @@
  "逐字稿照{0}原文寫，報告用報告語言；大D的主機辨識不了時會改用其他引擎。": {
   "en": "The transcript stays in {0}, the report is in your report language; if Dylan Host can't recognize it, another engine is used.",
   "ko": "텍스트는 {0} 원문 그대로, 보고서는 보고서 언어로 작성합니다. Dylan 호스트가 인식하지 못하면 다른 엔진을 사용합니다."
+ },
+ "從檔案選（錄音、影片、文字）": {
+  "en": "From Files (audio, video, text)",
+  "ko": "파일에서 선택(녹음, 동영상, 텍스트)"
+ },
+ "從相簿選影片": {
+  "en": "Video from Photos",
+  "ko": "사진 앱에서 동영상 선택"
+ },
+ "影片只取出聲音來產生報告，影像不會存。": {
+  "en": "Only the sound from videos is used for the report; the picture isn't kept.",
+  "ko": "동영상은 소리만 꺼내 보고서를 만들며 영상은 저장하지 않습니다."
+ },
+ "讀不到這段影片": {
+  "en": "Couldn't read this video",
+  "ko": "이 동영상을 읽을 수 없습니다"
  }
 }

@@ -10,6 +10,7 @@ struct RecordsView: View {
     @State private var debounced = ""
     @State private var origin: String?
     @State private var picking = false
+    @State private var choosing = false
     @State private var deleting: Meeting?
     @AppStorage(UIMode.key) private var mode: UIMode = .business
     @State private var importing = false
@@ -40,7 +41,7 @@ struct RecordsView: View {
                     // 原本的「檔案」分頁：大小、分享錄音檔、只刪錄音檔、刪除整筆
                     if layout == .quick { GhostButton(text: "管理".tr, tint: Brand.cyan) { managing = true } }
                     GhostButton(text: importing ? "匯入中…".tr : "匯入".tr, systemImage: "plus", tint: Brand.cyan) {
-                        if !importing { picking = true }
+                        if !importing { choosing = true }
                     }
                     .fileImporter(isPresented: $picking, allowedContentTypes: AudioImport.types,
                                   allowsMultipleSelection: true) { result in
@@ -109,6 +110,12 @@ struct RecordsView: View {
             .padding(.vertical, 12)
         }
         .refreshable { store.reload() }
+        .background(Color.clear.modifier(ImportSources(choosing: $choosing, pickingFiles: $picking, started: { importing = true }) { errors, total in
+            importing = false
+            let ok = total - errors.count
+            toast = errors.isEmpty ? "已匯入 {0} 個檔，正在產生報告".trf(ok)
+                : (ok > 0 ? "已匯入 {0} 個；".trf(ok) : "") + errors.joined(separator: "；")
+        }))
         .sheet(isPresented: $managing) {
             FilesView(open: { id in managing = false; open(id) }, toast: $toast, onClose: { managing = false })
                 .environmentObject(store)

@@ -1,4 +1,6 @@
 import AVFoundation
+import PhotosUI
+import SwiftUI
 import UniformTypeIdentifiers
 
 /// 匯入音檔 / 影片（檔案 App、iCloud 雲碟、語音備忘錄「儲存到檔案」…）：
@@ -86,5 +88,63 @@ enum AudioImport {
         store.save(m)
         if await MeetingStore.canReport() { Task { await store.process(id) } }
         return nil
+    }
+}
+
+// MARK: - 從相簿選影片（只取聲音）
+
+/// 相簿裡的影片：系統把檔案交給我們（複製到暫存），之後照一般檔案匯入（CallInbox.mix 只取音軌，影像不留）。
+struct VideoFile: Transferable {
+    let url: URL
+    static var transferRepresentation: some TransferRepresentation {
+        FileRepresentation(contentType: .movie) { SentTransferredFile($0.url) } importing: { received in
+            // 每段影片放自己的資料夾，檔名不變（匯入後的標題就是影片的檔名）
+            let dir = FileManager.default.temporaryDirectory.appendingPathComponent("video-import/" + UUID().uuidString, isDirectory: true)
+            try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+            let dst = dir.appendingPathComponent(received.file.lastPathComponent)
+            try FileManager.default.copyItem(at: received.file, to: dst)
+            return VideoFile(url: dst)
+        }
+    }
+}
+
+/// 「匯入」按鈕的來源選擇：檔案（錄音、影片、文字）或相簿影片。主頁與錄音頁共用。
+/// done(錯誤訊息, 總數)：匯入完成後顯示結果用。
+struct ImportSources: ViewModifier {
+    @Binding var choosing: Bool
+    @Binding var pickingFiles: Bool
+    var started: () -> Void = {}
+    let done: (_ errors: [String], _ total: Int) -> Void
+    @State private var pickingVideos = false
+    @State private var items: [PhotosPickerItem] = []
+
+    func body(content: Content) -> some View {
+        content
+            .confirmationDialog("匯入".tr, isPresented: $choosing, titleVisibility: .visible) {
+                Button("從檔案選（錄音、影片、文字）".tr) { pickingFiles = true }
+                Button("從相簿選影片".tr) { pickingVideos = true }
+                Button("取消".tr, role: .cancel) {}
+            } message: {
+                Text("影片只取出聲音來產生報告，影像不會存。".tr)
+            }
+            .photosPicker(isPresented: $pickingVideos, selection: $items, maxSelectionCount: 5,
+                          matching: .videos, preferredItemEncoding: .current)
+            .onChange(of: items) { picked in
+                guard !picked.isEmpty else { return }
+                started()
+                Task {
+                    var errors: [String] = []
+                    for item in picked {
+                        guard let v = try? await item.loadTransferable(type: VideoFile.self) else {
+                            errors.append("讀不到這段影片".tr)
+                            continue
+                        }
+                        if let e = await AudioImport.run(v.url) { errors.append(e) }
+                        try? FileManager.default.removeItem(at: v.url.deletingLastPathComponent())
+                    }
+                    items = []
+                    done(errors, picked.count)
+                }
+            }
     }
 }

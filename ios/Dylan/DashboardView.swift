@@ -19,6 +19,7 @@ struct DashboardView: View {
     @State private var nameInput = ""
 
     @State private var picking = false
+    @State private var choosing = false
 
     var body: some View {
         let todays = store.meetings.filter { Calendar.current.isDateInToday($0.createdAt) && $0.status != .recording }
@@ -60,7 +61,7 @@ struct DashboardView: View {
                 } else {
                     CaptureCard(lang: lang, dialect: dialect, setLang: { langs.lang = $0 }, setDialect: { langs.dialect = $0 },
                                 record: { rec.start() }, food: { rec.start(food: true) },
-                                call: { BroadcastPicker.open() }, importFile: { picking = true })
+                                call: { BroadcastPicker.open() }, importFile: { choosing = true })
                         .background(BroadcastPicker().frame(width: 1, height: 1))
                 }
                 } right: {
@@ -127,6 +128,11 @@ struct DashboardView: View {
             .padding(.vertical, 12)
         }
         .refreshable { store.reload() }
+        .background(Color.clear.modifier(ImportSources(choosing: $choosing, pickingFiles: $picking) { errors, total in
+            let ok = total - errors.count
+            toast = errors.isEmpty ? "已匯入 {0} 個檔，正在產生報告".trf(ok)
+                : (ok > 0 ? "已匯入 {0} 個；".trf(ok) : "") + errors.joined(separator: "；")
+        }))
         .fileImporter(isPresented: $picking, allowedContentTypes: AudioImport.types, allowsMultipleSelection: true) { result in
             guard case let .success(urls) = result, !urls.isEmpty else { return }
             Task {
