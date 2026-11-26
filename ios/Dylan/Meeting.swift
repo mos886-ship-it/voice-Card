@@ -58,7 +58,7 @@ struct Meeting: Codable, Identifiable, Equatable {
     var speechLang: SpeechLang { SpeechLang(rawValue: lang ?? "") ?? .zh }
     var hakkaDialect: HakkaDialect { HakkaDialect(rawValue: dialect ?? "") ?? .sixian }
     /// 「客語・海陸」、「台語・國台語」、「國語」
-    var langLabel: String { speechLang == .hak ? "客語・" + hakkaDialect.label : speechLang.label }
+    var langLabel: String { speechLang == .hak ? "客語・".tr + hakkaDialect.label : speechLang.label }
 
     /// 飲食記錄的錄音 id 開頭（照 Android FoodLog.ID_PREFIX）。
     static let foodPrefix = "food_"
@@ -66,7 +66,7 @@ struct Meeting: Codable, Identifiable, Equatable {
 
     static func new(id: String, source: String) -> Meeting {
         let start = RecordingID.date(of: id) ?? Date()
-        let kind = id.hasPrefix(foodPrefix) ? "飲食 " : "錄音 "
+        let kind = id.hasPrefix(foodPrefix) ? "飲食 ".tr : "錄音 ".tr
         return Meeting(id: id, title: kind + Fmt.stamp(start, "M/d HH:mm"), createdAt: start,
                        durationSec: 0, status: .recording, source: source, segments: [:], lastSeq: nil, error: nil,
                        updatedAt: Date(), device: source == "watch" || DeviceInfo.name.isEmpty ? nil : DeviceInfo.name,
@@ -97,37 +97,37 @@ struct Meeting: Codable, Identifiable, Equatable {
 
     static func label(source: String) -> String {
         switch source {
-        case "watch": return "手錶"
-        case "phone": return Meeting.isPad ? "iPad" : "手機"   // 錄音只存在錄的那台：在 iPad 上看到的就是 iPad 錄的
-        case "import": return "匯入"
-        case "call": return "通話"
-        case "food": return "飲食"
-        case "photo": return "拍照"
+        case "watch": return "手錶".tr
+        case "phone": return Meeting.isPad ? "iPad" : "手機".tr   // 錄音只存在錄的那台：在 iPad 上看到的就是 iPad 錄的
+        case "import": return "匯入".tr
+        case "call": return "通話".tr
+        case "food": return "飲食".tr
+        case "photo": return "拍照".tr
         default: return source
         }
     }
 
     var statusLabel: String {
         switch status {
-        case .recording: return "錄音中"
-        case .received: return "已收到"
-        case .summarizing: return "AI 分析中"
-        case .done: return "報告完成"
-        case .failed: return "失敗"
+        case .recording: return "錄音中".tr
+        case .received: return "已收到".tr
+        case .summarizing: return "AI 分析中".tr
+        case .done: return "報告完成".tr
+        case .failed: return "失敗".tr
         }
     }
 
     /// AI 模型代號 → 好讀的名字（照 Android aiModelLabel）：gemini-3.8-flash → Google Gemini 3.8 Flash。
     static func aiModelLabel(_ model: String?) -> String {
-        guard let model, !model.isEmpty else { return "未記錄" }
+        guard let model, !model.isEmpty else { return "未記錄".tr }
         if model.hasPrefix("local-") { return LocalAI.label(model) }
         // Apple：「apple-speech|apple-pcc」= 語音辨識 ＋ 整理
         if model.hasPrefix("apple-") {
             return model.split(separator: "|").map {
                 switch $0 {
-                case "apple-speech": return "Apple 語音辨識"
-                case "apple-pcc": return "Apple 私有雲運算"
-                case "apple-ondevice": return "Apple 裝置端模型"
+                case "apple-speech": return "Apple 語音辨識".tr
+                case "apple-pcc": return "Apple 私有雲運算".tr
+                case "apple-ondevice": return "Apple 裝置端模型".tr
                 default: return String($0)
                 }
             }.joined(separator: " ＋ ")
@@ -143,7 +143,7 @@ struct Meeting: Codable, Identifiable, Equatable {
 
     /// 「2026/11/21 15:00:03 – 15:30:10（30:07）」，跨日會寫結束日期（照 Android recordingRange）。
     var recordingRange: String {
-        if source == "photo" { return "拍照 " + Fmt.stamp(createdAt, "yyyy/MM/dd HH:mm") }
+        if source == "photo" { return "拍照 ".tr + Fmt.stamp(createdAt, "yyyy/MM/dd HH:mm") }
         if durationSec < 1 { return Fmt.stamp(createdAt, "yyyy/MM/dd HH:mm") }   // 匯入的文字：沒有長度
         let end = createdAt.addingTimeInterval(durationSec)
         let sameDay = Calendar.current.isDate(createdAt, inSameDayAs: end)

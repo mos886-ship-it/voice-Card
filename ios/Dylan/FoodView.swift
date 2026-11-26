@@ -25,8 +25,8 @@ struct FoodView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 VStack(alignment: .leading, spacing: 0) {
-                    Text("飲食").font(.headlineSmall).foregroundStyle(Brand.text)
-                    Text("說出吃了什麼，AI 估算熱量與營養素").font(.bodySmall).foregroundStyle(Brand.textMuted)
+                    Text("飲食".tr).font(.headlineSmall).foregroundStyle(Brand.text)
+                    Text("說出吃了什麼，AI 估算熱量與營養素".tr).font(.bodySmall).foregroundStyle(Brand.textMuted)
                 }
 
                 GlassCard {
@@ -46,12 +46,12 @@ struct FoodView: View {
                             .padding(.horizontal, 6)
                     }
                     .padding(.bottom, 12)
-                    GradientButton(text: rec.isRecording ? "停止錄音" : "記錄這一餐", recordDot: !rec.isRecording) {
+                    GradientButton(text: rec.isRecording ? "停止錄音".tr : "記錄這一餐".tr, recordDot: !rec.isRecording) {
                         if rec.isRecording { rec.stop() } else { rec.start(food: true) }
                     }
                     if !rec.isRecording {
                         Button { FoodPhotoCapture.shared.open(withVoice: false) } label: {
-                            Label("拍照記錄（最多 \(FoodPhotos.max) 張）", systemImage: "camera")
+                            Label("拍照記錄（最多 {0} 張）".trf(FoodPhotos.max), systemImage: "camera")
                                 .font(.labelLarge).frame(maxWidth: .infinity).frame(height: 44)
                         }
                         .buttonStyle(.bordered).tint(Brand.cyan).padding(.top, 8)
@@ -65,14 +65,14 @@ struct FoodView: View {
                                 .rotationEffect(.degrees(-90))
                             VStack(spacing: 0) {
                                 Text(String(kcal)).font(.system(size: 26, weight: .bold)).foregroundStyle(Brand.text)
-                                Text("/ \(String(Self.goal)) 大卡").font(.labelMedium).foregroundStyle(Brand.textMuted)
+                                Text("/ {0} 大卡".trf(String(Self.goal))).font(.labelMedium).foregroundStyle(Brand.textMuted)
                             }
                         }
                         .frame(width: 120, height: 120)
                         VStack(alignment: .leading, spacing: 8) {
-                            nutrient("蛋白質", sum(\.protein), Brand.cyan)
-                            nutrient("碳水", sum(\.carbs), Brand.violet)
-                            nutrient("脂肪", sum(\.fat), Brand.pink)
+                            nutrient("蛋白質".tr, sum(\.protein), Brand.cyan)
+                            nutrient("碳水".tr, sum(\.carbs), Brand.violet)
+                            nutrient("脂肪".tr, sum(\.fat), Brand.pink)
                         }
                     }
                     .padding(.top, 16)
@@ -80,8 +80,8 @@ struct FoodView: View {
 
                 if meals.isEmpty {
                     GlassCard {
-                        Text("還沒有飲食記錄").font(.titleMedium).foregroundStyle(Brand.text)
-                        Text("按「記錄這一餐」或手錶的「飲食」，說出吃了什麼（例如「中午吃了一碗牛肉麵和燙青菜」），停止後會自動估算熱量。")
+                        Text("還沒有飲食記錄".tr).font(.titleMedium).foregroundStyle(Brand.text)
+                        Text("按「記錄這一餐」或手錶的「飲食」，說出吃了什麼（例如「中午吃了一碗牛肉麵和燙青菜」），停止後會自動估算熱量。".tr)
                             .font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 4)
                     }
                 }
@@ -90,7 +90,7 @@ struct FoodView: View {
                     HStack {
                         Text(dayLabel(day)).font(.titleSmall).foregroundStyle(Brand.text)
                         Spacer()
-                        Text("\(String(list.reduce(0) { $0 + ($1.nutrition?.kcal ?? 0) })) 大卡").font(.labelMedium).foregroundStyle(Brand.textMuted)
+                        Text("{0} 大卡".trf(String(list.reduce(0) { $0 + ($1.nutrition?.kcal ?? 0) }))).font(.labelMedium).foregroundStyle(Brand.textMuted)
                     }
                     .padding(.top, 6)
                     CardGrid(minimum: 320) {
@@ -114,8 +114,8 @@ struct FoodView: View {
     }
 
     private func dayLabel(_ d: Date) -> String {
-        if Calendar.current.isDateInToday(d) { return "今天" }
-        if Calendar.current.isDateInYesterday(d) { return "昨天" }
+        if Calendar.current.isDateInToday(d) { return "今天".tr }
+        if Calendar.current.isDateInYesterday(d) { return "昨天".tr }
         return Fmt.stamp(d, "M/d EEEE")
     }
 }
@@ -130,7 +130,7 @@ private struct MealRow: View {
                     Text(m.title).font(.titleMedium).foregroundStyle(Brand.text).lineLimit(1)
                     if let n = m.nutrition {
                         // 營養素不要在數字中間斷行（照 Android 2026-11-21 修正）
-                        Text("\(Fmt.stamp(m.createdAt, "HH:mm")) · 蛋白質 \(n.protein)g · 碳水 \(n.carbs)g · 脂肪 \(n.fat)g")
+                        Text("{0} · 蛋白質 {1}g · 碳水 {2}g · 脂肪 {3}g".trf(Fmt.stamp(m.createdAt, "HH:mm"), n.protein, n.carbs, n.fat))
                             .font(.bodySmall).foregroundStyle(Brand.textMuted).lineLimit(1).minimumScaleFactor(0.8)
                     } else {
                         StatusChip(style: m.statusStyle).padding(.top, 4)
@@ -140,7 +140,7 @@ private struct MealRow: View {
                 if let n = m.nutrition {
                     VStack(alignment: .trailing, spacing: 0) {
                         Text(String(n.kcal)).font(.titleLarge).foregroundStyle(Brand.text)
-                        Text("大卡").font(.labelMedium).foregroundStyle(Brand.textMuted)
+                        Text("大卡".tr).font(.labelMedium).foregroundStyle(Brand.textMuted)
                     }
                 }
             }

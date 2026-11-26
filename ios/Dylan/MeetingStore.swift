@@ -156,7 +156,7 @@ final class MeetingStore: ObservableObject {
         } catch {
             NSLog("[MeetingStore] assemble failed: \(error)")
             m.status = .failed
-            m.error = "分段合併失敗：\(error.localizedDescription)"
+            m.error = "分段合併失敗：{0}".trf(error.localizedDescription)
         }
         m.updatedAt = Date()
         // 不到 1 秒（一按就停）：不送辨識（照 Android MIN_RECORDING_SEC）；匯入、通話不受影響
@@ -172,7 +172,7 @@ final class MeetingStore: ObservableObject {
             }
             NSLog("[MeetingStore] \(m.id) shorter than \(Self.minRecordingSec)s, discarded")
             delete(m.id)
-            if m.source == "watch" { PhoneLink.shared.sendStatus(id: m.id, text: "錄音不到 1 秒，已取消") }
+            if m.source == "watch" { PhoneLink.shared.sendStatus(id: m.id, text: "錄音不到 1 秒，已取消".tr) }
             else { PhoneRecorder.shared.tooShort() }
             return nil
         }
@@ -214,15 +214,15 @@ final class MeetingStore: ObservableObject {
               FileManager.default.fileExists(atPath: Self.audioURL(id).path) || Self.isText(id) || FoodPhotos.has(id) else { return }
         // 有照片的飲食：只有 Gemini 看得懂圖片（免費 flash 模型），大D的主機與 Apple 先不走
         if m.isFood && FoodPhotos.has(id) {
-            if Self.privacyMode { aiFailed(id, message: "隱私模式不上傳到雲端；照片辨識飲食需要 Gemini（免費），請先關掉隱私模式") }
+            if Self.privacyMode { aiFailed(id, message: "隱私模式不上傳到雲端；照片辨識飲食需要 Gemini（免費），請先關掉隱私模式".tr) }
             else if Self.hasGeminiKey { await runGemini(id) }
-            else { aiFailed(id, message: "照片辨識飲食需要 Gemini（免費）：請到設定填 Gemini 金鑰") }
+            else { aiFailed(id, message: "照片辨識飲食需要 Gemini（免費）：請到設定填 Gemini 金鑰".tr) }
             return
         }
         if Self.isText(id) {   // 匯入的文字：Mac → Gemini；Apple 不處理文字
             if LocalAI.configured { await runLocal(id) }
             else if Self.hasGeminiKey && !Self.privacyMode { await runGeminiText(id) }
-            else { aiFailed(id, message: "文字檔要用大D的主機 或 Gemini 產生報告：請到設定填好其中一個") }
+            else { aiFailed(id, message: "文字檔要用大D的主機 或 Gemini 產生報告：請到設定填好其中一個".tr) }
             return
         }
         // 順序：飲食 → Apple（有模型時）；有設定自架 Mac → Mac；隱私模式 → Apple（不送第三方雲端）；
@@ -232,7 +232,7 @@ final class MeetingStore: ObservableObject {
         } else if LocalAI.configured {
             await runLocal(id)
         } else if Self.privacyMode {
-            await runApple(id, note: "隱私模式：不上傳到雲端，在手機上處理")
+            await runApple(id, note: "隱私模式：不上傳到雲端，在手機上處理".tr)
         } else if Self.hasGeminiKey {
             await runGemini(id)
         } else {
@@ -246,7 +246,7 @@ final class MeetingStore: ObservableObject {
         processing.insert(id)
         defer { processing.remove(id) }
         begin(&m, step: "傳給大D的主機 處理中")
-        PhoneLink.shared.sendStatus(id: id, text: "AI 分析中…")
+        PhoneLink.shared.sendStatus(id: id, text: "AI 分析中…".tr)
         // 已經送進主機佇列（App 被停掉 / 強制關閉後重開）：接著查，不重傳
         if let job = Self.hostJob(id) {
             GeminiJobs.shared.pollLocal(meetingId: id, hostJob: job)
@@ -262,7 +262,7 @@ final class MeetingStore: ObservableObject {
         }
         // 主機還不能辨識這個語言（英語、日語…）：這次改用 Gemini（或 Apple）
         if !Self.isText(id), !h.supports(m.speechLang) {
-            await localFailed(id, message: "大D的主機還不能辨識\(m.speechLang.label)", unsupported: true)
+            await localFailed(id, message: "大D的主機還不能辨識{0}".trf(m.speechLang.label), unsupported: true)
             return
         }
         // Mac 在跑的同時，Apple 先出預覽逐字稿（Apple 不會台語：台語錄音不出預覽）
@@ -283,7 +283,7 @@ final class MeetingStore: ObservableObject {
         NSLog("[MeetingStore] local Mac failed (\(message)), falling back")
         if Self.isText(id) {
             if Self.hasGeminiKey && !Self.privacyMode {
-                if var m = load(id) { m.engineNote = "大D的主機 連不到（\(message)），改用 Gemini"; save(m) }
+                if var m = load(id) { m.engineNote = "大D的主機 連不到（{0}），改用 Gemini".trf(message); save(m) }
                 await runGeminiText(id)
             } else {
                 aiFailed(id, message: message)
@@ -291,7 +291,7 @@ final class MeetingStore: ObservableObject {
             return
         }
         if Self.hasGeminiKey && !Self.privacyMode {
-            m.engineNote = unsupported ? "\(message)。這次改用 Gemini。" : "大D的主機 沒有完成（\(message)），改用 Gemini"
+            m.engineNote = unsupported ? "{0}。這次改用 Gemini。".trf(message) : "大D的主機 沒有完成（{0}），改用 Gemini".trf(message)
             save(m)
             await runGemini(id)
         } else {
@@ -307,7 +307,7 @@ final class MeetingStore: ObservableObject {
         defer { processing.remove(id) }
         let photoOnly = !FileManager.default.fileExists(atPath: Self.audioURL(id).path)
         begin(&m, step: photoOnly ? "AI 辨識照片中" : "上傳錄音中")
-        PhoneLink.shared.sendStatus(id: id, text: "AI 分析中…")
+        PhoneLink.shared.sendStatus(id: id, text: "AI 分析中…".tr)
         // 即時預覽：Gemini 在跑的同時，先用 Apple 秒出逐字稿（不分說話者），Gemini 完成後換掉
         if !m.isFood && m.speechLang == .zh {   // Apple 不會台語：台語錄音不出預覽
             Task { await self.preview(id) }
@@ -348,8 +348,8 @@ final class MeetingStore: ObservableObject {
         guard var m = load(id) else { return }
         guard await AppleAI.speechAvailable() else {
             aiFailed(id, message: Self.hasGeminiKey
-                     ? "這支 iPhone 沒有 Apple 語音辨識（需要 iOS 26 以上），隱私模式無法使用；請關掉隱私模式改用 Gemini"
-                     : "還沒設定 Gemini API Key，而這支 iPhone 沒有 Apple 語音辨識；請到「設定」貼上金鑰後按「重試」")
+                     ? "這支 iPhone 沒有 Apple 語音辨識（需要 iOS 26 以上），隱私模式無法使用；請關掉隱私模式改用 Gemini".tr
+                     : "還沒設定 Gemini API Key，而這支 iPhone 沒有 Apple 語音辨識；請到「設定」貼上金鑰後按「重試」".tr)
             return
         }
         processing.insert(id)
@@ -357,7 +357,7 @@ final class MeetingStore: ObservableObject {
         begin(&m, step: "Apple 語音辨識中")
         m.engineNote = note
         save(m)
-        PhoneLink.shared.sendStatus(id: id, text: "AI 分析中…")
+        PhoneLink.shared.sendStatus(id: id, text: "AI 分析中…".tr)
         await withCheckedContinuation { (done: CheckedContinuation<Void, Never>) in
             GeminiJobs.withBackgroundTime("apple-\(id)") {
                 await self.appleWork(id)
@@ -401,9 +401,9 @@ final class MeetingStore: ObservableObject {
             latest.speakerNames = [:]
             latest.aiModel = model
             finish(&latest)
-            PhoneLink.shared.sendStatus(id: id, text: "報告完成：\(latest.title)")
+            PhoneLink.shared.sendStatus(id: id, text: "報告完成：{0}".trf(latest.title))
         } catch {
-            aiFailed(id, message: "Apple 處理失敗：\(error.localizedDescription)")
+            aiFailed(id, message: "Apple 處理失敗：{0}".trf(error.localizedDescription))
         }
     }
 
@@ -467,13 +467,13 @@ final class MeetingStore: ObservableObject {
             report.shortSummary = done.summary
         }
         if truncated {
-            transcript += "\n\n（錄音太長，Gemini 一次輸出不完，後面的逐字稿被截斷；長錄音分段分析在之後的版本加上）"
+            transcript += "\n\n（錄音太長，Gemini 一次輸出不完，後面的逐字稿被截斷；長錄音分段分析在之後的版本加上）".tr
         }
         do {
             try report.markdown.write(to: Self.reportURL(id), atomically: true, encoding: .utf8)
             try transcript.write(to: Self.transcriptURL(id), atomically: true, encoding: .utf8)
         } catch {
-            aiFailed(id, message: "報告存檔失敗：\(error.localizedDescription)")
+            aiFailed(id, message: "報告存檔失敗：{0}".trf(error.localizedDescription))
             return
         }
         if m.titleEdited != true { m.title = report.title }
@@ -484,7 +484,7 @@ final class MeetingStore: ObservableObject {
         m.transcriptPreview = false
         if !(m.engineNote ?? "").contains("改用 Gemini") { m.engineNote = nil }   // Mac 失敗改用 Gemini 的說明保留
         finish(&m)
-        PhoneLink.shared.sendStatus(id: id, text: "報告完成：\(m.title)")
+        PhoneLink.shared.sendStatus(id: id, text: "報告完成：{0}".trf(m.title))
     }
 
     /// Gemini 失敗（連不上、額度用完…）：這支 iPhone 有 Apple 語音辨識就改用 Apple 輔助，否則標失敗。
@@ -492,7 +492,7 @@ final class MeetingStore: ObservableObject {
         guard load(id) != nil else { return }
         if await AppleAI.speechAvailable() {
             NSLog("[MeetingStore] Gemini failed (\(message)), falling back to Apple")
-            await runApple(id, note: "Gemini 沒有完成（\(message)），改用 Apple 在手機上整理，沒有分說話者")
+            await runApple(id, note: "Gemini 沒有完成（{0}），改用 Apple 在手機上整理，沒有分說話者".trf(message))
         } else {
             aiFailed(id, message: message)
         }
@@ -505,6 +505,6 @@ final class MeetingStore: ObservableObject {
         m.aiStep = nil
         m.processEndedAt = Date()
         save(m)
-        PhoneLink.shared.sendStatus(id: id, text: "AI 分析失敗")
+        PhoneLink.shared.sendStatus(id: id, text: "AI 分析失敗".tr)
     }
 }

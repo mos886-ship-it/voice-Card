@@ -457,6 +457,8 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
   - 飲食報告 App 自己產生的「飲食內容 / 合計 / 來源 / 摘要」跟著報告語言（`FoodWords`）；NUTRITION 的餐別一律中文（健康同步、問候語靠它）。
   - 大D的主機：送 `X-Report-Lang`（主機還沒實作，照舊中文）。
   - 測試：`ReportLangTest`。
+- **iOS 已跟上（報告語言）**：`ios/Dylan/ReportLang.swift`（`ReportLang` 照 Android：`localize` 換章節標題、表頭、說話者代號、固定字，規則文字一字不差；`isSpeakerHeading` / `isSummaryHeading` / `isNone` / `isSpeakerColumn` / `isNameColumn` / `isSpeakerCode` / `isUnknownName`；`FoodWords` 三種語言）。Gemini 的 systemInstruction 套 `ReportLang.current.localize`；`FoodLog.finish` 用 `FoodWords`；`Speakers.names`、`fillEmptySummary`、`summarySection`、報告表格（飲食欄位別名、「None / 없음」當空白）、逐字稿說話者（Speaker A / 화자 A）三種都認得；大D的主機送 `X-Report-Lang`。Apple 裝置端整理的報告還是中文標題（Apple 模型那條沒改）。
+- **主機（local-ai/server.py）已做**：讀 `X-Report-Lang`（zh/en/ko，沒有 = 繁中），`localize()` 套在 Qwen 的報告、長錄音筆記、飲食提示詞；逐字稿的說話者代號跟著換成 Speaker A / 화자 A。主機上執行中的那份要重新部署、重啟才生效。
 - **介面語言**（`AppLocale.kt`）：跟系統 / 繁體中文 / English / 한국어。13+ 用系統的個別 App 語言（`LocaleManager`，`res/xml/locales_config.xml`），12 以下存設定、`MainActivity.attachBaseContext` 套用。設定頁「介面」卡最上面兩個選擇。字串抽到 `strings.xml` 的工作接著做。
 
 ## 介面多語言：繁中 / English / 한국어（2026-11-26）
@@ -468,3 +470,7 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 - 工具：`tools/i18n_wrap.py`（把顯示用中文包成 `.tr`/`.trf`，有排除規則）、`tools/i18n_keys.py --missing`（列出沒翻的句子）。新增文字：寫中文加 `.tr`，跑 `--missing`，把英文、韓文補進 strings.json。`I18nTest` 會檢查每句都有翻、參數一致。
 - 名稱：大D → Dylan；大D的主機 → Dylan Host / Dylan 호스트。
 - 模擬器英文、韓文、繁中逐頁看過（今天、資料庫、飲食、設定、詳情）；App 內切語言會重啟並生效。手錶畫面沒在模擬器看（只有編譯）。
+- **iOS 已跟上（介面語言）**：`ios/Dylan/I18n.swift`（`"中文".tr`、`"…{0}…".trf(x)`，查 `ios/Dylan/i18n/strings.json`——共用表的複本，改了共用表要跑 `python3 tools/i18n_ios.py --sync`）。語言設定 `ui_lang`（auto / zh / en / ko；auto 跟系統：中文 → 繁中、韓文 → 한국어、其他 → English），啟動時決定；iOS 不能自己重啟，換了會提示「從 App 切換器把大D 往上滑關掉，再重新開啟」。日期：`Fmt.locale` 啟動時設成 `I18n.locale`。設定「介面」卡最上面「介面語言」「報告語言」兩個分段選擇。
+  - 工具 `tools/i18n_ios.py`：`--wrap 檔案…`（把顯示用中文包成 .tr / .trf，`\(x)` 換成 {0}；不包比對、鍵、步驟名稱、原始字串、提示詞）、`--missing`、`--sync`。iOS 獨有的 242 句已補進共用表（英文、韓文）。
+  - 不翻的：提示詞（Gemini、Apple、geminiNote）、存檔的步驟名稱（aiStep；顯示時 `.tr`，排隊文字 `LocalAI.isQueueText` 中文與目前語言都認得）、比對用的字。
+  - 還沒做：Apple Watch（iOS 手錶 App 還是中文；Android 手錶跟手機介面語言）、系統權限說明文字（相機、定位、健康、麥克風仍是中文，要加 InfoPlist.strings）。模擬器看過英文的主頁、錄音清單、詳情、設定，以及切回繁中；韓文沒逐頁看。

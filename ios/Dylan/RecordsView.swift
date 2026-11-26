@@ -31,15 +31,15 @@ struct RecordsView: View {
                 // ---------- 標題 ----------
                 HStack {
                     VStack(alignment: .leading, spacing: 0) {
-                        Text(layout == .overview ? "錄音" : "資料庫").font(.headlineSmall).foregroundStyle(Brand.text)
-                        Text(meetings.isEmpty ? "會議、課堂、訪談、通話、靈感筆記"
-                             : "共 \(meetings.count) 段 · \(Fmt.duration(meetings.reduce(0) { $0 + $1.durationSec }))")
+                        Text(layout == .overview ? "錄音".tr : "資料庫".tr).font(.headlineSmall).foregroundStyle(Brand.text)
+                        Text(meetings.isEmpty ? "會議、課堂、訪談、通話、靈感筆記".tr
+                             : "共 {0} 段 · {1}".trf(meetings.count, Fmt.duration(meetings.reduce(0) { $0 + $1.durationSec })))
                             .font(.bodySmall).foregroundStyle(Brand.textMuted)
                     }
                     Spacer()
                     // 原本的「檔案」分頁：大小、分享錄音檔、只刪錄音檔、刪除整筆
-                    if layout == .quick { GhostButton(text: "管理", tint: Brand.cyan) { managing = true } }
-                    GhostButton(text: importing ? "匯入中…" : "匯入", systemImage: "plus", tint: Brand.cyan) {
+                    if layout == .quick { GhostButton(text: "管理".tr, tint: Brand.cyan) { managing = true } }
+                    GhostButton(text: importing ? "匯入中…".tr : "匯入".tr, systemImage: "plus", tint: Brand.cyan) {
                         if !importing { picking = true }
                     }
                     .fileImporter(isPresented: $picking, allowedContentTypes: AudioImport.types,
@@ -51,8 +51,8 @@ struct RecordsView: View {
                             for u in urls { if let e = await AudioImport.run(u) { errors.append(e) } }
                             importing = false
                             let ok = urls.count - errors.count
-                            toast = errors.isEmpty ? "已匯入 \(ok) 個檔，正在產生報告"
-                                : (ok > 0 ? "已匯入 \(ok) 個；" : "") + errors.joined(separator: "；")
+                            toast = errors.isEmpty ? "已匯入 {0} 個檔，正在產生報告".trf(ok)
+                                : (ok > 0 ? "已匯入 {0} 個；".trf(ok) : "") + errors.joined(separator: "；")
                         }
                     }
                 }
@@ -63,7 +63,7 @@ struct RecordsView: View {
                     if origins.count > 1 {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 8) {
-                                FilterChip(text: "全部", selected: origin == nil) { origin = nil }
+                                FilterChip(text: "全部".tr, selected: origin == nil) { origin = nil }
                                 ForEach(origins, id: \.self) { o in
                                     let n = meetings.filter { $0.source == o }.count
                                     FilterChip(text: "\(Meeting.label(source: o)) \(n)", selected: origin == o) {
@@ -78,17 +78,17 @@ struct RecordsView: View {
                 if meetings.isEmpty {
                     EmptyState()
                 } else if shown.isEmpty {
-                    Text("找不到符合「\(debounced.trimmingCharacters(in: .whitespaces))」的錄音")
+                    Text("找不到符合「{0}」的錄音".trf(debounced.trimmingCharacters(in: .whitespaces)))
                         .font(.bodyMedium).foregroundStyle(Brand.textFaint).padding(.vertical, 24)
                 } else if !terms.isEmpty {
-                    Text("找到 \(shown.count) 筆").font(.labelLarge).foregroundStyle(Brand.cyan)
+                    Text("找到 {0} 筆".trf(shown.count)).font(.labelLarge).foregroundStyle(Brand.cyan)
                 }
 
                 ForEach(groups, id: \.key) { day, list in
                     // 日期標題：今天 / 昨天 / 11月20日 週四
                     HStack(spacing: 8) {
                         Text(Fmt.dayLabel(day)).font(.titleSmall).foregroundStyle(Brand.text)
-                        Text("\(list.count) 筆").font(.labelMedium).foregroundStyle(Brand.textFaint)
+                        Text("{0} 筆".trf(list.count)).font(.labelMedium).foregroundStyle(Brand.textFaint)
                     }
                     .padding(.top, 6)
                     CardGrid {
@@ -97,8 +97,8 @@ struct RecordsView: View {
                                 .contentShape(Rectangle())
                                 .onTapGesture { open(m.id) }
                                 .contextMenu {
-                                    Button { open(m.id) } label: { Label("打開", systemImage: "doc.text") }
-                                    Button(role: .destructive) { deleting = m } label: { Label("刪除", systemImage: "trash") }
+                                    Button { open(m.id) } label: { Label("打開".tr, systemImage: "doc.text") }
+                                    Button(role: .destructive) { deleting = m } label: { Label("刪除".tr, systemImage: "trash") }
                                 }
                         }
                     }
@@ -114,13 +114,13 @@ struct RecordsView: View {
                 .environmentObject(store)
                 .background(Brand.bg.ignoresSafeArea())
         }
-        .confirmationDialog("刪除「\(deleting?.title ?? "")」？", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }),
+        .confirmationDialog("刪除「{0}」？".trf(deleting?.title ?? ""), isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }),
                             titleVisibility: .visible) {
-            Button("刪除錄音與報告", role: .destructive) {
+            Button("刪除錄音與報告".tr, role: .destructive) {
                 if let m = deleting { store.delete(m.id) }
                 deleting = nil
             }
-        } message: { Text("刪除後無法復原。") }
+        } message: { Text("刪除後無法復原。".tr) }
         .task(id: query) {
             // 打字停 250ms 才搜
             try? await Task.sleep(for: .milliseconds(250))
@@ -172,7 +172,7 @@ private struct MeetingRow: View {
         var parts = [m.sourceLabel]
         if !text { parts.append(Fmt.duration(m.durationSec)) }
         if m.aiModel != nil { parts.append(Meeting.aiModelLabel(m.aiModel)) }
-        if let s = m.processStartedAt, let e = m.processEndedAt { parts.append("耗時 \(Int(e.timeIntervalSince(s).rounded())) 秒") }
+        if let s = m.processStartedAt, let e = m.processEndedAt { parts.append("耗時 {0} 秒".trf(Int(e.timeIntervalSince(s).rounded()))) }
         return parts.joined(separator: " · ")
     }
 }
@@ -208,8 +208,8 @@ private struct EmptyState: View {
         GlassCard {
             VStack(spacing: 0) {
                 GlyphTile(size: 64, filled: true) { Waveform(color: .white).frame(width: 28, height: 28) }
-                Text("還沒有錄音").font(.titleMedium).foregroundStyle(Brand.text).padding(.top, 16)
-                Text("在主頁按「開始錄音」、用手錶錄音，或按右上的「匯入」選音檔")
+                Text("還沒有錄音".tr).font(.titleMedium).foregroundStyle(Brand.text).padding(.top, 16)
+                Text("在主頁按「開始錄音」、用手錶錄音，或按右上的「匯入」選音檔".tr)
                     .font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 4)
                     .multilineTextAlignment(.center)
             }
@@ -224,13 +224,13 @@ private struct SearchField: View {
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: "magnifyingglass").foregroundStyle(Brand.textMuted)
-            TextField("", text: $text, prompt: Text("搜尋：關鍵字、日期（空白分隔）").foregroundColor(Brand.textFaint))
+            TextField("", text: $text, prompt: Text("搜尋：關鍵字、日期（空白分隔）".tr).foregroundColor(Brand.textFaint))
                 .foregroundStyle(Brand.text)
                 .tint(Brand.cyan)
                 .submitLabel(.search)
             if !text.isEmpty {
                 Button { text = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(Brand.textMuted) }
-                    .accessibilityLabel("清除")
+                    .accessibilityLabel("清除".tr)
             }
         }
         .font(.bodyLarge)

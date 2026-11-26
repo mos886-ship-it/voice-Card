@@ -34,7 +34,7 @@ final class HealthSync: ObservableObject {
     /// 「上次同步 M/d HH:mm · N 筆」
     var lastText: String? {
         guard let d = lastSync else { return nil }
-        return "上次同步 " + Fmt.stamp(d, "M/d HH:mm") + " · \(lastCount) 筆"
+        return "上次同步 ".tr + Fmt.stamp(d, "M/d HH:mm") + " · {0} 筆".trf(lastCount)
     }
 
     /// 打開開關：跳系統授權（只要求寫入），成功就補寫過去的記錄。
@@ -45,15 +45,15 @@ final class HealthSync: ObservableObject {
             UserDefaults.standard.set(false, forKey: Self.enabledKey)
             return
         }
-        guard Self.available else { message = "這台裝置沒有 Apple 健康。"; return }
+        guard Self.available else { message = "這台裝置沒有 Apple 健康。".tr; return }
         do {
             try await store.requestAuthorization(toShare: Self.shareTypes, read: [])
         } catch {
-            message = "無法取得授權：\(error.localizedDescription)"
+            message = "無法取得授權：{0}".trf(error.localizedDescription)
             return
         }
         guard authorized else {
-            message = "沒有寫入權限。請到「健康」App →「共享」→「App」→「大D」，把營養項目打開。"
+            message = "沒有寫入權限。請到「健康」App →「共享」→「App」→「大D」，把營養項目打開。".tr
             return
         }
         enabled = true
@@ -76,7 +76,7 @@ final class HealthSync: ObservableObject {
             }
         }
         record(n)
-        message = failed > 0 ? "有 \(failed) 筆沒寫進去，請確認「健康」App 裡大D的寫入權限。" : nil
+        message = failed > 0 ? "有 {0} 筆沒寫進去，請確認「健康」App 裡大D的寫入權限。".trf(failed) : nil
     }
 
     /// 一筆飲食完成或營養改了（MeetingStore.save 呼叫）。

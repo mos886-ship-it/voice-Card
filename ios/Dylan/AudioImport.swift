@@ -44,7 +44,7 @@ enum AudioImport {
         do {
             try FileManager.default.copyItem(at: url, to: tmp)
         } catch {
-            return "讀不到「\(url.lastPathComponent)」：\(error.localizedDescription)"
+            return "讀不到「{0}」：{1}".trf(url.lastPathComponent, error.localizedDescription)
         }
         defer { try? FileManager.default.removeItem(at: tmp) }
 
@@ -60,13 +60,13 @@ enum AudioImport {
         m.title = url.deletingPathExtension().lastPathComponent
         if let text = readText(tmp) {   // 文字檔：存起來直接寫報告（沒有錄音）
             let body = text.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !body.isEmpty else { return "「\(url.lastPathComponent)」是空的" }
+            guard !body.isEmpty else { return "「{0}」是空的".trf(url.lastPathComponent) }
             do {
                 try FileManager.default.createDirectory(at: MeetingStore.dir(id), withIntermediateDirectories: true)
                 try body.write(to: MeetingStore.textURL(id), atomically: true, encoding: .utf8)
                 try body.write(to: MeetingStore.transcriptURL(id), atomically: true, encoding: .utf8)
             } catch {
-                return "「\(url.lastPathComponent)」存檔失敗：\(error.localizedDescription)"
+                return "「{0}」存檔失敗：{1}".trf(url.lastPathComponent, error.localizedDescription)
             }
             m.status = .received
             m.updatedAt = Date()
@@ -80,7 +80,7 @@ enum AudioImport {
             m.status = .received
         } catch {
             try? FileManager.default.removeItem(at: MeetingStore.dir(id))
-            return "「\(url.lastPathComponent)」不是可用的音檔（\(error.localizedDescription)）"
+            return "「{0}」不是可用的音檔（{1}）".trf(url.lastPathComponent, error.localizedDescription)
         }
         m.updatedAt = Date()
         store.save(m)

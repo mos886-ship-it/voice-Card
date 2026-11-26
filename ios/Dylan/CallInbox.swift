@@ -45,16 +45,16 @@ enum CallInbox {
             if let start = info[key], FileManager.default.fileExists(atPath: url.path) { tracks.append((url, start)) }
         }
         var m = Meeting.new(id: id, source: "call")
-        m.title = "通話 " + Fmt.stamp(m.createdAt, "M/d HH:mm")
+        m.title = "通話 ".tr + Fmt.stamp(m.createdAt, "M/d HH:mm")
         do {
-            guard !tracks.isEmpty else { throw err("這次廣播沒有收到聲音（對方的 App 可能不允許錄製）") }
+            guard !tracks.isEmpty else { throw err("這次廣播沒有收到聲音（對方的 App 可能不允許錄製）".tr) }
             try FileManager.default.createDirectory(at: MeetingStore.dir(id), withIntermediateDirectories: true)
             m.durationSec = try await mix(tracks, to: MeetingStore.audioURL(id))
             m.status = .received
         } catch {
             NSLog("[CallInbox] import \(id) failed: \(error)")
             m.status = .failed
-            m.error = "通話錄音處理失敗：\(error.localizedDescription)"
+            m.error = "通話錄音處理失敗：{0}".trf(error.localizedDescription)
         }
         m.updatedAt = Date()
         store.save(m)
@@ -77,15 +77,15 @@ enum CallInbox {
             try dst.insertTimeRange(CMTimeRange(start: .zero, duration: duration), of: src, at: at)
             length = max(length, start - t0 + duration.seconds)
         }
-        guard !comp.tracks.isEmpty else { throw err("這次廣播沒有收到聲音（對方的 App 可能不允許錄製）") }
+        guard !comp.tracks.isEmpty else { throw err("這次廣播沒有收到聲音（對方的 App 可能不允許錄製）".tr) }
         try? FileManager.default.removeItem(at: out)
         guard let export = AVAssetExportSession(asset: comp, presetName: AVAssetExportPresetAppleM4A) else {
-            throw err("無法輸出音檔")
+            throw err("無法輸出音檔".tr)
         }
         export.outputURL = out
         export.outputFileType = .m4a
         await export.export()
-        if export.status != .completed { throw export.error ?? err("輸出音檔失敗") }
+        if export.status != .completed { throw export.error ?? err("輸出音檔失敗".tr) }
         return length
     }
 

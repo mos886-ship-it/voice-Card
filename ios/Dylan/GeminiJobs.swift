@@ -103,7 +103,7 @@ final class GeminiJobs: NSObject, URLSessionDataDelegate, URLSessionDownloadDele
         let queue = LocalAI.hasJobs
         guard let r = LocalAI.processRequest(kind: kind, recordedAt: recordedAt, durationSec: durationSec, text: text,
                                              lang: lang, dialect: dialect, queue: queue) else {
-            throw GeminiClient.Failure(message: "大D的主機 的位址格式不對")
+            throw GeminiClient.Failure(message: "大D的主機 的位址格式不對".tr)
         }
         let task = localSession.uploadTask(with: r, fromFile: text ? MeetingStore.textURL(meetingId) : MeetingStore.audioURL(meetingId))
         task.taskDescription = Self.encode(Job(meetingId: meetingId, stage: queue ? .jobSubmit : .local,
@@ -118,7 +118,7 @@ final class GeminiJobs: NSObject, URLSessionDataDelegate, URLSessionDownloadDele
         Task { @MainActor in
             let active = UIApplication.shared.applicationState == .active
             guard let r = LocalAI.jobRequest(hostJob, wait: active ? 20 : 1500) else {
-                await MeetingStore.shared.localFailed(meetingId, message: "大D的主機 的位址格式不對")
+                await MeetingStore.shared.localFailed(meetingId, message: "大D的主機 的位址格式不對".tr)
                 return
             }
             let task = self.localSession.downloadTask(with: r)
@@ -202,7 +202,7 @@ final class GeminiJobs: NSObject, URLSessionDataDelegate, URLSessionDownloadDele
                     // 舊主機處理完就刪錄音，報告隨回應傳回、主機不留
                     await MeetingStore.shared.setHostCleanup(job.meetingId, LocalAI.cleanupAll)
                 } else {
-                    let msg = error.map { "連不到大D的主機（\($0.localizedDescription)）" } ?? LocalAI.error(data, status: status)
+                    let msg = error.map { "連不到大D的主機（{0}）".trf($0.localizedDescription) } ?? LocalAI.error(data, status: status)
                     await MeetingStore.shared.localFailed(job.meetingId, message: msg)
                 }
                 return
@@ -210,14 +210,14 @@ final class GeminiJobs: NSObject, URLSessionDataDelegate, URLSessionDownloadDele
             do {
                 if let error {
                     // 斷線 / 逾時：當成太忙，換下一個模型（上傳步驟就直接失敗）
-                    throw GeminiClient.Failure(message: "Gemini 連線中斷或逾時（\(error.localizedDescription)），請稍後按「重試」", code: 504)
+                    throw GeminiClient.Failure(message: "Gemini 連線中斷或逾時（{0}），請稍後按「重試」".trf(error.localizedDescription), code: 504)
                 }
                 guard (200..<300).contains(status), response != nil else {
                     throw GeminiClient.failure(response ?? URLResponse(), data)
                 }
                 switch job.stage {
                 case .upload:
-                    guard let f = GeminiClient.parseUploaded(data) else { throw GeminiClient.Failure(message: "Gemini 上傳回應看不懂") }
+                    guard let f = GeminiClient.parseUploaded(data) else { throw GeminiClient.Failure(message: "Gemini 上傳回應看不懂".tr) }
                     job.stage = .generate
                     job.fileName = f.name
                     job.fileURI = f.uri
@@ -261,12 +261,12 @@ final class GeminiJobs: NSObject, URLSessionDataDelegate, URLSessionDownloadDele
         // 連不到 / 主機重開中：等一下再查；超過 15 分鐘才放棄（工作編號留著，按重試會接著查）
         if error != nil || status == 0 || status >= 500 {
             if job.stage == .jobSubmit {
-                let msg = error.map { "連不到大D的主機（\($0.localizedDescription)）" } ?? LocalAI.error(data, status: status)
+                let msg = error.map { "連不到大D的主機（{0}）".trf($0.localizedDescription) } ?? LocalAI.error(data, status: status)
                 await store.localFailed(id, message: msg)
             } else if let j = job.hostJob, now - (job.lastSeen ?? now) < Self.hostGoneSeconds {
                 pollLocal(meetingId: id, hostJob: j, lastSeen: job.lastSeen ?? now, resent: job.resent == true, after: 30)
             } else {
-                await store.localFailed(id, message: "連不到大D的主機超過 15 分鐘")
+                await store.localFailed(id, message: "連不到大D的主機超過 15 分鐘".tr)
             }
             return
         }
@@ -286,7 +286,7 @@ final class GeminiJobs: NSObject, URLSessionDataDelegate, URLSessionDownloadDele
         if status == 404 {   // 主機找不到（過期 / 主機資料被清）：重送一次
             MeetingStore.setHostJob(id, nil)
             guard job.resent != true, let m = store.load(id) else {
-                await store.localFailed(id, message: "大D的主機找不到這筆工作")
+                await store.localFailed(id, message: "大D的主機找不到這筆工作".tr)
                 return
             }
             do {
@@ -313,7 +313,7 @@ final class GeminiJobs: NSObject, URLSessionDataDelegate, URLSessionDownloadDele
         case "error":
             await LocalAI.deleteJob(j)
             MeetingStore.setHostJob(id, nil)
-            await store.localFailed(id, message: v.error ?? "大D的主機處理失敗")
+            await store.localFailed(id, message: v.error ?? "大D的主機處理失敗".tr)
         default:   // queued / running
             let ahead = v.ahead ?? 0
             store.setAiStep(id, v.state == "queued" && ahead > 0

@@ -36,7 +36,7 @@ struct OverviewDashboardView: View {
                                 Text(g.title).font(.headlineSmall).foregroundStyle(Brand.text)
                                 Text(g.line).font(.bodySmall).foregroundStyle(Brand.textMuted)
                                     .fixedSize(horizontal: false, vertical: true)
-                                Text(Fmt.stamp(ctx.date, "M 月 d 日 EEEE")).font(.labelSmall).foregroundStyle(Brand.textFaint)
+                                Text(Fmt.stamp(ctx.date, "M 月 d 日 EEEE".tr)).font(.labelSmall).foregroundStyle(Brand.textFaint)
                             }
                         }
                         if mode == .tech {
@@ -56,7 +56,7 @@ struct OverviewDashboardView: View {
                 // 手機也能錄（手錶不在身邊、或這支手機沒配對手錶時）
                 if rec.isRecording, let since = rec.since {
                     RecordingCard(food: rec.isFood, since: since, interrupted: rec.interrupted,
-                                  lang: lang == .hak ? "客語・" + dialect.label : lang.short,
+                                  lang: lang == .hak ? "客語・".tr + dialect.label : lang.short,
                                   detailed: mode == .tech) { rec.stop() }
                 } else {
                     VStack(alignment: .leading, spacing: 6) {
@@ -73,8 +73,8 @@ struct OverviewDashboardView: View {
                         .padding(.horizontal, 6)
                     }
                     HStack(spacing: 12) {
-                        QuickTile(title: "開始錄音", sub: "會議、課堂、訪談、靈感", filled: true) { rec.start() }
-                        QuickTile(title: "記錄飲食", sub: "說出吃了什麼", filled: false, bowl: true) { rec.start(food: true) }
+                        QuickTile(title: "開始錄音".tr, sub: "會議、課堂、訪談、靈感".tr, filled: true) { rec.start() }
+                        QuickTile(title: "記錄飲食".tr, sub: "說出吃了什麼".tr, filled: false, bowl: true) { rec.start(food: true) }
                     }
                 }
                 CallTile(detailed: mode == .tech) { BroadcastPicker.open() }
@@ -82,14 +82,14 @@ struct OverviewDashboardView: View {
 
                 // ---------- 今天 ----------
                 GlassCard {
-                    Text("今天").font(.labelSmall).tracking(1.2).foregroundStyle(Brand.textMuted)
+                    Text("今天".tr).font(.labelSmall).tracking(1.2).foregroundStyle(Brand.textMuted)
                     HStack(spacing: 10) {
-                        StatTile(value: "\(todayRec.count)", label: "段錄音")
+                        StatTile(value: "\(todayRec.count)", label: "段錄音".tr)
                             .onTapGesture { select(.records) }
-                        StatTile(value: Fmt.human(todayRec.reduce(0) { $0 + $1.durationSec }), label: "錄音時長")
+                        StatTile(value: Fmt.human(todayRec.reduce(0) { $0 + $1.durationSec }), label: "錄音時長".tr)
                             .onTapGesture { select(.records) }
                         if store.meetings.contains(where: \.isFood) {
-                            StatTile(value: "\(FoodView.todayKcal(store.meetings))/\(FoodView.goal)", label: "大卡")
+                            StatTile(value: "\(FoodView.todayKcal(store.meetings))/\(FoodView.goal)", label: "大卡".tr)
                                 .onTapGesture { select(.food) }
                         }
                     }
@@ -100,7 +100,7 @@ struct OverviewDashboardView: View {
                 } right: {
                 // ---------- 處理中 ----------
                 if !busy.isEmpty {
-                    SectionLabel(text: "處理中")
+                    SectionLabel(text: "處理中".tr)
                     ForEach(busy) { m in
                         GlassCard(padding: 14) {
                             HStack {
@@ -116,7 +116,7 @@ struct OverviewDashboardView: View {
 
                 // ---------- 最新報告（沒有報告時顯示最新錄音） ----------
                 if let latest = recordings.first(where: { $0.status == .done }) ?? recordings.first {
-                    SectionLabel(text: latest.status == .done ? "最新報告" : "最新錄音")
+                    SectionLabel(text: latest.status == .done ? "最新報告".tr : "最新錄音".tr)
                     GlassCard {
                         Text(latest.title).font(.titleMedium).foregroundStyle(Brand.text).lineLimit(2)
                         Text("\(latest.sourceLabel) · \(Fmt.shortWhen(latest.createdAt))" + (latest.durationSec < 1 ? "" : " · \(Fmt.human(latest.durationSec))"))
@@ -125,14 +125,14 @@ struct OverviewDashboardView: View {
                         if !summary.isEmpty {
                             Text(summary).font(.bodyMedium).foregroundStyle(Brand.textMuted).lineLimit(4).padding(.top, 10)
                         }
-                        Text(latest.status == .done ? "查看完整報告 →" : "查看錄音 →")
+                        Text(latest.status == .done ? "查看完整報告 →".tr : "查看錄音 →".tr)
                             .font(.labelLarge).foregroundStyle(Brand.cyan).padding(.top, 10)
                     }
                     .onTapGesture { open(latest.id) }
                 } else {
                     GlassCard {
-                        Text("開始第一段錄音").font(.titleMedium).foregroundStyle(Brand.text)
-                        Text("按上面的「開始錄音」，或在手錶按下錄音。錄完會自動整理出重點、待辦與逐字稿。")
+                        Text("開始第一段錄音".tr).font(.titleMedium).foregroundStyle(Brand.text)
+                        Text("按上面的「開始錄音」，或在手錶按下錄音。錄完會自動整理出重點、待辦與逐字稿。".tr)
                             .font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 4)
                     }
                 }
@@ -143,19 +143,19 @@ struct OverviewDashboardView: View {
         }
         .refreshable { store.reload() }
         .onAppear { if !askedName && DeviceInfo.name.isEmpty { naming = true } }
-        .alert(Meeting.isPad ? "這台 iPad 叫什麼名字？" : "這支手機叫什麼名字？", isPresented: $naming) {
-            TextField(Meeting.isPad ? "例如：Dylan 的 iPad" : "例如：Dylan 的 iPhone", text: $nameInput)
-            Button("儲存") {
+        .alert(Meeting.isPad ? "這台 iPad 叫什麼名字？".tr : "這支手機叫什麼名字？".tr, isPresented: $naming) {
+            TextField(Meeting.isPad ? "例如：Dylan 的 iPad".tr : "例如：Dylan 的 iPhone".tr, text: $nameInput)
+            Button("儲存".tr) {
                 deviceName = nameInput.trimmingCharacters(in: .whitespacesAndNewlines)
                 askedName = true
             }
-            Button("以後再說", role: .cancel) { askedName = true }
+            Button("以後再說".tr, role: .cancel) { askedName = true }
         } message: {
-            Text("會顯示在錄音的「來源」，分得出是哪一台錄的。之後可以在「設定 → 這台裝置」改。")
+            Text("會顯示在錄音的「來源」，分得出是哪一台錄的。之後可以在「設定 → 這台裝置」改。".tr)
         }
         .onChange(of: rec.state) { s in
             switch s {
-            case .denied: toast = "沒有麥克風權限：到 iPhone 設定 → 大D → 麥克風 打開"; rec.clearMessage()
+            case .denied: toast = "沒有麥克風權限：到 iPhone 設定 → 大D → 麥克風 打開".tr; rec.clearMessage()
             case .failed(let msg): toast = msg; rec.clearMessage()
             default: break
             }
@@ -172,7 +172,7 @@ struct OverviewDashboardView: View {
     private var engineLabel: String {
         if LocalAI.configured { return LocalAI.modelLabel }
         if MeetingStore.hasGeminiKey && !MeetingStore.privacyMode { return "Google Gemini" }
-        return "Apple（手機上）"
+        return "Apple（手機上）".tr
     }
 
 
@@ -224,17 +224,17 @@ private struct RecordingCard: View {
                 .frame(width: 44, height: 44)
                 .background(Circle().fill(Color.white.opacity(0.18)))
             VStack(alignment: .leading, spacing: 2) {
-                Text((food ? "正在記錄飲食" : (Meeting.isPad ? "iPad 錄音中" : "手機錄音中")) + " · " + lang)
+                Text((food ? "正在記錄飲食".tr : (Meeting.isPad ? "iPad 錄音中".tr : "手機錄音中".tr)) + " · " + lang)
                     .font(.titleMedium).foregroundColor(.white)
                 TimelineView(.periodic(from: since, by: 1)) { ctx in
                     Text(Fmt.duration(ctx.date.timeIntervalSince(since)))
                         .font(.titleMedium).monospacedDigit().foregroundColor(.white)
                 }
-                Text("可以鎖螢幕，會繼續錄").font(.bodySmall).foregroundColor(Color.white.opacity(0.7))
+                Text("可以鎖螢幕，會繼續錄".tr).font(.bodySmall).foregroundColor(Color.white.opacity(0.7))
             }
             Spacer()
             Button(action: stop) {
-                Text("停止").font(.labelLarge).foregroundColor(Color(red: 0.08, green: 0.1, blue: 0.18))
+                Text("停止".tr).font(.labelLarge).foregroundColor(Color(red: 0.08, green: 0.1, blue: 0.18))
                     .padding(.horizontal, 18).padding(.vertical, 10)
                     .background(Capsule().fill(Color.white))
             }
@@ -262,10 +262,10 @@ private struct CallTile: View {
                     .frame(width: 40, height: 40)
                     .background(Circle().fill(Brand.surfaceHigh))
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("錄通話 / 線上會議").font(.titleMedium).foregroundStyle(Brand.text)
-                    Text("LINE、Zoom、Teams 雙方的聲音").font(.bodySmall).foregroundStyle(Brand.textMuted)
+                    Text("錄通話 / 線上會議".tr).font(.titleMedium).foregroundStyle(Brand.text)
+                    Text("LINE、Zoom、Teams 雙方的聲音".tr).font(.bodySmall).foregroundStyle(Brand.textMuted)
                     if detailed {
-                        Text("iOS 畫面廣播只留聲音：面板選「大D」、開麥克風 → 開始廣播；按紅色狀態列停止。一般電話與 FaceTime 錄不到。")
+                        Text("iOS 畫面廣播只留聲音：面板選「大D」、開麥克風 → 開始廣播；按紅色狀態列停止。一般電話與 FaceTime 錄不到。".tr)
                             .font(.labelMedium).foregroundStyle(Brand.textFaint)
                             .fixedSize(horizontal: false, vertical: true)
                     }

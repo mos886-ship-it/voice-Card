@@ -19,10 +19,10 @@ enum LocalAI {
     static func label(_ tag: String) -> String {
         let parts = tag.replacingOccurrences(of: "local-", with: "").split(separator: "|").map(String.init)
         let names: [String: String] = [
-            "funasr": "FunASR", "breeze": "Breeze-ASR-26", "taiwan-tongues": "Taiwan Tongues", "hakka-nycu": "客語 Whisper（陽明交大）",
-            "qwen3-8b": "Qwen3-8B", "sarc-taigi-12b": "SARC 台語 12B", "text": "文字",
+            "funasr": "FunASR", "breeze": "Breeze-ASR-26", "taiwan-tongues": "Taiwan Tongues", "hakka-nycu": "客語 Whisper（陽明交大）".tr,
+            "qwen3-8b": "Qwen3-8B", "sarc-taigi-12b": "SARC 台語 12B".tr, "text": "文字".tr,
         ]
-        return "大D的主機：" + parts.map { names[$0] ?? $0 }.joined(separator: " ＋ ")
+        return "大D的主機：".tr + parts.map { names[$0] ?? $0 }.joined(separator: " ＋ ")
     }
 
     /// 預設位址：模擬器跟 Mac 是同一台，用 localhost；真機要填 Mac 的區網名稱（例如 http://Dylan-Mac-mini.local:8765）或 Tailscale 位址。
@@ -92,7 +92,7 @@ enum LocalAI {
     }
 
     private static func request(_ path: String, method: String = "GET", body: [String: String]? = nil) throws -> URLRequest {
-        guard let u = URL(string: url + path) else { throw GeminiClient.Failure(message: "位址格式不對") }
+        guard let u = URL(string: url + path) else { throw GeminiClient.Failure(message: "位址格式不對".tr) }
         var r = URLRequest(url: u, timeoutInterval: 10)
         r.httpMethod = method
         r.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -121,18 +121,18 @@ enum LocalAI {
     /// 測試連線（設定頁用）：回傳 Mac 上的模型，或丟出看得懂的錯誤。
     static func health(url: String, token: String) async throws -> Health {
         guard let u = URL(string: normalize(url) + "/v1/health") else {
-            throw GeminiClient.Failure(message: "位址格式不對，例如 http://Dylan-Mac-mini.local:8765")
+            throw GeminiClient.Failure(message: "位址格式不對，例如 http://Dylan-Mac-mini.local:8765".tr)
         }
         var r = URLRequest(url: u, timeoutInterval: 5)
         r.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         let (data, resp): (Data, URLResponse)
         do { (data, resp) = try await URLSession.shared.data(for: r) } catch {
-            throw GeminiClient.Failure(message: "連不到大D的主機（\(error.localizedDescription)）。請確認主機開著、服務在跑、手機連得到主機（同一個 Wi-Fi 或固定 IP）")
+            throw GeminiClient.Failure(message: "連不到大D的主機（{0}）。請確認主機開著、服務在跑、手機連得到主機（同一個 Wi-Fi 或固定 IP）".trf(error.localizedDescription))
         }
         let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
-        if code == 401 { throw GeminiClient.Failure(message: "存取碼不對", code: 401) }
+        if code == 401 { throw GeminiClient.Failure(message: "存取碼不對".tr, code: 401) }
         guard code == 200, let h = try? JSONDecoder().decode(Health.self, from: data) else {
-            throw GeminiClient.Failure(message: "大D的主機 回應錯誤 \(code)", code: code)
+            throw GeminiClient.Failure(message: "大D的主機 回應錯誤 {0}".trf(code), code: code)
         }
         if let m = h.model { UserDefaults.standard.set(m, forKey: modelKey) }
         UserDefaults.standard.set(h.jobs == true, forKey: jobsKey)
@@ -172,7 +172,7 @@ enum LocalAI {
     static func pair(url: String, password: String? = nil, code: String? = nil) async throws {
         let base = normalize(url)
         guard !base.isEmpty, let u = URL(string: base + "/v1/pair") else {
-            throw GeminiClient.Failure(message: "位址格式不對，例如 http://Dylan-Mac-mini.local:8765")
+            throw GeminiClient.Failure(message: "位址格式不對，例如 http://Dylan-Mac-mini.local:8765".tr)
         }
         var r = URLRequest(url: u, timeoutInterval: 10)
         r.httpMethod = "POST"
@@ -182,12 +182,12 @@ enum LocalAI {
         r.httpBody = try JSONSerialization.data(withJSONObject: body)
         let (data, resp): (Data, URLResponse)
         do { (data, resp) = try await URLSession.shared.data(for: r) } catch {
-            throw GeminiClient.Failure(message: "連不到大D的主機（\(error.localizedDescription)）")
+            throw GeminiClient.Failure(message: "連不到大D的主機（{0}）".trf(error.localizedDescription))
         }
         let status = (resp as? HTTPURLResponse)?.statusCode ?? 0
         guard status == 200, let p = try? JSONDecoder().decode(Paired.self, from: data) else {
             let msg = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String
-            throw GeminiClient.Failure(message: msg ?? "配對失敗（\(status)）", code: status)
+            throw GeminiClient.Failure(message: msg ?? "配對失敗（{0}）".trf(status), code: status)
         }
         UserDefaults.standard.set(base, forKey: urlKey)
         Keychain.set(p.token, for: tokenAccount)
@@ -201,10 +201,10 @@ enum LocalAI {
         guard link.scheme == "dylan", link.host == "pair",
               let items = URLComponents(url: link, resolvingAgainstBaseURL: false)?.queryItems,
               let code = items.first(where: { $0.name == "code" })?.value else {
-            throw GeminiClient.Failure(message: "這不是大D的主機的配對 QR 碼")
+            throw GeminiClient.Failure(message: "這不是大D的主機的配對 QR 碼".tr)
         }
         let urls = ["url", "lan"].compactMap { k in items.first(where: { $0.name == k })?.value }.filter { !$0.isEmpty }
-        var last: Error = GeminiClient.Failure(message: "QR 碼裡沒有位址")
+        var last: Error = GeminiClient.Failure(message: "QR 碼裡沒有位址".tr)
         for u in urls {
             do {
                 try await pair(url: u, code: code)
@@ -263,6 +263,7 @@ enum LocalAI {
         r.httpMethod = "POST"
         r.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         r.setValue(kind, forHTTPHeaderField: "X-Kind")
+        r.setValue(ReportLang.current.rawValue, forHTTPHeaderField: "X-Report-Lang")   // 新主機照這個寫報告；舊的照舊中文
         // 標頭只能放 ASCII：錄音時間用數字格式
         r.setValue(recordedAt, forHTTPHeaderField: "X-Recorded-At")
         r.setValue(String(Int(durationSec)), forHTTPHeaderField: "X-Duration")
@@ -309,22 +310,28 @@ enum LocalAI {
     }
 
     /// 「排隊中：前面還有 2 筆，約 6 分鐘」（跟 Android LocalHost.queueText 一樣）。
-    static func queueText(ahead: Int, waitSec: Int) -> String {
-        let wait = waitSec < 60 ? "不到 1 分鐘"
-            : waitSec < 3600 ? "約 \((waitSec + 59) / 60) 分鐘"
-            : "約 \(waitSec / 3600) 小時 \((waitSec % 3600 + 59) / 60) 分"
-        return ahead <= 0 ? "輪到你了，\(wait)" : "排隊中：前面還有 \(ahead) 筆，\(wait)"
+    /// 排隊的步驟文字（存進 aiStep 時已經是當時的介面語言；中文與現在語言的開頭都認得）。
+    static func isQueueText(_ s: String) -> Bool {
+        let heads = ["排隊中", "輪到你了"] + ["排隊中：前面還有 {0} 筆，{1}".tr, "輪到你了，{0}".tr].map { $0.components(separatedBy: "{0}")[0] }
+        return heads.contains { !$0.isEmpty && s.hasPrefix($0) }
     }
 
-    static let cleanupAll = "大D的主機上的錄音與報告都已刪除"
+    static func queueText(ahead: Int, waitSec: Int) -> String {
+        let wait = waitSec < 60 ? "不到 1 分鐘".tr
+            : waitSec < 3600 ? "約 {0} 分鐘".trf((waitSec + 59) / 60)
+            : "約 {0} 小時 {1} 分".trf(waitSec / 3600, (waitSec % 3600 + 59) / 60)
+        return ahead <= 0 ? "輪到你了，{0}".trf(wait) : "排隊中：前面還有 {0} 筆，{1}".trf(ahead, wait)
+    }
+
+    static let cleanupAll = "大D的主機上的錄音與報告都已刪除".tr
 
     /// 報告「基本資料」的「隱私」：主機回報錄音刪了沒、報告拿走後刪了沒（跟 Android cleanupText 一樣）。
     static func cleanupText(purged: Bool, reportGone: Bool) -> String {
         switch (purged, reportGone) {
         case (true, true): return cleanupAll
-        case (true, false): return "大D的主機上的錄音已刪除；報告會在 24 小時內自動刪除"
-        case (false, true): return "大D的主機上的報告已刪除；錄音會在 24 小時內自動刪除"
-        default: return "大D的主機會在 24 小時內自動刪除錄音與報告"
+        case (true, false): return "大D的主機上的錄音已刪除；報告會在 24 小時內自動刪除".tr
+        case (false, true): return "大D的主機上的報告已刪除；錄音會在 24 小時內自動刪除".tr
+        default: return "大D的主機會在 24 小時內自動刪除錄音與報告".tr
         }
     }
 
@@ -337,7 +344,7 @@ enum LocalAI {
 
     static func error(_ data: Data, status: Int) -> String {
         let msg = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String
-        if status == 401 { return "大D的主機 的存取碼不對，請到設定重新貼上" }
-        return msg ?? "大D的主機 回應錯誤 \(status)"
+        if status == 401 { return "大D的主機 的存取碼不對，請到設定重新貼上".tr }
+        return msg ?? "大D的主機 回應錯誤 {0}".trf(status)
     }
 }

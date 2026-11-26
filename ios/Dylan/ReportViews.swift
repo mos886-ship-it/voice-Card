@@ -13,26 +13,26 @@ struct ReportSection: View {
     var body: some View {
         let names = meeting.speakerNames ?? [:]
         VStack(alignment: .leading, spacing: 14) {
-            SegmentTabs(selection: $tab, labels: ["報告", "逐字稿"])
+            SegmentTabs(selection: $tab, labels: ["報告".tr, "逐字稿".tr])
             if tab == 0 && report == nil && !lines.isEmpty && meeting.status != .done || tab == 0 && meeting.transcriptPreview == true {
-                Text("報告還在整理中，可以先看逐字稿。").font(.bodySmall).foregroundStyle(Brand.textMuted)
+                Text("報告還在整理中，可以先看逐字稿。".tr).font(.bodySmall).foregroundStyle(Brand.textMuted)
             } else if tab == 0 {
                 ReportFacts(meeting: meeting)
                 if let report {
                     ReportView(markdown: Speakers.apply(report, names))
                 } else if meeting.status == .done {
                     GlassCard {
-                        Text("這筆只有逐字稿：這支 iPhone 沒有可用的 Apple 整理模型。到「設定」貼上 Gemini 金鑰後可以按「重新產生報告」。")
+                        Text("這筆只有逐字稿：這支 iPhone 沒有可用的 Apple 整理模型。到「設定」貼上 Gemini 金鑰後可以按「重新產生報告」。".tr)
                             .font(.bodySmall).foregroundStyle(Brand.textMuted)
                     }
                 }
                 if meeting.status == .done {
-                    GhostButton(text: "重新產生報告", systemImage: "arrow.clockwise", tint: Brand.cyan, action: onRegenerate)
+                    GhostButton(text: "重新產生報告".tr, systemImage: "arrow.clockwise", tint: Brand.cyan, action: onRegenerate)
                         .frame(maxWidth: .infinity)
                 }
             } else {
                 if meeting.transcriptPreview == true {
-                    Label("預覽：Apple 在手機上產生的逐字稿，沒有分說話者；Gemini 報告完成後會換成完整版。", systemImage: "bolt.fill")
+                    Label("預覽：Apple 在手機上產生的逐字稿，沒有分說話者；Gemini 報告完成後會換成完整版。".tr, systemImage: "bolt.fill")
                         .font(.bodySmall).foregroundStyle(Brand.textMuted)
                 }
                 // 每段前標辨識語言（國／台／客）；匯入的文字不是辨識出來的，不標
@@ -78,28 +78,28 @@ struct ReportFacts: View {
     @AppStorage(UIMode.key) private var mode: UIMode = .business
     var body: some View {
         GlassCard(padding: 14) {
-            Text("基本資料").font(.labelSmall).tracking(1.2).foregroundStyle(Brand.textMuted)
+            Text("基本資料".tr).font(.labelSmall).tracking(1.2).foregroundStyle(Brand.textMuted)
             VStack(alignment: .leading, spacing: 6) {
-                fact("時間", meeting.recordingRange)
+                fact("時間".tr, meeting.recordingRange)
                 if let g = GeoStore.load(meeting.id) {
                     // 地點：點一下開地圖（不顯示 GPS 來源）
                     Button { if let u = g.mapURL { UIApplication.shared.open(u) } } label: {
                         HStack(alignment: .firstTextBaseline, spacing: 12) {
-                            Text("地點").font(.bodySmall).foregroundStyle(Brand.textFaint).frame(minWidth: 36, alignment: .leading).fixedSize()
+                            Text("地點".tr).font(.bodySmall).foregroundStyle(Brand.textFaint).frame(minWidth: 36, alignment: .leading).fixedSize()
                             Text(g.label + " ›").font(.bodySmall).foregroundStyle(Brand.cyan).multilineTextAlignment(.leading)
                         }
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("地點 \(g.label)，點一下開地圖")
+                    .accessibilityLabel("地點 {0}，點一下開地圖".trf(g.label))
                 }
-                fact("來源", meeting.sourceLabel)
+                fact("來源".tr, meeting.sourceLabel)
                 fact("AI", Meeting.aiModelLabel(meeting.aiModel))   // 兩種模式都顯示用了哪個 AI
-                if let c = meeting.hostCleanup { fact("隱私", c) }
+                if let c = meeting.hostCleanup { fact("隱私".tr, c) }
                 if mode == .tech {
                     if let s = meeting.processStartedAt, let e = meeting.processEndedAt {
-                        fact("耗時", "\(Int(e.timeIntervalSince(s).rounded())) 秒")
+                        fact("耗時".tr, "{0} 秒".trf(Int(e.timeIntervalSince(s).rounded())))
                     }
-                    fact("編號", meeting.id)
+                    fact("編號".tr, meeting.id)
                 }
             }
             .padding(.top, 8)
@@ -130,7 +130,7 @@ struct ReportView: View {
                     }
                     VStack(alignment: .leading, spacing: 8) {
                         if sec.isEmpty {
-                            Text("無").font(.bodyMedium).foregroundStyle(Brand.textFaint)
+                            Text("無".tr).font(.bodyMedium).foregroundStyle(Brand.textFaint)
                         } else {
                             ForEach(Array(Self.grouped(sec.blocks).enumerated()), id: \.offset) { _, g in
                                 switch g {
@@ -179,7 +179,7 @@ struct ReportView: View {
     static func grouped(_ blocks: [Block]) -> [Group] {
         var out: [Group] = []
         for b in blocks {
-            if case let .row(header, cells) = b, header.contains(where: { $0.contains("熱量") }) {
+            if case let .row(header, cells) = b, header.contains(where: { $0.contains("熱量") || $0.lowercased().contains("kcal") }) {
                 if case let .food(h, rows)? = out.last, h == header { out[out.count - 1] = .food(header: h, rows: rows + [cells]) }
                 else { out.append(.food(header: header, rows: [cells])) }
             } else {
@@ -203,7 +203,7 @@ struct ReportView: View {
                 }
             }
         }
-        static let emptyWords: Set<String> = ["無", "无", "（無）", "-", "—", "未指定"]
+        static let emptyWords: Set<String> = ["無", "无", "（無）", "-", "—", "未指定", "None", "none", "N/A", "없음", "Unassigned", "미지정"]
     }
 
     static let colors: [Color] = [Brand.cyan, Brand.violet, Brand.pink, Brand.success, Brand.warning, Brand.blue]
@@ -220,7 +220,7 @@ struct ReportView: View {
                 continue
             }
             guard !t.isEmpty else { continue }
-            if out.isEmpty { out.append(Section(title: "報告")) }
+            if out.isEmpty { out.append(Section(title: "報告".tr)) }
             if t.hasPrefix("|") {
                 let cells = Speakers.tableCells(t)
                 if cells.allSatisfy({ c in !c.isEmpty && c.allSatisfy { $0 == "-" || $0 == ":" } }) { continue }
@@ -253,7 +253,15 @@ struct FoodList: View {
     let header: [String]
     let rows: [[String]]
 
-    private func col(_ key: String) -> Int? { header.firstIndex { $0.contains(key) } }
+    /// 欄位（三種報告語言都認得）：食物 / Food / 음식…
+    private static let aliases: [String: [String]] = [
+        "食物": ["食物", "品項", "名稱", "Food", "음식"], "份量": ["份量", "Portion", "분량"], "熱量": ["熱量", "Calories", "열량"],
+        "蛋白": ["蛋白", "Protein", "단백질"], "碳水": ["碳水", "Carbs", "탄수"], "脂肪": ["脂肪", "Fat", "지방"], "來源": ["來源", "Source", "출처"],
+    ]
+    private func col(_ key: String) -> Int? {
+        let keys = Self.aliases[key] ?? [key]
+        return header.firstIndex { h in keys.contains { h.lowercased().contains($0.lowercased()) } }
+    }
     private func cell(_ r: [String], _ key: String) -> String {
         guard let i = col(key), i < r.count else { return "" }
         return r[i].trimmingCharacters(in: .whitespaces)
@@ -275,26 +283,27 @@ struct FoodList: View {
     }
 
     @ViewBuilder private func item(_ r: [String]) -> some View {
-        let name = col("食物").flatMap { $0 < r.count ? r[$0] : nil } ?? r.first ?? ""
-        let kcal = cell(r, "熱量")
-        let detail = [cell(r, "份量"),
-                      cell(r, "蛋白").isEmpty ? "" : "蛋白質 \(num(cell(r, "蛋白")))g",
-                      cell(r, "碳水").isEmpty ? "" : "碳水 \(num(cell(r, "碳水")))g",
-                      cell(r, "脂肪").isEmpty ? "" : "脂肪 \(num(cell(r, "脂肪")))g"].filter { !$0.isEmpty }.joined(separator: " · ")
-        let src = cell(r, "來源")
+        let name = col("食物".tr).flatMap { $0 < r.count ? r[$0] : nil } ?? r.first ?? ""
+        let kcal = cell(r, "熱量".tr)
+        let detail = [cell(r, "份量".tr),
+                      cell(r, "蛋白".tr).isEmpty ? "" : "蛋白質 {0}g".trf(num(cell(r, "蛋白"))),
+                      cell(r, "碳水".tr).isEmpty ? "" : "碳水 {0}g".trf(num(cell(r, "碳水"))),
+                      cell(r, "脂肪".tr).isEmpty ? "" : "脂肪 {0}g".trf(num(cell(r, "脂肪")))].filter { !$0.isEmpty }.joined(separator: " · ")
+        let src = cell(r, "來源".tr)
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text(ReportView.inline(name)).font(.titleSmall).foregroundStyle(Brand.text)
                 Spacer(minLength: 8)
                 if !kcal.isEmpty {
-                    Text("\(num(kcal)) 大卡").font(.titleSmall).foregroundStyle(Brand.cyan).fixedSize()
+                    Text("{0} 大卡".trf(num(kcal))).font(.titleSmall).foregroundStyle(Brand.cyan).fixedSize()
                 }
             }
             if !detail.isEmpty {
                 Text(detail).font(.bodySmall).foregroundStyle(Brand.textMuted).fixedSize(horizontal: false, vertical: true)
             }
             if !src.isEmpty {
-                let c = src.hasPrefix("食藥署") ? Brand.success : src.contains("營養標示") ? Brand.blue : Brand.textFaint
+                let c = src.hasPrefix("食藥署") || src.hasPrefix("Taiwan FDA") || src.hasPrefix("대만 식약청") ? Brand.success
+                    : src.contains("營養標示") || src.hasPrefix("Nutrition label") || src.hasPrefix("영양성분표") ? Brand.blue : Brand.textFaint
                 Text(src).font(.labelMedium).foregroundStyle(c)
                     .padding(.horizontal, 8).padding(.vertical, 2)
                     .background(Capsule().fill(c.opacity(0.10)))
@@ -328,7 +337,7 @@ struct TranscriptView: View {
         let speakers = Self.order(lines)
         let current = lines.last { ($0.time ?? .infinity) <= player.time }?.id
         if lines.isEmpty {
-            GlassCard { Text("沒有逐字稿").font(.bodyMedium).foregroundStyle(Brand.textFaint) }
+            GlassCard { Text("沒有逐字稿".tr).font(.bodyMedium).foregroundStyle(Brand.textFaint) }
         } else {
             LazyVStack(alignment: .leading, spacing: 8) {
                 ForEach(lines) { l in
@@ -342,7 +351,7 @@ struct TranscriptView: View {
                                         .padding(.horizontal, 6).padding(.vertical, 1)
                                         .background(Capsule().fill(Self.tagColor(langTag).opacity(0.15)))
                                         .overlay(Capsule().stroke(Self.tagColor(langTag).opacity(0.5), lineWidth: 1))
-                                        .accessibilityLabel(langTag == .hak && dialect != nil ? "客語\(dialect!.label)腔" : langTag.short)
+                                        .accessibilityLabel(langTag == .hak && dialect != nil ? "客語{0}腔".trf(dialect!.label) : langTag.short)
                                 }
                                 if !l.speaker.isEmpty {
                                     Text(names[l.speaker] ?? l.speaker).font(.labelLarge).foregroundStyle(color)
@@ -378,7 +387,7 @@ struct TranscriptView: View {
     /// 「[mm:ss] 說話者A：內容」或「[h:mm:ss] …」；格式不符的整行當內容。
     static func parse(_ text: String) -> [Line] {
         // 「[mm:ss] 說話者A：內容」（Gemini）或「[mm:ss] 內容」（Apple，沒有說話者）
-        let re = try! NSRegularExpression(pattern: #"^\[(\d{1,2}(?::\d{2}){1,2})\]\s*(?:(說話者[A-Z?]{1,2}|[^：:\s]{1,8})[：:])?\s*(.*)$"#)
+        let re = try! NSRegularExpression(pattern: #"^\[(\d{1,2}(?::\d{2}){1,2})\]\s*(?:(說話者[A-Z?]{1,2}|Speaker ?[A-Z?]{1,2}|화자 ?[A-Z?]{1,2}|[^：:\s]{1,8})[：:])?\s*(.*)$"#)
         var out: [Line] = []
         for raw in text.components(separatedBy: "\n") {
             let t = raw.trimmingCharacters(in: .whitespaces)

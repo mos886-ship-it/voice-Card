@@ -266,7 +266,7 @@ struct GeminiClient {
         for img in images { parts.append(["inline_data": ["mime_type": "image/jpeg", "data": img.base64EncodedString()]]) }
         parts.append(["text": prompt])
         let body: [String: Any] = [
-            "systemInstruction": ["parts": [["text": system]]],
+            "systemInstruction": ["parts": [["text": ReportLang.current.localize(system)]]],
             "contents": [["role": "user", "parts": parts]],
             "generationConfig": ["temperature": 0.2],
         ]
@@ -353,7 +353,7 @@ struct GeminiClient {
         if let fileURI { parts.append(["file_data": ["mime_type": Self.uploadMime, "file_uri": fileURI]]) }
         parts.append(["text": prompt])
         let body: [String: Any] = [
-            "systemInstruction": ["parts": [["text": Self.systemPrompt]]],
+            "systemInstruction": ["parts": [["text": ReportLang.current.localize(Self.systemPrompt)]]],
             "contents": [["role": "user", "parts": parts]],
             "generationConfig": ["temperature": 0.2],
         ]

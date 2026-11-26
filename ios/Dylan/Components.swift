@@ -123,11 +123,11 @@ extension Meeting {
     /// 狀態標籤（照 Android statusStyle）。處理步驟細節（上傳音檔 / AI 聆聽整理…）在里程碑 5。
     var statusStyle: StatusStyle {
         switch status {
-        case .recording: return StatusStyle(label: "手錶錄音中", color: Brand.recording, busy: true)
-        case .received: return StatusStyle(label: "已收到", color: Brand.violet, busy: false)
-        case .summarizing: return StatusStyle(label: "AI 分析中", color: Brand.cyan, busy: true)
-        case .done: return StatusStyle(label: "報告完成", color: Brand.success, busy: false)
-        case .failed: return StatusStyle(label: "處理失敗", color: Brand.error, busy: false)
+        case .recording: return StatusStyle(label: "手錶錄音中".tr, color: Brand.recording, busy: true)
+        case .received: return StatusStyle(label: "已收到".tr, color: Brand.violet, busy: false)
+        case .summarizing: return StatusStyle(label: "AI 分析中".tr, color: Brand.cyan, busy: true)
+        case .done: return StatusStyle(label: "報告完成".tr, color: Brand.success, busy: false)
+        case .failed: return StatusStyle(label: "處理失敗".tr, color: Brand.error, busy: false)
         }
     }
 }
@@ -227,7 +227,7 @@ struct WatchPill: View {
         Button(action: action) {
             HStack(spacing: 6) {
                 Circle().fill(on ? Brand.success : Brand.textFaint).frame(width: 8, height: 8)
-                Text(on ? "手錶已連線" : "手錶未連線").font(.labelMedium).foregroundStyle(on ? Brand.text : Brand.textMuted)
+                Text(on ? "手錶已連線".tr : "手錶未連線".tr).font(.labelMedium).foregroundStyle(on ? Brand.text : Brand.textMuted)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 7)
@@ -245,7 +245,7 @@ struct TopBar<Trailing: View>: View {
     @ViewBuilder var trailing: Trailing
     var body: some View {
         HStack(spacing: 12) {
-            IconCircle(systemImage: "chevron.left", label: "返回", action: onBack)
+            IconCircle(systemImage: "chevron.left", label: "返回".tr, action: onBack)
             Text(title).font(.titleMedium).foregroundStyle(Brand.text)
             Spacer()
             trailing

@@ -9,11 +9,11 @@ enum Tab: String, CaseIterable {
 
     func label(_ layout: LayoutMode) -> String {
         switch self {
-        case .home: return layout == .overview ? "主頁" : "今天"
-        case .records: return layout == .overview ? "錄音" : "資料庫"
-        case .food: return "飲食"
-        case .files: return "檔案"
-        case .settings: return "設定"
+        case .home: return layout == .overview ? "主頁".tr : "今天".tr
+        case .records: return layout == .overview ? "錄音".tr : "資料庫".tr
+        case .food: return "飲食".tr
+        case .files: return "檔案".tr
+        case .settings: return "設定".tr
         }
     }
     var label: String { label(.quick) }
@@ -24,7 +24,7 @@ enum LayoutMode: String, CaseIterable, Identifiable {
     case quick, overview
     static let key = "layout_mode"
     var id: String { rawValue }
-    var label: String { self == .overview ? "總覽" : "快錄" }
+    var label: String { self == .overview ? "總覽".tr : "快錄".tr }
 
     /// 1.1.87 存的 new / classic → quick / overview（App 啟動時換一次）。
     static func migrate() {
@@ -36,8 +36,8 @@ enum LayoutMode: String, CaseIterable, Identifiable {
         }
     }
     var note: String {
-        self == .overview ? "主頁有快捷方塊、今日統計與最新報告；底部五個分頁：主頁、錄音、飲食、檔案、設定。"
-            : "「今天」只放現在要做的事；底部中間的錄音鍵任何分頁一按就錄；檔案管理在資料庫的「管理」。"
+        self == .overview ? "主頁有快捷方塊、今日統計與最新報告；底部五個分頁：主頁、錄音、飲食、檔案、設定。".tr
+            : "「今天」只放現在要做的事；底部中間的錄音鍵任何分頁一按就錄；檔案管理在資料庫的「管理」。".tr
     }
 }
 
@@ -83,7 +83,7 @@ struct RootView: View {
         .toast($toast)
         .sheet(isPresented: $photoCapture.presented) {
             FoodPhotoSheet { id in
-                if let id { path = []; tab = .food; toast = "照片已送出，AI 估算中" }
+                if let id { path = []; tab = .food; toast = "照片已送出，AI 估算中".tr }
                 else { tab = .home }   // 拍＋說：錄音卡在「今天」
             }
         }
@@ -143,12 +143,12 @@ private struct RecordKey: View {
             .frame(width: 52, height: 52)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(recording ? "停止錄音" : "開始錄音")
+        .accessibilityLabel(recording ? "停止錄音".tr : "開始錄音".tr)
         .contextMenu {
             if !recording {
-                Button { PhoneRecorder.shared.start(food: true) } label: { Label("說：記錄飲食", systemImage: "fork.knife") }
-                Button { FoodPhotoCapture.shared.open(withVoice: false) } label: { Label("拍：拍照記錄", systemImage: "camera") }
-                Button { FoodPhotoCapture.shared.open(withVoice: true) } label: { Label("拍＋說：拍照再補一句", systemImage: "camera.badge.ellipsis") }
+                Button { PhoneRecorder.shared.start(food: true) } label: { Label("說：記錄飲食".tr, systemImage: "fork.knife") }
+                Button { FoodPhotoCapture.shared.open(withVoice: false) } label: { Label("拍：拍照記錄".tr, systemImage: "camera") }
+                Button { FoodPhotoCapture.shared.open(withVoice: true) } label: { Label("拍＋說：拍照再補一句".tr, systemImage: "camera.badge.ellipsis") }
             }
         }
     }

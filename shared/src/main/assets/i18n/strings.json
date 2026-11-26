@@ -3670,5 +3670,973 @@
  "大D的主機上的錄音與報告都已刪除": {
   "en": "Recording and report deleted from Dylan Host",
   "ko": "Dylan 호스트의 녹음과 보고서가 삭제되었습니다"
+ },
+ "可用": {
+  "en": "Available",
+  "ko": "사용 가능"
+ },
+ "這支 iPhone 不支援": {
+  "en": "Not supported on this iPhone",
+  "ko": "이 iPhone에서 지원되지 않음"
+ },
+ "未開啟（設定 → Apple Intelligence）": {
+  "en": "Off (Settings → Apple Intelligence)",
+  "ko": "꺼짐(설정 → Apple Intelligence)"
+ },
+ "模型下載中": {
+  "en": "Downloading model",
+  "ko": "모델 다운로드 중"
+ },
+ "需要更新 iOS": {
+  "en": "iOS update needed",
+  "ko": "iOS 업데이트 필요"
+ },
+ "Apple 裝置端辨識 ＋ Apple 私有雲整理": {
+  "en": "Apple on-device recognition + Apple Private Cloud summary",
+  "ko": "Apple 기기 내 인식 + Apple 비공개 클라우드 정리"
+ },
+ "Apple 裝置端（不上傳）": {
+  "en": "Apple on-device (no upload)",
+  "ko": "Apple 기기 내(업로드 안 함)"
+ },
+ "Apple 裝置端辨識 ＋ Gemini 整理": {
+  "en": "Apple on-device recognition + Gemini summary",
+  "ko": "Apple 기기 내 인식 + Gemini 정리"
+ },
+ "只有逐字稿": {
+  "en": "Transcript only",
+  "ko": "녹취록만"
+ },
+ "免費、不需金鑰；語音在手機上轉文字，交給 Apple 私有雲運算整理（不保留資料）；沒有分說話者": {
+  "en": "Free, no key needed; speech is transcribed on the phone and summarized by Apple Private Cloud Compute (no data kept); no speaker separation",
+  "ko": "무료, 키 불필요. 음성은 휴대폰에서 텍스트로 바꾸고 Apple 비공개 클라우드 컴퓨팅이 정리합니다(데이터 보관 안 함). 화자 구분 없음"
+ },
+ "免費、不需金鑰、不上傳；語音和整理都在手機上；沒有分說話者": {
+  "en": "Free, no key, no upload; transcription and summary both stay on the phone; no speaker separation",
+  "ko": "무료, 키 불필요, 업로드 안 함. 인식과 정리 모두 휴대폰에서. 화자 구분 없음"
+ },
+ "語音在手機上轉文字，報告由 Gemini 整理": {
+  "en": "Speech is transcribed on the phone; Gemini writes the report",
+  "ko": "음성은 휴대폰에서 텍스트로 바꾸고 보고서는 Gemini가 정리"
+ },
+ "Gemini 直接聽錄音，產出報告與分說話者逐字稿": {
+  "en": "Gemini listens to the recording and writes the report and a transcript by speaker",
+  "ko": "Gemini가 녹음을 직접 듣고 보고서와 화자별 녹취록을 작성"
+ },
+ "只有 Apple 裝置端逐字稿；填入 Gemini 金鑰即可產生分說話者的報告": {
+  "en": "Apple on-device transcript only; add a Gemini key to get reports with speakers",
+  "ko": "Apple 기기 내 녹취록만. Gemini 키를 넣으면 화자별 보고서를 만들 수 있습니다"
+ },
+ "這支 iPhone 需要 Gemini 金鑰才能產生報告": {
+  "en": "This iPhone needs a Gemini key to make reports",
+  "ko": "이 iPhone은 보고서를 만들려면 Gemini 키가 필요합니다"
+ },
+ "讀不到「{0}」：{1}": {
+  "en": "Can't read \"{0}\": {1}",
+  "ko": "\"{0}\"을(를) 읽을 수 없습니다: {1}"
+ },
+ "「{0}」是空的": {
+  "en": "\"{0}\" is empty",
+  "ko": "\"{0}\"이(가) 비어 있습니다"
+ },
+ "「{0}」存檔失敗：{1}": {
+  "en": "Couldn't save \"{0}\": {1}",
+  "ko": "\"{0}\" 저장 실패: {1}"
+ },
+ "「{0}」不是可用的音檔（{1}）": {
+  "en": "\"{0}\" isn't a usable audio file ({1})",
+  "ko": "\"{0}\"은(는) 사용할 수 있는 오디오 파일이 아닙니다({1})"
+ },
+ "收音中斷，正在恢復…": {
+  "en": "Audio interrupted, recovering…",
+  "ko": "녹음이 끊겨 복구 중…"
+ },
+ "聲音太大，請離遠一點": {
+  "en": "Too loud, move a bit further away",
+  "ko": "소리가 너무 큽니다. 조금 떨어져 주세요"
+ },
+ "幾乎沒有聲音，請靠近一點": {
+  "en": "Almost no sound, move a bit closer",
+  "ko": "소리가 거의 없습니다. 조금 가까이 와 주세요"
+ },
+ "收音正常": {
+  "en": "Audio OK",
+  "ko": "녹음 정상"
+ },
+ "這次廣播沒有收到聲音（對方的 App 可能不允許錄製）": {
+  "en": "No sound came through this broadcast (the other app may not allow recording)",
+  "ko": "이번 방송에서 소리를 받지 못했습니다(상대 앱이 녹음을 허용하지 않을 수 있음)"
+ },
+ "通話錄音處理失敗：{0}": {
+  "en": "Couldn't process the call recording: {0}",
+  "ko": "통화 녹음 처리 실패: {0}"
+ },
+ "無法輸出音檔": {
+  "en": "Can't export the audio",
+  "ko": "오디오를 내보낼 수 없습니다"
+ },
+ "輸出音檔失敗": {
+  "en": "Audio export failed",
+  "ko": "오디오 내보내기 실패"
+ },
+ "已收到": {
+  "en": "Received",
+  "ko": "받음"
+ },
+ "已匯入 {0} 個檔，正在產生報告": {
+  "en": "Imported {0} files, making reports",
+  "ko": "파일 {0}개를 가져왔습니다. 보고서를 만드는 중"
+ },
+ "已匯入 {0} 個；": {
+  "en": "Imported {0}; ",
+  "ko": "{0}개 가져옴; "
+ },
+ "這台 iPad 叫什麼名字？": {
+  "en": "What's this iPad called?",
+  "ko": "이 iPad의 이름은?"
+ },
+ "這支手機叫什麼名字？": {
+  "en": "What's this phone called?",
+  "ko": "이 휴대폰의 이름은?"
+ },
+ "例如：Dylan 的 iPad": {
+  "en": "e.g. Dylan's iPad",
+  "ko": "예: Dylan의 iPad"
+ },
+ "例如：Dylan 的 iPhone": {
+  "en": "e.g. Dylan's iPhone",
+  "ko": "예: Dylan의 iPhone"
+ },
+ "以後再說": {
+  "en": "Later",
+  "ko": "나중에"
+ },
+ "會顯示在錄音的「來源」，分得出是哪一台錄的。之後可以在「設定 → 這台裝置」改。": {
+  "en": "Shown as the recording's Source so you can tell which device recorded it. You can change it later in Settings → This device.",
+  "ko": "녹음의 '출처'에 표시되어 어느 기기로 녹음했는지 알 수 있습니다. 나중에 설정 → 이 기기에서 바꿀 수 있습니다."
+ },
+ "沒有麥克風權限：到 iPhone 設定 → 大D → 麥克風 打開": {
+  "en": "No microphone access: turn it on in iPhone Settings → Dylan → Microphone",
+  "ko": "마이크 권한 없음: iPhone 설정 → Dylan → 마이크를 켜세요"
+ },
+ "Apple（手機上）": {
+  "en": "Apple (on the phone)",
+  "ko": "Apple(휴대폰에서)"
+ },
+ "iPad 錄音中": {
+  "en": "Recording on iPad",
+  "ko": "iPad 녹음 중"
+ },
+ "可以鎖螢幕，會繼續錄；停止後自動整理": {
+  "en": "You can lock the screen and it keeps recording; it's summarized after you stop",
+  "ko": "화면을 잠가도 계속 녹음합니다. 멈추면 자동으로 정리합니다"
+ },
+ "地點  {0}": {
+  "en": "Place  {0}",
+  "ko": "장소  {0}"
+ },
+ "地點 {0}，點一下開地圖": {
+  "en": "Place {0}, tap to open the map",
+  "ko": "장소 {0}, 눌러서 지도 열기"
+ },
+ "錄音好像中斷了": {
+  "en": "The recording seems to have stopped",
+  "ko": "녹음이 끊긴 것 같습니다"
+ },
+ "已經一段時間沒有收到手錶的新分段。可以先用已收到的 {0} 段（{1}）完成這筆錄音；缺的部分會跳過。": {
+  "en": "No new parts have come from the watch for a while. You can finish this recording with the {0} parts received ({1}); missing parts will be skipped.",
+  "ko": "한동안 워치에서 새 구간이 오지 않았습니다. 받은 {0}개 구간({1})으로 이 녹음을 마칠 수 있습니다. 빠진 부분은 건너뜁니다."
+ },
+ "用已收到的分段完成": {
+  "en": "Finish with the parts received",
+  "ko": "받은 구간으로 완료"
+ },
+ "已收到 {0} 段，錄音中每 5 分鐘同步一次，停止後會自動合併。": {
+  "en": "{0} parts received. While recording it syncs every 5 minutes and merges automatically when stopped.",
+  "ko": "{0}개 구간을 받았습니다. 녹음 중 5분마다 동기화하고, 멈추면 자동으로 합칩니다."
+ },
+ "可以關掉螢幕或切到別的 App，分析會在背景繼續，完成後手錶會收到通知。": {
+  "en": "You can turn off the screen or switch apps; analysis continues in the background and the watch is notified when it's done.",
+  "ko": "화면을 끄거나 다른 앱으로 가도 분석은 백그라운드에서 계속되며, 끝나면 워치에 알림이 갑니다."
+ },
+ "重試": {
+  "en": "Retry",
+  "ko": "다시 시도"
+ },
+ "還沒有 AI 報告": {
+  "en": "No AI report yet",
+  "ko": "아직 AI 보고서가 없습니다"
+ },
+ "按下面的按鈕，用大D的主機 整理出重點、待辦與分說話者的逐字稿。": {
+  "en": "Tap the button below to have Dylan Host write key points, to-dos and a transcript by speaker.",
+  "ko": "아래 버튼을 눌러 Dylan 호스트로 핵심 내용, 할 일, 화자별 녹취록을 정리하세요."
+ },
+ "按下面的按鈕，用 Gemini 整理出重點、待辦與分說話者的逐字稿。": {
+  "en": "Tap the button below to have Gemini write key points, to-dos and a transcript by speaker.",
+  "ko": "아래 버튼을 눌러 Gemini로 핵심 내용, 할 일, 화자별 녹취록을 정리하세요."
+ },
+ "沒有 Gemini 金鑰或開著隱私模式：會用 Apple 在手機上產生逐字稿與重點（不分說話者，需要 iOS 26 以上）。": {
+  "en": "No Gemini key or privacy mode is on: Apple will make the transcript and key points on the phone (no speakers, needs iOS 26 or later).",
+  "ko": "Gemini 키가 없거나 개인정보 보호 모드가 켜져 있습니다: Apple이 휴대폰에서 녹취록과 핵심 내용을 만듭니다(화자 구분 없음, iOS 26 이상 필요)."
+ },
+ "產生報告": {
+  "en": "Make report",
+  "ko": "보고서 만들기"
+ },
+ "辨識語言：客語・{0}腔": {
+  "en": "Recognition language: Hakka · {0}",
+  "ko": "인식 언어: 하카어 · {0}"
+ },
+ "報告產生中，完成後才能換語言（台語、客語約要錄音長度的 1～2 倍時間）": {
+  "en": "The report is being made; you can change the language when it's done (Taiwanese and Hakka take about 1–2× the recording length)",
+  "ko": "보고서를 만드는 중입니다. 끝나야 언어를 바꿀 수 있습니다(대만어·하카어는 녹음 길이의 약 1~2배 시간)"
+ },
+ "刪除這筆錄音？": {
+  "en": "Delete this recording?",
+  "ko": "이 녹음을 삭제할까요?"
+ },
+ "錄音檔、報告與逐字稿會一起刪除，無法復原。": {
+  "en": "The audio, report and transcript will all be deleted. This can't be undone.",
+  "ko": "녹음 파일, 보고서, 녹취록이 함께 삭제되며 되돌릴 수 없습니다."
+ },
+ "用「{0}」重新產生報告？": {
+  "en": "Remake the report in {0}?",
+  "ko": "\"{0}\"(으)로 보고서를 다시 만들까요?"
+ },
+ "現在的報告和逐字稿會被新的取代。想對照兩種結果，請先把現在的逐字稿複製或截圖。": {
+  "en": "The current report and transcript will be replaced. To compare, copy or screenshot the current transcript first.",
+  "ko": "지금 보고서와 녹취록이 새것으로 바뀝니다. 비교하려면 지금 녹취록을 먼저 복사하거나 캡처하세요."
+ },
+ "Gemini 正在聆聽錄音，整理成報告與逐字稿。": {
+  "en": "Gemini is listening to the recording and writing the report and transcript.",
+  "ko": "Gemini가 녹음을 듣고 보고서와 녹취록을 정리하고 있습니다."
+ },
+ "正在把錄音上傳給 Gemini。": {
+  "en": "Uploading the recording to Gemini.",
+  "ko": "녹음을 Gemini에 업로드하는 중입니다."
+ },
+ "錄音已傳給大D的主機，正在辨識說話者並整理報告（約錄音長度的一半到一倍時間）。": {
+  "en": "The recording is on Dylan Host, which is identifying speakers and writing the report (about 0.5–1× the recording length).",
+  "ko": "녹음이 Dylan 호스트로 전송되어 화자를 구분하고 보고서를 정리하는 중입니다(녹음 길이의 약 0.5~1배 시간)."
+ },
+ "Apple 正在手機上把錄音轉成文字（不上傳）。": {
+  "en": "Apple is transcribing the recording on the phone (no upload).",
+  "ko": "Apple이 휴대폰에서 녹음을 텍스트로 바꾸는 중입니다(업로드 안 함)."
+ },
+ "Apple 正在整理重點。": {
+  "en": "Apple is summarizing the key points.",
+  "ko": "Apple이 핵심 내용을 정리하는 중입니다."
+ },
+ "大D的主機同時幫好幾台裝置處理，每台輪流。": {
+  "en": "Dylan Host serves several devices, taking turns. ",
+  "ko": "Dylan 호스트는 여러 기기를 번갈아 처리합니다. "
+ },
+ "（錄音已經傳到主機，可以關掉 App）": {
+  "en": " (the recording is already on the host; you can close the app)",
+  "ko": " (녹음이 이미 호스트에 있으니 앱을 닫아도 됩니다)"
+ },
+ "暫停": {
+  "en": "Pause",
+  "ko": "일시정지"
+ },
+ "播放": {
+  "en": "Play",
+  "ko": "재생"
+ },
+ "AI 依口述估算，不是精確值": {
+  "en": "AI estimate from what you said, not exact",
+  "ko": "말한 내용을 바탕으로 한 AI 추정치이며 정확한 값이 아닙니다"
+ },
+ "iPhone SE（第 2 代）": {
+  "en": "iPhone SE (2nd generation)",
+  "ko": "iPhone SE(2세대)"
+ },
+ "iPhone SE（第 3 代）": {
+  "en": "iPhone SE (3rd generation)",
+  "ko": "iPhone SE(3세대)"
+ },
+ "iPad Pro 11 吋": {
+  "en": "iPad Pro 11-inch",
+  "ko": "iPad Pro 11형"
+ },
+ "iPad Pro 11 吋（第 2 代）": {
+  "en": "iPad Pro 11-inch (2nd generation)",
+  "ko": "iPad Pro 11형(2세대)"
+ },
+ "iPad Pro 12.9 吋（第 4 代）": {
+  "en": "iPad Pro 12.9-inch (4th generation)",
+  "ko": "iPad Pro 12.9형(4세대)"
+ },
+ "iPad Pro 11 吋（第 3 代）": {
+  "en": "iPad Pro 11-inch (3rd generation)",
+  "ko": "iPad Pro 11형(3세대)"
+ },
+ "iPad Pro 12.9 吋（第 5 代）": {
+  "en": "iPad Pro 12.9-inch (5th generation)",
+  "ko": "iPad Pro 12.9형(5세대)"
+ },
+ "iPad Pro 11 吋（第 4 代）": {
+  "en": "iPad Pro 11-inch (4th generation)",
+  "ko": "iPad Pro 11형(4세대)"
+ },
+ "iPad Pro 12.9 吋（第 6 代）": {
+  "en": "iPad Pro 12.9-inch (6th generation)",
+  "ko": "iPad Pro 12.9형(6세대)"
+ },
+ "iPad Pro 11 吋（M4）": {
+  "en": "iPad Pro 11-inch (M4)",
+  "ko": "iPad Pro 11형(M4)"
+ },
+ "iPad Pro 13 吋（M4）": {
+  "en": "iPad Pro 13-inch (M4)",
+  "ko": "iPad Pro 13형(M4)"
+ },
+ "iPad Air（第 4 代）": {
+  "en": "iPad Air (4th generation)",
+  "ko": "iPad Air(4세대)"
+ },
+ "iPad Air（第 5 代）": {
+  "en": "iPad Air (5th generation)",
+  "ko": "iPad Air(5세대)"
+ },
+ "iPad Air 11 吋（M2）": {
+  "en": "iPad Air 11-inch (M2)",
+  "ko": "iPad Air 11형(M2)"
+ },
+ "iPad Air 13 吋（M2）": {
+  "en": "iPad Air 13-inch (M2)",
+  "ko": "iPad Air 13형(M2)"
+ },
+ "iPad（第 9 代）": {
+  "en": "iPad (9th generation)",
+  "ko": "iPad(9세대)"
+ },
+ "iPad（第 10 代）": {
+  "en": "iPad (10th generation)",
+  "ko": "iPad(10세대)"
+ },
+ "iPad mini（第 6 代）": {
+  "en": "iPad mini (6th generation)",
+  "ko": "iPad mini(6세대)"
+ },
+ "已和大D的主機配對": {
+  "en": "Paired with Dylan Host",
+  "ko": "Dylan 호스트와 페어링됨"
+ },
+ "配對失敗：{0}": {
+  "en": "Pairing failed: {0}",
+  "ko": "페어링 실패: {0}"
+ },
+ "已匯入「{0}」，正在產生報告": {
+  "en": "Imported \"{0}\", making the report",
+  "ko": "\"{0}\"을(를) 가져왔습니다. 보고서를 만드는 중"
+ },
+ "管理檔案": {
+  "en": "Manage files",
+  "ko": "파일 관리"
+ },
+ "雲端備份": {
+  "en": "Cloud backup",
+  "ko": "클라우드 백업"
+ },
+ "Google 雲端硬碟備份（跟 Android 共用同一份）還在準備中。錄音和報告目前只存在這台裝置上，刪除前請先確認。": {
+  "en": "Google Drive backup (shared with Android) is still being prepared. Recordings and reports are only on this device for now, so check before deleting.",
+  "ko": "Google 드라이브 백업(Android와 공유)은 아직 준비 중입니다. 녹음과 보고서는 지금 이 기기에만 있으니 삭제 전에 확인하세요."
+ },
+ "錄音、報告、逐字稿都會從這台裝置刪除。": {
+  "en": "The recording, report and transcript will be deleted from this device.",
+  "ko": "녹음, 보고서, 녹취록이 이 기기에서 삭제됩니다."
+ },
+ "\n還沒有雲端備份，刪除後無法復原。": {
+  "en": "\nThere's no cloud backup yet, so this can't be undone.",
+  "ko": "\n아직 클라우드 백업이 없어 삭제하면 되돌릴 수 없습니다."
+ },
+ "方式": {
+  "en": "Mode",
+  "ko": "방식"
+ },
+ "拍好後開始錄音，補一句吃了什麼、吃了多少（口述跟照片不一樣時以口述為準）。": {
+  "en": "After the photos, recording starts: say what and how much you ate (if it differs from the photo, what you say wins).",
+  "ko": "사진을 찍은 뒤 녹음이 시작됩니다. 무엇을 얼마나 먹었는지 말해 주세요(사진과 다르면 말한 내용이 우선)."
+ },
+ "只用照片估算熱量。看得到包裝的營養標示會照標示算。": {
+  "en": "Calories are estimated from the photos only. A visible nutrition label is used as given.",
+  "ko": "사진만으로 열량을 추정합니다. 포장의 영양성분표가 보이면 그대로 계산합니다."
+ },
+ "移除第 {0} 張": {
+  "en": "Remove photo {0}",
+  "ko": "{0}번째 사진 삭제"
+ },
+ "相簿": {
+  "en": "Library",
+  "ko": "앨범"
+ },
+ "已選 {0} / {1} 張。照片會縮小並去掉位置資訊，只送給 Gemini 辨識；照片和拍攝地點留在這支手機的記錄裡。": {
+  "en": "{0} / {1} selected. Photos are shrunk and location data removed before only Gemini sees them; the photos and where they were taken stay in this phone's records.",
+  "ko": "{0} / {1}장 선택. 사진은 축소하고 위치 정보를 지운 뒤 Gemini에만 보냅니다. 사진과 촬영 장소는 이 휴대폰의 기록에 남습니다."
+ },
+ "下一步：開始口述": {
+  "en": "Next: start speaking",
+  "ko": "다음: 말하기 시작"
+ },
+ "估算這一餐": {
+  "en": "Estimate this meal",
+  "ko": "이 식사 추정"
+ },
+ "拍照記錄": {
+  "en": "Photo log",
+  "ko": "사진 기록"
+ },
+ "飲食照片，點一下放大": {
+  "en": "Meal photo, tap to enlarge",
+  "ko": "식사 사진, 눌러서 크게 보기"
+ },
+ "說出吃了什麼，AI 估算熱量與營養素": {
+  "en": "Say what you ate; AI estimates calories and nutrients",
+  "ko": "먹은 것을 말하면 AI가 열량과 영양소를 추정합니다"
+ },
+ "拍照記錄（最多 {0} 張）": {
+  "en": "Photo log (up to {0})",
+  "ko": "사진 기록(최대 {0}장)"
+ },
+ "按「記錄這一餐」或手錶的「飲食」，說出吃了什麼（例如「中午吃了一碗牛肉麵和燙青菜」），停止後會自動估算熱量。": {
+  "en": "Tap Log this meal or Meal on the watch and say what you ate (e.g. \"a bowl of beef noodles and blanched greens for lunch\"); calories are estimated when you stop.",
+  "ko": "'이 식사 기록' 또는 워치의 '식사'를 누르고 먹은 것을 말하세요(예: \"점심에 우육면 한 그릇과 데친 채소\"). 멈추면 열량을 자동으로 추정합니다."
+ },
+ "{0} · 蛋白質 {1}g · 碳水 {2}g · 脂肪 {3}g": {
+  "en": "{0} · protein {1}g · carbs {2}g · fat {3}g",
+  "ko": "{0} · 단백질 {1}g · 탄수화물 {2}g · 지방 {3}g"
+ },
+ "大D的主機 的位址格式不對": {
+  "en": "Dylan Host's address isn't in the right format",
+  "ko": "Dylan 호스트 주소 형식이 맞지 않습니다"
+ },
+ "連不到大D的主機（{0}）": {
+  "en": "Can't reach Dylan Host ({0})",
+  "ko": "Dylan 호스트에 연결할 수 없습니다({0})"
+ },
+ "Gemini 連線中斷或逾時（{0}），請稍後按「重試」": {
+  "en": "Gemini connection dropped or timed out ({0}); tap Retry later",
+  "ko": "Gemini 연결이 끊기거나 시간 초과({0}). 잠시 후 '다시 시도'를 누르세요"
+ },
+ "Gemini 上傳回應看不懂": {
+  "en": "Couldn't understand Gemini's upload response",
+  "ko": "Gemini 업로드 응답을 이해할 수 없습니다"
+ },
+ "連不到大D的主機超過 15 分鐘": {
+  "en": "Couldn't reach Dylan Host for over 15 minutes",
+  "ko": "Dylan 호스트에 15분 넘게 연결하지 못했습니다"
+ },
+ "這台裝置沒有 Apple 健康。": {
+  "en": "This device doesn't have Apple Health.",
+  "ko": "이 기기에는 Apple 건강이 없습니다."
+ },
+ "無法取得授權：{0}": {
+  "en": "Couldn't get permission: {0}",
+  "ko": "권한을 받을 수 없습니다: {0}"
+ },
+ "沒有寫入權限。請到「健康」App →「共享」→「App」→「大D」，把營養項目打開。": {
+  "en": "No write access. In the Health app go to Sharing → Apps → Dylan and turn on the nutrition items.",
+  "ko": "쓰기 권한이 없습니다. 건강 앱 → 공유 → 앱 → Dylan에서 영양 항목을 켜세요."
+ },
+ "有 {0} 筆沒寫進去，請確認「健康」App 裡大D的寫入權限。": {
+  "en": "{0} entries weren't written; check Dylan's write access in the Health app.",
+  "ko": "{0}건을 쓰지 못했습니다. 건강 앱에서 Dylan의 쓰기 권한을 확인하세요."
+ },
+ "中文": {
+  "en": "Chinese",
+  "ko": "중국어"
+ },
+ "今天記了 {0} 筆": {
+  "en": "{0} logged today",
+  "ko": "오늘 {0}건 기록"
+ },
+ "客語 Whisper（陽明交大）": {
+  "en": "Hakka Whisper (NYCU)",
+  "ko": "하카어 Whisper(양명교통대)"
+ },
+ "位址格式不對": {
+  "en": "Address isn't in the right format",
+  "ko": "주소 형식이 맞지 않습니다"
+ },
+ "位址格式不對，例如 http://Dylan-Mac-mini.local:8765": {
+  "en": "Address isn't in the right format, e.g. http://Dylan-Mac-mini.local:8765",
+  "ko": "주소 형식이 맞지 않습니다. 예: http://Dylan-Mac-mini.local:8765"
+ },
+ "連不到大D的主機（{0}）。請確認主機開著、服務在跑、手機連得到主機（同一個 Wi-Fi 或固定 IP）": {
+  "en": "Can't reach Dylan Host ({0}). Check that the host is on, the service is running, and the phone can reach it (same Wi-Fi or a fixed IP)",
+  "ko": "Dylan 호스트에 연결할 수 없습니다({0}). 호스트가 켜져 있고 서비스가 실행 중이며 휴대폰이 연결 가능한지(같은 Wi-Fi 또는 고정 IP) 확인하세요"
+ },
+ "存取碼不對": {
+  "en": "Wrong access code",
+  "ko": "액세스 코드가 틀렸습니다"
+ },
+ "大D的主機 回應錯誤 {0}": {
+  "en": "Dylan Host returned error {0}",
+  "ko": "Dylan 호스트 응답 오류 {0}"
+ },
+ "大D的主機 的存取碼不對，請到設定重新貼上": {
+  "en": "Dylan Host's access code is wrong; paste it again in Settings",
+  "ko": "Dylan 호스트 액세스 코드가 틀렸습니다. 설정에서 다시 붙여넣으세요"
+ },
+ "Apple 語音辨識": {
+  "en": "Apple speech recognition",
+  "ko": "Apple 음성 인식"
+ },
+ "Apple 私有雲運算": {
+  "en": "Apple Private Cloud Compute",
+  "ko": "Apple 비공개 클라우드 컴퓨팅"
+ },
+ "Apple 裝置端模型": {
+  "en": "Apple on-device model",
+  "ko": "Apple 기기 내 모델"
+ },
+ "拍照 ": {
+  "en": "Photo ",
+  "ko": "사진 "
+ },
+ "分段合併失敗：{0}": {
+  "en": "Couldn't merge the parts: {0}",
+  "ko": "구간 합치기 실패: {0}"
+ },
+ "隱私模式不上傳到雲端；照片辨識飲食需要 Gemini（免費），請先關掉隱私模式": {
+  "en": "Privacy mode doesn't upload to the cloud; recognizing meal photos needs Gemini (free), so turn privacy mode off first",
+  "ko": "개인정보 보호 모드는 클라우드에 올리지 않습니다. 사진으로 식사를 인식하려면 Gemini(무료)가 필요하니 먼저 개인정보 보호 모드를 끄세요"
+ },
+ "文字檔要用大D的主機 或 Gemini 產生報告：請到設定填好其中一個": {
+  "en": "Text files need Dylan Host or Gemini to make a report: set up one of them in Settings",
+  "ko": "텍스트 파일은 Dylan 호스트나 Gemini로 보고서를 만듭니다. 설정에서 둘 중 하나를 설정하세요"
+ },
+ "隱私模式：不上傳到雲端，在手機上處理": {
+  "en": "Privacy mode: processed on the phone, nothing uploaded",
+  "ko": "개인정보 보호 모드: 클라우드에 올리지 않고 휴대폰에서 처리"
+ },
+ "AI 分析中…": {
+  "en": "AI analyzing…",
+  "ko": "AI 분석 중…"
+ },
+ "大D的主機 連不到（{0}），改用 Gemini": {
+  "en": "Couldn't reach Dylan Host ({0}); using Gemini instead",
+  "ko": "Dylan 호스트에 연결할 수 없어({0}) Gemini로 대신합니다"
+ },
+ "{0}。這次改用 Gemini。": {
+  "en": "{0}. Using Gemini this time.",
+  "ko": "{0}. 이번에는 Gemini를 사용합니다."
+ },
+ "大D的主機 沒有完成（{0}），改用 Gemini": {
+  "en": "Dylan Host didn't finish ({0}); using Gemini instead",
+  "ko": "Dylan 호스트가 완료하지 못해({0}) Gemini로 대신합니다"
+ },
+ "這支 iPhone 沒有 Apple 語音辨識（需要 iOS 26 以上），隱私模式無法使用；請關掉隱私模式改用 Gemini": {
+  "en": "This iPhone has no Apple speech recognition (needs iOS 26 or later), so privacy mode can't be used; turn privacy mode off to use Gemini",
+  "ko": "이 iPhone에는 Apple 음성 인식이 없어(iOS 26 이상 필요) 개인정보 보호 모드를 쓸 수 없습니다. 개인정보 보호 모드를 끄고 Gemini를 사용하세요"
+ },
+ "還沒設定 Gemini API Key，而這支 iPhone 沒有 Apple 語音辨識；請到「設定」貼上金鑰後按「重試」": {
+  "en": "No Gemini API key yet and this iPhone has no Apple speech recognition; paste a key in Settings, then tap Retry",
+  "ko": "Gemini API 키가 없고 이 iPhone에는 Apple 음성 인식도 없습니다. 설정에 키를 붙여넣은 뒤 '다시 시도'를 누르세요"
+ },
+ "Apple 處理失敗：{0}": {
+  "en": "Apple processing failed: {0}",
+  "ko": "Apple 처리 실패: {0}"
+ },
+ "\n\n（錄音太長，Gemini 一次輸出不完，後面的逐字稿被截斷；長錄音分段分析在之後的版本加上）": {
+  "en": "\n\n(The recording is too long for Gemini to finish in one go, so the end of the transcript is cut off; analyzing long recordings in parts is coming in a later version)",
+  "ko": "\n\n(녹음이 너무 길어 Gemini가 한 번에 끝내지 못해 뒤쪽 녹취록이 잘렸습니다. 긴 녹음을 나눠 분석하는 기능은 이후 버전에 추가됩니다)"
+ },
+ "報告存檔失敗：{0}": {
+  "en": "Couldn't save the report: {0}",
+  "ko": "보고서 저장 실패: {0}"
+ },
+ "Gemini 沒有完成（{0}），改用 Apple 在手機上整理，沒有分說話者": {
+  "en": "Gemini didn't finish ({0}); Apple summarized it on the phone instead, without speakers",
+  "ko": "Gemini가 완료하지 못해({0}) Apple이 휴대폰에서 정리했습니다. 화자 구분 없음"
+ },
+ "AI 分析失敗": {
+  "en": "AI analysis failed",
+  "ko": "AI 분석 실패"
+ },
+ "最新錄音": {
+  "en": "Latest recording",
+  "ko": "최근 녹음"
+ },
+ "查看錄音 →": {
+  "en": "View recording →",
+  "ko": "녹음 보기 →"
+ },
+ "可以鎖螢幕，會繼續錄": {
+  "en": "You can lock the screen; it keeps recording",
+  "ko": "화면을 잠가도 계속 녹음합니다"
+ },
+ "停止": {
+  "en": "Stop",
+  "ko": "중지"
+ },
+ "錄通話 / 線上會議": {
+  "en": "Record a call / online meeting",
+  "ko": "통화 / 온라인 회의 녹음"
+ },
+ "LINE、Zoom、Teams 雙方的聲音": {
+  "en": "Both sides of LINE, Zoom, Teams",
+  "ko": "LINE, Zoom, Teams 양쪽 소리"
+ },
+ "iOS 畫面廣播只留聲音：面板選「大D」、開麥克風 → 開始廣播；按紅色狀態列停止。一般電話與 FaceTime 錄不到。": {
+  "en": "Uses iOS screen broadcast, keeping only the audio: pick Dylan in the panel, turn on the mic → Start Broadcast; tap the red status bar to stop. Regular phone calls and FaceTime can't be recorded.",
+  "ko": "iOS 화면 방송에서 소리만 남깁니다: 패널에서 Dylan 선택, 마이크 켜기 → 방송 시작. 빨간 상태 막대를 눌러 멈춥니다. 일반 전화와 FaceTime은 녹음할 수 없습니다."
+ },
+ "手機已收到（{0}）": {
+  "en": "Phone received it ({0})",
+  "ko": "휴대폰이 받았습니다({0})"
+ },
+ "手機合併失敗": {
+  "en": "Phone couldn't merge it",
+  "ko": "휴대폰 합치기 실패"
+ },
+ "無法開始錄音": {
+  "en": "Can't start recording",
+  "ko": "녹음을 시작할 수 없습니다"
+ },
+ "找不到麥克風": {
+  "en": "No microphone found",
+  "ko": "마이크를 찾을 수 없습니다"
+ },
+ "沒有錄到聲音": {
+  "en": "No sound was recorded",
+  "ko": "녹음된 소리가 없습니다"
+ },
+ "刪除錄音與報告": {
+  "en": "Delete recording and report",
+  "ko": "녹음과 보고서 삭제"
+ },
+ "刪除後無法復原。": {
+  "en": "This can't be undone.",
+  "ko": "삭제하면 되돌릴 수 없습니다."
+ },
+ "在主頁按「開始錄音」、用手錶錄音，或按右上的「匯入」選音檔": {
+  "en": "Tap Start recording on Home, record on the watch, or tap Import at the top right to pick an audio file",
+  "ko": "홈에서 '녹음 시작'을 누르거나 워치로 녹음하거나, 오른쪽 위 '가져오기'로 오디오 파일을 고르세요"
+ },
+ "搜尋：關鍵字、日期（空白分隔）": {
+  "en": "Search: keywords, dates (space-separated)",
+  "ko": "검색: 키워드, 날짜(공백으로 구분)"
+ },
+ "錄音紀錄": {
+  "en": "Recordings",
+  "ko": "녹음 기록"
+ },
+ "報告還在整理中，可以先看逐字稿。": {
+  "en": "The report is still being made; you can read the transcript first.",
+  "ko": "보고서를 아직 정리 중입니다. 녹취록을 먼저 볼 수 있습니다."
+ },
+ "這筆只有逐字稿：這支 iPhone 沒有可用的 Apple 整理模型。到「設定」貼上 Gemini 金鑰後可以按「重新產生報告」。": {
+  "en": "Transcript only: this iPhone has no Apple summary model. Paste a Gemini key in Settings, then tap Remake report.",
+  "ko": "녹취록만 있습니다: 이 iPhone에는 Apple 정리 모델이 없습니다. 설정에 Gemini 키를 붙여넣은 뒤 '보고서 다시 만들기'를 누르세요."
+ },
+ "重新產生報告": {
+  "en": "Remake report",
+  "ko": "보고서 다시 만들기"
+ },
+ "預覽：Apple 在手機上產生的逐字稿，沒有分說話者；Gemini 報告完成後會換成完整版。": {
+  "en": "Preview: Apple's on-phone transcript without speakers; it's replaced by the full version when the Gemini report is done.",
+  "ko": "미리보기: Apple이 휴대폰에서 만든 녹취록(화자 구분 없음). Gemini 보고서가 끝나면 전체 버전으로 바뀝니다."
+ },
+ "沒有逐字稿": {
+  "en": "No transcript",
+  "ko": "녹취록 없음"
+ },
+ "客語{0}腔": {
+  "en": "Hakka ({0})",
+  "ko": "하카어({0})"
+ },
+ "主頁有快捷方塊、今日統計與最新報告；底部五個分頁：主頁、錄音、飲食、檔案、設定。": {
+  "en": "Home has shortcut tiles, today's stats and the latest report; five tabs at the bottom: Home, Recordings, Meals, Files, Settings.",
+  "ko": "홈에는 바로가기, 오늘 통계, 최근 보고서가 있고 아래에 탭 5개(홈, 녹음, 식사, 파일, 설정)가 있습니다."
+ },
+ "「今天」只放現在要做的事；底部中間的錄音鍵任何分頁一按就錄；檔案管理在資料庫的「管理」。": {
+  "en": "Today shows only what to do now; the record button in the bottom middle records from any tab; file management is under Manage in the library.",
+  "ko": "'오늘'에는 지금 할 일만 둡니다. 아래 가운데 녹음 버튼은 어느 탭에서나 바로 녹음합니다. 파일 관리는 자료실의 '관리'에 있습니다."
+ },
+ "照片已送出，AI 估算中": {
+  "en": "Photos sent, AI estimating",
+  "ko": "사진을 보냈습니다. AI 추정 중"
+ },
+ "無法建立音軌": {
+  "en": "Can't create the audio track",
+  "ko": "오디오 트랙을 만들 수 없습니다"
+ },
+ "分段沒有音訊：{0}": {
+  "en": "A part has no audio: {0}",
+  "ko": "구간에 오디오가 없습니다: {0}"
+ },
+ "無法匯出": {
+  "en": "Can't export",
+  "ko": "내보낼 수 없습니다"
+ },
+ "匯出失敗": {
+  "en": "Export failed",
+  "ko": "내보내기 실패"
+ },
+ "淺灰紙底、白卡片、藍色重點：資訊清楚，適合工作。手錶維持深色。": {
+  "en": "Light gray paper, white cards, blue accents: clear and good for work. The watch stays dark.",
+  "ko": "연회색 바탕, 흰 카드, 파란 강조: 정보가 분명해 업무에 좋습니다. 워치는 어두운 테마를 유지합니다."
+ },
+ "偵測中…": {
+  "en": "Detecting…",
+  "ko": "확인 중…"
+ },
+ "大D的主機：分說話者、免費、不出你的設備；連不到時改用 ": {
+  "en": "Dylan Host: separates speakers, free, stays on your devices; if unreachable, uses ",
+  "ko": "Dylan 호스트: 화자 구분, 무료, 내 기기 밖으로 나가지 않음. 연결 안 되면 "
+ },
+ "從 App 切換器把大D 往上滑關掉，再重新開啟，就會換成新的語言。": {
+  "en": "Swipe Dylan away in the app switcher and open it again to switch to the new language.",
+  "ko": "앱 전환기에서 Dylan을 위로 밀어 닫고 다시 열면 새 언어로 바뀝니다."
+ },
+ "自動（依這支 iPhone）": {
+  "en": "Auto (based on this iPhone)",
+  "ko": "자동(이 iPhone 기준)"
+ },
+ "錄音報告用大D的主機（有設定時）或 Google Gemini，兩者都能分出不同的說話者。Apple 內建的 AI 不分說話者，用來當輔助，以及整理飲食記錄（免費、不上傳）。": {
+  "en": "Recording reports use Dylan Host (if set up) or Google Gemini; both separate speakers. Apple's built-in AI doesn't, so it's the backup and handles meal logs (free, no upload).",
+  "ko": "녹음 보고서는 Dylan 호스트(설정된 경우)나 Google Gemini가 만들며 둘 다 화자를 구분합니다. Apple 내장 AI는 화자를 구분하지 않아 보조용과 식사 기록 정리에 씁니다(무료, 업로드 안 함)."
+ },
+ "系統": {
+  "en": "System",
+  "ko": "시스템"
+ },
+ "繁中語音辨識（裝置端）": {
+  "en": "Traditional Chinese speech recognition (on-device)",
+  "ko": "번체 중국어 음성 인식(기기 내)"
+ },
+ "支援": {
+  "en": "Supported",
+  "ko": "지원"
+ },
+ "不支援": {
+  "en": "Not supported",
+  "ko": "미지원"
+ },
+ "繁中 Apple 模型": {
+  "en": "Traditional Chinese Apple model",
+  "ko": "번체 중국어 Apple 모델"
+ },
+ "這支 iPhone 會用：": {
+  "en": "This iPhone will use:",
+  "ko": "이 iPhone이 사용할 것:"
+ },
+ "錄音報告": {
+  "en": "Recording reports",
+  "ko": "녹음 보고서"
+ },
+ "（連不到時改用 Gemini）": {
+  "en": " (Gemini if unreachable)",
+  "ko": " (연결 안 되면 Gemini)"
+ },
+ "輔助": {
+  "en": "Backup",
+  "ko": "보조"
+ },
+ "無（這支 iPhone 沒有 Apple 語音辨識）": {
+  "en": "None (this iPhone has no Apple speech recognition)",
+  "ko": "없음(이 iPhone에는 Apple 음성 인식이 없음)"
+ },
+ "輔助：大D的主機和 Gemini 都不能用時，改用 Apple 在手機上產生逐字稿與重點（不分說話者）。": {
+  "en": "Backup: when neither Dylan Host nor Gemini works, Apple makes the transcript and key points on the phone (no speakers).",
+  "ko": "보조: Dylan 호스트와 Gemini를 모두 쓸 수 없을 때 Apple이 휴대폰에서 녹취록과 핵심 내용을 만듭니다(화자 구분 없음)."
+ },
+ "隱私模式": {
+  "en": "Privacy mode",
+  "ko": "개인정보 보호 모드"
+ },
+ "這台裝置": {
+  "en": "This device",
+  "ko": "이 기기"
+ },
+ "錄音存在這支 iPhone 與你的 Apple Watch。用大D的主機 處理時，錄音只傳到大D的主機，處理完不保留。使用 Gemini 時，錄音會上傳到 Google 分析，分析完立刻刪除上傳的檔案；免費方案的內容可能被 Google 用來改進產品。金鑰與存取碼只存在這支 iPhone 的鑰匙圈。": {
+  "en": "Recordings are stored on this iPhone and your Apple Watch. With Dylan Host, recordings go only to Dylan Host and aren't kept after processing. With Gemini, recordings are uploaded to Google for analysis and the upload is deleted right after; on the free plan Google may use the content to improve its products. Keys and access codes are only in this iPhone's keychain.",
+  "ko": "녹음은 이 iPhone과 Apple Watch에 저장됩니다. Dylan 호스트로 처리하면 녹음은 Dylan 호스트로만 가고 처리 후 보관하지 않습니다. Gemini를 쓰면 녹음이 Google에 업로드되어 분석되고 업로드 파일은 바로 삭제됩니다. 무료 요금제의 내용은 Google이 제품 개선에 쓸 수 있습니다. 키와 액세스 코드는 이 iPhone의 키체인에만 있습니다."
+ },
+ "飲食熱量計算使用衛生福利部食品藥物管理署「食品營養成分資料集」（2026/10/05 版，只取熱量、蛋白質、脂肪、碳水，每 100 克），依政府資料開放授權條款－第1版使用。": {
+  "en": "Meal calories use the Taiwan Food and Drug Administration (Ministry of Health and Welfare) Food Nutrient Database (2026/10/05 edition; calories, protein, fat and carbs per 100 g only), used under the Open Government Data License, version 1.0.",
+  "ko": "식사 열량 계산은 대만 위생복리부 식품약물관리서의 '식품영양성분 데이터'(2026/10/05판, 100g당 열량·단백질·지방·탄수화물만)를 정부 공개데이터 이용허가 조건 제1판에 따라 사용합니다."
+ },
+ "大D {0}": {
+  "en": "Dylan {0}",
+  "ko": "Dylan {0}"
+ },
+ "手錶 App 未安裝": {
+  "en": "Watch app not installed",
+  "ko": "워치 앱 미설치"
+ },
+ "沒有配對手錶": {
+  "en": "No paired watch",
+  "ko": "페어링된 워치 없음"
+ },
+ "請在 iPhone 的「Watch」App 安裝大D": {
+  "en": "Install Dylan from the Watch app on iPhone",
+  "ko": "iPhone의 Watch 앱에서 Dylan을 설치하세요"
+ },
+ "請確認手錶已在「Watch」App 配對": {
+  "en": "Make sure the watch is paired in the Watch app",
+  "ko": "Watch 앱에서 워치가 페어링되어 있는지 확인하세요"
+ },
+ "用大D的主機 跑 AI：會分說話者、免費、沒有額度，錄音不出你的設備。主機要開著，手機要連得到（同一個 Wi-Fi，或出門用固定 IP）。": {
+  "en": "Run AI on Dylan Host: separates speakers, free, no quota, and recordings stay on your devices. The host must be on and reachable from the phone (same Wi-Fi, or a fixed IP when you're out).",
+  "ko": "Dylan 호스트로 AI 실행: 화자 구분, 무료, 한도 없음, 녹음이 내 기기 밖으로 나가지 않습니다. 호스트가 켜져 있고 휴대폰에서 연결할 수 있어야 합니다(같은 Wi-Fi 또는 외출 시 고정 IP)."
+ },
+ "測試中…": {
+  "en": "Testing…",
+  "ko": "테스트 중…"
+ },
+ "這台是一般使用者：換模型、配對密碼、管理別台裝置要用管理者的裝置。": {
+  "en": "This device is a regular user: changing models, the pairing password and other devices needs the admin's device.",
+  "ko": "이 기기는 일반 사용자입니다. 모델 변경, 페어링 비밀번호, 다른 기기 관리는 관리자 기기에서 하세요."
+ },
+ "已設定：新裝置輸入這個密碼就能連上": {
+  "en": "Set: new devices can connect with this password",
+  "ko": "설정됨: 새 기기는 이 비밀번호로 연결할 수 있습니다"
+ },
+ "還沒設定：設了之後新裝置輸入密碼就能連上": {
+  "en": "Not set: once set, new devices can connect with the password",
+  "ko": "미설정: 설정하면 새 기기가 비밀번호로 연결할 수 있습니다"
+ },
+ "再輸入一次": {
+  "en": "Enter again",
+  "ko": "다시 입력"
+ },
+ "配對密碼已設定": {
+  "en": "Pairing password set",
+  "ko": "페어링 비밀번호가 설정됨"
+ },
+ " · 管理者": {
+  "en": " · Admin",
+  "ko": " · 관리자"
+ },
+ " · 最後使用 ": {
+  "en": " · Last used ",
+  "ko": " · 마지막 사용 "
+ },
+ " · 密碼": {
+  "en": " · Password",
+  "ko": " · 비밀번호"
+ },
+ "配對完成": {
+  "en": "Paired",
+  "ko": "페어링 완료"
+ },
+ "QR 碼：在家裡的 Wi-Fi 用瀏覽器打開 http://Dylan-Mac-mini.local:8765/pair（或在主機上打開 http://localhost:8765/pair），用這台的相機掃。第一次還沒設密碼，就先用 QR 碼配對，再到這裡設定密碼。": {
+  "en": "QR code: on your home Wi-Fi open http://Dylan-Mac-mini.local:8765/pair in a browser (or http://localhost:8765/pair on the host) and scan it with this device's camera. If no password is set yet, pair with the QR code first, then set a password here.",
+  "ko": "QR 코드: 집 Wi-Fi에서 브라우저로 http://Dylan-Mac-mini.local:8765/pair를 열고(호스트에서는 http://localhost:8765/pair) 이 기기 카메라로 스캔하세요. 아직 비밀번호가 없으면 먼저 QR 코드로 페어링한 뒤 여기서 비밀번호를 설정하세요."
+ },
+ "或貼上存取碼（主機 config.json 的 token）": {
+  "en": "Or paste the access code (the token in the host's config.json)",
+  "ko": "또는 액세스 코드 붙여넣기(호스트 config.json의 token)"
+ },
+ "存取碼已儲存": {
+  "en": "Access code saved",
+  "ko": "액세스 코드가 저장됨"
+ },
+ "對準主機配對頁上的 QR 碼": {
+  "en": "Point at the QR code on the host's pairing page",
+  "ko": "호스트 페어링 페이지의 QR 코드에 맞추세요"
+ },
+ "取消和大D的主機的配對？": {
+  "en": "Unpair from Dylan Host?",
+  "ko": "Dylan 호스트와 페어링을 해제할까요?"
+ },
+ "這台裝置之後要再用密碼或 QR 碼配對一次。": {
+  "en": "This device will need to pair again with the password or QR code.",
+  "ko": "이 기기는 나중에 비밀번호나 QR 코드로 다시 페어링해야 합니다."
+ },
+ "連線成功：{0}、{1}": {
+  "en": "Connected: {0}, {1}",
+  "ko": "연결 성공: {0}, {1}"
+ },
+ "（正在處理別的錄音）": {
+  "en": " (processing another recording)",
+  "ko": " (다른 녹음 처리 중)"
+ },
+ "已換成：{0}、{1}": {
+  "en": "Switched to: {0}, {1}",
+  "ko": "변경됨: {0}, {1}"
+ },
+ "不上傳到雲端": {
+  "en": "Don't upload to the cloud",
+  "ko": "클라우드에 올리지 않음"
+ },
+ "開啟後錄音不送 Gemini：有設定大D的主機 就用大D的主機（分說話者），否則用 Apple 在手機上轉文字與整理（不分說話者，需要 iOS 26 以上）。適合醫療、法律、人事等敏感談話。": {
+  "en": "When on, recordings aren't sent to Gemini: Dylan Host is used if set up (with speakers), otherwise Apple transcribes and summarizes on the phone (no speakers, needs iOS 26 or later). Good for sensitive talks such as medical, legal or HR.",
+  "ko": "켜면 녹음을 Gemini로 보내지 않습니다. Dylan 호스트가 설정되어 있으면 Dylan 호스트(화자 구분)를, 아니면 Apple이 휴대폰에서 텍스트 변환과 정리를 합니다(화자 구분 없음, iOS 26 이상 필요). 의료, 법률, 인사 등 민감한 대화에 적합합니다."
+ },
+ "每筆飲食的熱量、蛋白質、碳水、脂肪寫進 Apple 健康。": {
+  "en": "Each meal's calories, protein, carbs and fat are written to Apple Health.",
+  "ko": "식사마다 열량, 단백질, 탄수화물, 지방을 Apple 건강에 기록합니다."
+ },
+ "這台裝置沒有": {
+  "en": "Not on this device",
+  "ko": "이 기기에 없음"
+ },
+ "未開啟": {
+  "en": "Off",
+  "ko": "꺼짐"
+ },
+ "同步中": {
+  "en": "Syncing",
+  "ko": "동기화 중"
+ },
+ "沒有寫入權限": {
+  "en": "No write access",
+  "ko": "쓰기 권한 없음"
+ },
+ "Google 健康": {
+  "en": "Google Health",
+  "ko": "Google 건강"
+ },
+ "只在 Android 版（Health Connect）": {
+  "en": "Android only (Health Connect)",
+  "ko": "Android 버전에서만(Health Connect)"
+ },
+ "已設定（••••{0}）": {
+  "en": "Set (••••{0})",
+  "ko": "설정됨(••••{0})"
+ },
+ "到 Google AI Studio 免費申請金鑰（不用信用卡），複製後貼在這裡。": {
+  "en": "Get a free key at Google AI Studio (no credit card) and paste it here.",
+  "ko": "Google AI Studio에서 무료로 키를 받아(신용카드 불필요) 여기에 붙여넣으세요."
+ },
+ "貼上 Gemini API Key": {
+  "en": "Paste Gemini API key",
+  "ko": "Gemini API 키 붙여넣기"
+ },
+ "會顯示在錄音的「來源」，例如「{0} · {1}（{2}）」。iOS 不讓 App 讀系統設定裡的裝置名稱，所以請在這裡填一次。": {
+  "en": "Shown as the recording's Source, e.g. \"{0} · {1} ({2})\". iOS doesn't let apps read the device name from Settings, so enter it here once.",
+  "ko": "녹음의 '출처'에 표시됩니다(예: \"{0} · {1}({2})\"). iOS는 앱이 설정의 기기 이름을 읽지 못하게 하므로 여기에 한 번 입력하세요."
+ },
+ "簡潔：只顯示要用的。報告、清單和設定都精簡，適合每天使用。": {
+  "en": "Simple: shows only what you need. Reports, lists and settings are kept short for everyday use.",
+  "ko": "간결: 필요한 것만 보여 줍니다. 보고서, 목록, 설정이 간단해 매일 쓰기 좋습니다."
+ },
+ "細節：顯示 AI 模型、處理耗時、裝置能力與進階設定（換模型），方便測試和調整。": {
+  "en": "Detailed: shows the AI model, processing time, device capabilities and advanced settings (switch models) for testing and tuning.",
+  "ko": "상세: AI 모델, 처리 시간, 기기 기능, 고급 설정(모델 변경)을 보여 줘 테스트와 조정에 좋습니다."
+ },
+ "客語（國客夾雜也可以），比較慢": {
+  "en": "Hakka (mixed with Mandarin is fine), slower",
+  "ko": "하카어(표준 중국어와 섞여도 됨), 느림"
+ },
+ "M月d日 EEEE": {
+  "en": "EEEE, MMM d",
+  "ko": "M월 d일 EEEE"
+ },
+ "yyyy年M月d日 EEEE": {
+  "en": "EEEE, MMM d, yyyy",
+  "ko": "yyyy년 M월 d일 EEEE"
+ },
+ "其他語言：{0}": {
+  "en": "Other language: {0}",
+  "ko": "기타 언어: {0}"
+ },
+ "其他語言": {
+  "en": "Other languages",
+  "ko": "기타 언어"
  }
 }

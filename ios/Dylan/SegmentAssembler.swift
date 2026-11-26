@@ -13,23 +13,23 @@ enum SegmentAssembler {
         } else {
             let comp = AVMutableComposition()
             guard let track = comp.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid) else {
-                throw err("無法建立音軌")
+                throw err("無法建立音軌".tr)
             }
             var cursor = CMTime.zero
             for url in segments {
                 let asset = AVURLAsset(url: url)
-                guard let src = try await asset.loadTracks(withMediaType: .audio).first else { throw err("分段沒有音訊：\(url.lastPathComponent)") }
+                guard let src = try await asset.loadTracks(withMediaType: .audio).first else { throw err("分段沒有音訊：{0}".trf(url.lastPathComponent)) }
                 let duration = try await asset.load(.duration)
                 try track.insertTimeRange(CMTimeRange(start: .zero, duration: duration), of: src, at: cursor)
                 cursor = cursor + duration
             }
             guard let export = AVAssetExportSession(asset: comp, presetName: AVAssetExportPresetAppleM4A) else {
-                throw err("無法匯出")
+                throw err("無法匯出".tr)
             }
             export.outputURL = tmp
             export.outputFileType = .m4a
             await export.export()
-            guard export.status == .completed else { throw export.error ?? err("匯出失敗") }
+            guard export.status == .completed else { throw export.error ?? err("匯出失敗".tr) }
         }
 
         try? fm.removeItem(at: out)

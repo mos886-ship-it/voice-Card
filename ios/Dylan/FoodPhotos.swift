@@ -88,13 +88,13 @@ struct FoodPhotoSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    Picker("方式", selection: $capture.withVoice) {
-                        Text("只拍照").tag(false)
-                        Text("拍照＋口述").tag(true)
+                    Picker("方式".tr, selection: $capture.withVoice) {
+                        Text("只拍照".tr).tag(false)
+                        Text("拍照＋口述".tr).tag(true)
                     }
                     .pickerStyle(.segmented)
-                    Text(capture.withVoice ? "拍好後開始錄音，補一句吃了什麼、吃了多少（口述跟照片不一樣時以口述為準）。"
-                                           : "只用照片估算熱量。看得到包裝的營養標示會照標示算。")
+                    Text(capture.withVoice ? "拍好後開始錄音，補一句吃了什麼、吃了多少（口述跟照片不一樣時以口述為準）。".tr
+                                           : "只用照片估算熱量。看得到包裝的營養標示會照標示算。".tr)
                         .font(.bodySmall).foregroundStyle(Brand.textMuted)
 
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
@@ -108,7 +108,7 @@ struct FoodPhotoSheet: View {
                                             Image(systemName: "xmark.circle.fill").font(.system(size: 22))
                                                 .foregroundStyle(.white, .black.opacity(0.55))
                                         }
-                                        .padding(4).accessibilityLabel("移除第 \(i + 1) 張")
+                                        .padding(4).accessibilityLabel("移除第 {0} 張".trf(i + 1))
                                     }
                             }
                         }
@@ -116,19 +116,19 @@ struct FoodPhotoSheet: View {
 
                     HStack(spacing: 10) {
                         Button { camera = true } label: {
-                            Label("拍照", systemImage: "camera").frame(maxWidth: .infinity).frame(height: 48)
+                            Label("拍照".tr, systemImage: "camera").frame(maxWidth: .infinity).frame(height: 48)
                         }
                         .disabled(left == 0 || !UIImagePickerController.isSourceTypeAvailable(.camera))
                         PhotosPicker(selection: $picks, maxSelectionCount: Swift.max(left, 1), matching: .images) {
-                            Label("相簿", systemImage: "photo.on.rectangle").frame(maxWidth: .infinity).frame(height: 48)
+                            Label("相簿".tr, systemImage: "photo.on.rectangle").frame(maxWidth: .infinity).frame(height: 48)
                         }
                         .disabled(left == 0)
                     }
                     .buttonStyle(.bordered).tint(Brand.cyan)
-                    Text("已選 \(photos.count) / \(FoodPhotos.max) 張。照片會縮小並去掉位置資訊，只送給 Gemini 辨識；照片和拍攝地點留在這支手機的記錄裡。")
+                    Text("已選 {0} / {1} 張。照片會縮小並去掉位置資訊，只送給 Gemini 辨識；照片和拍攝地點留在這支手機的記錄裡。".trf(photos.count, FoodPhotos.max))
                         .font(.bodySmall).foregroundStyle(Brand.textFaint)
 
-                    GradientButton(text: capture.withVoice ? "下一步：開始口述" : "估算這一餐", recordDot: capture.withVoice) {
+                    GradientButton(text: capture.withVoice ? "下一步：開始口述".tr : "估算這一餐".tr, recordDot: capture.withVoice) {
                         finish()
                     }
                     .disabled(photos.isEmpty)
@@ -138,9 +138,9 @@ struct FoodPhotoSheet: View {
             }
             .background(AppBackdrop())
             .onAppear { GeoLocator.shared.startPhotoFix() }
-            .navigationTitle("拍照記錄")
+            .navigationTitle("拍照記錄".tr)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("取消") { GeoLocator.shared.cancelPhotoFix(); dismiss() } } }
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("取消".tr) { GeoLocator.shared.cancelPhotoFix(); dismiss() } } }
         }
         .onChange(of: picks) { items in
             guard !items.isEmpty else { return }
@@ -215,7 +215,7 @@ struct FoodPhotoStrip: View {
                                     .clipShape(RoundedRectangle(cornerRadius: 12))
                             }
                             .buttonStyle(.plain)
-                            .accessibilityLabel("飲食照片，點一下放大")
+                            .accessibilityLabel("飲食照片，點一下放大".tr)
                         }
                     }
                 }
@@ -230,7 +230,7 @@ struct FoodPhotoStrip: View {
                         Image(systemName: "xmark").font(.system(size: 18, weight: .semibold)).foregroundStyle(.white)
                             .frame(width: 44, height: 44).background(Circle().fill(.white.opacity(0.2)))
                     }
-                    .padding(16).accessibilityLabel("關閉")
+                    .padding(16).accessibilityLabel("關閉".tr)
                 }
                 .onTapGesture { shown = nil }
             }

@@ -20,6 +20,7 @@ App 的報告解析、說話者名字、飲食 NUTRITION 解析都直接沿用�
   GET    /v1/jobs       → {"jobs": [這台的工作狀態]}（管理者看全部）
   POST /v1/process  → （舊的，連著等結果；也是排進同一個佇列）body 是錄音檔（m4a / wav…）；標頭 X-Kind: meeting|food、X-Recorded-At、X-Duration（秒）
                        X-Input: text 時 body 是 UTF-8 文字（匯入的會議紀錄 / 逐字稿），跳過語音辨識直接寫報告
+                       X-Report-Lang: zh | en | ko（報告語言；沒有 = 繁中）
                        X-Lang: zh（國語 → FunASR）| nan（台語・國台語 → Breeze-ASR-26）| hak（客語 → 數位部 Taiwan Tongues；
                        X-Dialect: sixian|hailu|dapu|raoping|zhaoan|nansixian 寫進報告提示，有裝陽明交大客語模型時也當模型提示）；
                        沒帶就用設定頁選的語音模型
@@ -518,7 +519,54 @@ def chunks(text, size):
     return out
 
 
-def process(audio_path, kind, recorded_at, duration, text_input=False, asr=None, dialect=None):
+# ---------------- 報告語言（照 Android / iOS ReportLang）----------------
+# App 送 X-Report-Lang：zh / en / ko。提示詞只有中文一份，換語言時把章節標題、表頭、說話者代號、固定字換掉，最後加一條規則。
+
+REPORT_LANGS = {"zh": ("說話者", "繁體中文（台灣用語）"), "en": ("Speaker ", "English"), "ko": ("화자 ", "한국어")}
+_HEADINGS = [
+    ("摘要", "Summary", "요약"), ("說話者", "Speakers", "화자"), ("重點", "Key points", "핵심 내용"),
+    ("結論 / 決定", "Conclusions / Decisions", "결론 / 결정"), ("待辦事項", "Action items", "할 일"),
+    ("待確認 / 後續問題", "Open questions / Follow-ups", "확인 필요 / 후속 질문"), ("討論重點", "Discussion", "논의 내용"),
+    ("決議事項", "Decisions", "결정 사항"), ("營養小提醒", "Nutrition tips", "영양 팁"),
+    ("假設與待確認", "Assumptions to check", "가정 및 확인 필요"),
+]
+_PHRASES = [
+    ("說話者 | 名字 | 角色 | 主要觀點", "Speaker | Name | Role | Main points", "화자 | 이름 | 역할 | 주요 의견"),
+    ("事項 | 負責人 | 期限", "Item | Owner | Due", "항목 | 담당자 | 기한"),
+    ("「未知」", "「Unknown」", "「미상」"), ("「未指定」", "「Unassigned」", "「미지정」"), ("「無」", "「None」", "「없음」"),
+    ("「本人」", "「Me」", "「본인」"), ("「（聽不清）」", "「(inaudible)」", "「(잘 안 들림)」"),
+    ("「（待確認）」", "「(to confirm)」", "「(확인 필요)」"),
+]
+
+
+def report_lang(code):
+    return code if code in REPORT_LANGS else "zh"
+
+
+def speaker_code(lang, letter):
+    return REPORT_LANGS[report_lang(lang)][0] + letter
+
+
+def localize(prompt, lang):
+    """中文提示詞 → 這個報告語言的格式（zh 原樣回傳）。跟 App 的 ReportLang.localize 一樣。"""
+    lang = report_lang(lang)
+    if lang == "zh":
+        return prompt
+    i = 1 if lang == "en" else 2
+    p = prompt
+    for h in _HEADINGS:
+        p = re.sub(r"(?m)^(\s*)## " + re.escape(h[0]) + r"\s*$", lambda m, t=h[i]: m.group(1) + "## " + t, p)
+    for ph in _PHRASES:
+        p = p.replace(ph[0], ph[i])
+    p = re.sub(r"說話者([A-Z?])", lambda m: REPORT_LANGS[lang][0] + m.group(1), p)
+    p = p.replace("一律使用繁體中文（台灣用語）。", "")
+    name = REPORT_LANGS[lang][1]
+    return (p.rstrip() + "\n\n【報告語言（最優先，覆蓋前面所有「繁體中文」的要求）】TITLE、SUMMARY、Markdown 報告（章節標題照上面給的寫法）"
+            f"一律用 {name} 撰寫；說話者代號寫成「{speaker_code(lang, 'A')}、{speaker_code(lang, 'B')}…」。逐字稿照錄音原本的語言寫，不要翻譯。"
+            f"飲食的 NUTRITION 與 ITEM 行維持原本的欄位格式（欄位名稱與餐別用中文），只有標題、摘要與報告文字用 {name}。")
+
+
+def process(audio_path, kind, recorded_at, duration, text_input=False, asr=None, dialect=None, rlang="zh"):
     t0 = time.time()
     if text_input:
         with open(audio_path, encoding="utf-8", errors="replace") as f:
@@ -527,6 +575,8 @@ def process(audio_path, kind, recorded_at, duration, text_input=False, asr=None,
     else:
         wav = to_wav(audio_path)
         transcript = transcribe(wav, asr, dialect)
+        if report_lang(rlang) != "zh":   # 逐字稿的說話者代號跟報告語言一樣（Speaker A / 화자 A）
+            transcript = re.sub(r"說話者([A-Z?0-9]+)", lambda m: speaker_code(rlang, m.group(1)), transcript)
         header = f"錄音時間：{recorded_at}，長度約 {duration / 60:.1f} 分鐘。"
         if (asr or CUR["asr"]) in ("hakka", "hakka-nycu"):
             header += (f"這段錄音是客語（{HAKKA_NAMES.get(dialect or 'sixian', '四縣')}腔，可能夾雜國語），逐字稿可能有用字不一的客語漢字或同音字；"
@@ -538,17 +588,17 @@ def process(audio_path, kind, recorded_at, duration, text_input=False, asr=None,
     if not transcript.strip():
         report = "TITLE: 沒有聽到內容\nSUMMARY: 這段錄音沒有辨識到說話內容。\n## 摘要\n這段錄音沒有辨識到說話內容。"
     elif kind == "food":
-        report = chat(FOOD_SYSTEM, f"{header}\n\n逐字稿：\n{transcript}", max_tokens=1500)
+        report = chat(localize(FOOD_SYSTEM, rlang), f"{header}\n\n逐字稿：\n{transcript}", max_tokens=1500)
     elif len(transcript) <= chunk_chars():
-        report = chat(REPORT_SYSTEM, f"{header}\n\n<transcript>\n{transcript}\n</transcript>")
+        report = chat(localize(REPORT_SYSTEM, rlang), f"{header}\n\n<transcript>\n{transcript}\n</transcript>")
     else:
         # 長錄音：分段做筆記再合併（照 Android LongMeeting 的做法）
         parts = chunks(transcript, chunk_chars())
         notes = []
         for i, p in enumerate(parts):
             log(f"  notes {i + 1}/{len(parts)}")
-            notes.append(f"【第 {i + 1} 部分】\n" + chat(NOTES_SYSTEM, p, max_tokens=1200))
-        report = chat(REPORT_SYSTEM, f"{header}\n以下是長錄音各部分整理好的筆記（不是逐字稿），請整合成一份報告：\n\n" + "\n\n".join(notes))
+            notes.append(f"【第 {i + 1} 部分】\n" + chat(localize(NOTES_SYSTEM, rlang), p, max_tokens=1200))
+        report = chat(localize(REPORT_SYSTEM, rlang), f"{header}\n以下是長錄音各部分整理好的筆記（不是逐字稿），請整合成一份報告：\n\n" + "\n\n".join(notes))
     t2 = time.time()
     log(f"  asr {t1 - t0:.1f}s, llm {t2 - t1:.1f}s, transcript {len(transcript)} chars")
     return f"{report}\n\n{TRANSCRIPT_MARKER}\n{transcript}"
@@ -599,7 +649,7 @@ def run_job(j, path):
             log(f"job {j['id']} {j['kind']}{' text' if j.get('text_input') else ''} {j.get('size', 0) // 1024} KB, "
                 f"{float(j.get('duration') or 0):.0f}s, asr={asr or CUR['asr']}")
             text = process(path, j["kind"], j.get("recorded_at", ""), float(j.get("duration") or 0),
-                           bool(j.get("text_input")), asr, j.get("dialect"))
+                           bool(j.get("text_input")), asr, j.get("dialect"), j.get("report_lang") or "zh")
         return {"text": text, "model": tag}
     except Exception as e:  # noqa: BLE001
         log(f"  failed: {e}")
@@ -703,7 +753,8 @@ class Handler(BaseHTTPRequestHandler):
         return {"size": length, "kind": kind if kind in ("meeting", "food") else "meeting",
                 "text_input": self.headers.get("X-Input", "") == "text",
                 "recorded_at": self.headers.get("X-Recorded-At", "")[:40], "duration": duration,
-                "asr": asr, "dialect": dialect if dialect in HAKKA_DIALECTS else None}, None
+                "asr": asr, "dialect": dialect if dialect in HAKKA_DIALECTS else None,
+                "report_lang": report_lang(self.headers.get("X-Report-Lang", ""))}, None
 
     def _receive(self, params):
         """把上傳的內容寫進佇列（JOBS.submit）。"""

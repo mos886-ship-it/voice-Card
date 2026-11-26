@@ -99,7 +99,7 @@ final class PhoneRecorder: ObservableObject {
             NSLog("[PhoneRecorder] start failed: \(error)")
             engine.inputNode.removeTap(onBus: 0)
             writer = nil
-            state = .failed("無法開始錄音")
+            state = .failed("無法開始錄音".tr)
             // 「拍＋說」錄不了音：照片不要丟，改成只拍照的記錄
             if food, !FoodPhotos.pendingForVoice.isEmpty {
                 _ = FoodPhotos.createPhotoOnly(FoodPhotos.pendingForVoice)
@@ -128,7 +128,7 @@ final class PhoneRecorder: ObservableObject {
         let input = engine.inputNode
         let format = input.outputFormat(forBus: 0)
         guard format.sampleRate > 0 else {
-            throw NSError(domain: "Dylan", code: 1, userInfo: [NSLocalizedDescriptionKey: "找不到麥克風"])
+            throw NSError(domain: "Dylan", code: 1, userInfo: [NSLocalizedDescriptionKey: "找不到麥克風".tr])
         }
         let queue = self.queue
         input.removeTap(onBus: 0)
@@ -192,14 +192,14 @@ final class PhoneRecorder: ObservableObject {
             writer?.finish()
             try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
             if recorded == 0 {
-                Task { @MainActor in self.state = .failed("沒有錄到聲音") }
+                Task { @MainActor in self.state = .failed("沒有錄到聲音".tr) }
             }
         }
     }
 
     /// 錄音不到 1 秒、整筆刪掉了（MeetingStore.assemble）：錄音卡顯示原因。
     func tooShort() {
-        if !isRecording { state = .failed("錄音不到 1 秒，沒有送出辨識") }
+        if !isRecording { state = .failed("錄音不到 1 秒，沒有送出辨識".tr) }
     }
 
     func clearMessage() {

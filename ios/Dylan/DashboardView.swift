@@ -34,7 +34,7 @@ struct DashboardView: View {
                         TimelineView(.everyMinute) { ctx in
                             let g = Greeting.now(ctx.date, meetings: store.meetings)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(Fmt.stamp(ctx.date, "M 月 d 日 EEEE")).font(.bodySmall).foregroundStyle(Brand.textMuted)
+                                Text(Fmt.stamp(ctx.date, "M 月 d 日 EEEE".tr)).font(.bodySmall).foregroundStyle(Brand.textMuted)
                                 Text(g.title).font(.system(size: 30, weight: .bold, design: Brand.serifTitles ? .serif : .default))
                                     .foregroundStyle(Brand.text)
                                 Text(g.line).font(.bodyMedium).foregroundStyle(Brand.textMuted)
@@ -55,7 +55,7 @@ struct DashboardView: View {
                 // ---------- 錄音：一張卡放開始錄音、語言、其他記錄方式 ----------
                 if rec.isRecording, let since = rec.since {
                     RecordingCard(food: rec.isFood, since: since, interrupted: rec.interrupted,
-                                  lang: lang == .hak ? "客語・" + dialect.label : lang.short,
+                                  lang: lang == .hak ? "客語・".tr + dialect.label : lang.short,
                                   detailed: mode == .tech) { rec.stop() }
                 } else {
                     CaptureCard(lang: lang, dialect: dialect, setLang: { langs.lang = $0 }, setDialect: { langs.dialect = $0 },
@@ -67,7 +67,7 @@ struct DashboardView: View {
                 // ---------- 處理中 ----------
                 if !busy.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
-                        PlainLabel(text: "處理中")
+                        PlainLabel(text: "處理中".tr)
                         ForEach(busy) { m in
                             Button { open(m.id) } label: {
                                 GlassCard(padding: 14) {
@@ -90,19 +90,19 @@ struct DashboardView: View {
                 // ---------- 今天的記錄 ----------
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        PlainLabel(text: "今天的記錄")
+                        PlainLabel(text: "今天的記錄".tr)
                         Spacer()
                         if store.meetings.contains(where: \.isFood) {
                             Button { select(.food) } label: {
-                                Text("\(kcal) / \(FoodView.goal) 大卡").font(.bodySmall).foregroundStyle(Brand.textMuted)
+                                Text("{0} / {1} 大卡".trf(kcal, FoodView.goal)).font(.bodySmall).foregroundStyle(Brand.textMuted)
                             }
                             .buttonStyle(.plain)
                         }
                     }
                     if todays.isEmpty {
                         GlassCard {
-                            Text("今天還沒有記錄").font(.titleSmall).foregroundStyle(Brand.text)
-                            Text("按「開始錄音」或手錶的錄音鍵，錄完會自動整理出重點、待辦與逐字稿。")
+                            Text("今天還沒有記錄".tr).font(.titleSmall).foregroundStyle(Brand.text)
+                            Text("按「開始錄音」或手錶的錄音鍵，錄完會自動整理出重點、待辦與逐字稿。".tr)
                                 .font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 4)
                         }
                     } else {
@@ -116,7 +116,7 @@ struct DashboardView: View {
                         .overlay(RoundedRectangle(cornerRadius: Brand.cardRadius, style: .continuous).stroke(Brand.outline, lineWidth: 1))
                     }
                     Button { select(.records) } label: {
-                        Text("所有記錄 →").font(.labelLarge).foregroundStyle(Brand.cyan)
+                        Text("所有記錄 →".tr).font(.labelLarge).foregroundStyle(Brand.cyan)
                             .frame(minHeight: 44)
                     }
                     .buttonStyle(.plain)
@@ -133,24 +133,24 @@ struct DashboardView: View {
                 var errors: [String] = []
                 for u in urls { if let e = await AudioImport.run(u) { errors.append(e) } }
                 let ok = urls.count - errors.count
-                toast = errors.isEmpty ? "已匯入 \(ok) 個檔，正在產生報告"
-                    : (ok > 0 ? "已匯入 \(ok) 個；" : "") + errors.joined(separator: "；")
+                toast = errors.isEmpty ? "已匯入 {0} 個檔，正在產生報告".trf(ok)
+                    : (ok > 0 ? "已匯入 {0} 個；".trf(ok) : "") + errors.joined(separator: "；")
             }
         }
         .onAppear { if !askedName && DeviceInfo.name.isEmpty { naming = true } }
-        .alert(Meeting.isPad ? "這台 iPad 叫什麼名字？" : "這支手機叫什麼名字？", isPresented: $naming) {
-            TextField(Meeting.isPad ? "例如：Dylan 的 iPad" : "例如：Dylan 的 iPhone", text: $nameInput)
-            Button("儲存") {
+        .alert(Meeting.isPad ? "這台 iPad 叫什麼名字？".tr : "這支手機叫什麼名字？".tr, isPresented: $naming) {
+            TextField(Meeting.isPad ? "例如：Dylan 的 iPad".tr : "例如：Dylan 的 iPhone".tr, text: $nameInput)
+            Button("儲存".tr) {
                 deviceName = nameInput.trimmingCharacters(in: .whitespacesAndNewlines)
                 askedName = true
             }
-            Button("以後再說", role: .cancel) { askedName = true }
+            Button("以後再說".tr, role: .cancel) { askedName = true }
         } message: {
-            Text("會顯示在錄音的「來源」，分得出是哪一台錄的。之後可以在「設定 → 這台裝置」改。")
+            Text("會顯示在錄音的「來源」，分得出是哪一台錄的。之後可以在「設定 → 這台裝置」改。".tr)
         }
         .onChange(of: rec.state) { s in
             switch s {
-            case .denied: toast = "沒有麥克風權限：到 iPhone 設定 → 大D → 麥克風 打開"; rec.clearMessage()
+            case .denied: toast = "沒有麥克風權限：到 iPhone 設定 → 大D → 麥克風 打開".tr; rec.clearMessage()
             case .failed(let msg): toast = msg; rec.clearMessage()
             default: break
             }
@@ -159,9 +159,9 @@ struct DashboardView: View {
 
     /// 處理中卡片下面那一行：排隊位置、或在哪一步。
     static func busyText(_ m: Meeting) -> String {
-        if let s = m.aiStep, s.hasPrefix("排隊中") || s.hasPrefix("輪到你了") { return s }
-        if let s = m.aiStep, s.contains("大D的主機") { return "大D的主機整理中" }
-        return m.aiStep ?? m.statusStyle.label
+        if let s = m.aiStep, LocalAI.isQueueText(s) { return s }
+        if let s = m.aiStep, s.contains("大D的主機") { return "大D的主機整理中".tr }
+        return m.aiStep?.tr ?? m.statusStyle.label
     }
 
     private var hasWatch: Bool {
@@ -174,7 +174,7 @@ struct DashboardView: View {
     private var engineLabel: String {
         if LocalAI.configured { return LocalAI.modelLabel }
         if MeetingStore.hasGeminiKey && !MeetingStore.privacyMode { return "Google Gemini" }
-        return "Apple（手機上）"
+        return "Apple（手機上）".tr
     }
 
     static func minutes(_ sec: Double) -> String {
@@ -204,15 +204,15 @@ private struct CaptureCard: View {
                     Circle().fill(Brand.recording).frame(width: 56, height: 56)
                         .overlay(Circle().fill(Color.white).frame(width: 18, height: 18))
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("開始錄音").font(.titleMedium).foregroundStyle(Brand.text)
-                        Text("會議、課堂、訪談、靈感").font(.bodySmall).foregroundStyle(Brand.textMuted)
+                        Text("開始錄音".tr).font(.titleMedium).foregroundStyle(Brand.text)
+                        Text("會議、課堂、訪談、靈感".tr).font(.bodySmall).foregroundStyle(Brand.textMuted)
                     }
                     Spacer(minLength: 0)
                 }
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("開始錄音")
+            .accessibilityLabel("開始錄音".tr)
 
             VStack(alignment: .leading, spacing: 6) {
                 LangPicker(value: lang, pick: setLang)
@@ -231,9 +231,9 @@ private struct CaptureCard: View {
             .padding(.top, 14)
 
             HStack(spacing: 8) {
-                mini("飲食", food) { BowlGlyph(color: Brand.cyan).frame(width: 18, height: 18) }
-                mini("通話", call) { Image(systemName: "phone").font(.system(size: 15)).foregroundStyle(Brand.cyan) }
-                mini("匯入", importFile) { Image(systemName: "square.and.arrow.down").font(.system(size: 15)).foregroundStyle(Brand.cyan) }
+                mini("飲食".tr, food) { BowlGlyph(color: Brand.cyan).frame(width: 18, height: 18) }
+                mini("通話".tr, call) { Image(systemName: "phone").font(.system(size: 15)).foregroundStyle(Brand.cyan) }
+                mini("匯入".tr, importFile) { Image(systemName: "square.and.arrow.down").font(.system(size: 15)).foregroundStyle(Brand.cyan) }
             }
             .padding(.top, 12)
         }
@@ -262,7 +262,7 @@ private struct TodayRow: View {
                 .frame(width: 44, alignment: .leading).padding(.top, 2)
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
-                    Text(m.isFood ? "餐" : m.speechLang.tag)
+                    Text(m.isFood ? "餐".tr : m.speechLang.tag)
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(m.isFood ? Brand.success : Brand.textMuted)
                         .padding(.horizontal, 5).padding(.vertical, 1)
@@ -280,8 +280,8 @@ private struct TodayRow: View {
     }
 
     private var subline: String? {
-        if m.isFood, let n = m.nutrition { return "\(n.kcal) 大卡 · 蛋白質 \(n.protein) g · 碳水 \(n.carbs) g" }
-        if m.status == .failed { return "處理失敗，點開重試" }
+        if m.isFood, let n = m.nutrition { return "{0} 大卡 · 蛋白質 {1} g · 碳水 {2} g".trf(n.kcal, n.protein, n.carbs) }
+        if m.status == .failed { return "處理失敗，點開重試".tr }
         return m.summary
     }
 }
@@ -305,7 +305,7 @@ private struct RecordingCard: View {
         GlassCard {
             HStack(spacing: 8) {
                 Circle().fill(Brand.recording).frame(width: 8, height: 8)
-                Text(food ? "正在記錄飲食" : (Meeting.isPad ? "iPad 錄音中" : "手機錄音中"))
+                Text(food ? "正在記錄飲食".tr : (Meeting.isPad ? "iPad 錄音中".tr : "手機錄音中".tr))
                     .font(.labelLarge).foregroundStyle(Brand.recording)
                 Text(lang).font(.labelMedium).foregroundStyle(Brand.cyan)
                     .padding(.horizontal, 8).padding(.vertical, 3)
@@ -324,12 +324,12 @@ private struct RecordingCard: View {
                         .background(Circle().fill(Brand.recording))
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("停止並產生報告")
+                .accessibilityLabel("停止並產生報告".tr)
             }
             .padding(.top, 8)
             LevelMeter(paused: interrupted, detailed: detailed, onSurface: true)
                 .padding(.top, 12)
-            Text("可以鎖螢幕，會繼續錄；停止後自動整理").font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 10)
+            Text("可以鎖螢幕，會繼續錄；停止後自動整理".tr).font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 10)
         }
     }
 }

@@ -18,33 +18,33 @@ struct Greeting: Equatable {
 
         let title: String
         switch h {
-        case 5...10: title = weekend ? "週末早安" : "早安"
-        case 11...13: title = "午安"
-        case 14...16: title = "下午好"
-        case 17...18: title = "傍晚好"
-        case 19...22: title = "晚上好"
-        default: title = "夜深了"
+        case 5...10: title = weekend ? "週末早安".tr : "早安".tr
+        case 11...13: title = "午安".tr
+        case 14...16: title = "下午好".tr
+        case 17...18: title = "傍晚好".tr
+        case 19...22: title = "晚上好".tr
+        default: title = "夜深了".tr
         }
         let line: String
         switch h {
         case 5...10:
-            if weekend { line = pick("難得週末，慢慢來就好。", "睡飽了嗎？今天放鬆一點。") }
-            else if friday { line = pick("星期五了，再撐一下就週末。", "最後一天，加油，有事交給我記。") }
-            else { line = pick("今天也慢慢來，要記的交給我。", "先喝杯水，開始美好的一天。", "新的一天，有想法隨時說給我聽。") }
+            if weekend { line = pick("難得週末，慢慢來就好。".tr, "睡飽了嗎？今天放鬆一點。".tr) }
+            else if friday { line = pick("星期五了，再撐一下就週末。".tr, "最後一天，加油，有事交給我記。".tr) }
+            else { line = pick("今天也慢慢來，要記的交給我。".tr, "先喝杯水，開始美好的一天。".tr, "新的一天，有想法隨時說給我聽。".tr) }
         case 11...13:
-            if usesFood && !ateLunch { line = pick("午餐吃了嗎？吃完說一聲，我幫你算熱量。", "記得好好吃午飯，別餓著了。") }
-            else { line = pick("吃飽了，休息一下再出發。", "午後容易睏，起來走一走。") }
+            if usesFood && !ateLunch { line = pick("午餐吃了嗎？吃完說一聲，我幫你算熱量。".tr, "記得好好吃午飯，別餓著了。".tr) }
+            else { line = pick("吃飽了，休息一下再出發。".tr, "午後容易睏，起來走一走。".tr) }
         case 14...16:
-            line = todayCount > 0 ? "今天已經記了 \(todayCount) 筆，休息一下、喝口水。" : pick("喝口水、伸個懶腰，休息一下。", "下午也辛苦了，慢慢來。")
+            line = todayCount > 0 ? "今天已經記了 {0} 筆，休息一下、喝口水。".trf(todayCount) : pick("喝口水、伸個懶腰，休息一下。".tr, "下午也辛苦了，慢慢來。".tr)
         case 17...18:
-            line = pick("今天辛苦了，準備收工吧。", "外面天色變了，回家路上小心。")
+            line = pick("今天辛苦了，準備收工吧。".tr, "外面天色變了，回家路上小心。".tr)
         case 19...22:
-            if usesFood && !ateDinner && h <= 20 { line = "晚餐吃了嗎？吃完說一聲就好。" }
-            else if usesFood && goal > 0 && todayKcal > goal { line = "今天吃得比較多，明天清淡一點就好。" }
-            else if todayCount > 0 { line = "今天記了 \(todayCount) 筆，辛苦了，好好休息。" }
-            else { line = pick("今天辛苦了，好好放鬆。", "忙完了嗎？給自己一點時間。") }
+            if usesFood && !ateDinner && h <= 20 { line = "晚餐吃了嗎？吃完說一聲就好。".tr }
+            else if usesFood && goal > 0 && todayKcal > goal { line = "今天吃得比較多，明天清淡一點就好。".tr }
+            else if todayCount > 0 { line = "今天記了 {0} 筆，辛苦了，好好休息。".trf(todayCount) }
+            else { line = pick("今天辛苦了，好好放鬆。".tr, "忙完了嗎？給自己一點時間。".tr) }
         default:
-            line = pick("早點休息，事情明天再說。", "還沒睡嗎？別太累了。")
+            line = pick("早點休息，事情明天再說。".tr, "還沒睡嗎？別太累了。".tr)
         }
         return Greeting(title: title, line: line)
     }

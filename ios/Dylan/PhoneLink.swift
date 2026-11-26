@@ -93,8 +93,8 @@ final class PhoneLink: NSObject, ObservableObject, WCSessionDelegate {
         GeminiJobs.withBackgroundTime("segment-\(seg.recordingId)-\(seg.seq)") {
             if let done = await MeetingStore.shared.segmentArrived(seg) {
                 let text = done.status == .received
-                    ? "手機已收到（\(Fmt.duration(done.durationSec))）"
-                    : "手機合併失敗"
+                    ? "手機已收到（{0}）".trf(Fmt.duration(done.durationSec))
+                    : "手機合併失敗".tr
                 self.sendStatus(id: done.id, text: text)
             }
         }

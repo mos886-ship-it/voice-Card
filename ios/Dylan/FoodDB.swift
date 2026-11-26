@@ -131,18 +131,15 @@ enum FoodLog {
                                   protein: items.reduce(0) { $0 + $1.protein },
                                   carbs: items.reduce(0) { $0 + $1.carbs }, fat: items.reduce(0) { $0 + $1.fat })
         let fromDb = items.filter { $0.db != nil }.count
-        var t = "## 飲食內容\n| 食物 | 份量 | 熱量(kcal) | 蛋白質(g) | 碳水(g) | 脂肪(g) | 來源 |\n|---|---|---|---|---|---|---|\n"
+        let w = FoodWords.of(ReportLang.current)   // App 自己產生的文字跟著報告語言
+        var t = "## \(w.content)\n| \(w.header.joined(separator: " | ")) |\n|---|---|---|---|---|---|---|\n"
         for i in items {
-            let portion = [i.portion, i.grams > 0 ? "約 \(i.grams)g" : ""].filter { !$0.isEmpty }.joined(separator: " · ")
-            let src = i.db.map { "食藥署：\($0.name)" } ?? (i.label ? "營養標示" : "AI 估算")
+            let portion = [i.portion, i.grams > 0 ? w.grams(i.grams) : ""].filter { !$0.isEmpty }.joined(separator: " · ")
+            let src = i.db.map { w.tfda + $0.name } ?? (i.label ? w.label : w.ai)
             t += "| \(i.name) | \(portion) | \(i.kcal) | \(i.protein) | \(i.carbs) | \(i.fat) | \(src) |\n"
         }
         let fromLabel = items.filter(\.label).count
-        let sources = [fromDb > 0 ? "\(fromDb) 樣依食藥署「食品營養成分資料集」計算" : nil,
-                       fromLabel > 0 ? "\(fromLabel) 樣依包裝營養標示" : nil].compactMap { $0 }
-        t += "\n## 合計\n約 \(n.kcal) 大卡；蛋白質 \(n.protein)g、碳水 \(n.carbs)g、脂肪 \(n.fat)g"
-            + (sources.isEmpty ? "（皆為 AI 估算）" : "（\(items.count) 樣中 \(sources.joined(separator: "、"))）") + "\n\n"
-        let meal = n.meal.isEmpty ? "這餐" : n.meal
-        return (n, t + cleaned.trimmingCharacters(in: .whitespacesAndNewlines), "\(meal)約 \(n.kcal) 大卡，蛋白質 \(n.protein)g")
+        t += "\n## \(w.total)\n" + w.totalLine(n, items.count, fromDb, fromLabel) + "\n\n"
+        return (n, t + cleaned.trimmingCharacters(in: .whitespacesAndNewlines), w.summary(n))
     }
 }

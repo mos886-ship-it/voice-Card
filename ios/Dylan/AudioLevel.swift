@@ -136,10 +136,10 @@ struct LevelMeter: View {
     }
 
     private var status: String {
-        if paused { return "收音中斷，正在恢復…" }
-        if level.loud { return "聲音太大，請離遠一點" }
-        if level.quiet { return "幾乎沒有聲音，請靠近一點" }
-        return "收音正常"
+        if paused { return "收音中斷，正在恢復…".tr }
+        if level.loud { return "聲音太大，請離遠一點".tr }
+        if level.quiet { return "幾乎沒有聲音，請靠近一點".tr }
+        return "收音正常".tr
     }
 
     private var statusColor: Color {

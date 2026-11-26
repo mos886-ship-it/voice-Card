@@ -6,6 +6,7 @@ struct DylanApp: App {
     @Environment(\.scenePhase) private var phase
 
     init() {
+        Fmt.locale = I18n.locale       // 日期的星期、月份跟著介面語言
         GeminiJobs.shared.activate()   // 先接上背景 session，系統才會把背景做完的結果交回來
         PhoneLink.shared.activate()
     }
@@ -27,8 +28,8 @@ struct DylanApp: App {
                 .onOpenURL { url in
                     if url.scheme == "dylan" {   // 相機掃到主機配對頁的 QR 碼
                         Task {
-                            var msg = "已和大D的主機配對"
-                            do { try await LocalAI.pair(link: url) } catch { msg = "配對失敗：\(error.localizedDescription)" }
+                            var msg = "已和大D的主機配對".tr
+                            do { try await LocalAI.pair(link: url) } catch { msg = "配對失敗：{0}".trf(error.localizedDescription) }
                             NotificationCenter.default.post(name: AudioImport.didImport, object: msg, userInfo: ["tab": "settings"])
                         }
                         return
@@ -36,7 +37,7 @@ struct DylanApp: App {
                     Task {
                         let err = await AudioImport.run(url)
                         if url.path.contains("/Inbox/") { try? FileManager.default.removeItem(at: url) }
-                        NotificationCenter.default.post(name: AudioImport.didImport, object: err ?? "已匯入「\(url.deletingPathExtension().lastPathComponent)」，正在產生報告")
+                        NotificationCenter.default.post(name: AudioImport.didImport, object: err ?? "已匯入「{0}」，正在產生報告".trf(url.deletingPathExtension().lastPathComponent))
                     }
                 }
                 #if DEBUG

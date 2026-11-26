@@ -32,11 +32,11 @@ struct AiCapability: Equatable {
 
         var label: String {
             switch self {
-            case .available: return "可用"
-            case .deviceNotEligible: return "這支 iPhone 不支援"
-            case .notEnabled: return "未開啟（設定 → Apple Intelligence）"
-            case .notReady: return "模型下載中"
-            case .osTooOld: return "需要更新 iOS"
+            case .available: return "可用".tr
+            case .deviceNotEligible: return "這支 iPhone 不支援".tr
+            case .notEnabled: return "未開啟（設定 → Apple Intelligence）".tr
+            case .notReady: return "模型下載中".tr
+            case .osTooOld: return "需要更新 iOS".tr
             }
         }
     }
@@ -51,23 +51,23 @@ struct AiCapability: Equatable {
 
         var title: String {
             switch self {
-            case .applePCC: return "Apple 裝置端辨識 ＋ Apple 私有雲整理"
-            case .appleOnDevice: return "Apple 裝置端（不上傳）"
-            case .appleSpeechGemini: return "Apple 裝置端辨識 ＋ Gemini 整理"
+            case .applePCC: return "Apple 裝置端辨識 ＋ Apple 私有雲整理".tr
+            case .appleOnDevice: return "Apple 裝置端（不上傳）".tr
+            case .appleSpeechGemini: return "Apple 裝置端辨識 ＋ Gemini 整理".tr
             case .gemini: return "Google Gemini"
-            case .transcriptOnly: return "只有逐字稿"
-            case .none: return "尚未設定"
+            case .transcriptOnly: return "只有逐字稿".tr
+            case .none: return "尚未設定".tr
             }
         }
 
         var detail: String {
             switch self {
-            case .applePCC: return "免費、不需金鑰；語音在手機上轉文字，交給 Apple 私有雲運算整理（不保留資料）；沒有分說話者"
-            case .appleOnDevice: return "免費、不需金鑰、不上傳；語音和整理都在手機上；沒有分說話者"
-            case .appleSpeechGemini: return "語音在手機上轉文字，報告由 Gemini 整理"
-            case .gemini: return "Gemini 直接聽錄音，產出報告與分說話者逐字稿"
-            case .transcriptOnly: return "只有 Apple 裝置端逐字稿；填入 Gemini 金鑰即可產生分說話者的報告"
-            case .none: return "這支 iPhone 需要 Gemini 金鑰才能產生報告"
+            case .applePCC: return "免費、不需金鑰；語音在手機上轉文字，交給 Apple 私有雲運算整理（不保留資料）；沒有分說話者".tr
+            case .appleOnDevice: return "免費、不需金鑰、不上傳；語音和整理都在手機上；沒有分說話者".tr
+            case .appleSpeechGemini: return "語音在手機上轉文字，報告由 Gemini 整理".tr
+            case .gemini: return "Gemini 直接聽錄音，產出報告與分說話者逐字稿".tr
+            case .transcriptOnly: return "只有 Apple 裝置端逐字稿；填入 Gemini 金鑰即可產生分說話者的報告".tr
+            case .none: return "這支 iPhone 需要 Gemini 金鑰才能產生報告".tr
             }
         }
 

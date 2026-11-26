@@ -18,8 +18,8 @@ struct DetailView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            TopBar(title: "錄音詳情", onBack: onBack) {
-                IconCircle(systemImage: "trash", label: "刪除", tint: Brand.error) { confirmDelete = true }
+            TopBar(title: "錄音詳情".tr, onBack: onBack) {
+                IconCircle(systemImage: "trash", label: "刪除".tr, tint: Brand.error) { confirmDelete = true }
             }
             if let m = store.meetings.first(where: { $0.id == id }) {
                 ScrollView {
@@ -37,20 +37,20 @@ struct DetailView: View {
                                 }
                             }
                             .buttonStyle(.plain)
-                            Text(m.source == "photo" ? m.recordingRange : "錄音  \(m.recordingRange)")
+                            Text(m.source == "photo" ? m.recordingRange : "錄音  {0}".trf(m.recordingRange))
                                 .font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 6)
                             // 地點（點一下開地圖）
                             if let g = GeoStore.load(m.id) {
                                 Button { if let u = g.mapURL { UIApplication.shared.open(u) } } label: {
                                     HStack(spacing: 4) {
                                         Image(systemName: "mappin.and.ellipse").font(.system(size: 12))
-                                        Text("地點  \(g.label)").font(.bodySmall).multilineTextAlignment(.leading)
+                                        Text("地點  {0}".trf(g.label)).font(.bodySmall).multilineTextAlignment(.leading)
                                         Image(systemName: "chevron.right").font(.system(size: 10, weight: .semibold))
                                     }
                                     .foregroundStyle(Brand.textMuted).frame(minHeight: 32)
                                 }
                                 .buttonStyle(.plain)
-                                .accessibilityLabel("地點 \(g.label)，點一下開地圖")
+                                .accessibilityLabel("地點 {0}，點一下開地圖".trf(g.label))
                                 .padding(.top, 2)
                             }
                             StatusChip(style: m.statusStyle).padding(.top, 10)
@@ -65,10 +65,10 @@ struct DetailView: View {
                                 if MeetingStore.looksStuck(m, now: ctx.date) {
                                     // 很久沒有新分段：可能手錶在最後一段傳到前被重置 → 讓使用者用已收到的完成
                                     GlassCard(highlight: true) {
-                                        Text("錄音好像中斷了").font(.titleMedium).foregroundStyle(Brand.text)
-                                        Text("已經一段時間沒有收到手錶的新分段。可以先用已收到的 \(m.segments.count) 段（\(Fmt.duration(m.durationSec))）完成這筆錄音；缺的部分會跳過。")
+                                        Text("錄音好像中斷了".tr).font(.titleMedium).foregroundStyle(Brand.text)
+                                        Text("已經一段時間沒有收到手錶的新分段。可以先用已收到的 {0} 段（{1}）完成這筆錄音；缺的部分會跳過。".trf(m.segments.count, Fmt.duration(m.durationSec)))
                                             .font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 6)
-                                        GradientButton(text: "用已收到的分段完成") {
+                                        GradientButton(text: "用已收到的分段完成".tr) {
                                             Task { await store.finishWithReceived(m.id) }
                                         }
                                         .padding(.top, 12)
@@ -77,9 +77,9 @@ struct DetailView: View {
                                     GlassCard {
                                         HStack(spacing: 8) {
                                             PulseDot(color: Brand.recording, size: 8)
-                                            Text("手錶錄音中").font(.titleMedium).foregroundStyle(Brand.text)
+                                            Text("手錶錄音中".tr).font(.titleMedium).foregroundStyle(Brand.text)
                                         }
-                                        Text("已收到 \(m.segments.count) 段，錄音中每 5 分鐘同步一次，停止後會自動合併。")
+                                        Text("已收到 {0} 段，錄音中每 5 分鐘同步一次，停止後會自動合併。".trf(m.segments.count))
                                             .font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 6)
                                         ScanningBar().padding(.top, 12)
                                     }
@@ -91,7 +91,7 @@ struct DetailView: View {
                             GlassCard {
                                 HStack(spacing: 8) {
                                     PulseDot(color: Brand.cyan, size: 8)
-                                    Text("AI 分析中").font(.titleMedium).foregroundStyle(Brand.text)
+                                    Text("AI 分析中".tr).font(.titleMedium).foregroundStyle(Brand.text)
                                     Spacer()
                                     if let s = m.processStartedAt {
                                         TimelineView(.periodic(from: s, by: 1)) { ctx in
@@ -101,29 +101,29 @@ struct DetailView: View {
                                 }
                                 Text(Self.stepText(m.aiStep))
                                     .font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 6)
-                                Text("可以關掉螢幕或切到別的 App，分析會在背景繼續，完成後手錶會收到通知。")
+                                Text("可以關掉螢幕或切到別的 App，分析會在背景繼續，完成後手錶會收到通知。".tr)
                                     .font(.bodySmall).foregroundStyle(Brand.textFaint).padding(.top, 4)
                                 ScanningBar().padding(.top, 12)
                             }
                         }
                         if m.status == .failed, let e = m.error {
                             GlassCard {
-                                Text("處理失敗").font(.titleMedium).foregroundStyle(Brand.error)
+                                Text("處理失敗".tr).font(.titleMedium).foregroundStyle(Brand.error)
                                 Text(e).font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 4)
                                 if hasAudio(m) || MeetingStore.isText(m.id) || FoodPhotos.has(m.id) {
-                                    GradientButton(text: "重試") { Task { await store.process(m.id) } }.padding(.top, 12)
+                                    GradientButton(text: "重試".tr) { Task { await store.process(m.id) } }.padding(.top, 12)
                                 }
                             }
                         }
                         if m.status == .received {
                             GlassCard(highlight: true) {
-                                Text("還沒有 AI 報告").font(.titleMedium).foregroundStyle(Brand.text)
-                                Text(LocalAI.configured ? "按下面的按鈕，用大D的主機 整理出重點、待辦與分說話者的逐字稿。"
+                                Text("還沒有 AI 報告".tr).font(.titleMedium).foregroundStyle(Brand.text)
+                                Text(LocalAI.configured ? "按下面的按鈕，用大D的主機 整理出重點、待辦與分說話者的逐字稿。".tr
                                      : MeetingStore.hasGeminiKey && !MeetingStore.privacyMode
-                                     ? "按下面的按鈕，用 Gemini 整理出重點、待辦與分說話者的逐字稿。"
-                                     : "沒有 Gemini 金鑰或開著隱私模式：會用 Apple 在手機上產生逐字稿與重點（不分說話者，需要 iOS 26 以上）。")
+                                     ? "按下面的按鈕，用 Gemini 整理出重點、待辦與分說話者的逐字稿。".tr
+                                     : "沒有 Gemini 金鑰或開著隱私模式：會用 Apple 在手機上產生逐字稿與重點（不分說話者，需要 iOS 26 以上）。".tr)
                                     .font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 4)
-                                GradientButton(text: "產生報告", systemImage: "sparkles") { Task { await store.process(m.id) } }
+                                GradientButton(text: "產生報告".tr, systemImage: "sparkles") { Task { await store.process(m.id) } }
                                     .padding(.top, 12)
                             }
                         }
@@ -147,11 +147,11 @@ struct DetailView: View {
                         // ---------- 辨識語言（換了可以重新產生，對照兩種結果） ----------
                         if hasAudio(m) && !MeetingStore.isText(m.id) {
                             VStack(alignment: .leading, spacing: 6) {
-                                Text(m.speechLang == .hak ? "辨識語言：客語・\(m.hakkaDialect.label)腔" : "辨識語言")
+                                Text(m.speechLang == .hak ? "辨識語言：客語・{0}腔".trf(m.hakkaDialect.label) : "辨識語言".tr)
                                     .font(.labelSmall).tracking(1.2).foregroundStyle(Brand.textMuted)
                                     .padding(.horizontal, 6)
                                 if m.status == .summarizing {
-                                    Text("報告產生中，完成後才能換語言（台語、客語約要錄音長度的 1～2 倍時間）")
+                                    Text("報告產生中，完成後才能換語言（台語、客語約要錄音長度的 1～2 倍時間）".tr)
                                         .font(.labelMedium).foregroundStyle(Brand.textFaint).padding(.horizontal, 6)
                                 }
                                 LangPicker(value: m.speechLang, disabled: m.status == .summarizing) { l in
@@ -180,17 +180,17 @@ struct DetailView: View {
             }
         }
         .background(AppBackdrop())
-        .confirmationDialog("刪除這筆錄音？", isPresented: $confirmDelete, titleVisibility: .visible) {
-            Button("刪除", role: .destructive) {
+        .confirmationDialog("刪除這筆錄音？".tr, isPresented: $confirmDelete, titleVisibility: .visible) {
+            Button("刪除".tr, role: .destructive) {
                 player.stop()
                 store.delete(id)
                 onBack()
             }
-        } message: { Text("錄音檔、報告與逐字稿會一起刪除，無法復原。") }
-        .alert("改標題", isPresented: $editingTitle) {
-            TextField("標題", text: $newTitle)
-            Button("取消", role: .cancel) {}
-            Button("儲存") {
+        } message: { Text("錄音檔、報告與逐字稿會一起刪除，無法復原。".tr) }
+        .alert("改標題".tr, isPresented: $editingTitle) {
+            TextField("標題".tr, text: $newTitle)
+            Button("取消".tr, role: .cancel) {}
+            Button("儲存".tr) {
                 let t = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
                 if !t.isEmpty, var m = store.load(id) {
                     m.title = t
@@ -199,10 +199,10 @@ struct DetailView: View {
                 }
             }
         }
-        .confirmationDialog(relang.map { "用「\($0 == .hak ? "客語・" + HakkaDialect.current.label : $0.label)」重新產生報告？" } ?? "",
+        .confirmationDialog(relang.map { "用「{0}」重新產生報告？".trf($0 == .hak ? "客語・" + HakkaDialect.current.label : $0.label) } ?? "",
                             isPresented: Binding(get: { relang != nil }, set: { if !$0 { relang = nil } }),
                             titleVisibility: .visible) {
-            Button("重新產生") {
+            Button("重新產生".tr) {
                 if let l = relang, var m = store.load(id) {
                     m.lang = l.rawValue
                     m.dialect = l == .hak ? HakkaDialect.current.rawValue : nil
@@ -211,21 +211,21 @@ struct DetailView: View {
                 }
                 relang = nil
             }
-            Button("取消", role: .cancel) { relang = nil }
-        } message: { Text("現在的報告和逐字稿會被新的取代。想對照兩種結果，請先把現在的逐字稿複製或截圖。") }
+            Button("取消".tr, role: .cancel) { relang = nil }
+        } message: { Text("現在的報告和逐字稿會被新的取代。想對照兩種結果，請先把現在的逐字稿複製或截圖。".tr) }
         .onDisappear { player.stop() }
     }
 
     static func stepText(_ step: String?) -> String {
         switch step {
-        case "AI 聆聽整理中": return "Gemini 正在聆聽錄音，整理成報告與逐字稿。"
-        case "上傳錄音中": return "正在把錄音上傳給 Gemini。"
-        case "傳給大D的主機 處理中": return "錄音已傳給大D的主機，正在辨識說話者並整理報告（約錄音長度的一半到一倍時間）。"
-        case "Apple 語音辨識中": return "Apple 正在手機上把錄音轉成文字（不上傳）。"
-        case "Apple 整理中": return "Apple 正在整理重點。"
-        case let s? where s.hasPrefix("排隊中") || s.hasPrefix("輪到你了"):
-            return "大D的主機同時幫好幾台裝置處理，每台輪流。" + s + "（錄音已經傳到主機，可以關掉 App）"
-        default: return "處理中…"
+        case "AI 聆聽整理中": return "Gemini 正在聆聽錄音，整理成報告與逐字稿。".tr
+        case "上傳錄音中": return "正在把錄音上傳給 Gemini。".tr
+        case "傳給大D的主機 處理中": return "錄音已傳給大D的主機，正在辨識說話者並整理報告（約錄音長度的一半到一倍時間）。".tr
+        case "Apple 語音辨識中": return "Apple 正在手機上把錄音轉成文字（不上傳）。".tr
+        case "Apple 整理中": return "Apple 正在整理重點。".tr
+        case let s? where LocalAI.isQueueText(s):
+            return "大D的主機同時幫好幾台裝置處理，每台輪流。".tr + s + "（錄音已經傳到主機，可以關掉 App）".tr
+        default: return "處理中…".tr
         }
     }
 
@@ -250,7 +250,7 @@ struct AudioPlayerBar: View {
                         .background(Circle().fill(Brand.accent))
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(p.playing ? "暫停" : "播放")
+                .accessibilityLabel(p.playing ? "暫停".tr : "播放".tr)
                 VStack(spacing: 0) {
                     Slider(value: Binding(get: { p.time }, set: { p.seek($0) }), in: 0...max(p.duration, 0.1))
                         .tint(Brand.cyan)
@@ -263,11 +263,11 @@ struct AudioPlayerBar: View {
                 }
             }
             HStack {
-                ChipButton(text: "−15 秒") { p.skip(-15) }
+                ChipButton(text: "−15 秒".tr) { p.skip(-15) }
                 Spacer()
-                ChipButton(text: "+15 秒") { p.skip(15) }
+                ChipButton(text: "+15 秒".tr) { p.skip(15) }
                 Spacer()
-                ChipButton(text: "\(p.rate == 1.5 ? "1.5" : String(Int(p.rate)))× 速度") { p.cycleRate() }
+                ChipButton(text: "{0}× 速度".trf(p.rate == 1.5 ? "1.5" : String(Int(p.rate)))) { p.cycleRate() }
             }
             .padding(.top, 8)
             .padding(.horizontal, 8)
@@ -309,7 +309,7 @@ final class PlayerState: ObservableObject {
             player = p
             duration = p.duration
         } catch {
-            self.error = "無法播放：\(error.localizedDescription)"
+            self.error = "無法播放：{0}".trf(error.localizedDescription)
         }
     }
 
@@ -372,17 +372,17 @@ struct NutritionCard: View {
         GlassCard(highlight: true) {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(String(n.kcal)).font(.system(size: 34, weight: .bold)).foregroundStyle(Brand.text)
-                Text("大卡").font(.titleSmall).foregroundStyle(Brand.textMuted)
+                Text("大卡".tr).font(.titleSmall).foregroundStyle(Brand.textMuted)
                 Spacer()
                 if !n.meal.isEmpty { StatusChip(style: StatusStyle(label: n.meal, color: Brand.success, busy: false)) }
             }
             HStack(spacing: 10) {
-                StatTile(value: "\(n.protein)g", label: "蛋白質")
-                StatTile(value: "\(n.carbs)g", label: "碳水")
-                StatTile(value: "\(n.fat)g", label: "脂肪")
+                StatTile(value: "\(n.protein)g", label: "蛋白質".tr)
+                StatTile(value: "\(n.carbs)g", label: "碳水".tr)
+                StatTile(value: "\(n.fat)g", label: "脂肪".tr)
             }
             .padding(.top, 10)
-            Text("AI 依口述估算，不是精確值").font(.bodySmall).foregroundStyle(Brand.textFaint).padding(.top, 8)
+            Text("AI 依口述估算，不是精確值".tr).font(.bodySmall).foregroundStyle(Brand.textFaint).padding(.top, 8)
         }
     }
 }

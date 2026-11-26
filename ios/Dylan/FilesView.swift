@@ -27,34 +27,34 @@ struct FilesView: View {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("管理檔案").font(.headlineSmall).foregroundStyle(Brand.text)
-                        Text("\(all.count) 筆 · 錄音檔 \(Self.bytes(audio)) · 報告等 \(Self.bytes(other))")
+                        Text("管理檔案".tr).font(.headlineSmall).foregroundStyle(Brand.text)
+                        Text("{0} 筆 · 錄音檔 {1} · 報告等 {2}".trf(all.count, Self.bytes(audio), Self.bytes(other)))
                             .font(.bodySmall).foregroundStyle(Brand.textMuted)
                     }
                     Spacer()
                     if let onClose {
-                        Button("完成", action: onClose).font(.labelLarge).foregroundStyle(Brand.cyan).frame(minHeight: 44)
+                        Button("完成".tr, action: onClose).font(.labelLarge).foregroundStyle(Brand.cyan).frame(minHeight: 44)
                     }
                 }
 
                 GlassCard {
                     HStack(spacing: 8) {
                         Image(systemName: "icloud.and.arrow.up").foregroundStyle(Brand.cyan)
-                        Text("雲端備份").font(.titleSmall).foregroundStyle(Brand.text)
+                        Text("雲端備份".tr).font(.titleSmall).foregroundStyle(Brand.text)
                     }
-                    Text("Google 雲端硬碟備份（跟 Android 共用同一份）還在準備中。錄音和報告目前只存在這台裝置上，刪除前請先確認。")
+                    Text("Google 雲端硬碟備份（跟 Android 共用同一份）還在準備中。錄音和報告目前只存在這台裝置上，刪除前請先確認。".tr)
                         .font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 4)
                 }
 
                 HStack(spacing: 8) {
                     ForEach(Kind.allCases, id: \.self) { k in
                         let n = k == .all ? all.count : all.filter { (k == .food) == $0.isFood }.count
-                        FilterChip(text: "\(k.rawValue) \(n)", selected: kind == k) { kind = k }
+                        FilterChip(text: "\(k.rawValue.tr) \(n)", selected: kind == k) { kind = k }
                     }
                 }
 
                 if shown.isEmpty {
-                    Text("沒有檔案").font(.bodyMedium).foregroundStyle(Brand.textMuted).padding(.vertical, 24)
+                    Text("沒有檔案".tr).font(.bodyMedium).foregroundStyle(Brand.textMuted).padding(.vertical, 24)
                 }
                 ForEach(shown) { m in
                     row(m)
@@ -70,30 +70,30 @@ struct FilesView: View {
         .task(id: all.map(\.id)) { measure() }
         .confirmationDialog(acting.map { $0.title } ?? "", isPresented: Binding(get: { acting != nil }, set: { if !$0 { acting = nil } }),
                             titleVisibility: .visible, presenting: acting) { m in
-            Button("打開") { open(m.id) }
+            Button("打開".tr) { open(m.id) }
             if hasAudio(m) {
-                ShareLink(item: MeetingStore.audioURL(m.id)) { Text("分享錄音檔（m4a）") }
-                Button("只刪錄音檔（保留報告）", role: .destructive) { confirm = (m, true) }
+                ShareLink(item: MeetingStore.audioURL(m.id)) { Text("分享錄音檔（m4a）".tr) }
+                Button("只刪錄音檔（保留報告）".tr, role: .destructive) { confirm = (m, true) }
             }
-            Button("刪除整筆", role: .destructive) { confirm = (m, false) }
-            Button("關閉", role: .cancel) {}
+            Button("刪除整筆".tr, role: .destructive) { confirm = (m, false) }
+            Button("關閉".tr, role: .cancel) {}
         }
-        .alert(confirm.map { $0.audioOnly ? "只刪錄音檔？" : "刪除整筆？" } ?? "",
+        .alert(confirm.map { $0.audioOnly ? "只刪錄音檔？".tr : "刪除整筆？".tr } ?? "",
                isPresented: Binding(get: { confirm != nil }, set: { if !$0 { confirm = nil } }), presenting: confirm) { c in
-            Button("刪除", role: .destructive) {
+            Button("刪除".tr, role: .destructive) {
                 if c.audioOnly {
                     store.deleteAudio(c.meeting.id)
-                    toast = "已刪除「\(c.meeting.title)」的錄音檔"
+                    toast = "已刪除「{0}」的錄音檔".trf(c.meeting.title)
                 } else {
                     store.delete(c.meeting.id)
-                    toast = "已刪除「\(c.meeting.title)」"
+                    toast = "已刪除「{0}」".trf(c.meeting.title)
                 }
                 measure()
             }
-            Button("返回", role: .cancel) {}
+            Button("返回".tr, role: .cancel) {}
         } message: { c in
-            Text((c.audioOnly ? "報告和逐字稿會留著，但之後不能再播放、也不能重新產生報告。" : "錄音、報告、逐字稿都會從這台裝置刪除。")
-                 + "\n還沒有雲端備份，刪除後無法復原。")
+            Text((c.audioOnly ? "報告和逐字稿會留著，但之後不能再播放、也不能重新產生報告。".tr : "錄音、報告、逐字稿都會從這台裝置刪除。".tr)
+                 + "\n還沒有雲端備份，刪除後無法復原。".tr)
         }
     }
 
@@ -101,8 +101,8 @@ struct FilesView: View {
         let s = sizes[m.id] ?? Size()
         return GlassCard(padding: 14) {
             Text(m.title).font(.titleSmall).foregroundStyle(Brand.text).lineLimit(2)
-            Text([Fmt.stamp(m.createdAt, "M/d HH:mm"), m.isFood ? "飲食" : nil,
-                  s.audio == 0 ? "沒有錄音檔 · \(Self.bytes(s.other))" : "錄音檔 \(Self.bytes(s.audio)) · 報告等 \(Self.bytes(s.other))"]
+            Text([Fmt.stamp(m.createdAt, "M/d HH:mm"), m.isFood ? "飲食".tr : nil,
+                  s.audio == 0 ? "沒有錄音檔 · {0}".trf(Self.bytes(s.other)) : "錄音檔 {0} · 報告等 {1}".trf(Self.bytes(s.audio), Self.bytes(s.other))]
                     .compactMap { $0 }.joined(separator: " · "))
                 .font(.labelMedium).foregroundStyle(Brand.textFaint).padding(.top, 2)
         }

@@ -83,14 +83,14 @@ enum InkBg: String, CaseIterable, Identifiable {
     static let key = "ink_bg"
     var id: String { rawValue }
     var label: String {
-        switch self { case .boat: "孤舟"; case .lotus: "荷塘"; case .shrimp: "魚蝦"; case .none: "無" }
+        switch self { case .boat: "孤舟".tr; case .lotus: "荷塘".tr; case .shrimp: "魚蝦".tr; case .none: "無".tr }
     }
     var note: String {
         switch self {
-        case .boat: "孤舟寒江：淡月、遠岸、一葉小舟與蘆葦。"
-        case .lotus: "荷塘清趣：荷葉、淡荷花與三尾小魚。"
-        case .shrimp: "魚蝦戲水：荷葉一角、水草，小蝦與小魚。"
-        case .none: "不放背景畫，只有宣紙底。"
+        case .boat: "孤舟寒江：淡月、遠岸、一葉小舟與蘆葦。".tr
+        case .lotus: "荷塘清趣：荷葉、淡荷花與三尾小魚。".tr
+        case .shrimp: "魚蝦戲水：荷葉一角、水草，小蝦與小魚。".tr
+        case .none: "不放背景畫，只有宣紙底。".tr
         }
     }
     private static var cache: [InkBg: UIImage] = [:]
@@ -127,14 +127,14 @@ enum UkiyoeBg: String, CaseIterable, Identifiable {
     static let key = "ukiyoe_bg"
     var id: String { rawValue }
     var label: String {
-        switch self { case .geisha: "藝伎武士"; case .crane: "靈鶴"; case .castle: "大阪城"; case .none: "無" }
+        switch self { case .geisha: "藝伎武士".tr; case .crane: "靈鶴".tr; case .castle: "大阪城".tr; case .none: "無".tr }
     }
     var note: String {
         switch self {
-        case .geisha: "藝伎武士：朱紅拱橋上，撐紙傘的藝伎與佩雙刀的武士。"
-        case .crane: "靈鶴：三隻丹頂鶴、朱紅的日與松枝。"
-        case .castle: "大阪城：白牆、銅綠屋頂的天守，石垣、護城河與櫻花。"
-        case .none: "不放背景畫，只有和紙底。"
+        case .geisha: "藝伎武士：朱紅拱橋上，撐紙傘的藝伎與佩雙刀的武士。".tr
+        case .crane: "靈鶴：三隻丹頂鶴、朱紅的日與松枝。".tr
+        case .castle: "大阪城：白牆、銅綠屋頂的天守，石垣、護城河與櫻花。".tr
+        case .none: "不放背景畫，只有和紙底。".tr
         }
     }
     private static var cache: [UkiyoeBg: UIImage] = [:]
@@ -188,14 +188,14 @@ enum TaiwanBg: String, CaseIterable, Identifiable {
     static let key = "taiwan_bg"
     var id: String { rawValue }
     var label: String {
-        switch self { case .island: "島嶼電路"; case .wafer: "晶圓"; case .city: "夜城"; case .none: "無" }
+        switch self { case .island: "島嶼電路".tr; case .wafer: "晶圓".tr; case .city: "夜城".tr; case .none: "無".tr }
     }
     var note: String {
         switch self {
-        case .island: "島嶼電路：點陣組成的台灣、北回歸線與五座城市的連線。"
-        case .wafer: "晶圓：一片晶圓與往上延伸的電路，點綴梅花。"
-        case .city: "夜城：夜晚的城市天際線、遠山與河面倒影。"
-        case .none: "不放背景畫，只有夜藍底。"
+        case .island: "島嶼電路：點陣組成的台灣、北回歸線與五座城市的連線。".tr
+        case .wafer: "晶圓：一片晶圓與往上延伸的電路，點綴梅花。".tr
+        case .city: "夜城：夜晚的城市天際線、遠山與河面倒影。".tr
+        case .none: "不放背景畫，只有夜藍底。".tr
         }
     }
     private static var cache: [TaiwanBg: UIImage] = [:]

@@ -7,12 +7,12 @@ enum UIMode: String, CaseIterable, Identifiable {
     static let key = "ui_mode"
 
     var id: String { rawValue }
-    var label: String { self == .business ? "商用" : "科技" }
+    var label: String { self == .business ? "商用".tr : "科技".tr }
     var icon: String { self == .business ? "briefcase.fill" : "cpu" }
     var note: String {
         self == .business
-            ? "簡潔：只顯示要用的。報告、清單和設定都精簡，適合每天使用。"
-            : "細節：顯示 AI 模型、處理耗時、裝置能力與進階設定（換模型），方便測試和調整。"
+            ? "簡潔：只顯示要用的。報告、清單和設定都精簡，適合每天使用。".tr
+            : "細節：顯示 AI 模型、處理耗時、裝置能力與進階設定（換模型），方便測試和調整。".tr
     }
 }
 
@@ -35,39 +35,39 @@ enum SpeechLang: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     var label: String {
         switch self {
-        case .zh: return "國語"; case .nan: return "台語・國台語"; case .hak: return "客語"
-        case .en: return "英語"; case .ja: return "日語"; case .ko: return "韓語"; case .yue: return "粵語"
-        case .vi: return "越南語"; case .th: return "泰語"; case .id: return "印尼語"
+        case .zh: return "國語".tr; case .nan: return "台語・國台語".tr; case .hak: return "客語".tr
+        case .en: return "英語".tr; case .ja: return "日語".tr; case .ko: return "韓語".tr; case .yue: return "粵語".tr
+        case .vi: return "越南語".tr; case .th: return "泰語".tr; case .id: return "印尼語".tr
         }
     }
     var short: String {
         switch self {
-        case .nan: return "台語"
-        case .vi: return "越語"
+        case .nan: return "台語".tr
+        case .vi: return "越語".tr
         default: return label
         }
     }
     /// 逐字稿每段前的語言標籤（一個字）。
     var tag: String {
         switch self {
-        case .zh: return "國"; case .nan: return "台"; case .hak: return "客"
-        case .en: return "英"; case .ja: return "日"; case .ko: return "韓"; case .yue: return "粵"
-        case .vi: return "越"; case .th: return "泰"; case .id: return "印"
+        case .zh: return "國".tr; case .nan: return "台".tr; case .hak: return "客".tr
+        case .en: return "英".tr; case .ja: return "日".tr; case .ko: return "韓".tr; case .yue: return "粵".tr
+        case .vi: return "越".tr; case .th: return "泰".tr; case .id: return "印".tr
         }
     }
     /// 選了之後下面那一行說明。
     var hint: String {
         switch self {
-        case .zh: return "國語（夾雜英文也選這個，英文照原文寫）"
-        case .nan: return "有台語就選這個（國台語夾雜也是），比較慢"
-        case .hak: return "客語（國客夾雜也可以），比較慢"
-        case .en: return "整段英文用這個；中文夾英文選國語就好"
-        case .ja: return "日語：逐字稿寫日文，報告用中文"
-        case .ko: return "韓語：逐字稿寫韓文，報告用中文"
-        case .yue: return "粵語（廣東話）：逐字稿寫繁體粵語字"
-        case .vi: return "越南語：逐字稿寫越南文，報告用中文"
-        case .th: return "泰語：逐字稿寫泰文，報告用中文"
-        case .id: return "印尼語：逐字稿寫印尼文，報告用中文"
+        case .zh: return "國語（夾雜英文也選這個，英文照原文寫）".tr
+        case .nan: return "有台語就選這個（國台語夾雜也是），比較慢".tr
+        case .hak: return "客語（國客夾雜也可以），比較慢".tr
+        case .en: return "整段英文用這個；中文夾英文選國語就好".tr
+        case .ja: return "日語：逐字稿寫日文，報告用中文".tr
+        case .ko: return "韓語：逐字稿寫韓文，報告用中文".tr
+        case .yue: return "粵語（廣東話）：逐字稿寫繁體粵語字".tr
+        case .vi: return "越南語：逐字稿寫越南文，報告用中文".tr
+        case .th: return "泰語：逐字稿寫泰文，報告用中文".tr
+        case .id: return "印尼語：逐字稿寫印尼文，報告用中文".tr
         }
     }
     /// Apple 語音辨識用的語言（國語、台語、客語都用 zh-TW）。
@@ -81,7 +81,7 @@ enum SpeechLang: String, CaseIterable, Identifiable {
         }
     }
     /// 給 Gemini 的語言名稱
-    var spoken: String { self == .yue ? "粵語（廣東話）" : label }
+    var spoken: String { self == .yue ? "粵語（廣東話）".tr : label }
 
     /// 給 Gemini 的額外說明（跟 Android geminiNote 一字不差）；國語沒有。
     func geminiNote(_ dialect: HakkaDialect = .sixian) -> String {
@@ -113,12 +113,12 @@ enum HakkaDialect: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     var label: String {
         switch self {
-        case .sixian: return "四縣"
-        case .hailu: return "海陸"
-        case .dapu: return "大埔"
-        case .raoping: return "饒平"
-        case .zhaoan: return "詔安"
-        case .nansixian: return "南四縣"
+        case .sixian: return "四縣".tr
+        case .hailu: return "海陸".tr
+        case .dapu: return "大埔".tr
+        case .raoping: return "饒平".tr
+        case .zhaoan: return "詔安".tr
+        case .nansixian: return "南四縣".tr
         }
     }
 }
@@ -146,18 +146,18 @@ extension Fmt {
     /// 給人看的時長：16 秒、2 分、1 小時 5 分。
     static func human(_ sec: Double) -> String {
         let s = Int(sec.rounded())
-        if s < 60 { return "\(s) 秒" }
-        if s < 3600 { return "\(s / 60) 分" }
-        return s % 3600 / 60 == 0 ? "\(s / 3600) 小時" : "\(s / 3600) 小時 \(s % 3600 / 60) 分"
+        if s < 60 { return "{0} 秒".trf(s) }
+        if s < 3600 { return "{0} 分".trf(s / 60) }
+        return s % 3600 / 60 == 0 ? "{0} 小時".trf(s / 3600) : "{0} 小時 {1} 分".trf(s / 3600, s % 3600 / 60)
     }
 
     /// 清單的日期分組：今天、昨天、11月20日 週四（不是今年再加年份）。
     static func dayLabel(_ day: Date) -> String {
         let cal = Calendar.current
-        if cal.isDateInToday(day) { return "今天" }
-        if cal.isDateInYesterday(day) { return "昨天" }
+        if cal.isDateInToday(day) { return "今天".tr }
+        if cal.isDateInYesterday(day) { return "昨天".tr }
         let sameYear = cal.component(.year, from: day) == cal.component(.year, from: Date())
-        return stamp(day, sameYear ? "M月d日 EEEE" : "yyyy年M月d日 EEEE")
+        return stamp(day, sameYear ? "M月d日 EEEE".tr : "yyyy年M月d日 EEEE".tr)
     }
 }
 
@@ -180,7 +180,7 @@ struct LangPicker: View {
         .opacity(disabled ? 0.5 : 1)
         .disabled(disabled)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("辨識語言")
+        .accessibilityLabel("辨識語言".tr)
     }
 
     /// 選了客語時下面那一行：說明＋腔調選單。
@@ -199,13 +199,13 @@ struct LangPicker: View {
                 }
             }
         } label: {
-            Text((on ? value.label : "其他") + " ▾").font(on ? .labelLarge : .bodyMedium).foregroundColor(fg)
+            Text((on ? value.label : "其他".tr) + " ▾").font(on ? .labelLarge : .bodyMedium).foregroundColor(fg)
                 .lineLimit(1).minimumScaleFactor(0.8)
                 .frame(maxWidth: .infinity).padding(.vertical, Brand.isNew ? 8 : 9)
                 .background(shape.fill(bg).shadow(color: on && Brand.isNew ? Color.black.opacity(0.12) : .clear, radius: 1.5, y: 1))
                 .contentShape(shape)
         }
-        .accessibilityLabel(on ? "其他語言：\(value.label)" : "其他語言")
+        .accessibilityLabel(on ? "其他語言：{0}".trf(value.label) : "其他語言".tr)
         .accessibilityAddTraits(on ? .isSelected : [])
     }
 
@@ -242,7 +242,7 @@ struct DialectMenu: View {
             }
         } label: {
             HStack(spacing: 4) {
-                Text(value.label + "腔").font(.labelLarge)
+                Text(value.label + "腔".tr).font(.labelLarge)
                 Image(systemName: "chevron.down").font(.system(size: 10, weight: .semibold))
             }
             .foregroundStyle(Brand.cyan)
@@ -250,6 +250,6 @@ struct DialectMenu: View {
             .background(Capsule().fill(Brand.surfaceHigh))
             .overlay(Capsule().stroke(Brand.outline, lineWidth: 1))
         }
-        .accessibilityLabel("客語腔調：" + value.label)
+        .accessibilityLabel("客語腔調：".tr + value.label)
     }
 }

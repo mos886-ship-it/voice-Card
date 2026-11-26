@@ -241,9 +241,12 @@ enum Fmt {
             : String(format: "%02d:%02d", s / 60, s % 60)
     }
 
+    /// 日期用的語言（星期、月份名稱）：iPhone 啟動時依介面語言設好（I18n.locale）；手錶照舊繁中。
+    nonisolated(unsafe) static var locale = Locale(identifier: "zh_Hant_TW")
+
     static func stamp(_ date: Date, _ pattern: String) -> String {
         let f = DateFormatter()
-        f.locale = Locale(identifier: "zh_Hant_TW")
+        f.locale = locale
         f.dateFormat = pattern
         return f.string(from: date)
     }
