@@ -126,6 +126,7 @@ object HealthSync {
             protein = Mass.grams(n.protein.toDouble()),
             totalCarbohydrate = Mass.grams(n.carbs.toDouble()),
             totalFat = Mass.grams(n.fat.toDouble()),
+            dietaryFiber = n.fiber.takeIf { it > 0 }?.let { Mass.grams(it.toDouble()) },
             name = m.title?.substringAfter('：')?.take(60),
             mealType = mealType(n.meal),
         )

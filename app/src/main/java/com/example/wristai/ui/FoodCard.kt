@@ -53,6 +53,7 @@ fun TodayFoodCard(meetings: List<Meeting>, goalKcal: Int, alwaysShow: Boolean = 
     val protein = today.sumOf { it.nutrition!!.protein }
     val carbs = today.sumOf { it.nutrition!!.carbs }
     val fat = today.sumOf { it.nutrition!!.fat }
+    val fiber = today.sumOf { it.nutrition!!.fiber }
     val ratio = if (goalKcal > 0) kcal.toFloat() / goalKcal else 0f
     val over = ratio > 1f
 
@@ -72,6 +73,7 @@ fun TodayFoodCard(meetings: List<Meeting>, goalKcal: Int, alwaysShow: Boolean = 
                 Macro("蛋白質".tr, protein, Brand.Cyan)
                 Macro("碳水".tr, carbs, Brand.Blue)
                 Macro("脂肪".tr, fat, Brand.Violet)
+                Macro("纖維".tr, fiber, Brand.Success)
             }
         }
         Spacer(Modifier.height(12.dp))
@@ -126,6 +128,7 @@ fun NutritionHeader(m: Meeting) {
             StatTile("${n.protein}g", "蛋白質".tr, Modifier.weight(1f))
             StatTile("${n.carbs}g", "碳水".tr, Modifier.weight(1f))
             StatTile("${n.fat}g", "脂肪".tr, Modifier.weight(1f))
+            StatTile(if (n.fiber > 0) "${n.fiber}g" else "—", "纖維".tr, Modifier.weight(1f))   // 旧记录没有纖維
         }
         Spacer(Modifier.height(8.dp))
         Text("AI 依口述估算，僅供參考".tr, style = MaterialTheme.typography.labelSmall, color = Brand.TextFaint)

@@ -210,6 +210,7 @@ private fun FoodTable(t: ReportBlock.Table) {
     val iC = col("碳水".tr, "Carbs", "탄수")
     val iF = col("脂肪".tr, "Fat", "지방")
     val iSrc = col("來源", "Source", "출처")
+    val iFib = col("纖維", "Fiber", "식이섬유")
     val rows = t.rows.filter { r -> r.getOrNull(iName).orEmpty().isNotBlank() }
     fun cell(r: List<String>, i: Int) = if (i < 0) "" else r.getOrNull(i).orEmpty().trim()
     Column(
@@ -232,6 +233,7 @@ private fun FoodTable(t: ReportBlock.Table) {
                     cell(r, iP).takeIf { it.isNotEmpty() }?.let { "蛋白質 {0}g".trf(it) }.orEmpty(),
                     cell(r, iC).takeIf { it.isNotEmpty() }?.let { "碳水 {0}g".trf(it) }.orEmpty(),
                     cell(r, iF).takeIf { it.isNotEmpty() }?.let { "脂肪 {0}g".trf(it) }.orEmpty(),
+                    cell(r, iFib).takeIf { it.isNotEmpty() && it != "0" }?.let { "纖維 {0}g".trf(it) }.orEmpty(),
                 ).filter { it.isNotEmpty() }.joinToString(" · ")
                 if (detail.isNotEmpty()) {
                     Spacer(Modifier.height(3.dp))

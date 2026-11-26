@@ -14,6 +14,8 @@ object FoodDb {
     data class Entry(
         val name: String, val state: String?, val category: String,
         val kcal: Double, val protein: Double, val fat: Double, val carbs: Double,
+        /** 膳食纖維（每 100 克） */
+        val fiber: Double = 0.0,
     )
 
     @Volatile private var cache: Map<String, Entry>? = null
@@ -38,6 +40,7 @@ object FoodDb {
             val e = Entry(
                 o.getString("n"), o.optString("s").ifBlank { null }, o.optString("cat"),
                 o.optDouble("k", 0.0), o.optDouble("p", 0.0), o.optDouble("f", 0.0), o.optDouble("c", 0.0),
+                o.optDouble("fib", 0.0),
             )
             e.name to e
         }

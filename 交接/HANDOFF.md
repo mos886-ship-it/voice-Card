@@ -501,3 +501,10 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 - **語言都送大D的主機**：iOS 拿掉 `Health.langs` 的擋（主機辨識不了會回錯誤，照常改用別的引擎）；詳情頁選其他語言時多一行「逐字稿照X原文寫，報告用報告語言；大D的主機辨識不了時會改用其他引擎。」
 - **主機（server.py）**：en/ja/ko/vi/th/id/yue 交給 Breeze（Whisper）並指定 Whisper 語言（粵語用 zh），不再用國語的 FunASR；這些語言的逐字稿不做簡轉繁（粵語照轉）；health 的 langs 列出全部。英文等的準確度沒實測；主機上執行中的要重新部署才生效。
 - 測試：debug 版放 `Documents/debug_caption.json`（{"file","lang","target"}）會把那個音檔照實際速度餵進字幕。模擬器的語音辨識起不來（kLSRErrorDomain 300，手機上辨識與線上都一樣），所以字幕與翻譯只在模擬器驗過頁面、失敗時的說明與改線上；真的字幕要在 iPhone 上試。
+
+## 膳食纖維（2026-11-27）
+
+- `Nutrition.fiber`（JSON `fiber`，舊記錄 0）、`Item.fiber`、`FoodDb.Entry.fiber`（tfnd.json 的 `fib`）。提示詞 NUTRITION / ITEM 行多 `fiber=<整數>`，規則「fiber 是膳食纖維（克），算在碳水裡面，不能超過碳水」。
+- `fit` 縮小碳水時纖維同比例縮、不超過碳水；表格多「纖維(g)」欄（三語），合計行「碳水 Xg（纖維 Xg）」。AI 自己寫的表格有纖維欄也會讀。
+- 顯示：詳情頁頂端第 4 格「纖維」（舊記錄顯示 —）、今日飲食多一行、飲食清單每筆（0 不顯示）。Health Connect 寫入 `dietaryFiber`。
+- 營養素不能超過重量：`FoodLog.fit`（蛋白質＋碳水＋脂肪 ≤ 克數，超過依比例縮、熱量照 4/4/9 重算），ITEM 與 AI 自己寫的表格（`fixTable`，克數從份量欄）都套用；舊記錄啟動時修一次（`nutrition_repair_v2`）。

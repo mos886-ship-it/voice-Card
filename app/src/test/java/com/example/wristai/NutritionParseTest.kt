@@ -62,4 +62,15 @@ class NutritionParseTest {
         assert(f.markdown.contains("| 185 | 7 | 10 | 13 |")) { f.markdown }
         assert(f.markdown.contains("約 185 大卡")) { f.markdown }
     }
+
+    @Test fun fiberParsedAndCapped() {
+        assertEquals(6, FoodLog.parseNutrition("NUTRITION: meal=午餐; kcal=500; protein=20; carbs=60; fat=15; fiber=6")!!.fiber)
+        assertEquals(6, FoodLog.parseNutrition("NUTRITION: meal=午餐; 熱量=500; 膳食纖維=6")!!.fiber)
+        // 纖維算在碳水裡：碳水縮小時纖維跟著縮，而且不超過碳水
+        val raw = "NUTRITION: meal=點心; kcal=245; protein=10; carbs=13; fat=17; fiber=4\n" +
+            "ITEM: 食物=堅果巧克力; 份量=一小包; 克=31; 對照=無; kcal=245; protein=10; carbs=13; fat=17; fiber=4"
+        val n = FoodLog.finish(raw, "", "x").nutrition!!
+        assertEquals(3, n.fiber)
+        assert(n.fiber <= n.carbs)
+    }
 }

@@ -9,13 +9,15 @@ data class Nutrition(
     val protein: Int,
     val carbs: Int,
     val fat: Int,
+    /** 膳食纖維（克，算在碳水裡面）；旧记录没有 = 0 */
+    val fiber: Int = 0,
 ) {
     fun toJson(): JSONObject = JSONObject()
-        .put("meal", meal).put("kcal", kcal).put("protein", protein).put("carbs", carbs).put("fat", fat)
+        .put("meal", meal).put("kcal", kcal).put("protein", protein).put("carbs", carbs).put("fat", fat).put("fiber", fiber)
 
     companion object {
         fun fromJson(j: JSONObject?): Nutrition? = j?.let {
-            Nutrition(it.optString("meal"), it.optInt("kcal"), it.optInt("protein"), it.optInt("carbs"), it.optInt("fat"))
+            Nutrition(it.optString("meal"), it.optInt("kcal"), it.optInt("protein"), it.optInt("carbs"), it.optInt("fat"), it.optInt("fiber"))
         }
     }
 }
@@ -53,6 +55,7 @@ object FoodLog {
         - 照片裡看得到包裝的「營養標示」：照標示的熱量、營養素與份量（每份 / 每 100 克）換算吃下的量，「對照」填「營養標示」。
         - 每行也寫你自己估的熱量與營養素（App 對不到資料時用）。數字一律取整數；熱量單位大卡（kcal），營養素單位公克（g）。
         - 每樣食物的蛋白質＋碳水＋脂肪（克）加起來不能超過它的重量；熱量約等於 蛋白質×4＋碳水×4＋脂肪×9。
+        - fiber 是膳食纖維（克），算在碳水裡面，不能超過碳水。
         - 餐別依描述與錄音時間判斷：早餐、午餐、晚餐、點心、宵夜、飲料。
         - 若錄音內容不是在描述飲食，TITLE 寫「非飲食內容」，NUTRITION 全部填 0，不要寫 ITEM，並照實摘要內容。
         - 一律使用繁體中文（台灣用語）。這是估算，不要做醫療診斷。
@@ -60,8 +63,8 @@ object FoodLog {
         輸出格式（嚴格遵守，不要加其他前言）：
         第 1 行：TITLE: <餐別：主要食物，15 字內，例如「午餐：牛肉麵＋燙青菜」>
         第 2 行：SUMMARY: <一句話，含總熱量與蛋白質，例如「午餐約 780 大卡，蛋白質 35g」>
-        第 3 行：$NUTRITION_PREFIX meal=<餐別>; kcal=<整數>; protein=<整數>; carbs=<整數>; fat=<整數>
-        接著每樣食物一行：$ITEM_PREFIX 食物=<名稱>; 份量=<口語份量，例如一碗、半盒>; 克=<整數>; 對照=<清單名稱或 無>; kcal=<整數>; protein=<整數>; carbs=<整數>; fat=<整數>
+        第 3 行：$NUTRITION_PREFIX meal=<餐別>; kcal=<整數>; protein=<整數>; carbs=<整數>; fat=<整數>; fiber=<整數>
+        接著每樣食物一行：$ITEM_PREFIX 食物=<名稱>; 份量=<口語份量，例如一碗、半盒>; 克=<整數>; 對照=<清單名稱或 無>; kcal=<整數>; protein=<整數>; carbs=<整數>; fat=<整數>; fiber=<整數>
         之後是 Markdown（不要寫食物表格與合計，App 會自己產生），依序包含：
         ## 營養小提醒
         （1～3 點，針對這一餐的簡短、實際建議）
@@ -76,6 +79,8 @@ object FoodLog {
         val kcal: Int, val protein: Int, val carbs: Int, val fat: Int,
         /** 照片里的包装营养标示算的（数字是 AI 照标示换算） */
         val label: Boolean = false,
+        /** 膳食纖維（克，算在碳水裡面） */
+        val fiber: Int = 0,
     )
 
     /** 做完的饮食记录：营养合计、报告（含 App 产生的表格）、一句话摘要。 */
@@ -95,17 +100,18 @@ object FoodLog {
             if (fixed != null) return Finished(fixed, md, FoodWords.of(ReportLang.active).summary(fixed))
             return Finished(ai?.let { fillFromTable(it, markdown) }, clean, aiSummary)
         }
-        val n = Nutrition(ai.meal, items.sumOf { it.kcal }, items.sumOf { it.protein }, items.sumOf { it.carbs }, items.sumOf { it.fat })
+        val n = Nutrition(ai.meal, items.sumOf { it.kcal }, items.sumOf { it.protein }, items.sumOf { it.carbs }, items.sumOf { it.fat },
+            items.sumOf { it.fiber })
         val fromDb = items.count { it.db != null }
         val w = FoodWords.of(ReportLang.active)
         val table = buildString {
             appendLine("## ${w.content}")
             appendLine("| ${w.header.joinToString(" | ")} |")
-            appendLine("|---|---|---|---|---|---|---|")
+            appendLine("|---|---|---|---|---|---|---|---|")
             for (it in items) {
                 val portion = listOf(it.portion, if (it.grams > 0) w.grams(it.grams) else "").filter { s -> s.isNotBlank() }.joinToString(" · ")
                 val src = it.db?.let { d -> w.tfda + d.name } ?: if (it.label) w.label else w.ai
-                appendLine("| ${it.name} | $portion | ${it.kcal} | ${it.protein} | ${it.carbs} | ${it.fat} | $src |")
+                appendLine("| ${it.name} | $portion | ${it.kcal} | ${it.protein} | ${it.carbs} | ${it.fat} | ${it.fiber} | $src |")
             }
             appendLine()
             appendLine("## ${w.total}")
@@ -131,17 +137,20 @@ object FoodLog {
             val aiKcal = num("kcal")
             val ref = kv["對照"] ?: kv["对照"]
             if (ref?.trim() == "營養標示" || ref?.trim() == "营养标示")
-                return@mapNotNull fitted(Item(name, kv["份量"].orEmpty(), grams, null, num("kcal"), num("protein"), num("carbs"), num("fat"), label = true))
+                return@mapNotNull fitted(Item(name, kv["份量"].orEmpty(), grams, null, num("kcal"), num("protein"), num("carbs"), num("fat"), label = true, fiber = num("fiber")))
             val db = FoodDb.find(ref)?.takeIf { grams > 0 }
             val dbKcal = db?.let { Math.round(it.kcal * grams / 100).toInt() }
             val plausible = db != null && (aiKcal == 0 || dbKcal!!.toDouble() / aiKcal in 0.4..2.5)
             if (plausible) Item(name, kv["份量"].orEmpty(), grams, db, dbKcal!!,
-                Math.round(db!!.protein * grams / 100).toInt(), Math.round(db.carbs * grams / 100).toInt(), Math.round(db.fat * grams / 100).toInt())
-            else fitted(Item(name, kv["份量"].orEmpty(), grams, null, aiKcal, num("protein"), num("carbs"), num("fat")))
+                Math.round(db!!.protein * grams / 100).toInt(), Math.round(db.carbs * grams / 100).toInt(), Math.round(db.fat * grams / 100).toInt(),
+                fiber = Math.round(db.fiber * grams / 100).toInt())
+            else fitted(Item(name, kv["份量"].orEmpty(), grams, null, aiKcal, num("protein"), num("carbs"), num("fat"), fiber = num("fiber")))
         }.toList()
 
     private fun fitted(it: Item): Item = fit(it.grams, it.kcal, it.protein, it.carbs, it.fat).let { f ->
-        it.copy(kcal = f[0], protein = f[1], carbs = f[2], fat = f[3])
+        // 纖維算在碳水里：碳水缩小时纖維跟着同比例缩、而且不超过碳水
+        val fiber = (if (it.carbs > 0 && f[2] < it.carbs) it.fiber * f[2] / it.carbs else it.fiber).coerceAtMost(f[2])
+        it.copy(kcal = f[0], protein = f[1], carbs = f[2], fat = f[3], fiber = fiber)
     }
 
     /**
@@ -174,9 +183,10 @@ object FoodLog {
         fun col(vararg keys: String) = h.indexOfFirst { c -> keys.any { c.contains(it, true) } }
         val iPortion = col("份量", "Portion", "분량"); val iK = col("熱量", "kcal", "Calories", "열량")
         val iP = col("蛋白", "Protein", "단백질"); val iC = col("碳水", "Carbs", "탄수"); val iF = col("脂肪", "Fat", "지방")
+        val iFib = col("纖維", "Fiber", "식이섬유")
         if (iP < 0 || iC < 0 || iF < 0) return markdown to null
         var changed = false
-        var kcal = 0; var p = 0; var c = 0; var f = 0
+        var kcal = 0; var p = 0; var c = 0; var f = 0; var fib = 0
         var i = hi + 1
         while (i < lines.size && lines[i].trim().startsWith("|")) {
             val r = cells(lines[i]).toMutableList()
@@ -186,19 +196,21 @@ object FoodLog {
                 fun n(j: Int) = if (j < 0) 0 else Regex("\\d+").find(r.getOrNull(j).orEmpty())?.value?.toIntOrNull() ?: 0
                 val g = gramsIn(r.getOrNull(iPortion).orEmpty()).takeIf { it > 0 } ?: gramsIn(r.getOrNull(0).orEmpty())
                 val fx = fit(g, n(iK), n(iP), n(iC), n(iF))
+                val fiber = n(iFib).let { v -> (if (n(iC) > 0 && fx[2] < n(iC)) v * fx[2] / n(iC) else v).coerceAtMost(fx[2]) }
                 if (fx[1] != n(iP) || fx[2] != n(iC) || fx[3] != n(iF) || fx[0] != n(iK)) {
                     if (iK >= 0 && iK < r.size) r[iK] = "${fx[0]}"
                     r[iP] = "${fx[1]}"; r[iC] = "${fx[2]}"; r[iF] = "${fx[3]}"
+                    if (iFib >= 0 && iFib < r.size) r[iFib] = "$fiber"
                     lines[i] = "| " + r.joinToString(" | ") + " |"
                     changed = true
                 }
-                kcal += fx[0]; p += fx[1]; c += fx[2]; f += fx[3]
+                kcal += fx[0]; p += fx[1]; c += fx[2]; f += fx[3]; fib += fiber
             }
             if (total) lines[i] = ""   // AI 写的合计列：数字改过就不对了，拿掉
             i++
         }
         if (!changed) return markdown to null
-        val n = Nutrition(meal, kcal, p, c, f)
+        val n = Nutrition(meal, kcal, p, c, f, fib)
         // 「合計」一节的那一行换成新的数字
         val ti = lines.indexOfFirst { l -> l.trim().startsWith("#") && l.trim().trimStart('#').trim().let { it == "合計" || it.equals("Total", true) || it == "합계" } }
         if (ti >= 0) {
@@ -225,9 +237,9 @@ object FoodLog {
         第 3 行：$NUTRITION_PREFIX meal=<餐別>; kcal=<整數>; protein=<整數>; carbs=<整數>; fat=<整數>
         第 4 行起：Markdown，依序包含：
         ## 飲食內容
-        （用表格：食物 | 份量 | 熱量(kcal) | 蛋白質(g) | 碳水(g) | 脂肪(g)；每樣食物一列）
+        （用表格：食物 | 份量 | 熱量(kcal) | 蛋白質(g) | 碳水(g) | 脂肪(g) | 纖維(g)；每樣食物一列）
         ## 合計
-        （一行：約 X 大卡；蛋白質 Xg、碳水 Xg、脂肪 Xg）
+        （一行：約 X 大卡；蛋白質 Xg、碳水 Xg（纖維 Xg）、脂肪 Xg）
         ## 營養小提醒
         （1～3 點，針對這一餐的簡短、實際建議）
         ## 假設與待確認
@@ -255,7 +267,7 @@ object FoodLog {
         }.toMap()
         fun num(vararg ks: String) = ks.firstNotNullOfOrNull { kv[it] }?.let { Regex("\\d+").find(it)?.value?.toIntOrNull() } ?: 0
         return Nutrition(kv["meal"] ?: kv["餐別"] ?: "", num("kcal", "熱量", "热量", "calories"), num("protein", "蛋白質", "蛋白质"),
-            num("carbs", "碳水", "碳水化合物", "carbohydrate"), num("fat", "脂肪"))
+            num("carbs", "碳水", "碳水化合物", "carbohydrate"), num("fat", "脂肪"), num("fiber", "纖維", "膳食纖維", "纤维", "膳食纤维"))
     }
 
     /**
@@ -280,13 +292,13 @@ object FoodLog {
 
     /** AI 自己写的「飲食內容」表格：各栏加总（热量、蛋白质、碳水、脂肪），用来补 NUTRITION 行缺的数字。 */
     internal fun fillFromTable(n: Nutrition, markdown: String): Nutrition {
-        if (n.kcal > 0 && n.protein > 0 && n.carbs > 0 && n.fat > 0) return n
+        if (n.kcal > 0 && n.protein > 0 && n.carbs > 0 && n.fat > 0 && n.fiber > 0) return n
         val rows = markdown.lines().map { it.trim() }.filter { it.startsWith("|") }
         val header = rows.firstOrNull { r -> r.contains("熱量") || r.contains("kcal", true) } ?: return n
         fun cells(r: String) = r.trim('|').split("|").map { it.trim() }
         val h = cells(header)
         fun col(vararg keys: String) = h.indexOfFirst { c -> keys.any { c.contains(it, true) } }
-        val iK = col("熱量", "kcal"); val iP = col("蛋白"); val iC = col("碳水"); val iF = col("脂肪")
+        val iK = col("熱量", "kcal"); val iP = col("蛋白"); val iC = col("碳水"); val iF = col("脂肪"); val iFib = col("纖維", "Fiber")
         val body = rows.dropWhile { it != header }.drop(1).map { cells(it) }
             .filter { r -> r.none { c -> c.isNotEmpty() && c.all { it == '-' || it == ':' } } }
             .filter { r -> r.firstOrNull()?.let { it.contains("合計") || it.contains("總計") } != true }
@@ -297,6 +309,7 @@ object FoodLog {
             protein = n.protein.takeIf { it > 0 } ?: sum(iP),
             carbs = n.carbs.takeIf { it > 0 } ?: sum(iC),
             fat = n.fat.takeIf { it > 0 } ?: sum(iF),
+            fiber = n.fiber.takeIf { it > 0 } ?: sum(iFib),
         )
     }
 
@@ -328,40 +341,40 @@ internal class FoodWords(
 
         fun of(l: ReportLang): FoodWords = when (l) {
             ReportLang.ZH -> FoodWords(
-                "飲食內容", listOf("食物", "份量", "熱量(kcal)", "蛋白質(g)", "碳水(g)", "脂肪(g)", "來源"), "合計",
+                "飲食內容", listOf("食物", "份量", "熱量(kcal)", "蛋白質(g)", "碳水(g)", "脂肪(g)", "纖維(g)", "來源"), "合計",
                 "食藥署：", "營養標示", "AI 估算", { "約 ${it}g" },
                 { n, size, db, lab ->
                     val sources = listOfNotNull(
                         if (db > 0) "$db 樣依食藥署「食品營養成分資料集」計算" else null,
                         if (lab > 0) "$lab 樣依包裝營養標示" else null,
                     )
-                    "約 ${n.kcal} 大卡；蛋白質 ${n.protein}g、碳水 ${n.carbs}g、脂肪 ${n.fat}g" +
+                    "約 ${n.kcal} 大卡；蛋白質 ${n.protein}g、碳水 ${n.carbs}g（纖維 ${n.fiber}g）、脂肪 ${n.fat}g" +
                         if (sources.isNotEmpty()) "（$size 樣中 ${sources.joinToString("、")}）" else "（皆為 AI 估算）"
                 },
                 { n -> "${meal(n.meal, l)}約 ${n.kcal} 大卡，蛋白質 ${n.protein}g" },
             )
             ReportLang.EN -> FoodWords(
-                "What you ate", listOf("Food", "Portion", "Calories (kcal)", "Protein (g)", "Carbs (g)", "Fat (g)", "Source"), "Total",
+                "What you ate", listOf("Food", "Portion", "Calories (kcal)", "Protein (g)", "Carbs (g)", "Fat (g)", "Fiber (g)", "Source"), "Total",
                 "Taiwan FDA: ", "Nutrition label", "AI estimate", { "about ${it}g" },
                 { n, size, db, lab ->
                     val sources = listOfNotNull(
                         if (db > 0) "$db from the Taiwan FDA food composition database" else null,
                         if (lab > 0) "$lab from the package nutrition label" else null,
                     )
-                    "About ${n.kcal} kcal; protein ${n.protein}g, carbs ${n.carbs}g, fat ${n.fat}g" +
+                    "About ${n.kcal} kcal; protein ${n.protein}g, carbs ${n.carbs}g (fiber ${n.fiber}g), fat ${n.fat}g" +
                         if (sources.isNotEmpty()) " (of $size items: ${sources.joinToString(", ")})" else " (all AI estimates)"
                 },
                 { n -> "${meal(n.meal, l)}: about ${n.kcal} kcal, protein ${n.protein}g" },
             )
             ReportLang.KO -> FoodWords(
-                "먹은 음식", listOf("음식", "분량", "열량(kcal)", "단백질(g)", "탄수화물(g)", "지방(g)", "출처"), "합계",
+                "먹은 음식", listOf("음식", "분량", "열량(kcal)", "단백질(g)", "탄수화물(g)", "지방(g)", "식이섬유(g)", "출처"), "합계",
                 "대만 식약청: ", "영양성분표", "AI 추정", { "약 ${it}g" },
                 { n, size, db, lab ->
                     val sources = listOfNotNull(
                         if (db > 0) "${db}개는 대만 식약청 식품영양성분 데이터 기준" else null,
                         if (lab > 0) "${lab}개는 포장 영양성분표 기준" else null,
                     )
-                    "약 ${n.kcal}kcal; 단백질 ${n.protein}g, 탄수화물 ${n.carbs}g, 지방 ${n.fat}g" +
+                    "약 ${n.kcal}kcal; 단백질 ${n.protein}g, 탄수화물 ${n.carbs}g(식이섬유 ${n.fiber}g), 지방 ${n.fat}g" +
                         if (sources.isNotEmpty()) " (${size}개 중 ${sources.joinToString(", ")})" else " (모두 AI 추정)"
                 },
                 { n -> "${meal(n.meal, l)} 약 ${n.kcal}kcal, 단백질 ${n.protein}g" },

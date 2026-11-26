@@ -120,7 +120,7 @@ private fun FoodRow(m: Meeting, onClick: () -> Unit) {
                     maxLines = 1, overflow = TextOverflow.Ellipsis)
                 val n = m.nutrition
                 if (n != null && m.status == MeetingStatus.DONE) {
-                    Text(listOf("蛋白質 {0}g".trf(n.protein), "碳水 {0}g".trf(n.carbs), "脂肪 {0}g".trf(n.fat)).joinToString(" · ") { nobreak(it) },
+                    Text((listOf("蛋白質 {0}g".trf(n.protein), "碳水 {0}g".trf(n.carbs), "脂肪 {0}g".trf(n.fat)) + (if (n.fiber > 0) listOf("纖維 {0}g".trf(n.fiber)) else emptyList())).joinToString(" · ") { nobreak(it) },
                         style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
                 } else {
                     Spacer(Modifier.height(6.dp))
