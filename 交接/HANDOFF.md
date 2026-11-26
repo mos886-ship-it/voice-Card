@@ -482,3 +482,6 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 - 離線語音沒有那個語言：`triggerModelDownload`（系統詢問下載，同一語言這次開 App 只問一次），這次改用線上辨識，畫面寫「聲音會傳到 Google 辨識」。台語、客語、粵語不支援（手機辨識不了）。
 - **手錶**：每句譯文 `PATH_CAPTION` 推給手錶，手機錄音中畫面顯示最新一句（最多 3 行）。
 - 測試：debug 版可用 `adb shell am start -n com.example.wristai/.MainActivity --es debug_caption_wav <app 內的 wav> --es debug_caption_lang en --es debug_caption_target zh` 餵一個 16 kHz 單聲道 WAV（模擬器沒辦法說話）。模擬器實測：Windows TTS 英文 → 線上辨識 → 繁中譯文正確。手錶顯示沒在模擬器看過。
+
+- **2026-11-26 修正**：三星手機預設的辨識服務可能不接受直接送錄音（Fold5 中→英沒有字幕）。`LiveCaptions.engines`：離線 → Google 線上服務（明確指定元件）→ 其他服務；同一個服務連續出錯 3 次而且一句都沒聽到就換下一個，全部不行才顯示錯誤代碼。翻譯成多了越南語（Tiếng Việt）。
+- **大D的主機語言**：不再依 health 的 `langs` 擋掉英語等語言，一律送給主機（`X-Lang`），主機辨識不了會回錯誤、再改用別的引擎。

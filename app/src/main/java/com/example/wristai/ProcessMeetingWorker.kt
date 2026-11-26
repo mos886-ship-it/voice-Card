@@ -501,7 +501,7 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
             val res = withContext(Dispatchers.IO) {
                 val h = host.health(ctx)   // 5 秒：连不到就马上改用别的引擎，不要卡在上传
                 val lang = SpeechLang.of(meeting.lang).code
-                if (lang !in h.langs) throw com.example.wristai.ai.AiException("大D的主機還不能辨識{0}".trf(SpeechLang.of(lang).label))
+                // 语言交给主机判断（主机认不得会回错误，再改用别的引擎）
                 val dialect = if (SpeechLang.of(meeting.lang) == SpeechLang.HAK) HakkaDialect.of(meeting.dialect).code else null
                 val jobFile = hostJobFile(ctx, id)
                 if (!h.jobs && !jobFile.exists()) {

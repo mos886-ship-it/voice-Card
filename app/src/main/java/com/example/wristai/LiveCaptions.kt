@@ -61,7 +61,8 @@ object LiveCaptions {
         ZH("zh", "繁體中文", TranslateLanguage.CHINESE),
         EN("en", "English", TranslateLanguage.ENGLISH),
         KO("ko", "한국어", TranslateLanguage.KOREAN),
-        JA("ja", "日本語", TranslateLanguage.JAPANESE);
+        JA("ja", "日本語", TranslateLanguage.JAPANESE),
+        VI("vi", "Tiếng Việt", TranslateLanguage.VIETNAMESE);
 
         companion object {
             fun of(code: String?) = entries.firstOrNull { it.code == code }
@@ -105,6 +106,26 @@ object LiveCaptions {
     private var segments = 0
     /** 离线辨识没有这个语言 → 改用线上辨识（会传到 Google），画面上会写。 */
     private var online = false
+    /** 辨识服务候选（[engines]）里现在用第几个；这次开字幕有没有听到过字；连续出错几次。 */
+    private var engine = 0
+    @Volatile private var heard = false
+    private var errorsInRow = 0
+    private const val ON_DEVICE = "on-device"
+
+    /**
+     * 辨识服务的候选顺序：离线（有、而且这个语言没确认缺）→ Google 的线上服务 → 手机上其他服务。
+     * 三星手机预设的服务可能不接受「直接把录音送进去」，所以明确指定 Google 的，不行再换。
+     */
+    private fun engines(c: Context): List<String> {
+        val src = _state.value.source
+        val out = mutableListOf<String>()
+        if (src.code !in offlineMissing && SpeechRecognizer.isOnDeviceRecognitionAvailable(c)) out += ON_DEVICE
+        val services = c.packageManager.queryIntentServices(Intent(android.speech.RecognitionService.SERVICE_INTERFACE), 0)
+            .map { android.content.ComponentName(it.serviceInfo.packageName, it.serviceInfo.name) }
+        out += services.sortedBy { if (it.packageName.contains("google")) 0 else 1 }.map { it.flattenToString() }
+        return out
+    }
+
     /** 这次开 App 已经知道离线没有的语言（不要每次都跳「下载离线语音」）。 */
     private val offlineMissing = mutableSetOf<String>()
 
@@ -123,6 +144,7 @@ object LiveCaptions {
             return
         }
         online = source.code in offlineMissing
+        engine = 0; heard = false; errorsInRow = 0
         _state.value = State(running = true, source = source, target = target,
             status = if (online) "手機的離線語音沒有{0}，這次改用線上辨識（聲音會傳到 Google 辨識）".trf(source.label) else "準備翻譯模型…".tr)
         // 翻译模型：第一次要下载（约 30 MB）
@@ -203,12 +225,17 @@ object LiveCaptions {
         sink = ParcelFileDescriptor.AutoCloseOutputStream(pipe[1])
         runCatching { oldSink?.close() }
         runCatching { recognizer?.destroy() }
-        val onDevice = !online && SpeechRecognizer.isOnDeviceRecognitionAvailable(c)
-        if (!onDevice && !SpeechRecognizer.isRecognitionAvailable(c)) {
+        val list = engines(c)
+        if (list.isEmpty()) {
             update { it.copy(error = "這支手機沒有可用的語音辨識服務（請安裝 / 啟用 Google 語音服務）".tr) }
             stop(); return
         }
-        val r = if (onDevice) SpeechRecognizer.createOnDeviceSpeechRecognizer(c) else SpeechRecognizer.createSpeechRecognizer(c)
+        if (engine >= list.size) engine = 0
+        val eng = list[engine]
+        val r = when (eng) {
+            ON_DEVICE -> SpeechRecognizer.createOnDeviceSpeechRecognizer(c)
+            else -> SpeechRecognizer.createSpeechRecognizer(c, android.content.ComponentName.unflattenFromString(eng))
+        }
         recognizer = r
         segments++
         r.setRecognitionListener(object : RecognitionListener {
@@ -216,6 +243,7 @@ object LiveCaptions {
 
             override fun onPartialResults(b: Bundle?) {
                 val t = text(b); if (t.isEmpty()) return
+                heard = true; errorsInRow = 0
                 update { s ->
                     val last = s.lines.lastOrNull()
                     val lines = if (last != null && last.partial) s.lines.dropLast(1) + last.copy(original = t)
@@ -224,30 +252,41 @@ object LiveCaptions {
                 }
             }
 
-            override fun onSegmentResults(b: Bundle) = finishLine(text(b))
-            override fun onResults(b: Bundle?) { finishLine(text(b)); restart() }
+            override fun onSegmentResults(b: Bundle) { val t = text(b); if (t.isNotEmpty()) { heard = true; errorsInRow = 0 }; finishLine(t) }
+            override fun onResults(b: Bundle?) { val t = text(b); if (t.isNotEmpty()) { heard = true; errorsInRow = 0 }; finishLine(t); restart() }
             override fun onEndOfSegmentedSession() = restart()
 
             override fun onError(error: Int) {
-                Log.d(TAG, "recognizer error $error")
+                Log.d(TAG, "recognizer error $error on $eng")
                 when (error) {
-                    SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE, SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED -> {
-                        if (!online && SpeechRecognizer.isRecognitionAvailable(c)) {
-                            // 离线没有这个语言：请系统下载离线语音（下次就能离线），这次先用线上辨识
-                            runCatching { r.triggerModelDownload(Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).putExtra(RecognizerIntent.EXTRA_LANGUAGE, source.locale)) }
-                            online = true
-                            offlineMissing += source.code
-                            update { it.copy(status = "手機的離線語音沒有{0}，這次改用線上辨識（聲音會傳到 Google 辨識）".trf(source.label)) }
-                            restart()
-                        } else {
-                            update { it.copy(error = "手機的語音辨識沒有{0}：請到系統設定下載這個語言的離線語音".trf(source.label)) }
-                            stop()
-                        }
-                    }
                     SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> {
-                        update { it.copy(error = "需要麥克風權限".tr) }; stop()
+                        update { it.copy(error = "需要麥克風權限".tr) }; stop(); return
                     }
-                    else -> restart()   // 没听到、逾时、忙碌 → 接着听
+                    SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE, SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED -> {
+                        if (eng == ON_DEVICE) {
+                            // 离线没有这个语言：请系统下载离线语音（下次就能离线），这次改用线上辨识
+                            runCatching { r.triggerModelDownload(Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).putExtra(RecognizerIntent.EXTRA_LANGUAGE, source.locale)) }
+                            offlineMissing += source.code
+                            online = true
+                            update { it.copy(status = "手機的離線語音沒有{0}，這次改用線上辨識（聲音會傳到 Google 辨識）".trf(source.label)) }
+                        }
+                        nextEngine(list, error); return
+                    }
+                }
+                // 这个辨识服务一直出错、一句都没听到（例如三星的服务不接受直接送录音）→ 换下一个
+                errorsInRow++
+                if (!heard && errorsInRow >= 3) { nextEngine(list, error); return }
+                restart()   // 没听到、逾时、忙碌 → 接着听
+            }
+
+            fun nextEngine(list: List<String>, error: Int) {
+                errorsInRow = 0
+                if (engine + 1 < list.size) {
+                    engine++
+                    restart()
+                } else {
+                    update { it.copy(error = "手機的語音辨識沒辦法邊錄邊辨識（錯誤 {0}）。錄音照常，錄完的報告不受影響。".trf(error)) }
+                    stop()
                 }
             }
 
