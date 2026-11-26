@@ -10,6 +10,8 @@ class WristAiApp : Application() {
     override fun onCreate() {
         super.onCreate()
         I18n.init(this)
+        // 旧的饮食记录：脂肪等数字是 0 但表格有 → 补上（只做一次）
+        Thread { runCatching { FoodLog.repairStored(this) } }.start()
     }
 
     companion object {

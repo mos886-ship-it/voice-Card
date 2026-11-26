@@ -87,7 +87,8 @@ object FoodLog {
     fun finish(raw: String, markdown: String, aiSummary: String): Finished {
         val ai = parseNutrition(raw)
         val items = parseItems(raw)
-        if (items.isEmpty() || ai == null) return Finished(ai, stripNutrition(markdown), aiSummary)
+        // 没有 ITEM 行（大D的主機、旧格式）：用 AI 的 NUTRITION 行；那一行缺的数字用 AI 自己的表格加总补上
+        if (items.isEmpty() || ai == null) return Finished(ai?.let { fillFromTable(it, markdown) }, stripNutrition(markdown), aiSummary)
         val n = Nutrition(ai.meal, items.sumOf { it.kcal }, items.sumOf { it.protein }, items.sumOf { it.carbs }, items.sumOf { it.fat })
         val fromDb = items.count { it.db != null }
         val w = FoodWords.of(ReportLang.active)
@@ -165,16 +166,60 @@ object FoodLog {
         (if (FoodDb.ready) dbPrompt(withTranscript = false) else LEGACY_PROMPT.substringBefore("之後單獨一行輸出").trimEnd()) +
             "\n\n（使用者給你的是語音辨識的逐字稿，可能有同音錯字，請依常理判斷食物名稱。）"
 
-    /** 从模型输出找出 NUTRITION 行。 */
+    /** 从模型输出找出 NUTRITION 行（容许全形冒号 / 等号、逗号分隔、中文栏位名；小模型常写得不太标准）。 */
     fun parseNutrition(text: String): Nutrition? {
-        val line = text.lineSequence().map { it.trim() }.firstOrNull { it.startsWith(NUTRITION_PREFIX, true) } ?: return null
-        val kv = line.substringAfter(':').split(';', '；').mapNotNull { part ->
-            val k = part.substringBefore('=').trim().lowercase()
-            val v = part.substringAfter('=', "").trim()
+        val line = text.lineSequence().map { it.trim().trimStart('*', '#', ' ') }
+            .firstOrNull { it.startsWith("NUTRITION", true) } ?: return null
+        val body = line.substring("NUTRITION".length).trimStart('*', ' ', ':', '：')
+        val kv = body.split(';', '；', ',', '，', '、').mapNotNull { part ->
+            val i = part.indexOfFirst { it == '=' || it == '＝' || it == ':' || it == '：' }
+            if (i <= 0) return@mapNotNull null
+            val k = part.substring(0, i).trim().lowercase()
+            val v = part.substring(i + 1).trim()
             if (k.isEmpty() || v.isEmpty()) null else k to v
         }.toMap()
-        fun num(k: String) = kv[k]?.let { Regex("\\d+").find(it)?.value?.toIntOrNull() } ?: 0
-        return Nutrition(kv["meal"].orEmpty(), num("kcal"), num("protein"), num("carbs"), num("fat"))
+        fun num(vararg ks: String) = ks.firstNotNullOfOrNull { kv[it] }?.let { Regex("\\d+").find(it)?.value?.toIntOrNull() } ?: 0
+        return Nutrition(kv["meal"] ?: kv["餐別"] ?: "", num("kcal", "熱量", "热量", "calories"), num("protein", "蛋白質", "蛋白质"),
+            num("carbs", "碳水", "碳水化合物", "carbohydrate"), num("fat", "脂肪"))
+    }
+
+    /**
+     * 修正旧记录：大D的主機写的 NUTRITION 行缺数字（例如脂肪 0）、但表格有 → 用表格补上（只做一次；健康同步会跟着更新）。
+     */
+    fun repairStored(context: android.content.Context) {
+        val prefs = context.getSharedPreferences("wristai_settings", android.content.Context.MODE_PRIVATE)
+        if (prefs.getBoolean("nutrition_repair_v1", false)) return
+        MeetingStore.reload(context)
+        for (m in MeetingStore.meetings.value) {
+            val n = m.nutrition ?: continue
+            if (!isFood(m.id) || m.status != MeetingStatus.DONE || (n.protein > 0 && n.carbs > 0 && n.fat > 0)) continue
+            val md = MeetingStore.reportFile(context, m.id).takeIf { it.exists() }?.readText() ?: continue
+            val fixed = fillFromTable(n, md)
+            if (fixed != n) MeetingStore.update(context, m.id) { it.copy(nutrition = fixed) }
+        }
+        prefs.edit().putBoolean("nutrition_repair_v1", true).apply()
+    }
+
+    /** AI 自己写的「飲食內容」表格：各栏加总（热量、蛋白质、碳水、脂肪），用来补 NUTRITION 行缺的数字。 */
+    internal fun fillFromTable(n: Nutrition, markdown: String): Nutrition {
+        if (n.kcal > 0 && n.protein > 0 && n.carbs > 0 && n.fat > 0) return n
+        val rows = markdown.lines().map { it.trim() }.filter { it.startsWith("|") }
+        val header = rows.firstOrNull { r -> r.contains("熱量") || r.contains("kcal", true) } ?: return n
+        fun cells(r: String) = r.trim('|').split("|").map { it.trim() }
+        val h = cells(header)
+        fun col(vararg keys: String) = h.indexOfFirst { c -> keys.any { c.contains(it, true) } }
+        val iK = col("熱量", "kcal"); val iP = col("蛋白"); val iC = col("碳水"); val iF = col("脂肪")
+        val body = rows.dropWhile { it != header }.drop(1).map { cells(it) }
+            .filter { r -> r.none { c -> c.isNotEmpty() && c.all { it == '-' || it == ':' } } }
+            .filter { r -> r.firstOrNull()?.let { it.contains("合計") || it.contains("總計") } != true }
+        if (body.isEmpty()) return n
+        fun sum(i: Int) = if (i < 0) 0 else body.sumOf { r -> r.getOrNull(i)?.let { Regex("\\d+").find(it)?.value?.toIntOrNull() } ?: 0 }
+        return n.copy(
+            kcal = n.kcal.takeIf { it > 0 } ?: sum(iK),
+            protein = n.protein.takeIf { it > 0 } ?: sum(iP),
+            carbs = n.carbs.takeIf { it > 0 } ?: sum(iC),
+            fat = n.fat.takeIf { it > 0 } ?: sum(iF),
+        )
     }
 
     /** 报告里不显示机读行。 */
