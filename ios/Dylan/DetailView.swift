@@ -384,6 +384,7 @@ struct NutritionCard: View {
                 StatTile(value: "\(n.protein)g", label: "蛋白質".tr)
                 StatTile(value: "\(n.carbs)g", label: "碳水".tr)
                 StatTile(value: "\(n.fat)g", label: "脂肪".tr)
+                StatTile(value: n.fiber > 0 ? "\(n.fiber)g" : "—", label: "纖維".tr)   // 舊記錄沒有纖維
             }
             .padding(.top, 10)
             Text("AI 依口述估算，不是精確值".tr).font(.bodySmall).foregroundStyle(Brand.textFaint).padding(.top, 8)

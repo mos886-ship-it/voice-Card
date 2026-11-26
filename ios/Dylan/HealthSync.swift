@@ -24,7 +24,9 @@ final class HealthSync: ObservableObject {
 
     private static let types: [HKQuantityTypeIdentifier] =
         [.dietaryEnergyConsumed, .dietaryProtein, .dietaryCarbohydrates, .dietaryFatTotal]
-    private static var shareTypes: Set<HKSampleType> { Set(types.map { HKQuantityType($0) }) }
+    /// 纖維另外要（照 Android 1.1.124）；之前只給四種權限的人照常可以同步，只是沒寫纖維
+    private static let fiberType = HKQuantityType(.dietaryFiber)
+    private static var shareTypes: Set<HKSampleType> { Set(types.map { HKQuantityType($0) } + [fiberType]) }
 
     /// 有沒有寫入權限（使用者在「健康」App 可隨時關掉；四種都要有）。
     var authorized: Bool {
@@ -116,12 +118,15 @@ final class HealthSync: ObservableObject {
             HKMetadataKeyFoodType: name,
         ]
         let date = m.createdAt
-        let values: [(HKQuantityTypeIdentifier, HKQuantity)] = [
+        var values: [(HKQuantityTypeIdentifier, HKQuantity)] = [
             (.dietaryEnergyConsumed, HKQuantity(unit: .kilocalorie(), doubleValue: Double(n.kcal))),
             (.dietaryProtein, HKQuantity(unit: .gram(), doubleValue: Double(n.protein))),
             (.dietaryCarbohydrates, HKQuantity(unit: .gram(), doubleValue: Double(n.carbs))),
             (.dietaryFatTotal, HKQuantity(unit: .gram(), doubleValue: Double(n.fat))),
         ]
+        if n.fiber > 0, store.authorizationStatus(for: Self.fiberType) == .sharingAuthorized {
+            values.append((.dietaryFiber, HKQuantity(unit: .gram(), doubleValue: Double(n.fiber))))
+        }
         // 每個營養樣本也帶同一個同步識別碼（各類型分開算唯一），更新時舊的會被換掉
         let samples: Set<HKSample> = Set(values.map { id, q in
             HKQuantitySample(type: HKQuantityType(id), quantity: q, start: date, end: date, metadata: meta)
@@ -137,7 +142,7 @@ final class HealthSync: ObservableObject {
 
     private func remove(_ id: String) async {
         let p = HKQuery.predicateForObjects(withMetadataKey: HKMetadataKeySyncIdentifier, allowedValues: [id])
-        for t in Self.types {
+        for t in Self.types + [.dietaryFiber] {
             _ = try? await store.deleteObjects(of: HKQuantityType(t), predicate: p)
         }
         _ = try? await store.deleteObjects(of: HKCorrelationType(.food), predicate: p)

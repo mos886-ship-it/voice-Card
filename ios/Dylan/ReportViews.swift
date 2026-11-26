@@ -257,6 +257,7 @@ struct FoodList: View {
     private static let aliases: [String: [String]] = [
         "食物": ["食物", "品項", "名稱", "Food", "음식"], "份量": ["份量", "Portion", "분량"], "熱量": ["熱量", "Calories", "열량"],
         "蛋白": ["蛋白", "Protein", "단백질"], "碳水": ["碳水", "Carbs", "탄수"], "脂肪": ["脂肪", "Fat", "지방"], "來源": ["來源", "Source", "출처"],
+        "纖維": ["纖維", "Fiber", "식이섬유"],
     ]
     private func col(_ key: String) -> Int? {
         let keys = Self.aliases[key] ?? [key]
@@ -283,13 +284,16 @@ struct FoodList: View {
     }
 
     @ViewBuilder private func item(_ r: [String]) -> some View {
-        let name = col("食物".tr).flatMap { $0 < r.count ? r[$0] : nil } ?? r.first ?? ""
-        let kcal = cell(r, "熱量".tr)
-        let detail = [cell(r, "份量".tr),
-                      cell(r, "蛋白".tr).isEmpty ? "" : "蛋白質 {0}g".trf(num(cell(r, "蛋白"))),
-                      cell(r, "碳水".tr).isEmpty ? "" : "碳水 {0}g".trf(num(cell(r, "碳水"))),
-                      cell(r, "脂肪".tr).isEmpty ? "" : "脂肪 {0}g".trf(num(cell(r, "脂肪")))].filter { !$0.isEmpty }.joined(separator: " · ")
-        let src = cell(r, "來源".tr)
+        // 欄位用中文鍵找（三種報告語言的別名在 aliases），不要翻譯
+        let name = col("食物").flatMap { $0 < r.count ? r[$0] : nil } ?? r.first ?? ""
+        let kcal = cell(r, "熱量")
+        let fib = cell(r, "纖維")
+        let detail = [cell(r, "份量"),
+                      cell(r, "蛋白").isEmpty ? "" : "蛋白質 {0}g".trf(num(cell(r, "蛋白"))),
+                      cell(r, "碳水").isEmpty ? "" : "碳水 {0}g".trf(num(cell(r, "碳水"))),
+                      cell(r, "脂肪").isEmpty ? "" : "脂肪 {0}g".trf(num(cell(r, "脂肪"))),
+                      fib.isEmpty || num(fib) == "0" ? "" : "纖維 {0}g".trf(num(fib))].filter { !$0.isEmpty }.joined(separator: " · ")
+        let src = cell(r, "來源")
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text(ReportView.inline(name)).font(.titleSmall).foregroundStyle(Brand.text)

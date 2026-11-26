@@ -171,6 +171,8 @@ enum AppleAI {
         var protein: Int
         var carbs: Int
         var fat: Int
+        /// 膳食纖維（克，算在碳水裡面）；舊記錄沒有 = 0
+        var fiber: Int = 0
     }
 
     static let foodInstructions = """
@@ -232,3 +234,18 @@ enum AppleAI {
         return (GeneratedReport(title: e.title, shortSummary: e.summary, markdown: md), n, model.rawValue)
     }
 }
+
+/// 舊記錄沒有 fiber：讀成 0（自動產生的解碼不會用預設值，缺欄位會整筆讀不到）。寫在 extension 才保留逐欄位的建構子。
+extension AppleAI.Nutrition {
+    private enum CodingKeys: String, CodingKey { case meal, kcal, protein, carbs, fat, fiber }
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(meal: try c.decodeIfPresent(String.self, forKey: .meal) ?? "",
+                  kcal: try c.decodeIfPresent(Int.self, forKey: .kcal) ?? 0,
+                  protein: try c.decodeIfPresent(Int.self, forKey: .protein) ?? 0,
+                  carbs: try c.decodeIfPresent(Int.self, forKey: .carbs) ?? 0,
+                  fat: try c.decodeIfPresent(Int.self, forKey: .fat) ?? 0,
+                  fiber: try c.decodeIfPresent(Int.self, forKey: .fiber) ?? 0)
+    }
+}
+

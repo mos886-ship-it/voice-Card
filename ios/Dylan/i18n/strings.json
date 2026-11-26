@@ -4754,5 +4754,13 @@
  "邊錄邊翻譯：上面選好語言，按開始。辨識與翻譯都在手機上做（手機沒有那個語言的離線語音時，會改用 Apple 線上辨識）；錄完照常產生完整報告。": {
   "en": "Translate while recording: pick the languages above and tap Start. Recognition and translation run on the phone (if the phone has no offline speech for that language, Apple's online recognition is used); the full report is made as usual when you stop.",
   "ko": "녹음하면서 번역: 위에서 언어를 고르고 시작을 누르세요. 인식과 번역은 휴대폰에서 합니다(그 언어의 오프라인 음성이 없으면 Apple 온라인 인식을 사용). 녹음이 끝나면 평소처럼 전체 보고서를 만듭니다."
+ },
+ "纖維": {
+  "en": "Fiber",
+  "ko": "식이섬유"
+ },
+ "纖維 {0}g": {
+  "en": "Fiber {0}g",
+  "ko": "식이섬유 {0}g"
  }
 }

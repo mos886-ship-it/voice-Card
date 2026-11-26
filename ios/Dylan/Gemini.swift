@@ -94,6 +94,7 @@ struct GeminiClient {
       清單標「·生」的是生重：克數要填烹調前的生重。整道小吃（例如牛肉麵）清單沒有就拆成麵、肉、湯、青菜各自對照，拆不了就填「無」。
     - 每行也寫你自己估的熱量與營養素（App 對不到資料時用）。數字一律取整數；熱量單位大卡（kcal），營養素單位公克（g）。
     - 每樣食物的蛋白質＋碳水＋脂肪（克）加起來不能超過它的重量；熱量約等於 蛋白質×4＋碳水×4＋脂肪×9。
+    - fiber 是膳食纖維（克），算在碳水裡面，不能超過碳水。
     - 餐別依描述與錄音時間判斷：早餐、午餐、晚餐、點心、宵夜、飲料。
     - 若錄音內容不是在描述飲食，TITLE 寫「非飲食內容」，NUTRITION 全部填 0，不要寫 ITEM，並照實摘要內容。
     - 一律使用繁體中文（台灣用語）。這是估算，不要做醫療診斷。
@@ -101,8 +102,8 @@ struct GeminiClient {
     輸出格式（嚴格遵守，不要加其他前言）：
     第 1 行：TITLE: <餐別：主要食物，15 字內，例如「午餐：牛肉麵＋燙青菜」>
     第 2 行：SUMMARY: <一句話，含總熱量與蛋白質，例如「午餐約 780 大卡，蛋白質 35g」>
-    第 3 行：\(nutritionPrefix) meal=<餐別>; kcal=<整數>; protein=<整數>; carbs=<整數>; fat=<整數>
-    接著每樣食物一行：\(FoodLog.itemPrefix) 食物=<名稱>; 份量=<口語份量，例如一碗、半盒>; 克=<整數>; 對照=<清單名稱或 無>; kcal=<整數>; protein=<整數>; carbs=<整數>; fat=<整數>
+    第 3 行：\(nutritionPrefix) meal=<餐別>; kcal=<整數>; protein=<整數>; carbs=<整數>; fat=<整數>; fiber=<整數>
+    接著每樣食物一行：\(FoodLog.itemPrefix) 食物=<名稱>; 份量=<口語份量，例如一碗、半盒>; 克=<整數>; 對照=<清單名稱或 無>; kcal=<整數>; protein=<整數>; carbs=<整數>; fat=<整數>; fiber=<整數>
     之後是 Markdown（不要寫食物表格與合計，App 會自己產生），依序包含：
     ## 營養小提醒
     （1～3 點，針對這一餐的簡短、實際建議）
@@ -129,12 +130,12 @@ struct GeminiClient {
     輸出格式（嚴格遵守，不要加其他前言）：
     第 1 行：TITLE: <餐別：主要食物，15 字內，例如「午餐：牛肉麵＋燙青菜」>
     第 2 行：SUMMARY: <一句話，含總熱量與蛋白質，例如「午餐約 780 大卡，蛋白質 35g」>
-    第 3 行：\(nutritionPrefix) meal=<餐別>; kcal=<整數>; protein=<整數>; carbs=<整數>; fat=<整數>
+    第 3 行：\(nutritionPrefix) meal=<餐別>; kcal=<整數>; protein=<整數>; carbs=<整數>; fat=<整數>; fiber=<整數>
     第 4 行起：Markdown，依序包含：
     ## 飲食內容
-    （用表格：食物 | 份量 | 熱量(kcal) | 蛋白質(g) | 碳水(g) | 脂肪(g)；每樣食物一列）
+    （用表格：食物 | 份量 | 熱量(kcal) | 蛋白質(g) | 碳水(g) | 脂肪(g) | 纖維(g)；每樣食物一列）
     ## 合計
-    （一行：約 X 大卡；蛋白質 Xg、碳水 Xg、脂肪 Xg）
+    （一行：約 X 大卡；蛋白質 Xg、碳水 Xg（纖維 Xg）、脂肪 Xg）
     ## 營養小提醒
     （1～3 點，針對這一餐的簡短、實際建議）
     ## 假設與待確認
@@ -161,7 +162,8 @@ struct GeminiClient {
         }
         return AppleAI.Nutrition(meal: kv["meal"] ?? kv["餐別"] ?? "", kcal: num("kcal", "熱量", "热量", "calories"),
                                  protein: num("protein", "蛋白質", "蛋白质"),
-                                 carbs: num("carbs", "碳水", "碳水化合物", "carbohydrate"), fat: num("fat", "脂肪"))
+                                 carbs: num("carbs", "碳水", "碳水化合物", "carbohydrate"), fat: num("fat", "脂肪"),
+                                 fiber: num("fiber", "纖維", "膳食纖維", "纤维", "膳食纤维"))
     }
 
     /// 報告裡不顯示機讀行。

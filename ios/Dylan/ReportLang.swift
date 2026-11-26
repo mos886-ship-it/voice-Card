@@ -163,32 +163,32 @@ struct FoodWords {
     static func of(_ l: ReportLang) -> FoodWords {
         switch l {
         case .zh:
-            return FoodWords(content: "飲食內容", header: ["食物", "份量", "熱量(kcal)", "蛋白質(g)", "碳水(g)", "脂肪(g)", "來源"], total: "合計",
+            return FoodWords(content: "飲食內容", header: ["食物", "份量", "熱量(kcal)", "蛋白質(g)", "碳水(g)", "脂肪(g)", "纖維(g)", "來源"], total: "合計",
                              tfda: "食藥署：", label: "營養標示", ai: "AI 估算", grams: { "約 \($0)g" },
                              totalLine: { n, size, db, lab in
                                  let s = [db > 0 ? "\(db) 樣依食藥署「食品營養成分資料集」計算" : nil,
                                           lab > 0 ? "\(lab) 樣依包裝營養標示" : nil].compactMap { $0 }
-                                 return "約 \(n.kcal) 大卡；蛋白質 \(n.protein)g、碳水 \(n.carbs)g、脂肪 \(n.fat)g"
+                                 return "約 \(n.kcal) 大卡；蛋白質 \(n.protein)g、碳水 \(n.carbs)g（纖維 \(n.fiber)g）、脂肪 \(n.fat)g"
                                      + (s.isEmpty ? "（皆為 AI 估算）" : "（\(size) 樣中 \(s.joined(separator: "、"))）")
                              },
                              summary: { n in "\(meal(n.meal, l))約 \(n.kcal) 大卡，蛋白質 \(n.protein)g" })
         case .en:
-            return FoodWords(content: "What you ate", header: ["Food", "Portion", "Calories (kcal)", "Protein (g)", "Carbs (g)", "Fat (g)", "Source"],
+            return FoodWords(content: "What you ate", header: ["Food", "Portion", "Calories (kcal)", "Protein (g)", "Carbs (g)", "Fat (g)", "Fiber (g)", "Source"],
                              total: "Total", tfda: "Taiwan FDA: ", label: "Nutrition label", ai: "AI estimate", grams: { "about \($0)g" },
                              totalLine: { n, size, db, lab in
                                  let s = [db > 0 ? "\(db) from the Taiwan FDA food composition database" : nil,
                                           lab > 0 ? "\(lab) from the package nutrition label" : nil].compactMap { $0 }
-                                 return "About \(n.kcal) kcal; protein \(n.protein)g, carbs \(n.carbs)g, fat \(n.fat)g"
+                                 return "About \(n.kcal) kcal; protein \(n.protein)g, carbs \(n.carbs)g (fiber \(n.fiber)g), fat \(n.fat)g"
                                      + (s.isEmpty ? " (all AI estimates)" : " (of \(size) items: \(s.joined(separator: ", ")))")
                              },
                              summary: { n in "\(meal(n.meal, l)): about \(n.kcal) kcal, protein \(n.protein)g" })
         case .ko:
-            return FoodWords(content: "먹은 음식", header: ["음식", "분량", "열량(kcal)", "단백질(g)", "탄수화물(g)", "지방(g)", "출처"],
+            return FoodWords(content: "먹은 음식", header: ["음식", "분량", "열량(kcal)", "단백질(g)", "탄수화물(g)", "지방(g)", "식이섬유(g)", "출처"],
                              total: "합계", tfda: "대만 식약청: ", label: "영양성분표", ai: "AI 추정", grams: { "약 \($0)g" },
                              totalLine: { n, size, db, lab in
                                  let s = [db > 0 ? "\(db)개는 대만 식약청 식품영양성분 데이터 기준" : nil,
                                           lab > 0 ? "\(lab)개는 포장 영양성분표 기준" : nil].compactMap { $0 }
-                                 return "약 \(n.kcal)kcal; 단백질 \(n.protein)g, 탄수화물 \(n.carbs)g, 지방 \(n.fat)g"
+                                 return "약 \(n.kcal)kcal; 단백질 \(n.protein)g, 탄수화물 \(n.carbs)g(식이섬유 \(n.fiber)g), 지방 \(n.fat)g"
                                      + (s.isEmpty ? " (모두 AI 추정)" : " (\(size)개 중 \(s.joined(separator: ", ")))")
                              },
                              summary: { n in "\(meal(n.meal, l)) 약 \(n.kcal)kcal, 단백질 \(n.protein)g" })

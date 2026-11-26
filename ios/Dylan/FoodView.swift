@@ -73,6 +73,7 @@ struct FoodView: View {
                             nutrient("蛋白質".tr, sum(\.protein), Brand.cyan)
                             nutrient("碳水".tr, sum(\.carbs), Brand.violet)
                             nutrient("脂肪".tr, sum(\.fat), Brand.pink)
+                            nutrient("纖維".tr, sum(\.fiber), Brand.success)
                         }
                     }
                     .padding(.top, 16)
@@ -130,7 +131,8 @@ private struct MealRow: View {
                     Text(m.title).font(.titleMedium).foregroundStyle(Brand.text).lineLimit(1)
                     if let n = m.nutrition {
                         // 營養素不要在數字中間斷行（照 Android 2026-11-21 修正）
-                        Text("{0} · 蛋白質 {1}g · 碳水 {2}g · 脂肪 {3}g".trf(Fmt.stamp(m.createdAt, "HH:mm"), n.protein, n.carbs, n.fat))
+                        Text("{0} · 蛋白質 {1}g · 碳水 {2}g · 脂肪 {3}g".trf(Fmt.stamp(m.createdAt, "HH:mm"), n.protein, n.carbs, n.fat)
+                             + (n.fiber > 0 ? " · " + "纖維 {0}g".trf(n.fiber) : ""))
                             .font(.bodySmall).foregroundStyle(Brand.textMuted).lineLimit(1).minimumScaleFactor(0.8)
                     } else {
                         StatusChip(style: m.statusStyle).padding(.top, 4)

@@ -11,6 +11,8 @@ enum FoodDB {
         let state: String?
         let category: String
         let kcal: Double, protein: Double, fat: Double, carbs: Double
+        /// 膳食纖維（每 100 克）
+        var fiber: Double = 0
     }
 
     private struct Loaded { let map: [String: Entry]; let order: [Entry] }
@@ -36,7 +38,7 @@ enum FoodDB {
             let s = (o["s"] as? String).flatMap { $0.isEmpty ? nil : $0 }
             func d(_ k: String) -> Double { (o[k] as? NSNumber)?.doubleValue ?? 0 }
             let e = Entry(name: n, state: s, category: o["cat"] as? String ?? "",
-                          kcal: d("k"), protein: d("p"), fat: d("f"), carbs: d("c"))
+                          kcal: d("k"), protein: d("p"), fat: d("f"), carbs: d("c"), fiber: d("fib"))
             if map[n] == nil { order.append(e) } else if let i = order.firstIndex(where: { $0.name == n }) { order[i] = e }
             map[n] = e
         }
@@ -77,6 +79,8 @@ enum FoodLog {
         let kcal: Int, protein: Int, carbs: Int, fat: Int
         /// 照片裡的包裝營養標示算的（數字是 AI 照標示換算）
         var label = false
+        /// 膳食纖維（克，算在碳水裡面）
+        var fiber = 0
     }
 
     /// 解析 ITEM 行；對照的名稱在資料庫裡，而且跟 AI 自己估的差不多（0.4～2.5 倍），才用資料庫的數字。
@@ -104,7 +108,8 @@ enum FoodLog {
                 let ref = (kv["對照"] ?? kv["对照"])?.trimmingCharacters(in: .whitespaces)
                 if ref == "營養標示" || ref == "营养标示" {
                     return fitted(Item(name: name, portion: portion, grams: grams, db: nil, kcal: aiKcal,
-                                       protein: num("protein"), carbs: num("carbs"), fat: num("fat"), label: true))
+                                       protein: num("protein"), carbs: num("carbs"), fat: num("fat"), label: true,
+                                       fiber: num("fiber")))
                 }
                 if grams > 0, let db = FoodDB.find(ref) {
                     let dbKcal = Int((db.kcal * g).rounded())
@@ -112,19 +117,18 @@ enum FoodLog {
                     if aiKcal == 0 || (0.4...2.5).contains(ratio) {
                         return Item(name: name, portion: portion, grams: grams, db: db, kcal: dbKcal,
                                     protein: Int((db.protein * g).rounded()), carbs: Int((db.carbs * g).rounded()),
-                                    fat: Int((db.fat * g).rounded()))
+                                    fat: Int((db.fat * g).rounded()), fiber: Int((db.fiber * g).rounded()))
                     }
                 }
                 return fitted(Item(name: name, portion: portion, grams: grams, db: nil, kcal: aiKcal,
-                                   protein: num("protein"), carbs: num("carbs"), fat: num("fat")))
+                                   protein: num("protein"), carbs: num("carbs"), fat: num("fat"), fiber: num("fiber")))
             }
     }
 
     private static func fitted(_ i: Item) -> Item {
         let f = fit(grams: i.grams, kcal: i.kcal, p: i.protein, c: i.carbs, f: i.fat)
-        var o = Item(name: i.name, portion: i.portion, grams: i.grams, db: i.db, kcal: f.kcal, protein: f.p, carbs: f.c, fat: f.f)
-        o.label = i.label
-        return o
+        return Item(name: i.name, portion: i.portion, grams: i.grams, db: i.db, kcal: f.kcal, protein: f.p, carbs: f.c, fat: f.f,
+                    label: i.label, fiber: fiberWithin(i.fiber, carbs: i.carbs, fitted: f.c))
     }
 
     /// 蛋白質＋碳水＋脂肪的克數不能超過食物重量（照 Android `FoodLog.fit`；AI 常估太高，例如 31 克算出 40 克的營養素）：
@@ -136,6 +140,11 @@ enum FoodLog {
         let p2 = Int(Double(p) * k), c2 = Int(Double(c) * k), f2 = Int(Double(f) * k)
         let est = 4 * p2 + 4 * c2 + 9 * f2
         return (kcal == 0 || Double(kcal) > Double(est) * 1.15 ? est : kcal, p2, c2, f2)
+    }
+
+    /// 纖維算在碳水裡：碳水縮小時纖維跟著同比例縮，而且不超過碳水。
+    static func fiberWithin(_ fiber: Int, carbs: Int, fitted: Int) -> Int {
+        min(carbs > 0 && fitted < carbs ? fiber * fitted / carbs : fiber, fitted)
     }
 
     /// 表格「份量」欄裡的克數（「31g」「約 200 克」）；沒有 → 0。
@@ -169,9 +178,10 @@ enum FoodLog {
         func col(_ keys: String...) -> Int { h.firstIndex { c in keys.contains { c.lowercased().contains($0.lowercased()) } } ?? -1 }
         let iPortion = col("份量", "Portion", "분량"), iK = col("熱量", "kcal", "Calories", "열량")
         let iP = col("蛋白", "Protein", "단백질"), iC = col("碳水", "Carbs", "탄수"), iF = col("脂肪", "Fat", "지방")
+        let iFib = col("纖維", "Fiber", "식이섬유")
         guard iP >= 0, iC >= 0, iF >= 0 else { return (markdown, nil) }
         var changed = false
-        var kcal = 0, p = 0, c = 0, f = 0
+        var kcal = 0, p = 0, c = 0, f = 0, fib = 0
         var i = hi + 1
         while i < lines.count, lines[i].trimmingCharacters(in: .whitespaces).hasPrefix("|") {
             var r = cells(lines[i])
@@ -182,21 +192,23 @@ enum FoodLog {
                 let g0 = iPortion >= 0 && iPortion < r.count ? gramsIn(r[iPortion]) : 0
                 let g = g0 > 0 ? g0 : gramsIn(r.first ?? "")
                 let fx = fit(grams: g, kcal: n(iK), p: n(iP), c: n(iC), f: n(iF))
+                let fiber = fiberWithin(n(iFib), carbs: n(iC), fitted: fx.c)
                 if fx.p != n(iP) || fx.c != n(iC) || fx.f != n(iF) || fx.kcal != n(iK) {
                     if iK >= 0 && iK < r.count { r[iK] = "\(fx.kcal)" }
+                    if iFib >= 0 && iFib < r.count { r[iFib] = "\(fiber)" }
                     if iP < r.count { r[iP] = "\(fx.p)" }
                     if iC < r.count { r[iC] = "\(fx.c)" }
                     if iF < r.count { r[iF] = "\(fx.f)" }
                     lines[i] = "| " + r.joined(separator: " | ") + " |"
                     changed = true
                 }
-                kcal += fx.kcal; p += fx.p; c += fx.c; f += fx.f
+                kcal += fx.kcal; p += fx.p; c += fx.c; f += fx.f; fib += fiber
             }
             if total { lines[i] = "" }   // AI 寫的合計列：數字改過就不對了，拿掉
             i += 1
         }
         guard changed else { return (markdown, nil) }
-        let n = AppleAI.Nutrition(meal: meal, kcal: kcal, protein: p, carbs: c, fat: f)
+        let n = AppleAI.Nutrition(meal: meal, kcal: kcal, protein: p, carbs: c, fat: f, fiber: fib)
         // 「合計」一節的那一行換成新的數字
         if let ti = lines.firstIndex(where: { l in
             let t = l.trimmingCharacters(in: .whitespaces)
@@ -214,19 +226,20 @@ enum FoodLog {
 
     /// AI 自己寫的飲食表格：各欄加總，用來補 NUTRITION 行缺的數字（照 Android `fillFromTable`）。
     static func fillFromTable(_ n: AppleAI.Nutrition, _ markdown: String) -> AppleAI.Nutrition {
-        if n.kcal > 0 && n.protein > 0 && n.carbs > 0 && n.fat > 0 { return n }
+        if n.kcal > 0 && n.protein > 0 && n.carbs > 0 && n.fat > 0 && n.fiber > 0 { return n }
         let rows = markdown.components(separatedBy: "\n").map { $0.trimmingCharacters(in: .whitespaces) }.filter { $0.hasPrefix("|") }
         guard let header = rows.first(where: { $0.contains("熱量") || $0.lowercased().contains("kcal") }) else { return n }
         let h = cells(header)
         func col(_ keys: String...) -> Int { h.firstIndex { c in keys.contains { c.lowercased().contains($0.lowercased()) } } ?? -1 }
-        let iK = col("熱量", "kcal"), iP = col("蛋白"), iC = col("碳水"), iF = col("脂肪")
+        let iK = col("熱量", "kcal"), iP = col("蛋白"), iC = col("碳水"), iF = col("脂肪"), iFib = col("纖維", "Fiber")
         let body = rows.drop(while: { $0 != header }).dropFirst().map(cells)
             .filter { r in !r.contains { c in !c.isEmpty && c.allSatisfy { $0 == "-" || $0 == ":" } } }
             .filter { r in !(r.first.map { $0.contains("合計") || $0.contains("總計") } ?? false) }
         guard !body.isEmpty else { return n }
         func sum(_ i: Int) -> Int { i < 0 ? 0 : body.reduce(0) { $0 + firstNum(i < $1.count ? $1[i] : nil) } }
         return AppleAI.Nutrition(meal: n.meal, kcal: n.kcal > 0 ? n.kcal : sum(iK), protein: n.protein > 0 ? n.protein : sum(iP),
-                                 carbs: n.carbs > 0 ? n.carbs : sum(iC), fat: n.fat > 0 ? n.fat : sum(iF))
+                                 carbs: n.carbs > 0 ? n.carbs : sum(iC), fat: n.fat > 0 ? n.fat : sum(iF),
+                                 fiber: n.fiber > 0 ? n.fiber : sum(iFib))
     }
 
     /// 報告內文（不含「# 標題」）→ 有 ITEM 行時：App 產生「飲食內容」表格（多「來源」欄）與「合計」，
@@ -243,14 +256,15 @@ enum FoodLog {
         }
         let n = AppleAI.Nutrition(meal: ai.meal, kcal: items.reduce(0) { $0 + $1.kcal },
                                   protein: items.reduce(0) { $0 + $1.protein },
-                                  carbs: items.reduce(0) { $0 + $1.carbs }, fat: items.reduce(0) { $0 + $1.fat })
+                                  carbs: items.reduce(0) { $0 + $1.carbs }, fat: items.reduce(0) { $0 + $1.fat },
+                                  fiber: items.reduce(0) { $0 + $1.fiber })
         let fromDb = items.filter { $0.db != nil }.count
         let w = FoodWords.of(ReportLang.current)   // App 自己產生的文字跟著報告語言
-        var t = "## \(w.content)\n| \(w.header.joined(separator: " | ")) |\n|---|---|---|---|---|---|---|\n"
+        var t = "## \(w.content)\n| \(w.header.joined(separator: " | ")) |\n|---|---|---|---|---|---|---|---|\n"
         for i in items {
             let portion = [i.portion, i.grams > 0 ? w.grams(i.grams) : ""].filter { !$0.isEmpty }.joined(separator: " · ")
             let src = i.db.map { w.tfda + $0.name } ?? (i.label ? w.label : w.ai)
-            t += "| \(i.name) | \(portion) | \(i.kcal) | \(i.protein) | \(i.carbs) | \(i.fat) | \(src) |\n"
+            t += "| \(i.name) | \(portion) | \(i.kcal) | \(i.protein) | \(i.carbs) | \(i.fat) | \(i.fiber) | \(src) |\n"
         }
         let fromLabel = items.filter(\.label).count
         t += "\n## \(w.total)\n" + w.totalLine(n, items.count, fromDb, fromLabel) + "\n\n"

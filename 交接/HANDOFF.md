@@ -516,3 +516,12 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 - 開 App 時修舊記錄一次（`MeetingStore.repairNutrition`，`nutrition_repair_v2`；存檔時健康同步跟著更新）。
 - 主機 server.py 的 FOOD_SYSTEM 加同一條規則（要重新部署才生效）。
 - 驗證：照 NutritionParseTest 的 11 個情況用 swiftc 跑過全部通過；模擬器開一次 App，修正跑過、旗標設好，三筆飲食記錄不需要改。
+
+## iOS：膳食纖維（跟 Android c725a7b）
+
+- `AppleAI.Nutrition.fiber`（舊記錄沒有 → 0；自訂解碼，缺欄位不會整筆讀不到）、`FoodDB.Entry.fiber`（tfnd.json 的 fib）、`FoodLog.Item.fiber`；`fit` 之後纖維用 `fiberWithin` 跟碳水同比例縮、不超過碳水；`fixTable` / `fillFromTable` 讀寫纖維欄。
+- 提示詞：NUTRITION、ITEM 行加 `; fiber=<整數>`，資料庫版加「fiber 是膳食纖維（克），算在碳水裡面，不能超過碳水。」；舊版表格加纖維(g)、合計「碳水 Xg（纖維 Xg）」。`parseNutrition` 認 fiber / 纖維 / 膳食纖維。App 產生的表格多一欄（纖維(g) / Fiber (g) / 식이섬유(g)），合計三種語言照 Android。
+- 畫面：詳情頁第 4 格「纖維」（0 顯示 —）、飲食頁今日多「纖維」、清單與飲食清單卡 > 0 才顯示「纖維 Xg」。順便修：飲食清單卡找欄位的鍵被翻譯（`cell(r, "份量".tr)`），英文 / 韓文介面會找不到中文報告的欄位。
+- Apple 健康：另外要 dietaryFiber 權限；之前只給四種的人照常同步（只是沒寫纖維），有權限才寫。刪除也一起刪纖維。
+- 主機 FOOD_SYSTEM：NUTRITION 行、表格欄、合計行加纖維，加同一條規則（要重新部署）。
+- 驗證：swiftc 跑 16 個情況（含 Android 新增的纖維測試、舊記錄沒有 fiber 的解碼）全過；模擬器看過飲食頁纖維列、舊記錄詳情第 4 格「—」。
