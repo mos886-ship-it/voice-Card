@@ -18,6 +18,20 @@ class LangLevelTest {
         assertTrue(SpeechLang.geminiNote("nan").contains("不要用台羅拼音"))
     }
 
+    @Test fun otherLangs() {
+        assertEquals(SpeechLang.EN, SpeechLang.of("en"))
+        assertTrue(SpeechLang.EN.other && !SpeechLang.HAK.other)
+        assertEquals("ja-JP", SpeechLang.JA.locale)
+        val en = SpeechLang.geminiNote("en")
+        assertTrue(en.contains("英語原文") && en.contains("報告仍用繁體中文"))
+        assertTrue(SpeechLang.geminiNote("yue").contains("粵語字"))
+        // 手表同一套代号
+        val s = com.example.voiceai.shared.SpeechLangs
+        for (l in SpeechLang.entries) assertEquals(l.code, s.lang(l.code))
+        assertEquals("en", s.encode("en", "hailu"))
+        assertEquals("韓語", s.display("ko", null))
+    }
+
     @Test fun hakka() {
         assertEquals(SpeechLang.HAK, SpeechLang.of("hak"))
         assertEquals(HakkaDialect.SIXIAN, HakkaDialect.of(null))          // 预设四县
@@ -46,7 +60,7 @@ class LangLevelTest {
 
     /** 逐字稿语言标签（跟 iOS 一样）。 */
     @Test fun transcriptTag() {
-        assertEquals(listOf("國", "台", "客"), SpeechLang.entries.map { it.tag })
+        assertEquals(listOf("國", "台", "客", "英", "日", "韓", "粵", "越", "泰", "印"), SpeechLang.entries.map { it.tag })
         assertEquals("國語", SpeechLang.of(null).tagLabel(null))           // 旧资料 = 国
         assertEquals("台語", SpeechLang.NAN.tagLabel("hailu"))
         assertEquals("客語四縣腔", SpeechLang.HAK.tagLabel(null))

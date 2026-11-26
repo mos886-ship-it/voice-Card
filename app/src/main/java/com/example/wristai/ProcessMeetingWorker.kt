@@ -280,7 +280,7 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
                 meeting = MeetingStore.update(ctx, id) {
                     it.copy(status = MeetingStatus.TRANSCRIBING, chunkTotal = total, error = null)
                 }!!
-                val transcriber = SpeechTranscriber(ctx, Settings.language(ctx))
+                val transcriber = SpeechTranscriber(ctx, SpeechLang.of(meeting.lang).let { if (it.other) it.locale else Settings.language(ctx) })
                 val transcriptFile = MeetingStore.transcriptFile(ctx, id)
                 if (meeting.chunkDone == 0) transcriptFile.writeText("")
 
@@ -496,6 +496,7 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
             val res = withContext(Dispatchers.IO) {
                 val h = host.health(ctx)   // 5 秒：连不到就马上改用别的引擎，不要卡在上传
                 val lang = SpeechLang.of(meeting.lang).code
+                if (lang !in h.langs) throw com.example.wristai.ai.AiException("大D的主機還不能辨識${SpeechLang.of(lang).label}")
                 val dialect = if (SpeechLang.of(meeting.lang) == SpeechLang.HAK) HakkaDialect.of(meeting.dialect).code else null
                 val jobFile = hostJobFile(ctx, id)
                 if (!h.jobs && !jobFile.exists()) {

@@ -435,3 +435,14 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 - 背景畫（配色選台灣才出現「背景畫」）：島嶼電路（預設）/ 晶圓 / 夜城 / 無，存在 `taiwan_bg`（island / wafer / city / none）。圖在 `res/drawable-nodpi/taiwan_bg_*.webp`（各約 26–34 KB），原創、`tools/taiwan_bg.py` 產生，不用任何公司名稱或商標；島嶼電路是照實際海岸經緯度畫的點陣台灣、北回歸線、台北—新竹—台中—台南—高雄的連線。
 - iOS 要照做。
 - **iOS 已跟上**：`ThemeMode.taiwan`（取代 warm；存的 warm 讀成 taiwan）、`Palette.taiwan`（照上面色碼，isDark、accent 單色 #178C9C 給按鈕、cyan #2CC8D8 當重點字色、圓角 16、isNew 樣式）、`TaiwanBg`（`taiwan_bg`，預設 island）、`ios/Dylan/InkBG/taiwan_bg_*.webp`。深色 → `preferredColorScheme(.dark)`（home indicator 淺色），`statusOnDark` 對任何深色配色都成立（狀態列淺色圖示）。模擬器看過三張畫、狀態列白字，換回浮世繪後狀態列照舊。
+
+## 國語夾英文、更多辨識語言（2026-11-26）
+
+- **國語夾英文**：Gemini 共用規則（`GeminiReportGenerator.TYPE_RULES`）加一句：夾在中文裡的英文（術語、縮寫、人名、品牌、產品名）逐字稿和報告都照原文寫英文，不翻譯、不寫成同音字。國語提示文字改「夾雜英文也選這個」。
+- **其他語言**（`SpeechLang`）：英語 `en`、日語 `ja`、韓語 `ko`、粵語 `yue`、越南語 `vi`、泰語 `th`、印尼語 `id`；每個有一字標籤（英日韓粵越泰印）、手機內建辨識的 `locale`（en-US…）。`other` = 這七個。
+  - 選單：國語 / 台語 / 客語 / 其他 ▾（分段控制第 4 格，點了開選單，選了顯示語言名；`Segmented(reclickable=)`）。主頁、飲食、詳情頁共用 `LangPicker`。
+  - Gemini：`geminiNote` 要求逐字稿照原文（粵語寫粵語字），標題、摘要、報告用繁體中文。
+  - 大D的主機：health 多 `langs`（陣列）才送；舊主機沒有這欄 = 只有 zh/nan/hak，其他語言會寫「大D的主機還不能辨識英語。這次改用 Gemini。」
+  - 舊的手機內建辨識（Claude 路線）用該語言的 locale。三星錄音機（Galaxy AI）的語言在錄音機自己設。
+  - 手錶：`SpeechLangs.LANGS` 加同一組代號，手錶語言頁自動列出。
+- **待做**：主機端（Mac mini）英語等語言的辨識（例如 Whisper / SenseVoice）與國語夾英文的改善、Qwen 報告提示詞同樣規則；iOS 跟上。

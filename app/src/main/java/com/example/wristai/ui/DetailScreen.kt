@@ -368,7 +368,7 @@ fun DetailScreen(id: String, onBack: () -> Unit, onOpenSettings: () -> Unit) {
                     (when (l) {
                         com.example.wristai.SpeechLang.NAN -> "台語・國台語辨識比較慢（50 秒的錄音約 1 分鐘）。"
                         com.example.wristai.SpeechLang.HAK -> "客語辨識比較慢；大D的主機還沒裝客語模型時會改用 Gemini。"
-                        else -> ""
+                        else -> if (l.other) "逐字稿照${l.label}原文寫，報告用中文；大D的主機還不能辨識時會改用 Gemini。" else ""
                     }) +
                         "目前的報告和逐字稿會被新的取代。",
                     color = Brand.TextMuted,

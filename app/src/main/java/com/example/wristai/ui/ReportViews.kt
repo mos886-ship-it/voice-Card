@@ -333,6 +333,7 @@ fun langTagColor(l: com.example.wristai.SpeechLang): Color = when (l) {
     com.example.wristai.SpeechLang.ZH -> Brand.TextMuted
     com.example.wristai.SpeechLang.NAN -> Brand.Success
     com.example.wristai.SpeechLang.HAK -> Brand.Warning
+    else -> Brand.Cyan
 }
 
 /** 逐字稿每段前的小胶囊「國／台／客」：标的是使用者选的辨识语言，不是逐句判断（台语、客语模型没有语言标记）。 */

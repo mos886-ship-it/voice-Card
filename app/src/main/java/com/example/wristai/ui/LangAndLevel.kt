@@ -39,17 +39,38 @@ import com.example.wristai.ui.theme.Brand
 import kotlin.math.max
 import kotlin.math.min
 
-/** 辨识语言三选一：灰色轨道＋白色滑块（跟 iOS 分段控制一样）。主页 / 饮食、录音详情页都用。 */
+/**
+ * 辨识语言：国语 / 台语・国台语 / 客语 / 其他 ▾（灰色轨道＋白色滑块，跟 iOS 分段控制一样）。
+ * 「其他」点了打开选单（英语、日语、韩语、粤语、越南语、泰语、印尼语），选了之后那格显示语言名。主页 / 饮食、录音详情页都用。
+ */
 @Composable
 fun LangPicker(value: SpeechLang, modifier: Modifier = Modifier, enabled: Boolean = true, onPick: (SpeechLang) -> Unit) {
-    Segmented(SpeechLang.entries.map { it.label }, SpeechLang.entries.indexOf(value), modifier.semantics { contentDescription = "辨識語言" }, enabled) {
-        onPick(SpeechLang.entries[it])
+    val main = SpeechLang.entries.filter { !it.other }
+    val others = SpeechLang.entries.filter { it.other }
+    var open by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    Box(modifier) {
+        Segmented(
+            main.map { it.short } + ((if (value.other) value.label else "其他") + " ▾"),
+            if (value.other) main.size else main.indexOf(value),
+            Modifier.semantics { contentDescription = "辨識語言" }, enabled, reclickable = main.size,
+        ) { i -> if (i < main.size) onPick(main[i]) else open = true }
+        Box(Modifier.align(Alignment.TopEnd)) {
+            androidx.compose.material3.DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+                for (l in others) {
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text((if (l == value) "✓ " else "　") + l.label) },
+                        onClick = { open = false; if (l != value) onPick(l) },
+                    )
+                }
+            }
+        }
     }
 }
 
 /** 分段控制：灰色轨道、选中的那格是白色滑块＋淡阴影。语言、主题、介面模式都用。 */
 @Composable
-fun Segmented(labels: List<String>, selected: Int, modifier: Modifier = Modifier, enabled: Boolean = true, onPick: (Int) -> Unit) {
+fun Segmented(labels: List<String>, selected: Int, modifier: Modifier = Modifier, enabled: Boolean = true,
+              /** 这一格选中了还能再点（打开选单用） */ reclickable: Int = -1, onPick: (Int) -> Unit) {
     val track = RoundedCornerShape(10.dp)
     val thumb = RoundedCornerShape(8.dp)
     Row(modifier.fillMaxWidth().clip(track).background(Brand.SurfaceHigh).padding(3.dp)) {
@@ -59,7 +80,7 @@ fun Segmented(labels: List<String>, selected: Int, modifier: Modifier = Modifier
                 Modifier.weight(1f)
                     .then(if (on) Modifier.shadow(1.dp, thumb).background(Brand.Surface, thumb) else Modifier)
                     .clip(thumb)
-                    .clickable(enabled = enabled && !on) { onPick(i) }
+                    .clickable(enabled = enabled && (!on || i == reclickable)) { onPick(i) }
                     .padding(vertical = 8.dp),
                 contentAlignment = Alignment.Center,
             ) {

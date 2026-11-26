@@ -96,7 +96,10 @@ object LocalHost {
         val jobs: Boolean = false,
         /** 现在送的话前面有几笔、大约要等几秒。 */
         val ahead: Int = 0, val waitSec: Int = 0,
+        /** 主机能辨识的语言（health 的 langs；旧主机没有这栏 → 国语、台语、客语）。 */
+        val langs: Set<String> = BASE_LANGS,
     )
+    val BASE_LANGS = setOf("zh", "nan", "hak")
     data class Option(val id: String, val label: String)
     data class Models(
         val asrId: String?, val llmId: String?, val state: String?, val model: String?,
@@ -147,6 +150,7 @@ object LocalHost {
             error = j.optString("error").ifBlank { null }, busy = j.optBoolean("busy"),
             admin = j.optBoolean("admin", true), jobs = j.optBoolean("jobs"),
             ahead = j.optInt("ahead"), waitSec = j.optInt("wait_sec"),
+            langs = j.optJSONArray("langs")?.let { a -> (0 until a.length()).map { a.optString(it) }.toSet() }?.takeIf { it.isNotEmpty() } ?: BASE_LANGS,
         ).also { if (it.state != "loading") rememberTag(c, it.model) }
     }
 

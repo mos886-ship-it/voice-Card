@@ -121,7 +121,8 @@ data class Segment(val recordingId: String, val seq: Int, val samples: Long, val
  * 预设国语；客语才有腔调，预设四县。
  */
 object SpeechLangs {
-    val LANGS = listOf("zh" to "國語", "nan" to "國台語", "hak" to "客語")
+    val LANGS = listOf("zh" to "國語", "nan" to "國台語", "hak" to "客語",
+        "en" to "英語", "ja" to "日語", "ko" to "韓語", "yue" to "粵語", "vi" to "越南語", "th" to "泰語", "id" to "印尼語")
     val DIALECTS = listOf("sixian" to "四縣", "hailu" to "海陸", "dapu" to "大埔", "raoping" to "饒平", "zhaoan" to "詔安", "nansixian" to "南四縣")
 
     fun lang(code: String?): String = LANGS.firstOrNull { it.first == code }?.first ?: "zh"

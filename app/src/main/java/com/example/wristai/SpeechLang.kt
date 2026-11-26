@@ -12,13 +12,24 @@ import androidx.compose.runtime.setValue
  * - 客语 `hak`＋腔调 [HakkaDialect]：主机用数位部 Taiwan Tongues（腔调只放进报告提示词；主机没装客语模型时回错误 → 改用 Gemini）。
  * 台湾的国台语常在同一句里夹杂，所以不逐句切换，整笔录音一个语言。
  */
-enum class SpeechLang(val code: String, val label: String, val short: String, val hint: String) {
-    ZH("zh", "國語", "國語", "國語：最快"),
-    NAN("nan", "台語・國台語", "台語", "有台語就選這個（國台語夾雜也是），比較慢"),
-    HAK("hak", "客語", "客語", "客語：數位部 Taiwan Tongues 模型，比較慢");
+enum class SpeechLang(val code: String, val label: String, val short: String, val hint: String,
+                       /** 一个字的标签（逐字稿每段前、清单） */ val tag: String,
+                       /** 手机内建辨识（Android SpeechRecognizer）用的语言 */ val locale: String,
+                       /** 给 Gemini 的语言名称（其他语言才用） */ val spoken: String = label) {
+    ZH("zh", "國語", "國語", "國語（夾雜英文也選這個，英文照原文寫）", "國", "zh-TW"),
+    NAN("nan", "台語・國台語", "台語", "有台語就選這個（國台語夾雜也是），比較慢", "台", "zh-TW"),
+    HAK("hak", "客語", "客語", "客語：數位部 Taiwan Tongues 模型，比較慢", "客", "zh-TW"),
+    // ---------- 其他语言（「其他 ▾」选单）：Gemini 照原文写逐字稿、报告用繁体中文 ----------
+    EN("en", "英語", "英語", "整段英文用這個；中文夾英文選國語就好", "英", "en-US"),
+    JA("ja", "日語", "日語", "日語：逐字稿寫日文，報告用中文", "日", "ja-JP"),
+    KO("ko", "韓語", "韓語", "韓語：逐字稿寫韓文，報告用中文", "韓", "ko-KR"),
+    YUE("yue", "粵語", "粵語", "粵語（廣東話）：逐字稿寫繁體粵語字", "粵", "yue-Hant-HK", "粵語（廣東話）"),
+    VI("vi", "越南語", "越語", "越南語：逐字稿寫越南文，報告用中文", "越", "vi-VN"),
+    TH("th", "泰語", "泰語", "泰語：逐字稿寫泰文，報告用中文", "泰", "th-TH"),
+    ID("id", "印尼語", "印尼語", "印尼語：逐字稿寫印尼文，報告用中文", "印", "id-ID");
 
-    /** 逐字稿每段前的语言标签（一个字，跟 iOS `SpeechLang.tag` 一样）。 */
-    val tag: String get() = when (this) { ZH -> "國"; NAN -> "台"; HAK -> "客" }
+    /** 国语 / 台语 / 客语以外的「其他语言」 */
+    val other: Boolean get() = ordinal > HAK.ordinal
 
     /** 标签的无障碍朗读：「國語」「台語」「客語四縣腔」。 */
     fun tagLabel(dialect: String?): String = if (this == HAK) "客語" + HakkaDialect.of(dialect).label + "腔" else short
@@ -62,6 +73,12 @@ enum class SpeechLang(val code: String, val label: String, val short: String, va
             HAK -> "這段錄音是客語（${HakkaDialect.of(dialect).label}腔，可能和國語夾雜）。逐字稿請一律用台灣繁體中文的華語字寫出意思（客語的部分翻成通順的華語，" +
                 "國語照說的寫），不要用客語拼音，也不要寫成同音的錯字。"
             ZH -> ""
+            YUE -> "這段錄音主要是粵語（廣東話，可能夾雜國語或英文）。逐字稿照說的寫：粵語用繁體中文粵語字（例如「佢」「唔係」「咗」），" +
+                "國語照說的寫，英文寫英文，不要翻譯。標題、摘要和報告仍用繁體中文（台灣用語）。"
+            else -> of(code).let { l ->
+                "這段錄音主要是${l.spoken}（可能夾雜國語或其他語言）。逐字稿照原本的語言寫：${l.spoken}的部分用${l.spoken}原文，" +
+                    "國語寫繁體中文，不要翻譯。標題、摘要和報告仍用繁體中文（台灣用語），報告裡引用的原話、專有名詞可以保留原文。"
+            }
         }
     }
 }
