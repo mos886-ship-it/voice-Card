@@ -52,6 +52,7 @@ object FoodLog {
         - 若附有照片：依照片辨識食物與份量（參考碗盤、餐具、杯子、包裝的大小估克數）；照片與口述不一致時以口述為準；看不清楚或被擋住的寫進「假設與待確認」。
         - 照片裡看得到包裝的「營養標示」：照標示的熱量、營養素與份量（每份 / 每 100 克）換算吃下的量，「對照」填「營養標示」。
         - 每行也寫你自己估的熱量與營養素（App 對不到資料時用）。數字一律取整數；熱量單位大卡（kcal），營養素單位公克（g）。
+        - 每樣食物的蛋白質＋碳水＋脂肪（克）加起來不能超過它的重量；熱量約等於 蛋白質×4＋碳水×4＋脂肪×9。
         - 餐別依描述與錄音時間判斷：早餐、午餐、晚餐、點心、宵夜、飲料。
         - 若錄音內容不是在描述飲食，TITLE 寫「非飲食內容」，NUTRITION 全部填 0，不要寫 ITEM，並照實摘要內容。
         - 一律使用繁體中文（台灣用語）。這是估算，不要做醫療診斷。
@@ -88,7 +89,12 @@ object FoodLog {
         val ai = parseNutrition(raw)
         val items = parseItems(raw)
         // 没有 ITEM 行（大D的主機、旧格式）：用 AI 的 NUTRITION 行；那一行缺的数字用 AI 自己的表格加总补上
-        if (items.isEmpty() || ai == null) return Finished(ai?.let { fillFromTable(it, markdown) }, stripNutrition(markdown), aiSummary)
+        if (items.isEmpty() || ai == null) {
+            val clean = stripNutrition(markdown)
+            val (md, fixed) = fixTable(clean, ai?.meal.orEmpty())
+            if (fixed != null) return Finished(fixed, md, FoodWords.of(ReportLang.active).summary(fixed))
+            return Finished(ai?.let { fillFromTable(it, markdown) }, clean, aiSummary)
+        }
         val n = Nutrition(ai.meal, items.sumOf { it.kcal }, items.sumOf { it.protein }, items.sumOf { it.carbs }, items.sumOf { it.fat })
         val fromDb = items.count { it.db != null }
         val w = FoodWords.of(ReportLang.active)
@@ -125,14 +131,82 @@ object FoodLog {
             val aiKcal = num("kcal")
             val ref = kv["對照"] ?: kv["对照"]
             if (ref?.trim() == "營養標示" || ref?.trim() == "营养标示")
-                return@mapNotNull Item(name, kv["份量"].orEmpty(), grams, null, num("kcal"), num("protein"), num("carbs"), num("fat"), label = true)
+                return@mapNotNull fitted(Item(name, kv["份量"].orEmpty(), grams, null, num("kcal"), num("protein"), num("carbs"), num("fat"), label = true))
             val db = FoodDb.find(ref)?.takeIf { grams > 0 }
             val dbKcal = db?.let { Math.round(it.kcal * grams / 100).toInt() }
             val plausible = db != null && (aiKcal == 0 || dbKcal!!.toDouble() / aiKcal in 0.4..2.5)
             if (plausible) Item(name, kv["份量"].orEmpty(), grams, db, dbKcal!!,
                 Math.round(db!!.protein * grams / 100).toInt(), Math.round(db.carbs * grams / 100).toInt(), Math.round(db.fat * grams / 100).toInt())
-            else Item(name, kv["份量"].orEmpty(), grams, null, aiKcal, num("protein"), num("carbs"), num("fat"))
+            else fitted(Item(name, kv["份量"].orEmpty(), grams, null, aiKcal, num("protein"), num("carbs"), num("fat")))
         }.toList()
+
+    private fun fitted(it: Item): Item = fit(it.grams, it.kcal, it.protein, it.carbs, it.fat).let { f ->
+        it.copy(kcal = f[0], protein = f[1], carbs = f[2], fat = f[3])
+    }
+
+    /**
+     * 蛋白質＋碳水＋脂肪的克數不能超過食物重量（AI 常估太高，例如 31 克算出 40 克的營養素）：
+     * 超過就依比例縮到不超過重量；熱量照 4／4／9 重算（AI 估的熱量明顯比較高時）。回传 [kcal, protein, carbs, fat]。
+     */
+    fun fit(grams: Int, kcal: Int, p: Int, c: Int, f: Int): IntArray {
+        val sum = p + c + f
+        if (grams <= 0 || sum <= grams) return intArrayOf(kcal, p, c, f)
+        val k = grams.toDouble() / sum
+        val p2 = (p * k).toInt(); val c2 = (c * k).toInt(); val f2 = (f * k).toInt()
+        val est = 4 * p2 + 4 * c2 + 9 * f2
+        return intArrayOf(if (kcal == 0 || kcal > est * 1.15) est else kcal, p2, c2, f2)
+    }
+
+    /** 表格「份量」栏里的克数（「31g」「約 200 克」）；没有 → 0。 */
+    private fun gramsIn(s: String): Int =
+        Regex("(\\d+)\\s*(公克|克|g)(?![a-zA-Z])", RegexOption.IGNORE_CASE).find(s)?.groupValues?.get(1)?.toIntOrNull() ?: 0
+
+    /**
+     * 修正表格（AI 自己写的、或 App 产生的都可以）：每一列份量有克数、营养素加起来又超过克数 → 依比例缩小。
+     * 回传（修正后的 Markdown, 修正后的合计；没有改 → null）。
+     */
+    internal fun fixTable(markdown: String, meal: String): Pair<String, Nutrition?> {
+        val lines = markdown.lines().toMutableList()
+        val hi = lines.indexOfFirst { l -> l.trim().startsWith("|") && (l.contains("熱量") || l.contains("kcal", true)) }
+        if (hi < 0) return markdown to null
+        fun cells(r: String) = r.trim().trim('|').split("|").map { it.trim() }
+        val h = cells(lines[hi])
+        fun col(vararg keys: String) = h.indexOfFirst { c -> keys.any { c.contains(it, true) } }
+        val iPortion = col("份量", "Portion", "분량"); val iK = col("熱量", "kcal", "Calories", "열량")
+        val iP = col("蛋白", "Protein", "단백질"); val iC = col("碳水", "Carbs", "탄수"); val iF = col("脂肪", "Fat", "지방")
+        if (iP < 0 || iC < 0 || iF < 0) return markdown to null
+        var changed = false
+        var kcal = 0; var p = 0; var c = 0; var f = 0
+        var i = hi + 1
+        while (i < lines.size && lines[i].trim().startsWith("|")) {
+            val r = cells(lines[i]).toMutableList()
+            val sep = r.all { x -> x.isEmpty() || x.all { it == '-' || it == ':' } }
+            val total = r.firstOrNull()?.let { it.contains("合計") || it.contains("總計") || it.equals("Total", true) || it.contains("합계") } == true
+            if (!sep && !total) {
+                fun n(j: Int) = if (j < 0) 0 else Regex("\\d+").find(r.getOrNull(j).orEmpty())?.value?.toIntOrNull() ?: 0
+                val g = gramsIn(r.getOrNull(iPortion).orEmpty()).takeIf { it > 0 } ?: gramsIn(r.getOrNull(0).orEmpty())
+                val fx = fit(g, n(iK), n(iP), n(iC), n(iF))
+                if (fx[1] != n(iP) || fx[2] != n(iC) || fx[3] != n(iF) || fx[0] != n(iK)) {
+                    if (iK >= 0 && iK < r.size) r[iK] = "${fx[0]}"
+                    r[iP] = "${fx[1]}"; r[iC] = "${fx[2]}"; r[iF] = "${fx[3]}"
+                    lines[i] = "| " + r.joinToString(" | ") + " |"
+                    changed = true
+                }
+                kcal += fx[0]; p += fx[1]; c += fx[2]; f += fx[3]
+            }
+            if (total) lines[i] = ""   // AI 写的合计列：数字改过就不对了，拿掉
+            i++
+        }
+        if (!changed) return markdown to null
+        val n = Nutrition(meal, kcal, p, c, f)
+        // 「合計」一节的那一行换成新的数字
+        val ti = lines.indexOfFirst { l -> l.trim().startsWith("#") && l.trim().trimStart('#').trim().let { it == "合計" || it.equals("Total", true) || it == "합계" } }
+        if (ti >= 0) {
+            val li = (ti + 1 until lines.size).firstOrNull { lines[it].isNotBlank() }
+            if (li != null && !lines[li].trim().startsWith("#")) lines[li] = FoodWords.of(ReportLang.active).totalLine(n, 0, 0, 0)
+        }
+        return lines.filterIndexed { idx, l -> !(l.isEmpty() && idx > hi && idx < i) }.joinToString("\n") to n
+    }
 
     private val LEGACY_PROMPT = """
         你是營養記錄助理。使用者會用口語描述剛吃（或喝）了什麼，請整理成飲食記錄，並估算熱量與三大營養素。
@@ -140,6 +214,7 @@ object FoodLog {
         - 使用者明確說出的份量、杯型、甜度、冰塊、加料一定照用，不可以改成別的（例如說「大杯半糖」就是大杯、半糖），只有沒說的部分才用預設。
         - 沒說清楚的地方（份量、甜度、加料、烹調方式）用常見預設，並在「假設與待確認」寫出來。
         - 數字一律取整數；熱量單位大卡（kcal），營養素單位公克（g）。
+        - 每樣食物的蛋白質＋碳水＋脂肪（克）加起來不能超過它的重量；熱量約等於 蛋白質×4＋碳水×4＋脂肪×9。
         - 餐別依描述與錄音時間判斷：早餐、午餐、晚餐、點心、宵夜、飲料。
         - 若錄音內容不是在描述飲食，TITLE 寫「非飲食內容」，NUTRITION 全部填 0，並照實摘要內容。
         - 一律使用繁體中文（台灣用語）。這是估算，不要做醫療診斷。
@@ -188,16 +263,19 @@ object FoodLog {
      */
     fun repairStored(context: android.content.Context) {
         val prefs = context.getSharedPreferences("wristai_settings", android.content.Context.MODE_PRIVATE)
-        if (prefs.getBoolean("nutrition_repair_v1", false)) return
+        if (prefs.getBoolean("nutrition_repair_v2", false)) return
         MeetingStore.reload(context)
         for (m in MeetingStore.meetings.value) {
             val n = m.nutrition ?: continue
-            if (!isFood(m.id) || m.status != MeetingStatus.DONE || (n.protein > 0 && n.carbs > 0 && n.fat > 0)) continue
+            if (!isFood(m.id) || m.status != MeetingStatus.DONE) continue
             val md = MeetingStore.reportFile(context, m.id).takeIf { it.exists() }?.readText() ?: continue
-            val fixed = fillFromTable(n, md)
+            // 营养素超过重量的列依比例缩小（表格与合计都改）；再补缺的数字
+            val (md2, byTable) = fixTable(md, n.meal)
+            if (byTable != null) MeetingStore.reportFile(context, m.id).writeText(md2)
+            val fixed = byTable ?: fillFromTable(n, md)
             if (fixed != n) MeetingStore.update(context, m.id) { it.copy(nutrition = fixed) }
         }
-        prefs.edit().putBoolean("nutrition_repair_v1", true).apply()
+        prefs.edit().putBoolean("nutrition_repair_v2", true).apply()
     }
 
     /** AI 自己写的「飲食內容」表格：各栏加总（热量、蛋白质、碳水、脂肪），用来补 NUTRITION 行缺的数字。 */
