@@ -330,7 +330,7 @@ class GeminiReportGenerator(
             .put("data", android.util.Base64.encodeToString(img.readBytes(), android.util.Base64.NO_WRAP))))
         parts.put(JSONObject().put("text", prompt))
         val body = JSONObject()
-            .put("systemInstruction", JSONObject().put("parts", JSONArray().put(JSONObject().put("text", system))))
+            .put("systemInstruction", JSONObject().put("parts", JSONArray().put(JSONObject().put("text", ReportLang.localize(system)))))
             .put("contents", JSONArray().put(JSONObject().put("role", "user").put("parts", parts)))
             .put("generationConfig", JSONObject().put("temperature", 0.2))
 

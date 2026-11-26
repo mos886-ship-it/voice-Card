@@ -111,7 +111,7 @@ object Pipeline {
             val sec = s.optLong("s") / 1000
             val stamp = if (sec >= 3600) "%d:%02d:%02d".format(sec / 3600, sec / 60 % 60, sec % 60) else "%02d:%02d".format(sec / 60, sec % 60)
             val p = if (s.isNull("p")) null else s.optString("p").ifBlank { null }
-            val who = p?.let { letters.getOrPut(it) { "說話者" + ('A' + letters.size) } }
+            val who = p?.let { letters.getOrPut(it) { com.example.wristai.ReportLang.active.code('A' + letters.size) } }
             sb.append("[").append(stamp).append("] ")
             if (who != null) sb.append(who).append("：")
             sb.append(s.optString("t")).append('\n')
@@ -132,7 +132,7 @@ object Pipeline {
     fun report(llm: Llm, transcript: String, durationSec: Double, recordedAt: String, system: String): String {
         val head = "錄音時間：$recordedAt，長度約 ${"%.1f".format(durationSec / 60)} 分鐘。"
         if (transcript.length <= llm.maxChars) {
-            return llm.complete(system, "$head\n以下是語音辨識產生的逐字稿：\n<transcript>\n$transcript\n</transcript>")
+            return llm.complete(com.example.wristai.ReportLang.localize(system), "$head\n以下是語音辨識產生的逐字稿：\n<transcript>\n$transcript\n</transcript>")
         }
         val limit = (llm.maxChars * 0.9).toInt()
         val parts = mutableListOf<String>()
@@ -143,9 +143,9 @@ object Pipeline {
         }
         if (cur.isNotEmpty()) parts += cur.toString()
         val notes = parts.mapIndexed { i, part ->
-            "## 第 ${i + 1} 部分\n" + llm.complete(NOTES_PROMPT, "$head 這是第 ${i + 1}/${parts.size} 部分：\n<transcript>\n$part\n</transcript>")
+            "## 第 ${i + 1} 部分\n" + llm.complete(com.example.wristai.ReportLang.localize(NOTES_PROMPT), "$head 這是第 ${i + 1}/${parts.size} 部分：\n<transcript>\n$part\n</transcript>")
         }
-        return llm.complete(system,
+        return llm.complete(com.example.wristai.ReportLang.localize(system),
             "$head\n逐字稿太長，已先分成 ${parts.size} 部分整理重點筆記如下，請依這些筆記寫出完整報告：\n<notes>\n${notes.joinToString("\n\n")}\n</notes>")
     }
 }

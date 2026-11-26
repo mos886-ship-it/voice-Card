@@ -45,7 +45,7 @@ class ReportGenerator(private val apiKey: String) {
             val params = MessageCreateParams.builder()
                 .model(MODEL)
                 .maxTokens(16000L)
-                .system(SYSTEM_PROMPT)
+                .system(ReportLang.localize(SYSTEM_PROMPT))
                 .addUserMessage(
                     "錄音時間：$recordedAt，長度約 $minutes 分鐘。\n\n<transcript>\n$transcript\n</transcript>"
                 )

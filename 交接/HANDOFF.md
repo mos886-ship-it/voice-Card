@@ -446,3 +446,13 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
   - 舊的手機內建辨識（Claude 路線）用該語言的 locale。三星錄音機（Galaxy AI）的語言在錄音機自己設。
   - 手錶：`SpeechLangs.LANGS` 加同一組代號，手錶語言頁自動列出。
 - **待做**：主機端（Mac mini）英語等語言的辨識（例如 Whisper / SenseVoice）與國語夾英文的改善、Qwen 報告提示詞同樣規則；iOS 跟上。
+
+## 報告語言、介面語言設定（2026-11-26）
+
+- **報告語言**（`ReportLang.kt`，設定 `report_lang`：auto / zh / en / ko；auto = 跟介面語言：中文 → 繁中、韓文 → 한국어、其他 → English）。`ProcessMeetingWorker.doWork` 開頭設 `ReportLang.active`。
+  - 提示詞只有中文一份：`ReportLang.localize` 換章節標題（## Summary / ## 요약…）、表頭、說話者代號（Speaker A / 화자 A）、「未知」「無」等固定字，最後加一條「報告語言」規則（覆蓋前面的繁中要求；逐字稿照原文；NUTRITION/ITEM 行維持中文欄位與餐別）。Gemini（`generateContent` 的 systemInstruction）、組合式（`Pipeline`）、Claude（`ReportGenerator`）都套用。
+  - 解析三種語言都認得：`Speakers.namesFromReport`、`ReportViews`（說話者表格、摘要「無」、飲食表格欄位）、`LongMeeting` 名單。
+  - 飲食報告 App 自己產生的「飲食內容 / 合計 / 來源 / 摘要」跟著報告語言（`FoodWords`）；NUTRITION 的餐別一律中文（健康同步、問候語靠它）。
+  - 大D的主機：送 `X-Report-Lang`（主機還沒實作，照舊中文）。
+  - 測試：`ReportLangTest`。
+- **介面語言**（`AppLocale.kt`）：跟系統 / 繁體中文 / English / 한국어。13+ 用系統的個別 App 語言（`LocaleManager`，`res/xml/locales_config.xml`），12 以下存設定、`MainActivity.attachBaseContext` 套用。設定頁「介面」卡最上面兩個選擇。字串抽到 `strings.xml` 的工作接著做。

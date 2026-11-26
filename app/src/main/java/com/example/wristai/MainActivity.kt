@@ -54,6 +54,9 @@ class MainActivity : ComponentActivity() {
             private set
     }
 
+    /** Android 12 以下的个别 App 语言（13+ 系统处理）。 */
+    override fun attachBaseContext(newBase: Context) { super.attachBaseContext(AppLocale.wrap(newBase)) }
+
     override fun onStart() { super.onStart(); isVisible = true }
     override fun onStop() { isVisible = false; super.onStop() }
 

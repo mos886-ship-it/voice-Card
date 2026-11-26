@@ -7,7 +7,7 @@ package com.example.wristai
  * - 名字存进 meta.json（Meeting.speakerNames），使用者可以在逐字稿页面手动改名。
  */
 object Speakers {
-    private val UNKNOWN = setOf("", "未知", "無", "不明", "未指定", "未提及", "-", "—", "N/A")
+    private val UNKNOWN = ReportLang.UNKNOWN
 
     /** 从报告「說話者」（旧版「與會者」）表格取出 代号 → 名字（名字栏是未知的略过）。 */
     fun namesFromReport(markdown: String): Map<String, String> {
@@ -15,7 +15,7 @@ object Speakers {
         // 新版报告的章节叫「說話者」，旧版叫「與會者」
         val start = lines.indexOfFirst { l ->
             val t = l.trim()
-            t.startsWith("#") && (t.contains("與會者") || t.trimStart('#').trim() == "說話者")
+            t.startsWith("#") && ReportLang.isSpeakerHeading(t)
         }
         if (start < 0) return emptyMap()
         val out = linkedMapOf<String, String>()
@@ -28,11 +28,11 @@ object Speakers {
             if (cells.all { c -> c.isNotEmpty() && c.all { it == '-' || it == ':' } }) continue
             val h = header
             if (h == null) { header = cells; continue }
-            val nameIdx = h.indexOfFirst { it.contains("名字") || it.contains("姓名") || it.contains("稱呼") }
+            val nameIdx = h.indexOfFirst { ReportLang.isNameColumn(it) }
                 .takeIf { it > 0 } ?: 1
             val label = cells.getOrNull(0).orEmpty()
             val name = cells.getOrNull(nameIdx).orEmpty()
-            if (label.isNotEmpty() && name !in UNKNOWN && !name.startsWith("未知")) out[label] = name
+            if (label.isNotEmpty() && name !in UNKNOWN && !name.startsWith("未知") && !name.startsWith("Unknown", true)) out[label] = name
         }
         return out
     }

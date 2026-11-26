@@ -90,28 +90,23 @@ object FoodLog {
         if (items.isEmpty() || ai == null) return Finished(ai, stripNutrition(markdown), aiSummary)
         val n = Nutrition(ai.meal, items.sumOf { it.kcal }, items.sumOf { it.protein }, items.sumOf { it.carbs }, items.sumOf { it.fat })
         val fromDb = items.count { it.db != null }
+        val w = FoodWords.of(ReportLang.active)
         val table = buildString {
-            appendLine("## 飲食內容")
-            appendLine("| 食物 | 份量 | 熱量(kcal) | 蛋白質(g) | 碳水(g) | 脂肪(g) | 來源 |")
+            appendLine("## ${w.content}")
+            appendLine("| ${w.header.joinToString(" | ")} |")
             appendLine("|---|---|---|---|---|---|---|")
             for (it in items) {
-                val portion = listOf(it.portion, if (it.grams > 0) "約 ${it.grams}g" else "").filter { s -> s.isNotBlank() }.joinToString(" · ")
-                val src = it.db?.let { d -> "食藥署：${d.name}" } ?: if (it.label) "營養標示" else "AI 估算"
+                val portion = listOf(it.portion, if (it.grams > 0) w.grams(it.grams) else "").filter { s -> s.isNotBlank() }.joinToString(" · ")
+                val src = it.db?.let { d -> w.tfda + d.name } ?: if (it.label) w.label else w.ai
                 appendLine("| ${it.name} | $portion | ${it.kcal} | ${it.protein} | ${it.carbs} | ${it.fat} | $src |")
             }
             appendLine()
-            appendLine("## 合計")
+            appendLine("## ${w.total}")
             val fromLabel = items.count { it.label }
-            val sources = listOfNotNull(
-                if (fromDb > 0) "$fromDb 樣依食藥署「食品營養成分資料集」計算" else null,
-                if (fromLabel > 0) "$fromLabel 樣依包裝營養標示" else null,
-            )
-            appendLine("約 ${n.kcal} 大卡；蛋白質 ${n.protein}g、碳水 ${n.carbs}g、脂肪 ${n.fat}g" +
-                if (sources.isNotEmpty()) "（${items.size} 樣中 ${sources.joinToString("、")}）" else "（皆為 AI 估算）")
+            appendLine(w.totalLine(n, items.size, fromDb, fromLabel))
             appendLine()
         }
-        val meal = n.meal.ifBlank { "這餐" }
-        return Finished(n, table + stripNutrition(markdown).trim(), "${meal}約 ${n.kcal} 大卡，蛋白質 ${n.protein}g")
+        return Finished(n, table + stripNutrition(markdown).trim(), w.summary(n))
     }
 
     /** 解析 ITEM 行；对照的名称在资料库里，而且跟 AI 自己估的差不多（0.4～2.5 倍），才用资料库的数字。 */
@@ -186,4 +181,68 @@ object FoodLog {
     fun stripNutrition(markdown: String): String =
         markdown.lines().filterNot { it.trim().startsWith(NUTRITION_PREFIX, true) || it.trim().startsWith(ITEM_PREFIX, true) }
             .joinToString("\n")
+}
+
+/** 饮食报告里 App 自己产生的文字（跟着报告语言）。NUTRITION 的餐别一律中文（健康同步、问候语靠它判断）。 */
+internal class FoodWords(
+    val content: String, val header: List<String>, val total: String,
+    val tfda: String, val label: String, val ai: String,
+    val grams: (Int) -> String,
+    val totalLine: (Nutrition, Int, Int, Int) -> String,
+    val summary: (Nutrition) -> String,
+) {
+    companion object {
+        private val MEALS = mapOf(
+            "早餐" to ("Breakfast" to "아침"), "午餐" to ("Lunch" to "점심"), "晚餐" to ("Dinner" to "저녁"),
+            "點心" to ("Snack" to "간식"), "宵夜" to ("Late-night snack" to "야식"), "飲料" to ("Drink" to "음료"),
+        )
+
+        fun meal(m: String, l: ReportLang): String = when (l) {
+            ReportLang.ZH -> m.ifBlank { "這餐" }
+            ReportLang.EN -> MEALS[m]?.first ?: "This meal"
+            ReportLang.KO -> MEALS[m]?.second ?: "이번 식사"
+        }
+
+        fun of(l: ReportLang): FoodWords = when (l) {
+            ReportLang.ZH -> FoodWords(
+                "飲食內容", listOf("食物", "份量", "熱量(kcal)", "蛋白質(g)", "碳水(g)", "脂肪(g)", "來源"), "合計",
+                "食藥署：", "營養標示", "AI 估算", { "約 ${it}g" },
+                { n, size, db, lab ->
+                    val sources = listOfNotNull(
+                        if (db > 0) "$db 樣依食藥署「食品營養成分資料集」計算" else null,
+                        if (lab > 0) "$lab 樣依包裝營養標示" else null,
+                    )
+                    "約 ${n.kcal} 大卡；蛋白質 ${n.protein}g、碳水 ${n.carbs}g、脂肪 ${n.fat}g" +
+                        if (sources.isNotEmpty()) "（$size 樣中 ${sources.joinToString("、")}）" else "（皆為 AI 估算）"
+                },
+                { n -> "${meal(n.meal, l)}約 ${n.kcal} 大卡，蛋白質 ${n.protein}g" },
+            )
+            ReportLang.EN -> FoodWords(
+                "What you ate", listOf("Food", "Portion", "Calories (kcal)", "Protein (g)", "Carbs (g)", "Fat (g)", "Source"), "Total",
+                "Taiwan FDA: ", "Nutrition label", "AI estimate", { "about ${it}g" },
+                { n, size, db, lab ->
+                    val sources = listOfNotNull(
+                        if (db > 0) "$db from the Taiwan FDA food composition database" else null,
+                        if (lab > 0) "$lab from the package nutrition label" else null,
+                    )
+                    "About ${n.kcal} kcal; protein ${n.protein}g, carbs ${n.carbs}g, fat ${n.fat}g" +
+                        if (sources.isNotEmpty()) " (of $size items: ${sources.joinToString(", ")})" else " (all AI estimates)"
+                },
+                { n -> "${meal(n.meal, l)}: about ${n.kcal} kcal, protein ${n.protein}g" },
+            )
+            ReportLang.KO -> FoodWords(
+                "먹은 음식", listOf("음식", "분량", "열량(kcal)", "단백질(g)", "탄수화물(g)", "지방(g)", "출처"), "합계",
+                "대만 식약청: ", "영양성분표", "AI 추정", { "약 ${it}g" },
+                { n, size, db, lab ->
+                    val sources = listOfNotNull(
+                        if (db > 0) "${db}개는 대만 식약청 식품영양성분 데이터 기준" else null,
+                        if (lab > 0) "${lab}개는 포장 영양성분표 기준" else null,
+                    )
+                    "약 ${n.kcal}kcal; 단백질 ${n.protein}g, 탄수화물 ${n.carbs}g, 지방 ${n.fat}g" +
+                        if (sources.isNotEmpty()) " (${size}개 중 ${sources.joinToString(", ")})" else " (모두 AI 추정)"
+                },
+                { n -> "${meal(n.meal, l)} 약 ${n.kcal}kcal, 단백질 ${n.protein}g" },
+            )
+        }
+    }
 }

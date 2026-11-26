@@ -130,6 +130,29 @@ fun SettingsScreen(onBack: (() -> Unit)? = null) {
             // ---------- 介面：一张卡放三个各自独立的选择——排布（版面）、資訊量（商用 / 科技）、配色 ----------
             SectionLabel("介面")
             GlassCard {
+                // 语言：介面（个别 App 语言）与报告（AI 写报告用的语言）分开选
+                Text("介面語言", style = MaterialTheme.typography.titleSmall, color = Brand.Text)
+                Spacer(Modifier.height(8.dp))
+                val uiLang = remember { com.example.wristai.AppLocale.setting(context) }
+                val uiOpts = com.example.wristai.AppLocale.OPTIONS
+                Segmented(uiOpts.map { it.second ?: "跟系統" }, uiOpts.indexOfFirst { it.first == uiLang }.coerceAtLeast(0)) { i ->
+                    (context as? android.app.Activity)?.let { com.example.wristai.AppLocale.set(it, uiOpts[i].first) }
+                }
+                InterfaceDivider()
+                Text("報告語言", style = MaterialTheme.typography.titleSmall, color = Brand.Text)
+                Spacer(Modifier.height(8.dp))
+                var reportLang by remember { mutableStateOf(com.example.wristai.ReportLang.setting(context)) }
+                val rOpts = listOf(com.example.wristai.ReportLang.AUTO to "跟介面") + com.example.wristai.ReportLang.entries.map { it.code to it.label }
+                Segmented(rOpts.map { it.second }, rOpts.indexOfFirst { it.first == reportLang }.coerceAtLeast(0)) { i ->
+                    reportLang = rOpts[i].first
+                    com.example.wristai.ReportLang.set(context, reportLang)
+                }
+                Spacer(Modifier.height(6.dp))
+                Text("AI 的標題、摘要與報告用這個語言寫；逐字稿照錄音原本的語言。現在：" +
+                    com.example.wristai.ReportLang.current(context).label + "。已經做好的報告可以在詳情頁「重新產生」。",
+                    style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
+
+                InterfaceDivider()
                 // 排布：快錄 / 總覽（分页与主页的样子；之后会再加）
                 Text("排布", style = MaterialTheme.typography.titleSmall, color = Brand.Text)
                 Spacer(Modifier.height(8.dp))

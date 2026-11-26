@@ -360,6 +360,8 @@ object LocalHost {
             setRequestProperty("X-Kind", kind)
             setRequestProperty("X-Recorded-At", recordedAt.filter { it.code in 32..126 })
             setRequestProperty("X-Duration", durationSec.toInt().toString())
+            // 报告语言（zh / en / ko）：新主机照这个写报告，旧主机不认得就照旧中文
+            setRequestProperty("X-Report-Lang", com.example.wristai.ReportLang.active.code)
             if (bytes != null) {
                 setRequestProperty("X-Input", "text")
                 setRequestProperty("Content-Type", "text/plain; charset=utf-8")

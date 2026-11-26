@@ -35,9 +35,11 @@ object LongMeeting {
         val nIdx = head.indexOf(GeminiReportGenerator.NOTES_MARKER)
         val speakersPart = (if (nIdx >= 0) head.substring(0, nIdx) else head).substringAfter(GeminiReportGenerator.SPEAKERS_MARKER)
         val notes = if (nIdx >= 0) head.substring(nIdx + GeminiReportGenerator.NOTES_MARKER.length).trim() else ""
-        val speakers = speakersPart.lines().map { it.trim().trimStart('-', '*', ' ') }.filter { it.contains("|") && it.startsWith("說話者") }
+        val speakers = speakersPart.lines().map { it.trim().trimStart('-', '*', ' ') }.filter { it.contains("|") && ReportLang.isSpeakerCode(it) }
         return Chunk(speakers, notes, transcript)
     }
+
+    private fun unknownName(s: String) = s.startsWith("未知") || s.startsWith("Unknown", true) || s.startsWith("미상") || s.startsWith("알 수 없음")
 
     /** 合并各段的说话者行：同一代号以后段为准，但名字已知的不会被「未知」盖掉。 */
     fun mergeRoster(chunks: List<Chunk>): String {
@@ -47,7 +49,7 @@ object LongMeeting {
             val label = cells.firstOrNull().orEmpty()
             if (label.isBlank()) continue
             val old = byLabel[label]
-            byLabel[label] = if (old != null && cells.getOrNull(1).orEmpty().startsWith("未知") && !old.getOrNull(1).orEmpty().startsWith("未知"))
+            byLabel[label] = if (old != null && unknownName(cells.getOrNull(1).orEmpty()) && !unknownName(old.getOrNull(1).orEmpty()))
                 cells.toMutableList().also { it[1] = old[1] } else cells
         }
         return byLabel.values.joinToString("\n") { it.joinToString(" | ") }

@@ -92,7 +92,7 @@ fun richText(text: String): AnnotatedString = buildAnnotatedString {
 }
 
 /** AI 写的「不知道」：卡片上不显示这一栏。 */
-private val EMPTY_VALUES = setOf("", "未知", "無", "无", "不明", "未指定", "未提及", "-", "—", "N/A")
+private val EMPTY_VALUES = com.example.wristai.ReportLang.UNKNOWN + setOf("无", "Unassigned", "미지정")
 
 /**
  * [names] = 使用者 / AI 定好的 代号 → 名字（报告已经套用过）；[onRenameSpeaker] 有给的话，
@@ -119,7 +119,7 @@ fun ReportView(
                     }
                 }
                 is ReportBlock.Paragraph ->
-                    if (section == "摘要" && b.text.trim() in setOf("無", "无"))
+                    if (com.example.wristai.ReportLang.isSummaryHeading(section) && com.example.wristai.ReportLang.isNone(b.text))
                         Text("這份報告沒有摘要，按上方「重新產生」可以補上。", style = MaterialTheme.typography.bodySmall, color = Brand.TextFaint)
                     else Text(richText(b.text), style = MaterialTheme.typography.bodyMedium, color = Brand.TextMuted)
                 is ReportBlock.Bullet -> Row(Modifier.padding(start = 4.dp)) {
@@ -141,11 +141,11 @@ fun ReportView(
 @Composable
 private fun ReportTable(t: ReportBlock.Table, names: Map<String, String>, onRenameSpeaker: ((String) -> Unit)?) {
     // 饮食内容表格（有「熱量」栏）：用紧凑的清单，不用一栏一栏排
-    if (t.header.any { it.contains("熱量") }) { FoodTable(t); return }
+    if (t.header.any { it.contains("熱量") || it.contains("kcal", true) }) { FoodTable(t); return }
     // 「說話者」表格：第一栏是代号（或已套用的名字）
-    val speakerTable = t.header.firstOrNull()?.contains("說話者") == true
-    val nameCol = t.header.indexOfFirst { it.contains("名字") || it.contains("姓名") || it.contains("稱呼") }
-    val rows = t.rows.filter { r -> r.any { c -> c.trim() !in EMPTY_VALUES && !c.trim().startsWith("未知") } }
+    val speakerTable = t.header.firstOrNull()?.let { com.example.wristai.ReportLang.isSpeakerColumn(it) } == true
+    val nameCol = t.header.indexOfFirst { com.example.wristai.ReportLang.isNameColumn(it) }
+    val rows = t.rows.filter { r -> r.any { c -> c.trim() !in EMPTY_VALUES && !c.trim().startsWith("未知") && !c.trim().startsWith("Unknown", true) } }
     if (rows.isEmpty()) {
         Text("無", style = MaterialTheme.typography.bodyMedium, color = Brand.TextFaint)
         return
@@ -200,13 +200,13 @@ private fun ReportTable(t: ReportBlock.Table, names: Map<String, String>, onRena
 @Composable
 private fun FoodTable(t: ReportBlock.Table) {
     fun col(vararg keys: String) = t.header.indexOfFirst { h -> keys.any { h.contains(it) } }
-    val iName = col("食物", "品項", "名稱").takeIf { it >= 0 } ?: 0
-    val iPortion = col("份量")
-    val iKcal = col("熱量")
-    val iP = col("蛋白")
-    val iC = col("碳水")
-    val iF = col("脂肪")
-    val iSrc = col("來源")
+    val iName = col("食物", "品項", "名稱", "Food", "음식").takeIf { it >= 0 } ?: 0
+    val iPortion = col("份量", "Portion", "분량")
+    val iKcal = col("熱量", "Calories", "열량")
+    val iP = col("蛋白", "Protein", "단백질")
+    val iC = col("碳水", "Carbs", "탄수")
+    val iF = col("脂肪", "Fat", "지방")
+    val iSrc = col("來源", "Source", "출처")
     val rows = t.rows.filter { r -> r.getOrNull(iName).orEmpty().isNotBlank() }
     fun cell(r: List<String>, i: Int) = if (i < 0) "" else r.getOrNull(i).orEmpty().trim()
     Column(
@@ -237,8 +237,8 @@ private fun FoodTable(t: ReportBlock.Table) {
                 val src = cell(r, iSrc)
                 if (src.isNotEmpty()) {
                     val color = when {
-                        src.startsWith("食藥署") -> Brand.Success
-                        src.startsWith("營養標示") -> Brand.Blue
+                        src.startsWith("食藥署") || src.startsWith("Taiwan FDA") || src.startsWith("대만 식약청") -> Brand.Success
+                        src.startsWith("營養標示") || src.startsWith("Nutrition label") || src.startsWith("영양성분표") -> Brand.Blue
                         else -> Brand.TextFaint
                     }
                     Spacer(Modifier.height(5.dp))
