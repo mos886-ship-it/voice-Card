@@ -508,3 +508,11 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 - `fit` 縮小碳水時纖維同比例縮、不超過碳水；表格多「纖維(g)」欄（三語），合計行「碳水 Xg（纖維 Xg）」。AI 自己寫的表格有纖維欄也會讀。
 - 顯示：詳情頁頂端第 4 格「纖維」（舊記錄顯示 —）、今日飲食多一行、飲食清單每筆（0 不顯示）。Health Connect 寫入 `dietaryFiber`。
 - 營養素不能超過重量：`FoodLog.fit`（蛋白質＋碳水＋脂肪 ≤ 克數，超過依比例縮、熱量照 4/4/9 重算），ITEM 與 AI 自己寫的表格（`fixTable`，克數從份量欄）都套用；舊記錄啟動時修一次（`nutrition_repair_v2`）。
+
+## iOS：飲食營養修正（跟 Android bc57634、d183692）
+
+- `GeminiClient.parseNutrition` 照 Android 放寬：全形＝／：、逗號分隔、中文欄位（餐別／熱量／蛋白質／碳水／脂肪）、粗體 **NUTRITION：**；`stripNutrition` 一樣認得這些寫法。
+- `FoodLog`（FoodDB.swift）：`fit`（蛋白質＋碳水＋脂肪超過重量就依比例縮小、熱量照 4／4／9 重算）套在 AI 與營養標示的 ITEM 行；沒有 ITEM 行（大D的主機、舊格式）時 `fixTable` 修 AI 寫的表格（份量欄的克數、拿掉 AI 合計列、換掉合計那一行、摘要重寫），沒改就 `fillFromTable` 用表格加總補 NUTRITION 缺的數字。兩個飲食提示詞加「每樣食物的蛋白質＋碳水＋脂肪（克）加起來不能超過它的重量…」。
+- 開 App 時修舊記錄一次（`MeetingStore.repairNutrition`，`nutrition_repair_v2`；存檔時健康同步跟著更新）。
+- 主機 server.py 的 FOOD_SYSTEM 加同一條規則（要重新部署才生效）。
+- 驗證：照 NutritionParseTest 的 11 個情況用 swiftc 跑過全部通過；模擬器開一次 App，修正跑過、旗標設好，三筆飲食記錄不需要改。

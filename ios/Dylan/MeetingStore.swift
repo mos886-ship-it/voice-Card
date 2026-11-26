@@ -41,7 +41,27 @@ final class MeetingStore: ObservableObject {
 
     init() {
         reload()
+        repairNutrition()
         Task { await recoverUnassembled() }
+    }
+
+    /// 修正舊的飲食記錄（只做一次，照 Android `FoodLog.repairStored`）：營養素加起來超過重量的列依比例縮小（表格與合計都改），
+    /// 大D的主機寫的 NUTRITION 行缺的數字（例如脂肪 0）用表格補上。存檔時健康同步會跟著更新。
+    private func repairNutrition() {
+        let key = "nutrition_repair_v2"
+        guard !UserDefaults.standard.bool(forKey: key) else { return }
+        for m in meetings where m.isFood && m.status == .done {
+            guard let n = m.nutrition, let md = report(m.id) else { continue }
+            let (md2, byTable) = FoodLog.fixTable(md, meal: n.meal)
+            if byTable != nil { try? md2.write(to: Self.reportURL(m.id), atomically: true, encoding: .utf8) }
+            let fixed = byTable ?? FoodLog.fillFromTable(n, md)
+            if fixed != n {
+                var mm = m
+                mm.nutrition = fixed
+                save(mm)
+            }
+        }
+        UserDefaults.standard.set(true, forKey: key)
     }
 
     func reload() {

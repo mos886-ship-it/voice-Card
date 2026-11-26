@@ -93,6 +93,7 @@ struct GeminiClient {
     - 「對照」：從下面的【食藥署食品營養成分資料】清單挑一個「完全相同」的名稱（不要寫「·生」「·熟」）；清單裡沒有相近的就填「無」，不要硬湊。
       清單標「·生」的是生重：克數要填烹調前的生重。整道小吃（例如牛肉麵）清單沒有就拆成麵、肉、湯、青菜各自對照，拆不了就填「無」。
     - 每行也寫你自己估的熱量與營養素（App 對不到資料時用）。數字一律取整數；熱量單位大卡（kcal），營養素單位公克（g）。
+    - 每樣食物的蛋白質＋碳水＋脂肪（克）加起來不能超過它的重量；熱量約等於 蛋白質×4＋碳水×4＋脂肪×9。
     - 餐別依描述與錄音時間判斷：早餐、午餐、晚餐、點心、宵夜、飲料。
     - 若錄音內容不是在描述飲食，TITLE 寫「非飲食內容」，NUTRITION 全部填 0，不要寫 ITEM，並照實摘要內容。
     - 一律使用繁體中文（台灣用語）。這是估算，不要做醫療診斷。
@@ -120,6 +121,7 @@ struct GeminiClient {
     - 使用者明確說出的份量、杯型、甜度、冰塊、加料一定照用，不可以改成別的（例如說「大杯半糖」就是大杯、半糖），只有沒說的部分才用預設。
     - 沒說清楚的地方（份量、甜度、加料、烹調方式）用常見預設，並在「假設與待確認」寫出來。
     - 數字一律取整數；熱量單位大卡（kcal），營養素單位公克（g）。
+    - 每樣食物的蛋白質＋碳水＋脂肪（克）加起來不能超過它的重量；熱量約等於 蛋白質×4＋碳水×4＋脂肪×9。
     - 餐別依描述與錄音時間判斷：早餐、午餐、晚餐、點心、宵夜、飲料。
     - 若錄音內容不是在描述飲食，TITLE 寫「非飲食內容」，NUTRITION 全部填 0，並照實摘要內容。
     - 一律使用繁體中文（台灣用語）。這是估算，不要做醫療診斷。
@@ -142,26 +144,31 @@ struct GeminiClient {
     """
 
     /// 從模型輸出找出 NUTRITION 行（照 Android `FoodLog.parseNutrition`）。
+    /// 找出 NUTRITION 行（照 Android：容許全形冒號 / 等號、逗號分隔、中文欄位名、粗體 **NUTRITION：**；小模型常寫得不太標準）。
     static func parseNutrition(_ text: String) -> AppleAI.Nutrition? {
-        guard let line = text.components(separatedBy: "\n").map({ $0.trimmingCharacters(in: .whitespaces) })
-            .first(where: { $0.uppercased().hasPrefix(nutritionPrefix) }) else { return nil }
+        guard let line = text.components(separatedBy: "\n")
+            .map({ $0.trimmingCharacters(in: .whitespaces).trimmingCharacters(in: CharacterSet(charactersIn: "*# ")) })
+            .first(where: { $0.uppercased().hasPrefix("NUTRITION") }) else { return nil }
+        let body = line.dropFirst("NUTRITION".count).trimmingCharacters(in: CharacterSet(charactersIn: "* :："))
         var kv: [String: String] = [:]
-        for part in line.dropFirst(nutritionPrefix.count).split(whereSeparator: { $0 == ";" || $0 == "；" }) {
-            let pair = part.split(separator: "=", maxSplits: 1).map { $0.trimmingCharacters(in: .whitespaces) }
-            if pair.count == 2 { kv[pair[0].lowercased()] = pair[1] }
+        for part in body.split(whereSeparator: { ";；,，、".contains($0) }) {
+            guard let i = part.firstIndex(where: { "=＝:：".contains($0) }), i > part.startIndex else { continue }
+            kv[part[..<i].trimmingCharacters(in: .whitespaces).lowercased()] = part[part.index(after: i)...].trimmingCharacters(in: .whitespaces)
         }
-        func num(_ k: String) -> Int {
-            guard let v = kv[k], let r = v.range(of: #"\d+"#, options: .regularExpression) else { return 0 }
+        func num(_ ks: String...) -> Int {
+            guard let v = ks.lazy.compactMap({ kv[$0] }).first, let r = v.range(of: #"\d+"#, options: .regularExpression) else { return 0 }
             return Int(v[r]) ?? 0
         }
-        return AppleAI.Nutrition(meal: kv["meal"] ?? "", kcal: num("kcal"), protein: num("protein"), carbs: num("carbs"), fat: num("fat"))
+        return AppleAI.Nutrition(meal: kv["meal"] ?? kv["餐別"] ?? "", kcal: num("kcal", "熱量", "热量", "calories"),
+                                 protein: num("protein", "蛋白質", "蛋白质"),
+                                 carbs: num("carbs", "碳水", "碳水化合物", "carbohydrate"), fat: num("fat", "脂肪"))
     }
 
     /// 報告裡不顯示機讀行。
     static func stripNutrition(_ markdown: String) -> String {
         markdown.components(separatedBy: "\n").filter {
-            let t = $0.trimmingCharacters(in: .whitespaces).uppercased()
-            return !t.hasPrefix(nutritionPrefix) && !t.hasPrefix(FoodLog.itemPrefix)
+            let t = $0.trimmingCharacters(in: .whitespaces).trimmingCharacters(in: CharacterSet(charactersIn: "*# ")).uppercased()
+            return !t.hasPrefix("NUTRITION") && !t.hasPrefix(FoodLog.itemPrefix)
         }
             .joined(separator: "\n")
     }
