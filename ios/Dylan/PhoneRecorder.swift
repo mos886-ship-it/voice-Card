@@ -59,10 +59,13 @@ final class PhoneRecorder: ObservableObject {
                 self.starting = false
             }
         }
-        if #available(iOS 17.0, *) {
-            AVAudioApplication.requestRecordPermission(completionHandler: done)
-        } else {
-            AVAudioSession.sharedInstance().requestRecordPermission(done)
+        Task { @MainActor in
+            await GeoLocator.shared.askOnce()   // 定位權限只問一次（拒絕也能錄，只是沒有地點）
+            if #available(iOS 17.0, *) {
+                AVAudioApplication.requestRecordPermission(completionHandler: done)
+            } else {
+                AVAudioSession.sharedInstance().requestRecordPermission(done)
+            }
         }
     }
 
@@ -83,6 +86,10 @@ final class PhoneRecorder: ObservableObject {
             try installTapAndStart()
             state = .recording(id: id, since: Date())
             startWatchdog()
+            // 錄音地點：開始錄音時的位置（「拍＋說」也是這裡定位）
+            Task { @MainActor in
+                if let loc = await GeoLocator.shared.current() { await GeoStore.save(id, loc) }
+            }
             // 「拍＋說」：先拍的照片接進這筆飲食記錄
             if food, !FoodPhotos.pendingForVoice.isEmpty {
                 FoodPhotos.save(FoodPhotos.pendingForVoice, to: id)

@@ -39,6 +39,20 @@ struct DetailView: View {
                             .buttonStyle(.plain)
                             Text(m.source == "photo" ? m.recordingRange : "錄音  \(m.recordingRange)")
                                 .font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 6)
+                            // 地點（點一下開地圖）
+                            if let g = GeoStore.load(m.id) {
+                                Button { if let u = g.mapURL { UIApplication.shared.open(u) } } label: {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "mappin.and.ellipse").font(.system(size: 12))
+                                        Text("地點  \(g.label)").font(.bodySmall).multilineTextAlignment(.leading)
+                                        Image(systemName: "chevron.right").font(.system(size: 10, weight: .semibold))
+                                    }
+                                    .foregroundStyle(Brand.textMuted).frame(minHeight: 32)
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel("地點 \(g.label)，點一下開地圖")
+                                .padding(.top, 2)
+                            }
                             StatusChip(style: m.statusStyle).padding(.top, 10)
                         }
 

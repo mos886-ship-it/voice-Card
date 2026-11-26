@@ -72,7 +72,7 @@ struct SegmentTabs: View {
     }
 }
 
-/// 報告最上面的「基本資料」卡（照 Android `ReportFacts`）：時間、長度、來源、AI、耗時。不顯示 GPS 來源。
+/// 報告最上面的「基本資料」卡（照 Android `ReportFacts`）：時間、長度、地點、來源、AI、耗時。不顯示 GPS 來源。
 struct ReportFacts: View {
     let meeting: Meeting
     @AppStorage(UIMode.key) private var mode: UIMode = .business
@@ -81,6 +81,17 @@ struct ReportFacts: View {
             Text("基本資料").font(.labelSmall).tracking(1.2).foregroundStyle(Brand.textMuted)
             VStack(alignment: .leading, spacing: 6) {
                 fact("時間", meeting.recordingRange)
+                if let g = GeoStore.load(meeting.id) {
+                    // 地點：點一下開地圖（不顯示 GPS 來源）
+                    Button { if let u = g.mapURL { UIApplication.shared.open(u) } } label: {
+                        HStack(alignment: .firstTextBaseline, spacing: 12) {
+                            Text("地點").font(.bodySmall).foregroundStyle(Brand.textFaint).frame(minWidth: 36, alignment: .leading).fixedSize()
+                            Text(g.label + " ›").font(.bodySmall).foregroundStyle(Brand.cyan).multilineTextAlignment(.leading)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("地點 \(g.label)，點一下開地圖")
+                }
                 fact("來源", meeting.sourceLabel)
                 fact("AI", Meeting.aiModelLabel(meeting.aiModel))   // 兩種模式都顯示用了哪個 AI
                 if let c = meeting.hostCleanup { fact("隱私", c) }

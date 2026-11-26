@@ -432,6 +432,7 @@
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "大D 要連到你自己的 Mac，用它的 AI 整理錄音。";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "大D 不讀取任何健康資料；這項說明是系統要求。";
 				INFOPLIST_KEY_NSCameraUsageDescription = "大D 用相機拍下這一餐，估算熱量；照片會縮小、去掉位置資訊，只送給 Gemini 辨識。";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "大D 在開始錄音或拍照時記下地點，存在這支手機的記錄裡，方便日後回想在哪裡錄的、在哪裡吃的；不需要也能照常使用。";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "大D 把飲食記錄的熱量、蛋白質、碳水和脂肪寫進「健康」。熱量為 AI 估算，僅供參考。";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -468,6 +469,7 @@
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "大D 要連到你自己的 Mac，用它的 AI 整理錄音。";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "大D 不讀取任何健康資料；這項說明是系統要求。";
 				INFOPLIST_KEY_NSCameraUsageDescription = "大D 用相機拍下這一餐，估算熱量；照片會縮小、去掉位置資訊，只送給 Gemini 辨識。";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "大D 在開始錄音或拍照時記下地點，存在這支手機的記錄裡，方便日後回想在哪裡錄的、在哪裡吃的；不需要也能照常使用。";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "大D 把飲食記錄的熱量、蛋白質、碳水和脂肪寫進「健康」。熱量為 AI 估算，僅供參考。";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

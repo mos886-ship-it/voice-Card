@@ -264,7 +264,7 @@ final class MeetingStore: ObservableObject {
         if !m.isFood && !Self.isText(id) && m.speechLang == .zh { Task { await self.preview(id) } }   // 台語、客語都不出
         do {
             try GeminiJobs.shared.startLocal(meetingId: id, kind: m.isFood ? "food" : "meeting",
-                                             recordedAt: Fmt.stamp(m.createdAt, "yyyy/MM/dd HH:mm"), durationSec: m.durationSec,
+                                             recordedAt: Fmt.stamp(m.createdAt, "yyyy/MM/dd HH:mm") + GeoStore.promptSuffix(id), durationSec: m.durationSec,
                                              lang: m.speechLang, dialect: m.hakkaDialect)
             if LocalAI.hasJobs, let a = h.ahead, a > 0 { setAiStep(id, LocalAI.queueText(ahead: a, waitSec: h.wait_sec ?? 0)) }
         } catch {
@@ -322,7 +322,7 @@ final class MeetingStore: ObservableObject {
         begin(&m, step: "AI 整理中")
         do {
             let r = try await GeminiClient(apiKey: Keychain.get(Keychain.geminiKey) ?? "")
-                .generateText(text, recordedAt: Fmt.stamp(m.createdAt, "yyyy/MM/dd HH:mm"))
+                .generateText(text, recordedAt: Fmt.stamp(m.createdAt, "yyyy/MM/dd HH:mm") + GeoStore.promptSuffix(id))
             geminiReplied(id, text: r.text, model: r.model, truncated: false)
         } catch {
             aiFailed(id, message: "Gemini：\(error.localizedDescription)")
@@ -372,7 +372,7 @@ final class MeetingStore: ObservableObject {
             var report: GeneratedReport?
             if AppleAI.availableModel != nil, !lines.isEmpty {
                 setAiStep(id, "Apple 整理中")
-                let recordedAt = Fmt.stamp(m.createdAt, "yyyy/MM/dd HH:mm")
+                let recordedAt = Fmt.stamp(m.createdAt, "yyyy/MM/dd HH:mm") + GeoStore.promptSuffix(id)
                 if m.isFood {
                     let (r, n, mdl) = try await AppleAI.food(transcript: text, recordedAt: recordedAt)
                     report = r; m.nutrition = n; model += "|" + mdl

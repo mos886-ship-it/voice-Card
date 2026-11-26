@@ -142,7 +142,8 @@ final class GeminiJobs: NSObject, URLSessionDataDelegate, URLSessionDownloadDele
         let client = GeminiClient(apiKey: key)
         if let name = job.fileName { try await client.waitUntilActive(name) }
         let model = GeminiClient.models[job.model]
-        let recordedAt = Fmt.stamp(m.createdAt, "yyyy/MM/dd HH:mm")
+        let photoOnly = job.fileURI == nil
+        let recordedAt = Fmt.stamp(m.createdAt, "yyyy/MM/dd HH:mm") + GeoStore.promptSuffix(job.meetingId, photo: photoOnly)
         let photoNote = photos.isEmpty ? "" : "附上 \(photos.count) 張這一餐的照片。"
         let prompt = job.fileURI == nil
             ? "拍照時間：\(recordedAt)。\(photoNote)沒有錄音，請依照片與格式整理，逐字稿留空。"

@@ -386,6 +386,7 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 - 詳情頁上方顯示照片（點一下全螢幕）。iOS 要照做（PHPicker / 相機需要 NSCameraUsageDescription）。
 
 - **iOS 已跟上**：`FoodPhotos.swift`（縮圖：`UIGraphicsImageRenderer` 轉正、長邊 768、`jpegData(0.8)` 重新編碼不帶 GPS；`FoodPhotoSheet` 只拍照／拍照＋口述、相機＋`PhotosPicker`、最多 3 張；`FoodPhotoStrip` 詳情頁最上面、點一下全螢幕）。入口：快錄中間錄音鍵長按「說：記錄飲食」「拍：拍照記錄」「拍＋說：拍照再補一句」，飲食分頁「拍照記錄（最多 3 張）」。只拍照 source = photo、長度 0、沒有 lang，詳情「拍照 時間」、沒有辨識語言；拍＋說照片放 `FoodPhotos.pendingForVoice`，`PhoneRecorder.begin` 接進記錄（錄不了音就改成只拍照的記錄）。有照片一律 Gemini（只有照片時跳過上傳直接 generate，`generateBody` 夾 inline_data；免費 flash 模型），隱私模式或沒金鑰就失敗並寫原因。提示詞兩條、對照=營養標示 → 來源「營養標示」、合計寫幾樣依營養標示。NSCameraUsageDescription 繁中。模擬器驗過：相簿選 2 張 → 768 px、沒有 GPS；沒金鑰的失敗訊息；詳情照片與全螢幕。真的 Gemini 照片辨識、相機（模擬器沒有）、拍＋說（模擬器麥克風不能錄）還沒驗。
+- **iOS 拍攝地點／錄音地點（跟 Android 4e3146d）**：iOS 之前完全沒有地點，這次一起補：`ios/Dylan/Geo.swift`（`GeoFix` 存記錄資料夾 `geo.json`，欄位跟 Android 一樣 lat/lon/accuracy/at/place/source；`GeoStore.save` 用 CLGeocoder 繁中反查，`placeName` 照 Android 去重與中外文接法；`GeoLocator` 用 CLLocationManager 要一次新定位、最多 20 秒，拿不到用 10 分鐘內的最後位置）。權限 NSLocationWhenInUseUsageDescription（繁中），第一次按錄音或打開拍照時問一次（`asked_location`），拒絕照樣錄 / 拍、只是沒有地點。手機錄音（含拍＋說）開始時定位；只拍照：打開拍照畫面就開始定位，送出後最多再等 5 秒存進記錄再交給 AI（取消或選拍＋說就停掉）。AI 提示詞時間後面加「，錄音地點：…」（只拍照是「，拍攝地點：…」）。顯示：詳情頁標題下「地點 …（±N m）›」、報告「基本資料」加「地點」，點了開 Apple 地圖。手錶錄音在 iOS 還沒有地點（Android 由手機代為定位）。模擬器驗過：地名組法 4 例、放一個 geo.json 後詳情與基本資料都顯示地點；真的定位（要使用者允許定位）還沒驗。
 
 ## 不到 1 秒的錄音不送辨識（1.1.94）
 

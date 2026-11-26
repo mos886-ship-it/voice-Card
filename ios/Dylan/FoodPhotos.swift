@@ -48,7 +48,18 @@ enum FoodPhotos {
         m.lang = nil   // 只有照片：沒有辨識語言
         m.dialect = nil
         MeetingStore.shared.save(m)
-        Task { await MeetingStore.shared.process(id) }
+        let fix = GeoLocator.shared.takePhotoFix()
+        Task { @MainActor in
+            // 拍攝地點：等打開拍照時開始的定位（最多再等 5 秒，讓 AI 也知道在哪吃的），之後就先交給 AI
+            let early = Task { @MainActor in try? await Task.sleep(nanoseconds: 5_000_000_000); return true }
+            let saving = Task { @MainActor in
+                if let loc = await fix.value { await GeoStore.save(id, loc) }
+                early.cancel()
+            }
+            _ = await early.value
+            await MeetingStore.shared.process(id)
+            _ = await saving.value
+        }
         return id
     }
 }
@@ -114,7 +125,7 @@ struct FoodPhotoSheet: View {
                         .disabled(left == 0)
                     }
                     .buttonStyle(.bordered).tint(Brand.cyan)
-                    Text("已選 \(photos.count) / \(FoodPhotos.max) 張。照片會縮小並去掉位置資訊，只送給 Gemini 辨識。")
+                    Text("已選 \(photos.count) / \(FoodPhotos.max) 張。照片會縮小並去掉位置資訊，只送給 Gemini 辨識；照片和拍攝地點留在這支手機的記錄裡。")
                         .font(.bodySmall).foregroundStyle(Brand.textFaint)
 
                     GradientButton(text: capture.withVoice ? "下一步：開始口述" : "估算這一餐", recordDot: capture.withVoice) {
@@ -126,9 +137,10 @@ struct FoodPhotoSheet: View {
                 .padding(20)
             }
             .background(AppBackdrop())
+            .onAppear { GeoLocator.shared.startPhotoFix() }
             .navigationTitle("拍照記錄")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() } } }
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("取消") { GeoLocator.shared.cancelPhotoFix(); dismiss() } } }
         }
         .onChange(of: picks) { items in
             guard !items.isEmpty else { return }
@@ -153,6 +165,7 @@ struct FoodPhotoSheet: View {
         guard !photos.isEmpty else { return }
         if capture.withVoice {
             FoodPhotos.pendingForVoice = photos
+            GeoLocator.shared.cancelPhotoFix()   // 口述的由手機錄音自己定位
             dismiss()
             PhoneRecorder.shared.start(food: true)
             onDone(nil)
