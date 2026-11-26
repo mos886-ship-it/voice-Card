@@ -207,8 +207,8 @@ private fun FoodTable(t: ReportBlock.Table) {
     val iPortion = col("份量", "Portion", "분량")
     val iKcal = col("熱量", "Calories", "열량")
     val iP = col("蛋白", "Protein", "단백질")
-    val iC = col("碳水".tr, "Carbs", "탄수")
-    val iF = col("脂肪".tr, "Fat", "지방")
+    val iC = col("碳水", "Carbs", "탄수")
+    val iF = col("脂肪", "Fat", "지방")
     val iSrc = col("來源", "Source", "출처")
     val iFib = col("纖維", "Fiber", "식이섬유")
     val rows = t.rows.filter { r -> r.getOrNull(iName).orEmpty().isNotBlank() }
