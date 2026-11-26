@@ -7,7 +7,8 @@ App 的報告解析、說話者名字、飲食 NUTRITION 解析都直接沿用�
 端點（都要 Authorization: Bearer <存取碼>，存取碼在 config.json）：
   GET  /v1/health   → {"ok": true, "asr": 名稱, "llm": 名稱, "asr_id", "llm_id", "model", "state": ready|loading|error, "busy",
                         "admin": 這台是不是管理者, "jobs": true（有工作佇列）, "queue": 排隊＋處理中共幾筆,
-                        "ahead": 現在送的話前面有幾筆, "wait_sec": 大約要等幾秒才輪到}
+                        "ahead": 現在送的話前面有幾筆, "wait_sec": 大約要等幾秒才輪到,
+                        "langs": 能辨識的語言代號（App 只送這些；其他語言 App 改用 Gemini）}
   GET  /v1/models   → health 的內容 ＋ asr_options / llm_options（[{id, label}]）
   POST /v1/config   → {"asr": id, "llm": id}；存進 config.json，背景換模型（第一次會下載），回 202。只有管理者（403）
   工作佇列（多人共用時用這組，見 jobs.py；每台裝置輪流、主機重開會接著做）：
@@ -259,7 +260,9 @@ TYPE_RULES = """錄音可能是會議、課堂、訪談、電話通話、演講�
 - 個人備忘 / 想法：把零散的想法整理成清楚的條列與下一步。
 不要捏造錄音裡沒有的內容；不確定的標註「（待確認）」。
 逐字稿是語音辨識結果，可能有同音錯字（例如地名、數字），請依上下文改成正確的字。
-一律使用繁體中文（台灣用語）。"""
+一律使用繁體中文（台灣用語）。
+夾雜在中文裡的英文（單字、術語、縮寫、人名、公司、品牌與產品名，例如 KPI、deadline、iPhone、Python）照原文寫英文，
+逐字稿和報告都一樣：不要翻成中文，也不要寫成同音的中文字；語音辨識把英文聽成同音中文字時，依上下文改回英文。"""
 
 REPORT_SYSTEM = f"""你是專業的語音記錄助理。使用者會給你一份語音辨識產生的逐字稿（可能有同音錯字、標點不完整），請依上下文理解後整理。
 {TYPE_RULES}
@@ -569,7 +572,7 @@ def status(dev=None):
             "llm": LLM_OPTIONS.get(CUR["llm"], {}).get("label", CUR["llm"]),
             "asr_id": CUR["asr"], "llm_id": CUR["llm"], "model": model_tag(),
             "state": CUR["state"], "error": CUR["error"], "busy": n > 0 or q["queue"] > 0,
-            "admin": PAIR.is_admin(dev), "jobs": True, **q}
+            "admin": PAIR.is_admin(dev), "jobs": True, "langs": sorted(LANG_ASR), **q}
 
 
 sys.path.insert(0, HERE)

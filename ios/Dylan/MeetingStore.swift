@@ -260,6 +260,11 @@ final class MeetingStore: ObservableObject {
             await localFailed(id, message: error.localizedDescription)
             return
         }
+        // 主機還不能辨識這個語言（英語、日語…）：這次改用 Gemini（或 Apple）
+        if !Self.isText(id), !h.supports(m.speechLang) {
+            await localFailed(id, message: "大D的主機還不能辨識\(m.speechLang.label)", unsupported: true)
+            return
+        }
         // Mac 在跑的同時，Apple 先出預覽逐字稿（Apple 不會台語：台語錄音不出預覽）
         if !m.isFood && !Self.isText(id) && m.speechLang == .zh { Task { await self.preview(id) } }   // 台語、客語都不出
         do {
@@ -273,7 +278,7 @@ final class MeetingStore: ObservableObject {
     }
 
     /// 這台 Mac 連不到 / 失敗：有 Gemini 金鑰就改用 Gemini，否則 Apple 輔助。
-    func localFailed(_ id: String, message: String) async {
+    func localFailed(_ id: String, message: String, unsupported: Bool = false) async {
         guard var m = load(id) else { return }
         NSLog("[MeetingStore] local Mac failed (\(message)), falling back")
         if Self.isText(id) {
@@ -286,7 +291,7 @@ final class MeetingStore: ObservableObject {
             return
         }
         if Self.hasGeminiKey && !Self.privacyMode {
-            m.engineNote = "大D的主機 沒有完成（\(message)），改用 Gemini"
+            m.engineNote = unsupported ? "\(message)。這次改用 Gemini。" : "大D的主機 沒有完成（\(message)），改用 Gemini"
             save(m)
             await runGemini(id)
         } else {
@@ -363,7 +368,8 @@ final class MeetingStore: ObservableObject {
 
     private func appleWork(_ id: String) async {
         do {
-            let lines = try await AppleAI.transcribe(Self.audioURL(id))
+            let lang = load(id)?.speechLang ?? .zh
+            let lines = try await AppleAI.transcribe(Self.audioURL(id), locale: lang.other ? lang.locale : AppleAI.zhTW)
             let text = AppleAI.transcriptText(lines)
             guard var m = load(id) else { return }
             try text.write(to: Self.transcriptURL(id), atomically: true, encoding: .utf8)

@@ -39,6 +39,8 @@ struct GeminiClient {
     - 個人備忘 / 想法：把零散的想法整理成清楚的條列與下一步。
     不要捏造錄音裡沒有的內容；聽不清楚的地方標註「（聽不清）」，不確定的標註「（待確認）」。
     一律使用繁體中文（台灣用語）。
+    夾雜在中文裡的英文（單字、術語、縮寫、人名、公司、品牌與產品名，例如 KPI、deadline、iPhone、Python）照原文寫英文，
+    逐字稿和報告都一樣：不要翻成中文，也不要寫成同音的中文字。
     """
 
     static let systemPrompt = """
@@ -292,13 +294,7 @@ struct GeminiClient {
     static func prompt(durationSec: Double, recordedAt: String, lang: SpeechLang = .zh,
                        dialect: HakkaDialect = .sixian, photoNote: String = "") -> String {
         let base = "錄音時間：\(recordedAt)，長度約 \(String(format: "%.1f", durationSec / 60)) 分鐘。\(photoNote)請依格式整理這段錄音。"
-        if lang == .hak {
-            return base + "這段錄音是客語（\(dialect.label)腔，可能和國語夾雜）。逐字稿請一律用台灣繁體中文的華語字寫出意思（客語的部分翻成通順的華語，"
-                + "國語照說的寫），不要用客語拼音，也不要寫成同音的錯字。"
-        }
-        guard lang == .nan else { return base }
-        return base + "這段錄音有台語（可能和國語夾雜在同一句裡）。逐字稿請一律用台灣繁體中文的華語字寫出意思（台語的部分翻成通順的華語，"
-            + "國語照說的寫），不要用台羅拼音，也不要寫成同音的錯字。"
+        return base + lang.geminiNote(dialect)
     }
 
     // MARK: - REST

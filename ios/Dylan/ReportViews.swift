@@ -371,6 +371,7 @@ struct TranscriptView: View {
         case .zh: return Brand.textMuted
         case .nan: return Brand.success
         case .hak: return Brand.warning
+        default: return Brand.cyan
         }
     }
 

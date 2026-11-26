@@ -446,6 +446,8 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
   - 舊的手機內建辨識（Claude 路線）用該語言的 locale。三星錄音機（Galaxy AI）的語言在錄音機自己設。
   - 手錶：`SpeechLangs.LANGS` 加同一組代號，手錶語言頁自動列出。
 - **待做**：主機端（Mac mini）英語等語言的辨識（例如 Whisper / SenseVoice）與國語夾英文的改善、Qwen 報告提示詞同樣規則；iOS 跟上。
+- **iOS 已跟上**：`SpeechLang`（UIMode.swift）加 en/ja/ko/yue/vi/th/id，`label` / `short` / `tag` / `hint` / `locale` / `spoken` / `other` 照 Android；`geminiNote` 一字不差（`GeminiClient.prompt` 改用它）；`typeRules` 加國語夾英文那兩行。`LangPicker`：國語 | 台語 | 客語 | 其他 ▾（第 4 格是 SwiftUI `Menu`，選了顯示語言名、打勾），主頁兩種排布、詳情頁共用。大D的主機：`Health.langs`（沒有這欄 = zh/nan/hak），不支援就不送，engineNote 寫「大D的主機還不能辨識英語。這次改用 Gemini。」。Apple 備援：其他語言用該語言的 locale 辨識（`AppleAI.transcribe(locale:)`）。逐字稿語言標籤顏色：其他語言用重點色。Apple Watch：iOS 手錶沒有語言清單，手錶錄音用 iPhone 上選的語言，新語言自動適用。模擬器看過選單、選粵語後那格與說明。
+- **主機（local-ai/server.py）已做一部分**：health 加 `"langs"`（目前 zh/nan/hak，跟以前一樣；要加別的語言時把代號放進 `LANG_ASR`）；Qwen 報告共用規則加國語夾英文那兩行（多一句：辨識把英文聽成同音中文字時依上下文改回英文）。還沒做：多語言語音辨識（Whisper / SenseVoice 要先下載模型、實測），以及 FunASR paraformer-zh 夾英文的實測。主機上執行中的那份要重新部署、重啟才生效。
 
 ## 報告語言、介面語言設定（2026-11-26）
 

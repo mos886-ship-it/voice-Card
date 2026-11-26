@@ -28,11 +28,11 @@ enum AppleAI {
     // MARK: - 逐字稿
 
     /// 錄音 → 帶時間的逐字稿。第一次用時系統可能要下載繁中語音模型（系統元件，App 不另外收費）。
-    static func transcribe(_ url: URL) async throws -> [Line] {
+    static func transcribe(_ url: URL, locale: Locale = zhTW) async throws -> [Line] {
         guard #available(iOS 26.0, macOS 26.0, *) else {
             throw Failure(message: "Apple 語音辨識需要 iOS 26 以上")
         }
-        let transcriber = SpeechTranscriber(locale: zhTW, transcriptionOptions: [], reportingOptions: [],
+        let transcriber = SpeechTranscriber(locale: locale, transcriptionOptions: [], reportingOptions: [],
                                             attributeOptions: [.audioTimeRange])
         if let request = try await AssetInventory.assetInstallationRequest(supporting: [transcriber]) {
             try await request.downloadAndInstall()

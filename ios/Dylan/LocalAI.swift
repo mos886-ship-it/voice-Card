@@ -64,6 +64,10 @@ enum LocalAI {
         let jobs: Bool?      // 有工作佇列（/v1/jobs）
         let ahead: Int?      // 現在送的話前面有幾筆
         let wait_sec: Int?
+        let langs: [String]? // 能辨識的語言；舊主機沒有這欄 = 國語、台語、客語
+
+        /// 主機能不能辨識這個語言
+        func supports(_ l: SpeechLang) -> Bool { (langs.flatMap { $0.isEmpty ? nil : $0 } ?? ["zh", "nan", "hak"]).contains(l.rawValue) }
     }
 
     static let jobsKey = "local_ai_jobs"
