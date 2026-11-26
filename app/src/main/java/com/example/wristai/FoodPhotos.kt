@@ -7,6 +7,8 @@ import android.graphics.Matrix
 import android.media.ExifInterface
 import android.net.Uri
 import androidx.core.content.FileProvider
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import java.io.File
 
 /**
@@ -22,6 +24,18 @@ object FoodPhotos {
 
     /** 「拍照＋口述」：照片先放这里，手机录音开始时（[PhoneRecordingService]）接进那笔饮食记录。 */
     @Volatile var pendingForVoice: List<File>? = null
+
+    /** 拍照记录的位置：打开拍照时就开始定位（在哪里拍的），送出后存进记录；口述的由手机录音自己定位。 */
+    @Volatile private var geoJob: kotlinx.coroutines.Deferred<com.example.voiceai.shared.GeoFix?>? = null
+
+    fun startGeo(context: Context) {
+        val app = context.applicationContext
+        geoJob?.cancel()
+        geoJob = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO)
+            .async { com.example.voiceai.shared.GeoFix.current(app) }
+    }
+
+    fun cancelGeo() { geoJob?.cancel(); geoJob = null }
 
     fun files(context: Context, id: String): List<File> =
         MeetingStore.dir(context, id).listFiles { f -> f.name.matches(Regex("photo_\\d+\\.jpg")) }
@@ -90,6 +104,14 @@ object FoodPhotos {
         ))
         attach(context, id, staged)
         ProcessMeetingWorker.enqueue(context, id)
+        // 位置：等打开拍照时开始的定位（没有就现在定位），存成这笔记录的地点
+        val app = context.applicationContext
+        val job = geoJob ?: kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO)
+            .async { com.example.voiceai.shared.GeoFix.current(app) }
+        geoJob = null
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            runCatching { job.await() }.getOrNull()?.let { MeetingStore.saveGeo(app, id, it.copy(source = "phone")) }
+        }
         return id
     }
 

@@ -103,7 +103,7 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
 
         val recordedAt = SimpleDateFormat("yyyy/MM/dd HH:mm", Locale.TAIWAN).format(Date(meeting.createdAt)) +
             (if (meeting.source == AudioImporter.SOURCE_CALL) "（這是一通電話的通話錄音，通常是兩位說話者：本人與對方${meeting.title?.let { "，檔名：$it" } ?: ""}）" else "") +
-            (MeetingStore.geo(ctx, id)?.place?.let { "，錄音地點：$it" } ?: "")
+            (MeetingStore.geo(ctx, id)?.place?.let { (if (meeting.source == FoodPhotos.SOURCE) "，拍攝地點：" else "，錄音地點：") + it } ?: "")
 
         // ---------- 手表还在录（长会议边录边传）：先把已经录满的 Gemini 段处理掉 ----------
         val mode = com.example.wristai.ai.AiConfig.mode(ctx)

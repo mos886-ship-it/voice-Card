@@ -93,12 +93,25 @@ fun FoodPhotoCapture(
         runCatching { camera.launch(uri) }
     }
 
-    LaunchedEffect(Unit) {
-        FoodPhotos.clearStaging(context)
+    // 定位权限：跟录音一样只问一次（之前问过、拒绝了就不再问，拍照照常只是没有地点）
+    val locPerm = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+        FoodPhotos.startGeo(context)
         if (autoCamera) openCamera()
     }
 
-    Dialog(onDismissRequest = { FoodPhotos.clearStaging(context); onDismiss() }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+    LaunchedEffect(Unit) {
+        FoodPhotos.clearStaging(context)
+        val prefs = context.getSharedPreferences("wristai_ui", android.content.Context.MODE_PRIVATE)
+        if (!com.example.voiceai.shared.GeoFix.hasPermission(context) && !prefs.getBoolean("asked_location", false)) {
+            prefs.edit().putBoolean("asked_location", true).apply()
+            locPerm.launch(arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION))
+        } else {
+            FoodPhotos.startGeo(context)
+            if (autoCamera) openCamera()
+        }
+    }
+
+    Dialog(onDismissRequest = { FoodPhotos.clearStaging(context); FoodPhotos.cancelGeo(); onDismiss() }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Column(
             Modifier.padding(16.dp).fillMaxWidth().clip(RoundedCornerShape(Brand.CardRadius)).background(Brand.Surface).padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -137,15 +150,16 @@ fun FoodPhotoCapture(
                 else "照片看不出份量和甜度，選「拍照＋口述」補一句話，熱量會準很多。包裝食品可以拍營養標示。",
                 style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted,
             )
-            Text("照片會縮小、去掉位置資訊後交給 Gemini 辨識；照片留在這支手機的記錄裡。",
+            Text("照片會縮小、去掉位置資訊後交給 Gemini 辨識；照片和拍攝地點留在這支手機的記錄裡。",
                 style = MaterialTheme.typography.labelSmall, color = Brand.TextFaint)
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                GhostButton("取消", { FoodPhotos.clearStaging(context); onDismiss() }, Modifier.weight(1f))
+                GhostButton("取消", { FoodPhotos.clearStaging(context); FoodPhotos.cancelGeo(); onDismiss() }, Modifier.weight(1f))
                 GradientButton(if (voice) "下一步：口述" else "送出", {
                     val list = staged.toList()
                     if (voice) {
                         FoodPhotos.pendingForVoice = list
+                        FoodPhotos.cancelGeo()   // 口述的由手机录音自己定位
                         onStartVoice()
                     } else {
                         FoodPhotos.createPhotoOnly(context, list)
