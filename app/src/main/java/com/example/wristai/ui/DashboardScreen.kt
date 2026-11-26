@@ -267,6 +267,7 @@ private fun CaptureCard(error: String?, record: () -> Unit, food: () -> Unit, ca
             Mini("飲食".tr, food) { BowlGlyph(Brand.Cyan) }
             Mini("通話".tr, call) { Icon(Icons.Filled.Call, null, tint = Brand.Cyan, modifier = Modifier.size(16.dp)) }
             Mini("匯入".tr, importFile) { Icon(Icons.Filled.Add, null, tint = Brand.Cyan, modifier = Modifier.size(18.dp)) }
+            Mini("翻譯".tr, { TranslatePage.open() }) { Text("文A", color = Brand.Cyan, style = MaterialTheme.typography.labelMedium) }
         }
     }
 }

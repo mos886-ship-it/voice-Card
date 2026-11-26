@@ -30,6 +30,9 @@ object WristAiProtocol {
     const val CMD_STOP = "stop"
     const val CMD_QUERY = "query"
 
+    /** 手机 → 手表：即时翻译最新一句（译文，文字）；"" = 关掉。 */
+    const val PATH_CAPTION = "/wristai/caption"
+
     /** 手机 → 手表：介面语言，payload = "zh" / "en" / "ko"（手表跟着手机的介面语言）。 */
     const val PATH_UI_LANG = "/wristai/ui_lang"
 

@@ -474,3 +474,11 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
   - 工具 `tools/i18n_ios.py`：`--wrap 檔案…`（把顯示用中文包成 .tr / .trf，`\(x)` 換成 {0}；不包比對、鍵、步驟名稱、原始字串、提示詞）、`--missing`、`--sync`。iOS 獨有的 242 句已補進共用表（英文、韓文）。
   - 不翻的：提示詞（Gemini、Apple、geminiNote）、存檔的步驟名稱（aiStep；顯示時 `.tr`，排隊文字 `LocalAI.isQueueText` 中文與目前語言都認得）、比對用的字。
   - 還沒做：Apple Watch（iOS 手錶 App 還是中文；Android 手錶跟手機介面語言）、系統權限說明文字（相機、定位、健康、麥克風仍是中文，要加 InfoPlist.strings）。模擬器看過英文的主頁、錄音清單、詳情、設定，以及切回繁中；韓文沒逐頁看。
+
+## 即時翻譯（2026-11-26，獨立一頁）
+
+- **頁面** `ui/LiveTranslateScreen.kt`（route `translate`）：說的語言（同錄音的辨識語言）、翻譯成（繁中 / English / 한국어 / 日本語，預設介面語言，跟來源一樣就中↔英）、開始錄音並翻譯 / 開始翻譯（目前的錄音）/ 停止翻譯 / 停止錄音、字幕清單（原文小字、譯文大字，新的在下面自動捲）。入口：主頁錄音卡的「文A 翻譯」、手機錄音中卡片的「即時翻譯」（`TranslatePage.open()`）。
+- **引擎** `LiveCaptions.kt`：`PhoneRecordingService` 錄音迴圈 `LiveCaptions.feed` → 佇列 → pipe → 手機內建辨識（`EXTRA_AUDIO_SOURCE` + 分段 + 暫時結果，Android 13+），一段結束 / 出錯自動接下一段，錄音不受影響。一句辨識完 → ML Kit 裝置端翻譯（`com.google.mlkit:translate`，每種語言第一次下載約 30 MB）；翻成中文是簡體 → ICU `Hans-Hant` 轉繁體。錄音停止時字幕一起停。
+- 離線語音沒有那個語言：`triggerModelDownload`（系統詢問下載，同一語言這次開 App 只問一次），這次改用線上辨識，畫面寫「聲音會傳到 Google 辨識」。台語、客語、粵語不支援（手機辨識不了）。
+- **手錶**：每句譯文 `PATH_CAPTION` 推給手錶，手機錄音中畫面顯示最新一句（最多 3 行）。
+- 測試：debug 版可用 `adb shell am start -n com.example.wristai/.MainActivity --es debug_caption_wav <app 內的 wav> --es debug_caption_lang en --es debug_caption_target zh` 餵一個 16 kHz 單聲道 WAV（模擬器沒辦法說話）。模擬器實測：Windows TTS 英文 → 線上辨識 → 繁中譯文正確。手錶顯示沒在模擬器看過。

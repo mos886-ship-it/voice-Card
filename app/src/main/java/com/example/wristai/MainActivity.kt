@@ -115,6 +115,15 @@ class MainActivity : ComponentActivity() {
 
     /** 从录音机等 App「分享」音频到 WristAI。 */
     private fun handleShare(intent: Intent?) {
+        // 测试版才有：adb 送一个 WAV 进即时翻译（模拟器没办法真的说话）
+        if ((applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0) intent?.getStringExtra("debug_caption_wav")?.let { path ->
+            val src = SpeechLang.of(intent.getStringExtra("debug_caption_lang") ?: "en")
+            val dst = LiveCaptions.Target.of(intent.getStringExtra("debug_caption_target")) ?: LiveCaptions.Target.ZH
+            com.example.wristai.ui.TranslatePage.open()
+            LiveCaptions.start(this, src, dst)
+            LiveCaptions.debugFeedWav(java.io.File(path))
+            return
+        }
         // 大D的主機配对连结 dylan://pair?…（相机扫 QR、配对页的连结）→ 设定页处理
         if (intent?.action == Intent.ACTION_VIEW && intent.data?.scheme == "dylan") {
             com.example.wristai.ui.PendingPair.link = intent.data.toString()
@@ -156,12 +165,16 @@ private fun App() {
     LaunchedEffect(com.example.wristai.ui.PendingPair.link) {
         if (com.example.wristai.ui.PendingPair.link != null) go(Tab.SETTINGS.route)
     }
+    // 即时翻译页（主页「翻譯」、录音中「即時翻譯」）
+    LaunchedEffect(com.example.wristai.ui.TranslatePage.requested) {
+        if (com.example.wristai.ui.TranslatePage.requested) { com.example.wristai.ui.TranslatePage.requested = false; route = "translate" }
+    }
     val overview = com.example.wristai.ui.theme.AppTheme.layout == com.example.wristai.ui.theme.LayoutMode.OVERVIEW
     // 快錄排布没有「檔案」分页：从總覽换过来时停在档案分页 → 回今天
     if (!overview && route == Tab.FILES.route) route = Tab.HOME.route
     val tab = Tab.entries.firstOrNull { it.route == route }
     // 返回键：详情 → 原分页；其他分页 → 主页
-    if (route.startsWith("detail:")) BackHandler { route = lastTab }
+    if (route.startsWith("detail:") || route == "translate") BackHandler { route = lastTab }
     else if (tab != null && tab != Tab.HOME) BackHandler { go(Tab.HOME.route) }
 
     Column(Modifier.fillMaxSize()) {
@@ -173,6 +186,7 @@ private fun App() {
                     go(if (cloud) Tab.SETTINGS.route else Tab.HOME.route)
                 }
                 r == Tab.SETTINGS.route -> SettingsScreen()
+                r == "translate" -> com.example.wristai.ui.LiveTranslateScreen(onBack = { route = lastTab })
                 // 档案管理：资料库右上的「管理」打开（不是分页）
                 r == "files" -> com.example.wristai.ui.FilesScreen(onBack = { route = lastTab }, onOpen = { route = "detail:${it}" }, onOpenSettings = { go(Tab.SETTINGS.route) })
                 // 總覽排布：档案是一个分页

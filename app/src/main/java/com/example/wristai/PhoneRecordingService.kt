@@ -196,6 +196,7 @@ class PhoneRecordingService : Service() {
                         val n = record.read(buffer, 0, buffer.size)
                         if (n <= 0) continue
                         AudioLevel.feed(buffer, n, AudioSpec.SAMPLE_RATE)   // 录音卡的音量条
+                        LiveCaptions.feed(buffer, n)                        // 即时翻译页开着才会用
                         out.write(buffer, 0, n)
                         writer.write(buffer, n)
                         if (writer.samples >= segmentSamples) {
@@ -289,6 +290,7 @@ class PhoneRecordingService : Service() {
             wakeLock?.let { if (it.isHeld) it.release() }
             wakeLock = null
             PhoneRecorder.set(null)
+            kotlinx.coroutines.withContext(Dispatchers.Main) { LiveCaptions.stop() }
             broadcastState(this@PhoneRecordingService)
             stopSelfCompletely()
         }

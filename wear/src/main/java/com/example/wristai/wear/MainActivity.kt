@@ -908,7 +908,12 @@ private fun RecordingScreen(recorder: RecorderStatus, phoneRec: Long?, phoneStat
         val level by com.example.voiceai.shared.AudioLevel.state.collectAsState()
         if (phoneRec == null) WatchLevel(level)
         RecordCircle(recording = true, sending = false, onClick = onStop, compact = true)
-        Text(
+        // 手机开着即时翻译：显示最新一句译文
+        val caption by WatchState.caption.collectAsState()
+        if (phoneRec != null && caption != null) Text(
+            caption!!, fontSize = 13.sp, color = Brand.Text, textAlign = TextAlign.Center,
+            maxLines = 3, overflow = TextOverflow.Ellipsis, lineHeight = 16.sp,
+        ) else Text(
             when {
                 phoneRec != null -> phoneStatus ?: "點一下停止".tr
                 level.loud -> "聲音太大，離遠一點".tr

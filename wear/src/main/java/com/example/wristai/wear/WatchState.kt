@@ -206,6 +206,11 @@ object WatchState {
         _recorder.value = status
     }
 
+    /** 手机即时翻译的最新一句（null = 没开）。 */
+    private val _caption = MutableStateFlow<String?>(null)
+    val caption: StateFlow<String?> = _caption.asStateFlow()
+    fun setCaption(text: String) { _caption.value = text.ifBlank { null } }
+
     fun setPhoneStatus(text: String?) {
         _phoneStatus.value = text
     }

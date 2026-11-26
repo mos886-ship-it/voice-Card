@@ -18,6 +18,11 @@ object WatchNotifier {
         send(context, nodeId, WristAiProtocol.PATH_STATUS, text.toByteArray(Charsets.UTF_8))
     }
 
+    /** 即时翻译：最新一句译文推给所有手表（"" = 关掉）。 */
+    fun sendCaption(context: Context, text: String) {
+        broadcast(context, WristAiProtocol.PATH_CAPTION, text)
+    }
+
     fun sendSummary(context: Context, nodeId: String?, summary: MeetingSummary) {
         // 补上录音时间与长度（手表要分开显示「录音时间」与「报告时间」）
         val m = MeetingStore.get(context, summary.recordingId)

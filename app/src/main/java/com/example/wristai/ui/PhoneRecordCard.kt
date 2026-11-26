@@ -179,6 +179,10 @@ fun PhoneRecordCard(onOpenMeeting: (String) -> Unit, foodMode: Boolean = false) 
             }
             Spacer(Modifier.height(12.dp))
             LevelMeter()
+            if (!food) {
+                Spacer(Modifier.height(10.dp))
+                GhostButton("即時翻譯".tr, { TranslatePage.open() }, Modifier.fillMaxWidth())
+            }
             Spacer(Modifier.height(10.dp))
             Text(if (food) "說出吃了什麼、大概份量（例如：牛肉麵一碗、半糖紅茶），說完按停止".tr
                 else "可以關螢幕，會繼續錄；停止後自動整理".tr,

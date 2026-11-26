@@ -32,6 +32,8 @@ class PhoneMessageListenerService : WearableListenerService() {
                 }
             }
 
+            WristAiProtocol.PATH_CAPTION -> WatchState.setCaption(event.data.toString(Charsets.UTF_8))
+
             WristAiProtocol.PATH_GEO_ACK -> WatchState.setGeoAck(event.data.toString(Charsets.UTF_8))
 
             WristAiProtocol.PATH_LIST -> WatchState.saveList(this, event.data.toString(Charsets.UTF_8))
