@@ -240,6 +240,7 @@ private struct CaptureCard: View {
                 mini("飲食".tr, food) { BowlGlyph(color: Brand.cyan).frame(width: 18, height: 18) }
                 mini("通話".tr, call) { Image(systemName: "phone").font(.system(size: 15)).foregroundStyle(Brand.cyan) }
                 mini("匯入".tr, importFile) { Image(systemName: "square.and.arrow.down").font(.system(size: 15)).foregroundStyle(Brand.cyan) }
+                mini("翻譯".tr, { TranslatePage.shared.open() }) { Text("文A").font(.labelMedium).foregroundStyle(Brand.cyan) }
             }
             .padding(.top, 12)
         }
@@ -336,6 +337,9 @@ private struct RecordingCard: View {
             LevelMeter(paused: interrupted, detailed: detailed, onSurface: true)
                 .padding(.top, 12)
             Text("可以鎖螢幕，會繼續錄；停止後自動整理".tr).font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 10)
+            if !food {
+                GhostButton(text: "即時翻譯".tr, tint: Brand.cyan) { TranslatePage.shared.open() }.padding(.top, 10)
+            }
         }
     }
 }

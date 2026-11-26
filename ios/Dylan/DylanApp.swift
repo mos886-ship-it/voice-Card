@@ -14,6 +14,7 @@ struct DylanApp: App {
     var body: some Scene {
         WindowGroup {
             ThemedRoot()
+                .background(LiveTranslateHost())   // 即時翻譯的翻譯工作（不跟著換頁消失）
                 .environmentObject(MeetingStore.shared)
                 .environmentObject(PhoneLink.shared)
                 .task { await AiStatus.shared.refresh() } // 開 App 就偵測這支 iPhone 能用哪種 AI
@@ -41,6 +42,21 @@ struct DylanApp: App {
                     }
                 }
                 #if DEBUG
+                // 測試即時翻譯：Documents/debug_caption.json = {"file": "en.m4a", "lang": "en", "target": "zh"}（讀完就刪）
+                .task {
+                    let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                    let cfg = docs.appendingPathComponent("debug_caption.json")
+                    guard let data = try? Data(contentsOf: cfg),
+                          let d = try? JSONSerialization.jsonObject(with: data) as? [String: String], let name = d["file"] else { return }
+                    try? FileManager.default.removeItem(at: cfg)
+                    let url = docs.appendingPathComponent(name)
+                    let src = SpeechLang(rawValue: d["lang"] ?? "en") ?? .en
+                    let tgt = LiveCaptions.Target(rawValue: d["target"] ?? "zh") ?? .zh
+                    LangSettings.shared.lang = src
+                    TranslatePage.shared.open()
+                    LiveCaptions.shared.start(source: src, target: tgt)
+                    await LiveCaptions.shared.debugFeed(url)
+                }
                 // 測試用：simctl launch <iPhone> tw.dylan.wristai -processId 20261122_000000（背景分析測試）
                 .task {
                     // 測試用：-localToken "$(讀 ~/dylan-local/config.json)"（模擬器的剪貼簿不能用，存取碼從這裡帶進來）

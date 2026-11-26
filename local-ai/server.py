@@ -225,7 +225,12 @@ def apply_models(asr, llm):
 
 
 # 每筆錄音的語言（App 錄音前選）→ 語音模型。國台語夾雜常在同一句裡，整段交給 Breeze，不逐句切。
-LANG_ASR = {"zh": "funasr", "nan": "breeze", "hak": "hakka"}
+LANG_ASR = {"zh": "funasr", "nan": "breeze", "hak": "hakka",
+            # 其他語言（App 的「其他 ▾」）：Whisper 本身是多語言模型，交給 Breeze（Whisper large-v2 微調）並指定語言，
+            # 不要用國語的 FunASR。準確度沒實測過；辨識不了時 App 會改用別的引擎。
+            "en": "breeze", "ja": "breeze", "ko": "breeze", "vi": "breeze", "th": "breeze", "id": "breeze", "yue": "breeze"}
+# App 的語言代號 → Whisper 的語言（粵語：large-v2 沒有 yue，用 zh）
+WHISPER_LANG = {"en": "en", "ja": "ja", "ko": "ko", "vi": "vi", "th": "th", "id": "id", "yue": "zh"}
 
 
 def asr_ready(key):
@@ -346,7 +351,7 @@ def funasr_segments(wav):
     return [(s["start"] / 1000, s["end"] / 1000, s.get("spk", 0), s["text"]) for s in res[0].get("sentence_info", [])]
 
 
-def breeze_segments(wav, asr="breeze", dialect=None):
+def breeze_segments(wav, asr="breeze", dialect=None, lang=None):
     """Whisper 系（Breeze-ASR-26 台語、客語，MLX）辨識文字；每個字的說話者照 FunASR cam++ 的時間段（字的中點落在誰說話的時段）。"""
     import mlx_whisper
     import torchaudio
@@ -358,7 +363,7 @@ def breeze_segments(wav, asr="breeze", dialect=None):
         prompt = HAKKA_DIALECTS.get(dialect or "sixian", "htia_sixian")
     audio, _ = torchaudio.load(wav)   # afconvert 的 wav 是 extensible 格式，內建 wave 讀不了
     r = mlx_whisper.transcribe(audio.mean(dim=0).numpy().astype(np.float32),
-                               path_or_hf_repo=repo, language="zh", initial_prompt=prompt,
+                               path_or_hf_repo=repo, language=WHISPER_LANG.get(lang, "zh"), initial_prompt=prompt,
                                condition_on_previous_text=False, word_timestamps=True,
                                hallucination_silence_threshold=2.0, verbose=None)   # 靜音處不要亂生字
     spans = funasr_segments(wav)
@@ -393,14 +398,16 @@ def breeze_segments(wav, asr="breeze", dialect=None):
 WHISPER_ASR = ("breeze", "hakka", "hakka-nycu")
 
 
-def transcribe(wav, asr=None, dialect=None):
+def transcribe(wav, asr=None, dialect=None, lang=None):
     """→ [mm:ss] 說話者X：內容（同一人連續說的話合併成一行，最長約 30 秒一段）。"""
     asr = asr or CUR["asr"]
-    segs = breeze_segments(wav, asr, dialect) if asr in WHISPER_ASR else funasr_segments(wav)
+    segs = breeze_segments(wav, asr, dialect, lang) if asr in WHISPER_ASR else funasr_segments(wav)
+    # 日文、韓文、英文…不要做簡轉繁（會改到日文漢字）；粵語照樣轉成台灣繁體
+    keep = lang in WHISPER_LANG and lang != "yue"
     lines, cur = [], None
     for start, _, spk, text in segs:
         name = spk_name(spk)
-        text = tw(text)
+        text = text if keep else tw(text)
         if cur and cur["name"] == name and start - cur["start"] < 30:
             sep = "" if re.search(r"[，。！？、,.!?]$", cur["text"]) else "，"
             cur["text"] += (sep if asr in WHISPER_ASR else "") + text
@@ -566,7 +573,7 @@ def localize(prompt, lang):
             f"飲食的 NUTRITION 與 ITEM 行維持原本的欄位格式（欄位名稱與餐別用中文），只有標題、摘要與報告文字用 {name}。")
 
 
-def process(audio_path, kind, recorded_at, duration, text_input=False, asr=None, dialect=None, rlang="zh"):
+def process(audio_path, kind, recorded_at, duration, text_input=False, asr=None, dialect=None, rlang="zh", lang=None):
     t0 = time.time()
     if text_input:
         with open(audio_path, encoding="utf-8", errors="replace") as f:
@@ -574,13 +581,16 @@ def process(audio_path, kind, recorded_at, duration, text_input=False, asr=None,
         header = f"這是一份匯入的文字記錄（會議紀錄、逐字稿或筆記，不是錄音），時間：{recorded_at}。"
     else:
         wav = to_wav(audio_path)
-        transcript = transcribe(wav, asr, dialect)
+        transcript = transcribe(wav, asr, dialect, lang)
         if report_lang(rlang) != "zh":   # 逐字稿的說話者代號跟報告語言一樣（Speaker A / 화자 A）
             transcript = re.sub(r"說話者([A-Z?0-9]+)", lambda m: speaker_code(rlang, m.group(1)), transcript)
         header = f"錄音時間：{recorded_at}，長度約 {duration / 60:.1f} 分鐘。"
         if (asr or CUR["asr"]) in ("hakka", "hakka-nycu"):
             header += (f"這段錄音是客語（{HAKKA_NAMES.get(dialect or 'sixian', '四縣')}腔，可能夾雜國語），逐字稿可能有用字不一的客語漢字或同音字；"
                        "報告請用台灣繁體華語寫，依上下文理解原意，不要自己補沒說過的內容。")
+        elif lang in WHISPER_LANG:
+            header += (f"這段錄音主要是 {lang} 語言（App 語言代號），逐字稿照原文；報告照報告語言的規定寫，"
+                       "依上下文理解原意，不要自己補沒說過的內容。")
         elif (asr or CUR["asr"]) == "breeze":
             header += ("這段錄音有台語（可能國台語夾雜），逐字稿已用華語字寫出，台語詞可能被寫成意思相近或同音的華語字；"
                        "請依上下文理解原意來整理，不要逐字照抄可疑的字，也不要自己補沒說過的內容。")
@@ -649,7 +659,7 @@ def run_job(j, path):
             log(f"job {j['id']} {j['kind']}{' text' if j.get('text_input') else ''} {j.get('size', 0) // 1024} KB, "
                 f"{float(j.get('duration') or 0):.0f}s, asr={asr or CUR['asr']}")
             text = process(path, j["kind"], j.get("recorded_at", ""), float(j.get("duration") or 0),
-                           bool(j.get("text_input")), asr, j.get("dialect"), j.get("report_lang") or "zh")
+                           bool(j.get("text_input")), asr, j.get("dialect"), j.get("report_lang") or "zh", j.get("lang"))
         return {"text": text, "model": tag}
     except Exception as e:  # noqa: BLE001
         log(f"  failed: {e}")
@@ -754,7 +764,8 @@ class Handler(BaseHTTPRequestHandler):
                 "text_input": self.headers.get("X-Input", "") == "text",
                 "recorded_at": self.headers.get("X-Recorded-At", "")[:40], "duration": duration,
                 "asr": asr, "dialect": dialect if dialect in HAKKA_DIALECTS else None,
-                "report_lang": report_lang(self.headers.get("X-Report-Lang", ""))}, None
+                "report_lang": report_lang(self.headers.get("X-Report-Lang", "")),
+                "lang": (self.headers.get("X-Lang", "") or "")[:8] or None}, None
 
     def _receive(self, params):
         """把上傳的內容寫進佇列（JOBS.submit）。"""

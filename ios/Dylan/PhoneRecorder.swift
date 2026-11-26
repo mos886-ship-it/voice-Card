@@ -137,6 +137,7 @@ final class PhoneRecorder: ObservableObject {
             if let m = AudioLevel.measure(buffer) {
                 Task { @MainActor in AudioLevel.shared.push(m) }
             }
+            LiveCaptions.feed(buffer)   // 即時翻譯開著才會用
             queue.async { writer.write(buffer) }
         }
         engine.prepare()
@@ -178,6 +179,7 @@ final class PhoneRecorder: ObservableObject {
 
     func stop() {
         guard isRecording else { return }
+        LiveCaptions.shared.recordingStopped()   // 字幕跟著錄音停
         watchdog?.invalidate()
         watchdog = nil
         engine.inputNode.removeTap(onBus: 0)

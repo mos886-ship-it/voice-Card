@@ -492,3 +492,12 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 - 原本「檔案」選檔、從別的 App 分享 / 打開方式送來的影片本來就能匯入（`public.movie`）。
 - 選單掛在頁面層的 background（同一個 view 上同時掛 fileImporter / confirmationDialog 會互相吃掉）。
 - 模擬器驗過：相簿放一段 7 秒、有國語語音的影片 → 匯入成一筆只有 AAC 聲音的記錄 → 大D的主機產生報告（標題、摘要正確）。Android 沒有這個入口（Android 可以從相簿分享給 App）。
+
+## iOS：即時翻譯、語言都送主機（跟 Android decfa47、9b5d011）
+
+- **即時翻譯頁**（`ios/Dylan/LiveTranslateView.swift`，全螢幕；`TranslatePage.shared.open()`）：說的語言（同錄音的辨識語言）、翻譯成（繁中 / English / 한국어 / 日本語 / Tiếng Việt；預設介面語言，跟來源一樣就中↔英）、開始錄音並翻譯 / 開始翻譯（目前的錄音）/ 停止翻譯 / 停止錄音、字幕清單（原文小字、譯文大字，自動捲到最新）。入口：快錄主頁錄音卡「文A 翻譯」、總覽主頁「文A 即時翻譯」、兩種錄音中卡片的「即時翻譯」。
+- **引擎**（`ios/Dylan/LiveCaptions.swift`）：PhoneRecorder 的音訊 tap → `LiveCaptions.feed` → `SFSpeechAudioBufferRecognitionRequest`（先手機上辨識；手機上起不來就改 Apple 線上辨識並寫說明），句尾標點或停頓 1.5 秒算一句，一段結束自動接下一段。翻譯用 Apple「翻譯」框架：`LiveTranslateHost` 掛在 App 最外層，iOS 18 以上 `.translationTask` 拿 session 一句句翻（第一次用某語言系統會問要不要下載）；iOS 17 以下只顯示原文。錄音停止字幕一起停。連續 3 次出錯又沒聽到東西就停字幕並顯示「手機的語音辨識沒辦法邊錄邊辨識（錯誤 N）…」（沒人說話 1110、取消 216/301 不算）。台語、客語、粵語不支援。權限：`NSSpeechRecognitionUsageDescription`（繁中，第一次開始翻譯時問）。
+- **手錶**：每句譯文 `pathCaption`（/wristai/caption）推給手錶，手錶錄音頁的狀態文字顯示「文A 最新一句」。
+- **語言都送大D的主機**：iOS 拿掉 `Health.langs` 的擋（主機辨識不了會回錯誤，照常改用別的引擎）；詳情頁選其他語言時多一行「逐字稿照X原文寫，報告用報告語言；大D的主機辨識不了時會改用其他引擎。」
+- **主機（server.py）**：en/ja/ko/vi/th/id/yue 交給 Breeze（Whisper）並指定 Whisper 語言（粵語用 zh），不再用國語的 FunASR；這些語言的逐字稿不做簡轉繁（粵語照轉）；health 的 langs 列出全部。英文等的準確度沒實測；主機上執行中的要重新部署才生效。
+- 測試：debug 版放 `Documents/debug_caption.json`（{"file","lang","target"}）會把那個音檔照實際速度餵進字幕。模擬器的語音辨識起不來（kLSRErrorDomain 300，手機上辨識與線上都一樣），所以字幕與翻譯只在模擬器驗過頁面、失敗時的說明與改線上；真的字幕要在 iPhone 上試。

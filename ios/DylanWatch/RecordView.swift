@@ -67,6 +67,8 @@ struct RecordView: View {
         case let .failed(msg): return (msg, Brand.warning)
         default: break
         }
+        // 手機在即時翻譯：顯示最新一句譯文
+        if !link.caption.isEmpty { return ("文A " + link.caption, Brand.text) }
         let status = link.phoneStatus
         if !status.isEmpty {
             // 手機傳來的進度：完成才打勾綠色，失敗橘色，其他（AI 分析中…）青色

@@ -27,6 +27,14 @@ final class PhoneLink: NSObject, ObservableObject, WCSessionDelegate {
         }
     }
 
+    /// 即時翻譯：最新一句譯文推給手錶（"" = 關掉）。只在連得到時送，不排隊（過時的字幕沒用）。
+    func sendCaption(_ text: String) {
+        let s = WCSession.default
+        guard s.activationState == .activated, s.isWatchAppInstalled, s.isReachable else { return }
+        s.sendMessage([DylanProtocol.keyPath: DylanProtocol.pathCaption, DylanProtocol.keyText: text],
+                      replyHandler: nil, errorHandler: nil)
+    }
+
     /// 分段存好了 → 告訴手錶可以刪（連得到用 sendMessage，否則 transferUserInfo 排隊）。
     private func sendAck(_ fileName: String) {
         let s = WCSession.default

@@ -11,6 +11,8 @@ final class WatchLink: NSObject, ObservableObject, WCSessionDelegate {
     /// 還在手錶上、手機還沒確認的分段數（傳送中 + 等確認）。
     @Published private(set) var pendingCount = 0
     @Published private(set) var phoneStatus = ""
+    /// 手機即時翻譯的最新一句（"" = 沒在翻）
+    @Published private(set) var caption = ""
     /// 手機推來的主題："ink"（水墨）或 "dark"（照 Android Brand.apply，存在偏好設定，下次開 App 沿用）。
     @Published private(set) var theme = UserDefaults.standard.string(forKey: "theme") ?? "dark"
 
@@ -151,6 +153,8 @@ final class WatchLink: NSObject, ObservableObject, WCSessionDelegate {
             acknowledge(text)
         case DylanProtocol.pathStatus:
             DispatchQueue.main.async { self.phoneStatus = text }
+        case DylanProtocol.pathCaption:
+            DispatchQueue.main.async { self.caption = text }
         case DylanProtocol.pathTheme:
             let t = text == "ink" ? "ink" : "dark"
             UserDefaults.standard.set(t, forKey: "theme")

@@ -13,6 +13,8 @@ enum DylanProtocol {
     static let pathSummary = "/wristai/summary"
     /// 手機 → 手錶：外觀主題（applicationContext：path、text = "ink" / "dark"）。
     static let pathTheme = "/wristai/theme"
+    /// 手機 → 手錶：即時翻譯最新一句（譯文，text；"" = 關掉）。
+    static let pathCaption = "/wristai/caption"
 
     static let keyPath = "path"
     static let keyId = "id"

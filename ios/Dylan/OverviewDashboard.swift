@@ -77,6 +77,9 @@ struct OverviewDashboardView: View {
                         QuickTile(title: "記錄飲食".tr, sub: "說出吃了什麼".tr, filled: false, bowl: true) { rec.start(food: true) }
                     }
                 }
+                if !rec.isRecording {
+                    GhostButton(text: "文A  " + "即時翻譯".tr, tint: Brand.cyan) { TranslatePage.shared.open() }
+                }
                 CallTile(detailed: mode == .tech) { BroadcastPicker.open() }
                     .background(BroadcastPicker().frame(width: 1, height: 1))
 
@@ -243,6 +246,14 @@ private struct RecordingCard: View {
         LevelMeter(paused: interrupted, detailed: detailed)
             .padding(12)
             .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color.black.opacity(0.18)))
+        if !food {
+            Button { TranslatePage.shared.open() } label: {
+                Text("即時翻譯".tr).font(.labelLarge).foregroundColor(.white)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .background(Capsule().stroke(Color.white.opacity(0.6), lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+        }
         }
         .padding(16)
         .background(shape.fill(Brand.accent))

@@ -163,6 +163,10 @@ struct DetailView: View {
                                         store.save(mm)
                                     }
                                 }
+                                if m.speechLang.other {   // 其他語言：說明逐字稿照原文、報告用報告語言
+                                    Text("逐字稿照{0}原文寫，報告用報告語言；大D的主機辨識不了時會改用其他引擎。".trf(m.speechLang.label))
+                                        .font(.labelMedium).foregroundStyle(Brand.textFaint).padding(.horizontal, 6)
+                                }
                             }
                         }
 

@@ -4639,6 +4639,82 @@
   "en": "Other languages",
   "ko": "기타 언어"
  },
+ "這個語言沒有即時字幕（台語、客語、粵語手機辨識不了）": {
+  "en": "No live captions for this language (the phone can't recognize Taiwanese, Hakka or Cantonese)",
+  "ko": "이 언어는 실시간 자막이 없습니다(휴대폰이 대만어, 객가어, 광둥어를 인식할 수 없음)"
+ },
+ "準備翻譯模型…": {
+  "en": "Preparing the translation model…",
+  "ko": "번역 모델 준비 중…"
+ },
+ "翻譯模型下載失敗，只顯示原文（{0}）": {
+  "en": "Translation model download failed; showing the original only ({0})",
+  "ko": "번역 모델 다운로드 실패, 원문만 표시합니다({0})"
+ },
+ "手機的語音辨識沒有{0}：請到系統設定下載這個語言的離線語音": {
+  "en": "The phone's speech recognition doesn't have {0}: download the offline speech pack for it in system settings",
+  "ko": "휴대폰 음성 인식에 {0}가 없습니다. 시스템 설정에서 이 언어의 오프라인 음성을 다운로드하세요"
+ },
+ "需要麥克風權限": {
+  "en": "Microphone permission needed",
+  "ko": "마이크 권한이 필요합니다"
+ },
+ "翻譯": {
+  "en": "Translate",
+  "ko": "번역"
+ },
+ "即時翻譯": {
+  "en": "Live translate",
+  "ko": "실시간 번역"
+ },
+ "說的語言": {
+  "en": "Spoken language",
+  "ko": "말하는 언어"
+ },
+ "翻譯成": {
+  "en": "Translate to",
+  "ko": "번역할 언어"
+ },
+ "台語、客語、粵語手機辨識不了，沒有即時字幕；錄完的報告不受影響。": {
+  "en": "The phone can't recognize Taiwanese, Hakka or Cantonese, so there are no live captions; the report after recording isn't affected.",
+  "ko": "휴대폰이 대만어, 객가어, 광둥어를 인식할 수 없어 실시간 자막이 없습니다. 녹음 후 보고서는 영향 없습니다."
+ },
+ "停止翻譯": {
+  "en": "Stop translating",
+  "ko": "번역 중지"
+ },
+ "開始翻譯（目前的錄音）": {
+  "en": "Start translating (current recording)",
+  "ko": "번역 시작(현재 녹음)"
+ },
+ "開始錄音並翻譯": {
+  "en": "Record and translate",
+  "ko": "녹음하며 번역"
+ },
+ "開始說話，字幕會出現在這裡…": {
+  "en": "Start talking; captions appear here…",
+  "ko": "말을 시작하면 여기에 자막이 나타납니다…"
+ },
+ "手機內建辨識＋裝置端翻譯，僅供參考；完整、準確的內容以錄完的報告為準。": {
+  "en": "On-phone recognition + on-device translation, for reference only; rely on the report after recording for full, accurate content.",
+  "ko": "휴대폰 내장 인식 + 기기 내 번역으로 참고용입니다. 완전하고 정확한 내용은 녹음 후 보고서를 기준으로 하세요."
+ },
+ "邊錄邊翻譯：上面選好語言，按開始。辨識與翻譯都在手機上做（手機沒有那個語言的離線語音時，會改用 Google 線上辨識）；錄完照常產生完整報告。": {
+  "en": "Translate while recording: pick the languages above and tap start. Recognition and translation run on the phone (if the phone has no offline speech pack for that language, Google's online recognition is used); the full report is still made after recording.",
+  "ko": "녹음하며 번역: 위에서 언어를 고르고 시작을 누르세요. 인식과 번역은 휴대폰에서 이루어집니다(그 언어의 오프라인 음성이 없으면 Google 온라인 인식을 사용). 녹음이 끝나면 평소처럼 전체 보고서가 만들어집니다."
+ },
+ "手機的離線語音沒有{0}，這次改用線上辨識（聲音會傳到 Google 辨識）": {
+  "en": "The phone has no offline speech for {0}; using online recognition this time (audio is sent to Google)",
+  "ko": "휴대폰에 {0} 오프라인 음성이 없어 이번에는 온라인 인식을 사용합니다(소리가 Google로 전송됨)"
+ },
+ "手機的語音辨識沒辦法邊錄邊辨識（錯誤 {0}）。錄音照常，錄完的報告不受影響。": {
+  "en": "The phone's speech recognition can't caption while recording (error {0}). Recording continues and the report afterwards isn't affected.",
+  "ko": "휴대폰 음성 인식이 녹음 중 자막을 만들 수 없습니다(오류 {0}). 녹음은 계속되며 녹음 후 보고서는 영향 없습니다."
+ },
+ "逐字稿照{0}原文寫，報告用報告語言；大D的主機辨識不了時會改用其他引擎。": {
+  "en": "The transcript stays in {0}, the report is in your report language; if Dylan Host can't recognize it, another engine is used.",
+  "ko": "텍스트는 {0} 원문 그대로, 보고서는 보고서 언어로 작성합니다. Dylan 호스트가 인식하지 못하면 다른 엔진을 사용합니다."
+ },
  "從檔案選（錄音、影片、文字）": {
   "en": "From Files (audio, video, text)",
   "ko": "파일에서 선택(녹음, 동영상, 텍스트)"
@@ -4654,5 +4730,29 @@
  "讀不到這段影片": {
   "en": "Couldn't read this video",
   "ko": "이 동영상을 읽을 수 없습니다"
+ },
+ "沒有語音辨識權限：到 iPhone 設定 → 大D 打開「語音辨識」": {
+  "en": "No speech recognition access: turn on Speech Recognition in iPhone Settings → Dylan",
+  "ko": "음성 인식 권한이 없습니다: iPhone 설정 → Dylan에서 '음성 인식'을 켜세요"
+ },
+ "這支 iPhone 沒有這個語言的語音辨識": {
+  "en": "This iPhone has no speech recognition for this language",
+  "ko": "이 iPhone에는 이 언어의 음성 인식이 없습니다"
+ },
+ "這個語言沒有手機上的語音辨識，聲音會傳到 Apple 辨識": {
+  "en": "This language can't be recognized on the phone, so the audio is sent to Apple for recognition",
+  "ko": "이 언어는 휴대폰에서 인식할 수 없어 소리를 Apple로 보내 인식합니다"
+ },
+ "翻譯需要 iOS 18 以上；這支 iPhone 只顯示原文": {
+  "en": "Translation needs iOS 18 or later; this iPhone shows the original only",
+  "ko": "번역은 iOS 18 이상이 필요합니다. 이 iPhone에서는 원문만 표시합니다"
+ },
+ "翻譯失敗：{0}": {
+  "en": "Translation failed: {0}",
+  "ko": "번역 실패: {0}"
+ },
+ "邊錄邊翻譯：上面選好語言，按開始。辨識與翻譯都在手機上做（手機沒有那個語言的離線語音時，會改用 Apple 線上辨識）；錄完照常產生完整報告。": {
+  "en": "Translate while recording: pick the languages above and tap Start. Recognition and translation run on the phone (if the phone has no offline speech for that language, Apple's online recognition is used); the full report is made as usual when you stop.",
+  "ko": "녹음하면서 번역: 위에서 언어를 고르고 시작을 누르세요. 인식과 번역은 휴대폰에서 합니다(그 언어의 오프라인 음성이 없으면 Apple 온라인 인식을 사용). 녹음이 끝나면 평소처럼 전체 보고서를 만듭니다."
  }
 }

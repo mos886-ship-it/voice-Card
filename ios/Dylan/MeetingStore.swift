@@ -260,11 +260,7 @@ final class MeetingStore: ObservableObject {
             await localFailed(id, message: error.localizedDescription)
             return
         }
-        // 主機還不能辨識這個語言（英語、日語…）：這次改用 Gemini（或 Apple）
-        if !Self.isText(id), !h.supports(m.speechLang) {
-            await localFailed(id, message: "大D的主機還不能辨識{0}".trf(m.speechLang.label), unsupported: true)
-            return
-        }
+        // 語言交給主機判斷（照 Android 9b5d011）：主機辨識不了會回錯誤，再改用別的引擎
         // Mac 在跑的同時，Apple 先出預覽逐字稿（Apple 不會台語：台語錄音不出預覽）
         if !m.isFood && !Self.isText(id) && m.speechLang == .zh { Task { await self.preview(id) } }   // 台語、客語都不出
         do {

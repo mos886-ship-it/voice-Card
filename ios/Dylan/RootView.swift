@@ -48,6 +48,7 @@ struct RootView: View {
     @State private var path: [String] = []
     @State private var toast: String?
     @ObservedObject private var photoCapture = FoodPhotoCapture.shared
+    @ObservedObject private var translatePage = TranslatePage.shared
 
     var body: some View {
         GeometryReader { geo in
@@ -81,6 +82,7 @@ struct RootView: View {
         .environment(\.pageWidth, geo.size.width)
         }
         .toast($toast)
+        .background(Color.clear.fullScreenCover(isPresented: $translatePage.presented) { LiveTranslateView() })
         .sheet(isPresented: $photoCapture.presented) {
             FoodPhotoSheet { id in
                 if let id { path = []; tab = .food; toast = "照片已送出，AI 估算中".tr }
