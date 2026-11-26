@@ -1,5 +1,8 @@
 package com.example.wristai.ui
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -120,7 +123,7 @@ fun ReportView(
                 }
                 is ReportBlock.Paragraph ->
                     if (com.example.wristai.ReportLang.isSummaryHeading(section) && com.example.wristai.ReportLang.isNone(b.text))
-                        Text("這份報告沒有摘要，按上方「重新產生」可以補上。", style = MaterialTheme.typography.bodySmall, color = Brand.TextFaint)
+                        Text("這份報告沒有摘要，按上方「重新產生」可以補上。".tr, style = MaterialTheme.typography.bodySmall, color = Brand.TextFaint)
                     else Text(richText(b.text), style = MaterialTheme.typography.bodyMedium, color = Brand.TextMuted)
                 is ReportBlock.Bullet -> Row(Modifier.padding(start = 4.dp)) {
                     if (b.ordered != null) {
@@ -147,7 +150,7 @@ private fun ReportTable(t: ReportBlock.Table, names: Map<String, String>, onRena
     val nameCol = t.header.indexOfFirst { com.example.wristai.ReportLang.isNameColumn(it) }
     val rows = t.rows.filter { r -> r.any { c -> c.trim() !in EMPTY_VALUES && !c.trim().startsWith("未知") && !c.trim().startsWith("Unknown", true) } }
     if (rows.isEmpty()) {
-        Text("無", style = MaterialTheme.typography.bodyMedium, color = Brand.TextFaint)
+        Text("無".tr, style = MaterialTheme.typography.bodyMedium, color = Brand.TextFaint)
         return
     }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -167,7 +170,7 @@ private fun ReportTable(t: ReportBlock.Table, names: Map<String, String>, onRena
                     Text(richText(first), style = MaterialTheme.typography.titleSmall, color = Brand.Text, modifier = Modifier.weight(1f, fill = false))
                     if (canRename) {
                         Spacer(Modifier.width(8.dp))
-                        Text(if (named) "改名" else "＋ 命名", style = MaterialTheme.typography.labelSmall,
+                        Text(if (named) "改名".tr else "＋ 命名".tr, style = MaterialTheme.typography.labelSmall,
                             color = if (named) Brand.TextFaint else Brand.Cyan)
                     }
                 }
@@ -204,8 +207,8 @@ private fun FoodTable(t: ReportBlock.Table) {
     val iPortion = col("份量", "Portion", "분량")
     val iKcal = col("熱量", "Calories", "열량")
     val iP = col("蛋白", "Protein", "단백질")
-    val iC = col("碳水", "Carbs", "탄수")
-    val iF = col("脂肪", "Fat", "지방")
+    val iC = col("碳水".tr, "Carbs", "탄수")
+    val iF = col("脂肪".tr, "Fat", "지방")
     val iSrc = col("來源", "Source", "출처")
     val rows = t.rows.filter { r -> r.getOrNull(iName).orEmpty().isNotBlank() }
     fun cell(r: List<String>, i: Int) = if (i < 0) "" else r.getOrNull(i).orEmpty().trim()
@@ -221,14 +224,14 @@ private fun FoodTable(t: ReportBlock.Table) {
                     val kcal = cell(r, iKcal)
                     if (kcal.isNotEmpty()) {
                         Spacer(Modifier.width(8.dp))
-                        Text("$kcal 大卡", style = MaterialTheme.typography.titleSmall, color = Brand.Cyan)
+                        Text("{0} 大卡".trf(kcal), style = MaterialTheme.typography.titleSmall, color = Brand.Cyan)
                     }
                 }
                 val detail = listOf(
                     cell(r, iPortion),
-                    cell(r, iP).takeIf { it.isNotEmpty() }?.let { "蛋白質 ${it}g" }.orEmpty(),
-                    cell(r, iC).takeIf { it.isNotEmpty() }?.let { "碳水 ${it}g" }.orEmpty(),
-                    cell(r, iF).takeIf { it.isNotEmpty() }?.let { "脂肪 ${it}g" }.orEmpty(),
+                    cell(r, iP).takeIf { it.isNotEmpty() }?.let { "蛋白質 {0}g".trf(it) }.orEmpty(),
+                    cell(r, iC).takeIf { it.isNotEmpty() }?.let { "碳水 {0}g".trf(it) }.orEmpty(),
+                    cell(r, iF).takeIf { it.isNotEmpty() }?.let { "脂肪 {0}g".trf(it) }.orEmpty(),
                 ).filter { it.isNotEmpty() }.joinToString(" · ")
                 if (detail.isNotEmpty()) {
                     Spacer(Modifier.height(3.dp))
@@ -285,7 +288,7 @@ private fun initial(label: String?, name: String?): String =
 @Composable
 fun SpeakerPanel(stats: List<SpeakerStat>, names: Map<String, String>, onRename: (String) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text("${stats.size} 位說話者  ·  點名字可改名", style = MaterialTheme.typography.labelSmall, color = Brand.TextFaint)
+        Text("{0} 位說話者  ·  點名字可改名".trf(stats.size), style = MaterialTheme.typography.labelSmall, color = Brand.TextFaint)
         for (st in stats) {
             val name = names[st.label]
             Row(
@@ -303,7 +306,7 @@ fun SpeakerPanel(stats: List<SpeakerStat>, names: Map<String, String>, onRename:
                             Text(st.label, style = MaterialTheme.typography.labelSmall, color = Brand.TextFaint)
                         }
                         Spacer(Modifier.width(6.dp))
-                        Icon(Icons.Filled.Edit, "改名", Modifier.size(14.dp), tint = Brand.TextFaint)
+                        Icon(Icons.Filled.Edit, "改名".tr, Modifier.size(14.dp), tint = Brand.TextFaint)
                     }
                     Spacer(Modifier.height(5.dp))
                     Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)).background(Brand.SurfaceHigher)) {
@@ -428,27 +431,27 @@ fun ReportFacts(m: com.example.wristai.Meeting, geo: com.example.voiceai.shared.
             .border(1.dp, Brand.Outline, RoundedCornerShape(14.dp)).padding(horizontal = 14.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Text("基本資料", style = MaterialTheme.typography.labelMedium, color = Brand.TextFaint)
-        FactRow("時間", recordingRange(m))
+        Text("基本資料".tr, style = MaterialTheme.typography.labelMedium, color = Brand.TextFaint)
+        FactRow("時間".tr, recordingRange(m))
         if (geo != null) {
             FactRow(
-                "地點",
-                (geo.place ?: "%.5f, %.5f".format(geo.lat, geo.lon)) + (if (geo.accuracy > 0) "（±${geo.accuracy.toInt()} m）" else ""),
+                "地點".tr,
+                (geo.place ?: "%.5f, %.5f".format(geo.lat, geo.lon)) + (if (geo.accuracy > 0) "（±{0} m）".trf(geo.accuracy.toInt()) else ""),
                 link = true, onClick = { onOpenMap(geo) },
             )
-        } else FactRow("地點", "未記錄", faint = true)
-        FactRow("來源", m.origin().label)
+        } else FactRow("地點".tr, "未記錄".tr, faint = true)
+        FactRow("來源".tr, m.origin().label)
         // AI 两种模式都显示（用了哪个模型）
         FactRow("AI", aiModelLabel(m.aiModel), faint = m.aiModel == null)
-        m.importedAt?.let { FactRow("匯入", formatWhen(it)) }
+        m.importedAt?.let { FactRow("匯入".tr, formatWhen(it)) }
         // 给大D的主机处理过：主机上的录音、报告删了没（两种模式都显示）
-        m.hostCleanup?.let { FactRow("隱私", it) }
+        m.hostCleanup?.let { FactRow("隱私".tr, it.tr) }
         // 科技模式：耗时、编号、为什么改用别的引擎
         if (UiMode.tech) {
             if (m.processStartedAt > 0 && m.processEndedAt > m.processStartedAt)
-                FactRow("耗時", durationWords(m.processEndedAt - m.processStartedAt))
-            FactRow("編號", m.id, faint = true)
-            m.engineNote?.let { FactRow("引擎", it, faint = true) }
+                FactRow("耗時".tr, durationWords(m.processEndedAt - m.processStartedAt))
+            FactRow("編號".tr, m.id, faint = true)
+            m.engineNote?.let { FactRow("引擎".tr, it, faint = true) }
         }
     }
 }
@@ -459,7 +462,7 @@ private fun FactRow(label: String, value: String, link: Boolean = false, faint: 
         Modifier.fillMaxWidth().then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
         verticalAlignment = Alignment.Top,
     ) {
-        Text(label, style = MaterialTheme.typography.bodySmall, color = Brand.TextFaint, modifier = Modifier.width(44.dp))
+        Text(label, style = MaterialTheme.typography.bodySmall, color = Brand.TextFaint, modifier = Modifier.widthIn(min = 44.dp).padding(end = 10.dp))
         Text(value + if (link) "  ›" else "", style = MaterialTheme.typography.bodySmall,
             color = when { link -> Brand.Cyan; faint -> Brand.TextFaint; else -> Brand.Text }, modifier = Modifier.weight(1f))
     }

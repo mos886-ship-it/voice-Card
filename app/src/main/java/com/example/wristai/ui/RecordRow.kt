@@ -1,5 +1,8 @@
 package com.example.wristai.ui
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
@@ -54,7 +57,7 @@ fun summaryOf(report: String?): String? {
     val body = lines.drop(start + 1).takeWhile { !it.trimStart().startsWith("#") }
         .joinToString(" ") { it.trim().removePrefix("-").removePrefix("*").trim() }
         .replace(Regex("[*_`>|]+"), "").replace(Regex("\\s+"), " ").trim()
-    return body.takeIf { it.isNotEmpty() && it !in setOf("無", "未知", "（無）") }
+    return body.takeIf { it.isNotEmpty() && it !in setOf("無", "未知", "（無）", "None", "없음") }
 }
 
 /** 清单左边的来源图示（手錶 / 手機 / 通話 / 匯入）。 */
@@ -134,7 +137,7 @@ fun RecordRow(
                         val details = listOfNotNull(
                             origin.label, humanDuration(m.durationSec),
                             m.aiModel?.let { aiModelLabel(it).removePrefix("Google ").removePrefix("Anthropic ") },
-                            processSeconds(m.processStartedAt, m.processEndedAt)?.takeIf { it > 0 }?.let { "耗時 $it 秒" },
+                            processSeconds(m.processStartedAt, m.processEndedAt)?.takeIf { it > 0 }?.let { "耗時 {0} 秒".trf(it) },
                         )
                         Spacer(Modifier.height(3.dp))
                         Text(details.joinToString(" · "), style = MaterialTheme.typography.labelSmall, color = Brand.TextFaint,
@@ -158,17 +161,17 @@ fun RecordRow(
             }
         }
         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-            DropdownMenuItem(text = { Text("打開") }, onClick = { menu = false; onOpen() })
-            DropdownMenuItem(text = { Text("刪除", color = Brand.Error) }, onClick = { menu = false; confirm = true })
+            DropdownMenuItem(text = { Text("打開".tr) }, onClick = { menu = false; onOpen() })
+            DropdownMenuItem(text = { Text("刪除".tr, color = Brand.Error) }, onClick = { menu = false; confirm = true })
         }
     }
     if (confirm) {
         AlertDialog(
             onDismissRequest = { confirm = false },
-            title = { Text("刪除「${meetingTitle(m)}」？") },
-            text = { Text("錄音、報告與逐字稿都會刪除，刪除後無法復原。") },
-            confirmButton = { TextButton(onClick = { confirm = false; onDelete() }) { Text("刪除", color = Brand.Error) } },
-            dismissButton = { TextButton(onClick = { confirm = false }) { Text("取消") } },
+            title = { Text("刪除「{0}」？".trf(meetingTitle(m))) },
+            text = { Text("錄音、報告與逐字稿都會刪除，刪除後無法復原。".tr) },
+            confirmButton = { TextButton(onClick = { confirm = false; onDelete() }) { Text("刪除".tr, color = Brand.Error) } },
+            dismissButton = { TextButton(onClick = { confirm = false }) { Text("取消".tr) } },
         )
     }
 }

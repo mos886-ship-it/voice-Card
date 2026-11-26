@@ -1,5 +1,8 @@
 package com.example.wristai.backup
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import android.content.Context
 import android.util.Log
 import com.example.voiceai.shared.WavFile
@@ -92,7 +95,7 @@ object DriveBackup {
 
     // ---------------- 授权（Google 帐号） ----------------
 
-    class NeedsConsent(val result: AuthorizationResult) : Exception("需要使用者同意")
+    class NeedsConsent(val result: AuthorizationResult) : Exception("需要使用者同意".tr)
 
     fun request(): AuthorizationRequest =
         AuthorizationRequest.builder().setRequestedScopes(listOf(Scope(SCOPE))).build()
@@ -106,12 +109,12 @@ object DriveBackup {
             Identity.getAuthorizationClient(c).authorize(request()).await()
         } catch (e: com.google.android.gms.common.api.ApiException) {
             throw BackupException(
-                if (e.statusCode == 10) "這個 App 還沒在 Google Cloud 登記（OAuth 用戶端），見 交接/DRIVE_BACKUP.md"
-                else "Google 帳號授權失敗（${e.statusCode}）",
+                if (e.statusCode == 10) "這個 App 還沒在 Google Cloud 登記（OAuth 用戶端），見 交接/DRIVE_BACKUP.md".tr
+                else "Google 帳號授權失敗（{0}）".trf(e.statusCode),
             )
         }
         if (r.hasResolution()) throw NeedsConsent(r)
-        return r.accessToken ?: throw BackupException("Google 沒有給存取權杖")
+        return r.accessToken ?: throw BackupException("Google 沒有給存取權杖".tr)
     }
 
     /**
@@ -120,18 +123,18 @@ object DriveBackup {
      */
     fun consentError(resultCode: Int, status: Int?, detail: String? = null): String = when {
         // 没登记：有的版本回 10，有的回 8 加「UNREGISTERED_ON_API_CONSOLE」
-        status == 10 || detail?.contains("UNREGISTERED_ON_API_CONSOLE") == true -> "這個 App 還沒在 Google Cloud 登記（OAuth 用戶端、測試使用者），Google 不給授權。設定步驟見 交接/DRIVE_BACKUP.md"
+        status == 10 || detail?.contains("UNREGISTERED_ON_API_CONSOLE") == true -> "這個 App 還沒在 Google Cloud 登記（OAuth 用戶端、測試使用者），Google 不給授權。設定步驟見 交接/DRIVE_BACKUP.md".tr
         status == 16 || status == 12501 || (status == null && resultCode == android.app.Activity.RESULT_CANCELED) ->
-            "已取消 Google 授權" + if (status == null) "（如果你沒有按取消：多半是這個 App 還沒在 Google Cloud 登記，見 交接/DRIVE_BACKUP.md）" else ""
-        status == 7 -> "連不到 Google，請確認網路"
-        status != null -> "Google 授權失敗（代碼 $status）"
-        else -> "沒有完成 Google 授權"
+            "已取消 Google 授權".tr + if (status == null) "（如果你沒有按取消：多半是這個 App 還沒在 Google Cloud 登記，見 交接/DRIVE_BACKUP.md）".tr else ""
+        status == 7 -> "連不到 Google，請確認網路".tr
+        status != null -> "Google 授權失敗（代碼 {0}）".trf(status)
+        else -> "沒有完成 Google 授權".tr
     }
 
     /** 同意后：记住已连结、存 email（显示用）。 */
     fun finishLink(c: Context, token: String) {
         val email = runCatching {
-            JSONObject(get(token, "$API/about?fields=user(emailAddress)")).optJSONObject("user")?.optString("emailAddress")
+            JSONObject(get(token, "${API}/about?fields=user(emailAddress)")).optJSONObject("user")?.optString("emailAddress")
         }.getOrNull()?.takeIf { it.isNotBlank() }
         setLinked(c, email)
     }
@@ -173,7 +176,7 @@ object DriveBackup {
     /** 云端硬碟上的档名：「20261124_225933 Q3 預算週會.zip」（档名不能有的字换掉）。 */
     fun zipName(m: Meeting): String {
         val title = (m.title ?: "").replace(Regex("[\\\\/:*?\"<>|\\n\\r]"), " ").trim().take(40)
-        return if (title.isEmpty()) "${m.id}.zip" else "${m.id} $title.zip"
+        return if (title.isEmpty()) "${m.id}.zip" else "${m.id} ${title}.zip"
     }
 
     // ---------------- zip ----------------
@@ -226,7 +229,7 @@ object DriveBackup {
             requestMethod = method
             connectTimeout = 15_000
             readTimeout = 60_000
-            setRequestProperty("Authorization", "Bearer $token")
+            setRequestProperty("Authorization", "Bearer ${token}")
         }
 
     private fun body(c: HttpURLConnection): String {
@@ -235,9 +238,9 @@ object DriveBackup {
         if (code !in 200..299) {
             val msg = runCatching { JSONObject(text).getJSONObject("error").optString("message") }.getOrNull().orEmpty()
             throw BackupException(when (code) {
-                401 -> "Google 授權過期，請到設定重新連結 Google 雲端硬碟"
-                403 -> if (msg.contains("storage", true) || msg.contains("quota", true)) "Google 雲端硬碟空間不夠" else "Google 雲端硬碟拒絕存取：$msg"
-                else -> "Google 雲端硬碟錯誤 $code：$msg"
+                401 -> "Google 授權過期，請到設定重新連結 Google 雲端硬碟".tr
+                403 -> if (msg.contains("storage", true) || msg.contains("quota", true)) "Google 雲端硬碟空間不夠".tr else "Google 雲端硬碟拒絕存取：{0}".trf(msg)
+                else -> "Google 雲端硬碟錯誤 {0}：{1}".trf(code, msg)
             })
         }
         return text
@@ -253,16 +256,16 @@ object DriveBackup {
     /** 找（或建）「大D 錄音備份」资料夹。用 appProperties 认，使用者改资料夹名字也找得到。 */
     fun folder(c: Context, token: String): String {
         p(c).getString(KEY_FOLDER, null)?.let { id ->
-            val ok = runCatching { JSONObject(get(token, "$API/files/$id?fields=id,trashed")).optBoolean("trashed").not() }.getOrDefault(false)
+            val ok = runCatching { JSONObject(get(token, "${API}/files/${id}?fields=id,trashed")).optBoolean("trashed").not() }.getOrDefault(false)
             if (ok) return id
         }
         val query = "mimeType='application/vnd.google-apps.folder' and appProperties has { key='dylan' and value='root' } and trashed=false"
-        val found = JSONObject(get(token, "$API/files?q=${q(query)}&fields=files(id)&spaces=drive"))
+        val found = JSONObject(get(token, "${API}/files?q=${q(query)}&fields=files(id)&spaces=drive"))
             .optJSONArray("files")?.optJSONObject(0)?.optString("id")
         val id = found ?: run {
             val meta = JSONObject().put("name", FOLDER_NAME).put("mimeType", "application/vnd.google-apps.folder")
                 .put("appProperties", JSONObject().put("dylan", "root"))
-            val cn = conn(token, "$API/files?fields=id", "POST").apply {
+            val cn = conn(token, "${API}/files?fields=id", "POST").apply {
                 doOutput = true
                 setRequestProperty("Content-Type", "application/json; charset=utf-8")
             }
@@ -283,7 +286,7 @@ object DriveBackup {
         val out = mutableListOf<Remote>()
         var page: String? = null
         do {
-            val url = "$API/files?q=${q("'$folderId' in parents and trashed=false")}&pageSize=1000" +
+            val url = "${API}/files?q=${q("'${folderId}' in parents and trashed=false")}&pageSize=1000" +
                 "&fields=${q("nextPageToken,files(id,name,size,appProperties)")}" + (page?.let { "&pageToken=${q(it)}" } ?: "")
             val j = JSONObject(get(token, url))
             out += parseList(j)
@@ -309,7 +312,7 @@ object DriveBackup {
         val meta = JSONObject().put("name", name).put("mimeType", "application/zip")
             .put("appProperties", JSONObject().put("dylanId", meetingId).put("dylanVer", ver))
         if (fileId == null) meta.put("parents", org.json.JSONArray().put(folderId))
-        val start = conn(token, if (fileId == null) "$UPLOAD/files?uploadType=resumable" else "$UPLOAD/files/$fileId?uploadType=resumable",
+        val start = conn(token, if (fileId == null) "${UPLOAD}/files?uploadType=resumable" else "${UPLOAD}/files/${fileId}?uploadType=resumable",
             if (fileId == null) "POST" else "PATCH").apply {
             doOutput = true
             setRequestProperty("Content-Type", "application/json; charset=utf-8")
@@ -319,7 +322,7 @@ object DriveBackup {
         val location = try {
             start.outputStream.use { it.write(meta.toString().toByteArray()) }
             body(start)
-            start.getHeaderField("Location") ?: throw BackupException("Google 雲端硬碟沒有給上傳網址")
+            start.getHeaderField("Location") ?: throw BackupException("Google 雲端硬碟沒有給上傳網址".tr)
         } finally { start.disconnect() }
         val put = (URL(location).openConnection() as HttpURLConnection).apply {
             requestMethod = "PUT"
@@ -336,7 +339,7 @@ object DriveBackup {
     }
 
     fun download(token: String, fileId: String, out: File) {
-        val c = conn(token, "$API/files/$fileId?alt=media", "GET").apply { readTimeout = 120_000 }
+        val c = conn(token, "${API}/files/${fileId}?alt=media", "GET").apply { readTimeout = 120_000 }
         try {
             if (c.responseCode !in 200..299) body(c)
             c.inputStream.use { input -> out.outputStream().use { input.copyTo(it, 256 * 1024) } }
@@ -391,7 +394,7 @@ object DriveBackup {
         ex.selectTrack(track)
         val format = ex.getTrackFormat(track)
         check(format.getInteger(android.media.MediaFormat.KEY_SAMPLE_RATE) == com.example.voiceai.shared.AudioSpec.SAMPLE_RATE &&
-            format.getInteger(android.media.MediaFormat.KEY_CHANNEL_COUNT) == 1) { "備份裡的錄音格式不對" }
+            format.getInteger(android.media.MediaFormat.KEY_CHANNEL_COUNT) == 1) { "備份裡的錄音格式不對".tr }
         val codec = android.media.MediaCodec.createDecoderByType(format.getString(android.media.MediaFormat.KEY_MIME)!!)
         codec.configure(format, null, null, 0)
         codec.start()

@@ -1,5 +1,8 @@
 package com.example.wristai
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -16,23 +19,23 @@ enum class SpeechLang(val code: String, val label: String, val short: String, va
                        /** 一个字的标签（逐字稿每段前、清单） */ val tag: String,
                        /** 手机内建辨识（Android SpeechRecognizer）用的语言 */ val locale: String,
                        /** 给 Gemini 的语言名称（其他语言才用） */ val spoken: String = label) {
-    ZH("zh", "國語", "國語", "國語（夾雜英文也選這個，英文照原文寫）", "國", "zh-TW"),
-    NAN("nan", "台語・國台語", "台語", "有台語就選這個（國台語夾雜也是），比較慢", "台", "zh-TW"),
-    HAK("hak", "客語", "客語", "客語：數位部 Taiwan Tongues 模型，比較慢", "客", "zh-TW"),
+    ZH("zh", "國語".tr, "國語".tr, "國語（夾雜英文也選這個，英文照原文寫）".tr, "國".tr, "zh-TW"),
+    NAN("nan", "台語・國台語".tr, "台語".tr, "有台語就選這個（國台語夾雜也是），比較慢".tr, "台".tr, "zh-TW"),
+    HAK("hak", "客語".tr, "客語".tr, "客語：數位部 Taiwan Tongues 模型，比較慢".tr, "客".tr, "zh-TW"),
     // ---------- 其他语言（「其他 ▾」选单）：Gemini 照原文写逐字稿、报告用繁体中文 ----------
-    EN("en", "英語", "英語", "整段英文用這個；中文夾英文選國語就好", "英", "en-US"),
-    JA("ja", "日語", "日語", "日語：逐字稿寫日文，報告用中文", "日", "ja-JP"),
-    KO("ko", "韓語", "韓語", "韓語：逐字稿寫韓文，報告用中文", "韓", "ko-KR"),
-    YUE("yue", "粵語", "粵語", "粵語（廣東話）：逐字稿寫繁體粵語字", "粵", "yue-Hant-HK", "粵語（廣東話）"),
-    VI("vi", "越南語", "越語", "越南語：逐字稿寫越南文，報告用中文", "越", "vi-VN"),
-    TH("th", "泰語", "泰語", "泰語：逐字稿寫泰文，報告用中文", "泰", "th-TH"),
-    ID("id", "印尼語", "印尼語", "印尼語：逐字稿寫印尼文，報告用中文", "印", "id-ID");
+    EN("en", "英語".tr, "英語".tr, "整段英文用這個；中文夾英文選國語就好".tr, "英".tr, "en-US"),
+    JA("ja", "日語".tr, "日語".tr, "日語：逐字稿寫日文，報告用中文".tr, "日".tr, "ja-JP"),
+    KO("ko", "韓語".tr, "韓語".tr, "韓語：逐字稿寫韓文，報告用中文".tr, "韓".tr, "ko-KR"),
+    YUE("yue", "粵語".tr, "粵語".tr, "粵語（廣東話）：逐字稿寫繁體粵語字".tr, "粵".tr, "yue-Hant-HK", "粵語（廣東話）".tr),
+    VI("vi", "越南語".tr, "越語".tr, "越南語：逐字稿寫越南文，報告用中文".tr, "越".tr, "vi-VN"),
+    TH("th", "泰語".tr, "泰語".tr, "泰語：逐字稿寫泰文，報告用中文".tr, "泰".tr, "th-TH"),
+    ID("id", "印尼語".tr, "印尼語".tr, "印尼語：逐字稿寫印尼文，報告用中文".tr, "印".tr, "id-ID");
 
     /** 国语 / 台语 / 客语以外的「其他语言」 */
     val other: Boolean get() = ordinal > HAK.ordinal
 
     /** 标签的无障碍朗读：「國語」「台語」「客語四縣腔」。 */
-    fun tagLabel(dialect: String?): String = if (this == HAK) "客語" + HakkaDialect.of(dialect).label + "腔" else short
+    fun tagLabel(dialect: String?): String = if (this == HAK) "客語".tr + HakkaDialect.of(dialect).label + "腔".tr else short
 
     companion object {
         private const val PREFS = "wristai_settings"
@@ -64,7 +67,7 @@ enum class SpeechLang(val code: String, val label: String, val short: String, va
 
         /** 「客語・四縣」「台語」「國語」：录音卡、清单用。 */
         fun display(code: String?, dialect: String?): String =
-            if (of(code) == HAK) "客語・" + HakkaDialect.of(dialect).label else of(code).short
+            if (of(code) == HAK) "客語・".tr + HakkaDialect.of(dialect).label else of(code).short
 
         /** 给 Gemini 的额外说明（跟 iOS 一字不差）；国语没有。 */
         fun geminiNote(code: String?, dialect: String? = null): String = when (of(code)) {
@@ -85,12 +88,12 @@ enum class SpeechLang(val code: String, val label: String, val short: String, va
 
 /** 客语腔调（只放进报告提示词）。存在 `hakka_dialect`，录音时跟着存到 [Meeting.dialect]。 */
 enum class HakkaDialect(val code: String, val label: String) {
-    SIXIAN("sixian", "四縣"),
-    HAILU("hailu", "海陸"),
-    DAPU("dapu", "大埔"),
-    RAOPING("raoping", "饒平"),
-    ZHAOAN("zhaoan", "詔安"),
-    NANSIXIAN("nansixian", "南四縣");
+    SIXIAN("sixian", "四縣".tr),
+    HAILU("hailu", "海陸".tr),
+    DAPU("dapu", "大埔".tr),
+    RAOPING("raoping", "饒平".tr),
+    ZHAOAN("zhaoan", "詔安".tr),
+    NANSIXIAN("nansixian", "南四縣".tr);
 
     companion object {
         private const val PREFS = "wristai_settings"

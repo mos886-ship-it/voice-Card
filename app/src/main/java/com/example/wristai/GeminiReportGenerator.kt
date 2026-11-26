@@ -1,5 +1,8 @@
 package com.example.wristai
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import android.util.Log
 import org.json.JSONArray
 import org.json.JSONObject
@@ -155,12 +158,12 @@ class GeminiReportGenerator(
 
     /** 转一段长会议。返回模型原始输出（SPEAKERS / NOTES / 逐字稿），由 [LongMeeting] 解析与存档。 */
     fun transcribeChunk(audio: File, index: Int, count: Int, startSec: Int, endSec: Int, roster: String, recordedAt: String): String {
-        if (apiKey.isBlank()) throw GeminiException("尚未設定 Gemini API Key（請在手機 App 設定）")
+        if (apiKey.isBlank()) throw GeminiException("尚未設定 Gemini API Key（請在手機 App 設定）".tr)
         val file = upload(audio)
         try {
             waitUntilActive(file.getString("name"))
             val prompt = buildString {
-                append("錄音時間：$recordedAt。這是一段長錄音的第 ${index + 1} 部分（共 ${if (count > 0) "$count 部分" else "多個部分，仍在錄音中"}），")
+                append("錄音時間：${recordedAt}。這是一段長錄音的第 ${index + 1} 部分（共 ${if (count > 0) "$count 部分" else "多個部分，仍在錄音中"}），")
                 appendLine("對應整段錄音的 ${hms(startSec)}～${hms(endSec)}。逐字稿的時間戳記請從這段錄音的開頭 00:00 起算。")
                 if (roster.isNotBlank()) {
                     appendLine()
@@ -178,7 +181,7 @@ class GeminiReportGenerator(
     /** 把各段重点合成完整报告（不含逐字稿）。 */
     fun mergeReport(notes: String, roster: String, durationSec: Double, recordedAt: String): GeneratedReport {
         val prompt = buildString {
-            appendLine("錄音時間：$recordedAt，長度約 ${"%.1f".format(durationSec / 3600)} 小時。")
+            appendLine("錄音時間：${recordedAt}，長度約 ${"%.1f".format(durationSec / 3600)} 小時。")
             appendLine("以下是這段錄音分段整理的說話者名單與各段筆記，請整合成一份完整的報告。")
             appendLine()
             appendLine("【說話者名單】")
@@ -205,23 +208,23 @@ class GeminiReportGenerator(
                     val t = System.currentTimeMillis()
                     val text = call(model)
                     lastModel = model
-                    Log.d(TAG, "$what: $model replied ${text.length} chars (${System.currentTimeMillis() - t}ms)")
+                    Log.d(TAG, "${what}: ${model} replied ${text.length} chars (${System.currentTimeMillis() - t}ms)")
                     return text
                 } catch (e: GeminiException) {
                     last = e
                     if (e.code == 429 && waits < 3) {
                         waits++
-                        Log.w(TAG, "$what: $model rate limited, waiting (${waits}/3)")
+                        Log.w(TAG, "${what}: ${model} rate limited, waiting (${waits}/3)")
                         Thread.sleep(40_000)
                         continue
                     }
                     if (e.code !in setOf(429, 404, 503, 500)) throw e
-                    Log.w(TAG, "$what: $model unavailable (${e.code}), trying next model")
+                    Log.w(TAG, "${what}: ${model} unavailable (${e.code}), trying next model")
                     break
                 }
             }
         }
-        throw last ?: GeminiException("沒有可用的 Gemini 模型")
+        throw last ?: GeminiException("沒有可用的 Gemini 模型".tr)
     }
 
     data class Result(val report: GeneratedReport, val transcript: String, val model: String, val raw: String = "")
@@ -236,7 +239,7 @@ class GeminiReportGenerator(
         /** 饮食照片（JPEG，已缩小）：直接夹在请求里（每张约 100 KB）；[audio] 可以是 null（只有照片） */
         images: List<File> = emptyList(),
     ): Result {
-        if (apiKey.isBlank()) throw GeminiException("尚未設定 Gemini API Key（請在手機 App 設定）")
+        if (apiKey.isBlank()) throw GeminiException("尚未設定 Gemini API Key（請在手機 App 設定）".tr)
         require(audio != null || images.isNotEmpty())
         val t0 = System.currentTimeMillis()
         val file = audio?.let { a ->
@@ -247,24 +250,24 @@ class GeminiReportGenerator(
             onListening()
             val minutes = "%.1f".format(durationSec / 60)
             val photos = if (images.isEmpty()) "" else "附上 ${images.size} 張這一餐的照片。"
-            val prompt = (if (audio != null) "錄音時間：$recordedAt，長度約 $minutes 分鐘。${photos}請依格式整理這段錄音。"
-                else "拍照時間：$recordedAt。${photos}沒有錄音，請依照片與格式整理，逐字稿留空。") + note
+            val prompt = (if (audio != null) "錄音時間：${recordedAt}，長度約 ${minutes} 分鐘。${photos}請依格式整理這段錄音。"
+                else "拍照時間：${recordedAt}。${photos}沒有錄音，請依照片與格式整理，逐字稿留空。") + note
             var last: GeminiException? = null
             for (model in MODELS) {
                 try {
                     val tm = System.currentTimeMillis()
-                    Log.d(TAG, "calling $model")
+                    Log.d(TAG, "calling ${model}")
                     val text = generateContent(model, file?.getString("uri"), prompt, system, images)
-                    Log.d(TAG, "$model replied ${text.length} chars (${System.currentTimeMillis() - tm}ms)")
+                    Log.d(TAG, "${model} replied ${text.length} chars (${System.currentTimeMillis() - tm}ms)")
                     return parse(text).let { (report, transcript) -> Result(report, transcript, model, text) }
                 } catch (e: GeminiException) {
                     last = e
                     // 额度用完(429) / 模型下架(404) / 服务器太忙重试后仍失败(503,500) → 换下一个模型
                     if (e.code !in setOf(429, 404, 503, 500)) throw e
-                    Log.w(TAG, "$model unavailable (${e.code}), trying next model")
+                    Log.w(TAG, "${model} unavailable (${e.code}), trying next model")
                 }
             }
-            throw last ?: GeminiException("沒有可用的 Gemini 模型")
+            throw last ?: GeminiException("沒有可用的 Gemini 模型".tr)
         } finally {
             if (file != null) runCatching { delete(file.getString("name")) }
                 .onFailure { Log.w(TAG, "delete uploaded file failed", it) }
@@ -283,7 +286,7 @@ class GeminiReportGenerator(
 
     private fun upload(audio: File): JSONObject {
         val size = audio.length()
-        val start = open("$BASE/upload/v1beta/files", "POST").apply {
+        val start = open("${BASE}/upload/v1beta/files", "POST").apply {
             setRequestProperty("X-Goog-Upload-Protocol", "resumable")
             setRequestProperty("X-Goog-Upload-Command", "start")
             setRequestProperty("X-Goog-Upload-Header-Content-Length", size.toString())
@@ -311,15 +314,15 @@ class GeminiReportGenerator(
     /** 上传后档案可能还在 PROCESSING，等到 ACTIVE 才能用。 */
     private fun waitUntilActive(name: String) {
         repeat(60) {
-            val conn = open("$BASE/v1beta/$name", "GET")
+            val conn = open("${BASE}/v1beta/${name}", "GET")
             val state = JSONObject(readBody(conn)).optString("state", "ACTIVE")
             when (state) {
                 "ACTIVE" -> return
-                "FAILED" -> throw GeminiException("Gemini 無法處理這個錄音檔")
+                "FAILED" -> throw GeminiException("Gemini 無法處理這個錄音檔".tr)
             }
             Thread.sleep(2_000)
         }
-        throw GeminiException("Gemini 處理錄音檔逾時")
+        throw GeminiException("Gemini 處理錄音檔逾時".tr)
     }
 
     private fun generateContent(model: String, fileUri: String?, prompt: String, system: String = SYSTEM_PROMPT,
@@ -337,7 +340,7 @@ class GeminiReportGenerator(
         var attempt = 0
         while (true) {
             // 用串流（SSE）：边产生边传回，长会议不会因为长时间没数据而超时，也能在 log 看到进度
-            val conn = open("$BASE/v1beta/models/$model:streamGenerateContent?alt=sse", "POST").apply {
+            val conn = open("${BASE}/v1beta/models/${model}:streamGenerateContent?alt=sse", "POST").apply {
                 setRequestProperty("Content-Type", "application/json")
                 readTimeout = 3 * 60_000  // 两段数据之间最多等 3 分钟（模型先「听」完录音才开始输出）
             }
@@ -347,7 +350,7 @@ class GeminiReportGenerator(
             } catch (e: GeminiException) {
                 // 503 / 500 = 服务器忙，退避重试；其他错误直接抛出
                 if ((e.code == 503 || e.code == 500) && attempt < 2) {
-                    Log.w(TAG, "$model busy (${e.code}), retry ${attempt + 1}")
+                    Log.w(TAG, "${model} busy (${e.code}), retry ${attempt + 1}")
                     attempt++
                     Thread.sleep(5_000L * attempt)
                     continue
@@ -383,21 +386,21 @@ class GeminiReportGenerator(
                 }
             }
         } catch (e: IOException) {
-            throw GeminiException("連不上 Gemini 或回應逾時（${e.message}），請檢查網路後重試")
+            throw GeminiException("連不上 Gemini 或回應逾時（{0}），請檢查網路後重試".trf(e.message))
         } finally {
             conn.disconnect()
         }
         val text = sb.toString().trim()
         if (text.isEmpty()) {
             val why = block.ifEmpty { finish }
-            throw GeminiException("Gemini 沒有回傳內容${if (why.isNotEmpty()) "（$why）" else ""}")
+            throw GeminiException("Gemini 沒有回傳內容{0}".trf(if (why.isNotEmpty()) "（{0}）".trf(why) else ""))
         }
         if (finish == "MAX_TOKENS") Log.w(TAG, "output truncated at MAX_TOKENS")
         return text
     }
 
     private fun delete(name: String) {
-        val conn = open("$BASE/v1beta/$name", "DELETE")
+        val conn = open("${BASE}/v1beta/${name}", "DELETE")
         conn.responseCode
         conn.disconnect()
     }
@@ -421,7 +424,7 @@ class GeminiReportGenerator(
             if (code !in 200..299) throw GeminiException(errorMessage(code, readError(conn)), code)
             return conn.inputStream.bufferedReader().use { it.readText() }
         } catch (e: IOException) {
-            throw GeminiException("連不上 Gemini（${e.message}），請檢查網路後重試")
+            throw GeminiException("連不上 Gemini（{0}），請檢查網路後重試".trf(e.message))
         } finally {
             conn.disconnect()
         }
@@ -434,10 +437,10 @@ class GeminiReportGenerator(
         }.getOrDefault("")
 
     private fun errorMessage(code: Int, detail: String) = when (code) {
-        400 -> if (detail.contains("API key", ignoreCase = true)) "Gemini API Key 無效，請到設定重新貼上" else "Gemini 拒絕這個請求：$detail"
-        401, 403 -> "Gemini API Key 無效或沒有權限，請到設定重新貼上"
-        429 -> "今天的 Gemini 免費額度用完了，明天再按「重試」"
-        500, 503 -> "Gemini 目前太忙（Google 伺服器需求量大），過幾分鐘再按「重試」"
-        else -> "Gemini 錯誤 $code：$detail"
+        400 -> if (detail.contains("API key", ignoreCase = true)) "Gemini API Key 無效，請到設定重新貼上".tr else "Gemini 拒絕這個請求：{0}".trf(detail)
+        401, 403 -> "Gemini API Key 無效或沒有權限，請到設定重新貼上".tr
+        429 -> "今天的 Gemini 免費額度用完了，明天再按「重試」".tr
+        500, 503 -> "Gemini 目前太忙（Google 伺服器需求量大），過幾分鐘再按「重試」".tr
+        else -> "Gemini 錯誤 {0}：{1}".trf(code, detail)
     }
 }

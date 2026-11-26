@@ -1,5 +1,8 @@
 package com.example.wristai.ui
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -60,7 +63,7 @@ fun HealthSection() {
             val n = runCatching { HealthSync.syncAll(context) }
             busy = false
             last = Settings.healthSyncLast(context)
-            message = n.fold({ if (it == 0) "沒有要同步的飲食記錄" else "已同步 $it 筆飲食記錄" }, { "同步失敗：${it.message ?: "未知錯誤"}" })
+            message = n.fold({ if (it == 0) "沒有要同步的飲食記錄".tr else "已同步 {0} 筆飲食記錄".trf(it) }, { "同步失敗：{0}".trf(it.message ?: "未知錯誤".tr) })
         }
     }
 
@@ -68,7 +71,7 @@ fun HealthSection() {
         granted = result.containsAll(HealthSync.PERMISSIONS)
         if (granted) {
             on = true; Settings.setHealthSync(context, true); syncAll()
-        } else message = "沒有取得寫入權限，同步沒有打開"
+        } else message = "沒有取得寫入權限，同步沒有打開".tr
     }
 
     // 从系统设定 / Health Connect 回来时要更新
@@ -80,12 +83,12 @@ fun HealthSection() {
         }
     }
 
-    SectionLabel("健康同步")
+    SectionLabel("健康同步".tr)
     GlassCard(highlight = on && granted) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("飲食同步到健康", style = MaterialTheme.typography.titleMedium, color = Brand.Text)
-                Text("每筆飲食記錄做完，自動寫入熱量與蛋白質、碳水、脂肪；刪除記錄也會一起刪除",
+                Text("飲食同步到健康".tr, style = MaterialTheme.typography.titleMedium, color = Brand.Text)
+                Text("每筆飲食記錄做完，自動寫入熱量與蛋白質、碳水、脂肪；刪除記錄也會一起刪除".tr,
                     style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
             }
             Spacer(Modifier.width(12.dp))
@@ -111,15 +114,15 @@ fun HealthSection() {
         Target(
             name = "Google · Health Connect",
             state = when {
-                status == "none" -> "這支手機不支援"
-                status == "update" -> "需要安裝或更新 Health Connect"
-                granted -> "已授權寫入飲食"
-                else -> "尚未授權"
+                status == "none" -> "這支手機不支援".tr
+                status == "update" -> "需要安裝或更新 Health Connect".tr
+                granted -> "已授權寫入飲食".tr
+                else -> "尚未授權".tr
             },
             ok = status == "available" && granted,
             action = when (status) {
-                "update" -> "安裝"
-                "available" -> "開啟"
+                "update" -> "安裝".tr
+                "available" -> "開啟".tr
                 else -> null
             },
             onAction = { HealthSync.openHealthConnect(context) },
@@ -129,26 +132,26 @@ fun HealthSection() {
         Target(
             name = "Samsung Health",
             state = when {
-                !hasSamsung -> "這支手機沒有安裝 Samsung Health"
-                samsungOn -> "經 Health Connect 同步（Samsung Health → 設定 → Health Connect 開著就會收到）"
-                else -> "經 Health Connect 同步：打開上面的開關，並在 Samsung Health → 設定 → Health Connect 開啟「飲食」"
+                !hasSamsung -> "這支手機沒有安裝 Samsung Health".tr
+                samsungOn -> "經 Health Connect 同步（Samsung Health → 設定 → Health Connect 開著就會收到）".tr
+                else -> "經 Health Connect 同步：打開上面的開關，並在 Samsung Health → 設定 → Health Connect 開啟「飲食」".tr
             },
             ok = if (!hasSamsung) null else samsungOn,
-            action = if (hasSamsung) "開啟" else null,
+            action = if (hasSamsung) "開啟".tr else null,
             onAction = { HealthSync.openSamsungHealth(context) },
         )
-        Target(name = "Apple 健康", state = "只在 iPhone 版（寫入「健康」App）", ok = null, action = null, onAction = {})
+        Target(name = "Apple 健康".tr, state = "只在 iPhone 版（寫入「健康」App）".tr, ok = null, action = null, onAction = {})
 
         if (on && granted) {
             HealthDivider()
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    if (last.first > 0) "上次同步 " + SimpleDateFormat("M/d HH:mm", Locale.TAIWAN).format(Date(last.first)) + " · ${last.second} 筆"
-                    else "還沒同步過",
+                    if (last.first > 0) "上次同步 ".tr + SimpleDateFormat("M/d HH:mm", Locale.TAIWAN).format(Date(last.first)) + " · {0} 筆".trf(last.second)
+                    else "還沒同步過".tr,
                     style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted, modifier = Modifier.weight(1f),
                 )
                 TextButton(onClick = { message = null; syncAll() }, enabled = !busy) {
-                    Text(if (busy) "同步中…" else "同步過去的記錄", color = Brand.Cyan)
+                    Text(if (busy) "同步中…".tr else "同步過去的記錄".tr, color = Brand.Cyan)
                 }
             }
         }
@@ -157,7 +160,7 @@ fun HealthSection() {
             Text(it, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
         }
         Spacer(Modifier.height(8.dp))
-        Text("只寫入飲食，不讀取任何健康資料。熱量為 AI 估算，僅供參考。",
+        Text("只寫入飲食，不讀取任何健康資料。熱量為 AI 估算，僅供參考。".tr,
             style = MaterialTheme.typography.bodySmall, color = Brand.TextFaint)
     }
 }

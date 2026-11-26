@@ -1,5 +1,8 @@
 package com.example.wristai.wear
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Notification
@@ -129,7 +132,7 @@ class RecordingService : Service() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
             != PackageManager.PERMISSION_GRANTED
         ) {
-            fail("沒有麥克風權限")
+            fail("沒有麥克風權限".tr)
             return
         }
 
@@ -138,7 +141,7 @@ class RecordingService : Service() {
         dir.listFiles { f -> f.extension == "part" }?.forEach { it.delete() }
         val free = dir.usableSpace
         if (free < MIN_FREE_TO_START) {
-            fail("手錶空間不足（剩 ${free / MB} MB）")
+            fail("手錶空間不足（剩 {0} MB）".trf(free / MB))
             return
         }
 
@@ -153,14 +156,14 @@ class RecordingService : Service() {
                 WatchState.awaitGeoAck(id, 30_000) == true
             if (phoneOk) return@launch
             val fix = com.example.voiceai.shared.GeoFix.current(this@RecordingService) ?: return@launch
-            val f = java.io.File(WatchState.pendingDir(this@RecordingService), "$id.geo")
+            val f = java.io.File(WatchState.pendingDir(this@RecordingService), "${id}.geo")
             runCatching { f.writeText(fix.copy(source = "watch").toJson()) }
             runCatching { PhoneLink.sendGeo(this@RecordingService, f) }
         }
         val record = try {
             createAudioRecord()
         } catch (e: Exception) {
-            fail("無法啟動麥克風：${e.message}")
+            fail("無法啟動麥克風：{0}".trf(e.message))
             return
         }
         audioRecord = record
@@ -180,7 +183,7 @@ class RecordingService : Service() {
         recordJob = scope.launch {
             val buffer = ByteArray(4096)
             var seq = 0
-            var part = File(dir, "$id.$seq.part")
+            var part = File(dir, "${id}.${seq}.part")
             var writer = AacWriter(part)
             try {
                 record.startRecording()
@@ -194,17 +197,17 @@ class RecordingService : Service() {
                         finishSegment(writer, part, Segment(id, seq, writer.samples, last = false))
                         sendSignal.trySend(Unit)
                         seq++
-                        part = File(dir, "$id.$seq.part")
+                        part = File(dir, "${id}.${seq}.part")
                         writer = AacWriter(part)
                         if (dir.usableSpace < MIN_FREE_WHILE_RECORDING) {
-                            autoStopReason = "手錶空間不足，已自動停止"
+                            autoStopReason = "手錶空間不足，已自動停止".tr
                             break
                         }
                     }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Recording error", e)
-                autoStopReason = "錄音中斷：${e.message}"
+                autoStopReason = "錄音中斷：{0}".trf(e.message)
             }
             if (writer.samples < AudioSpec.SAMPLE_RATE / 10) {
                 // 刚好在分段边界停止：补 0.1 秒静音，让最后一段是有效档案
@@ -239,7 +242,7 @@ class RecordingService : Service() {
     private fun finishSegment(writer: AacWriter, part: File, seg: Segment) {
         writer.close()
         val target = File(part.parentFile, WristAiProtocol.segmentFileName(seg))
-        if (!part.renameTo(target)) error("無法儲存錄音分段")
+        if (!part.renameTo(target)) error("無法儲存錄音分段".tr)
         Log.d(TAG, "Segment ${seg.seq} done: ${seg.samples} samples, ${target.length()} bytes, last=${seg.last}")
         WatchState.refreshPending(this)
         publishProgress()
@@ -263,7 +266,7 @@ class RecordingService : Service() {
             AudioFormat.ENCODING_PCM_16BIT,
             maxOf(minBuf * 2, 8192),
         )
-        check(record.state == AudioRecord.STATE_INITIALIZED) { "AudioRecord 初始化失敗" }
+        check(record.state == AudioRecord.STATE_INITIALIZED) { "AudioRecord 初始化失敗".tr }
         return record
     }
 
@@ -294,7 +297,7 @@ class RecordingService : Service() {
                     .listFiles { f -> id != null && f.name.startsWith(id) }
                     ?.forEach { it.delete() }
                 WatchState.refreshPending(this@RecordingService)
-                fail("錄音太短")
+                fail("錄音太短".tr)
                 return@launch
             }
 
@@ -302,13 +305,13 @@ class RecordingService : Service() {
             runCatching { PhoneLink.sendPending(this@RecordingService) }
                 .onSuccess {
                     WatchState.setRecorder(RecorderStatus.Sent(id ?: ""))
-                    WatchState.setPhoneStatus(autoStopReason?.let { "$it，已傳到手機" } ?: "已傳到手機，等待 AI 處理…")
+                    WatchState.setPhoneStatus(autoStopReason?.let { "{0}，已傳到手機".trf(it) } ?: "已傳到手機，等待 AI 處理…".tr)
                     stopSelfCompletely()
                 }
                 .onFailure { e ->
                     Log.e(TAG, "Final send failed", e)
                     val left = WatchState.pendingCount.value
-                    fail("${e.message ?: "傳送失敗"}，$left 段已保留")
+                    fail("{0}，{1} 段已保留".trf(e.message ?: "傳送失敗".tr, left))
                 }
         }
     }
@@ -333,15 +336,15 @@ class RecordingService : Service() {
         val nm = getSystemService(NotificationManager::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             nm.createNotificationChannel(
-                NotificationChannel(CHANNEL_ID, "錄音中", NotificationManager.IMPORTANCE_LOW)
+                NotificationChannel(CHANNEL_ID, "錄音中".tr, NotificationManager.IMPORTANCE_LOW)
             )
         }
         val openApp = PendingIntent.getActivity(
             this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE
         )
         val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("大D 錄音中")
-            .setContentText("每 5 分鐘自動同步到手機 · 點擊回到 App")
+            .setContentTitle("大D 錄音中".tr)
+            .setContentText("每 5 分鐘自動同步到手機 · 點擊回到 App".tr)
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
             .setOngoing(true)
             .setContentIntent(openApp)

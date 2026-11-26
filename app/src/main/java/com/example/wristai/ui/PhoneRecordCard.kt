@@ -1,5 +1,8 @@
 package com.example.wristai.ui
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.draw.clip
@@ -93,7 +96,7 @@ fun PhoneRecordCard(onOpenMeeting: (String) -> Unit, foodMode: Boolean = false) 
     val a = active?.takeIf { com.example.wristai.FoodLog.isFood(it.meetingId) == foodMode }
     if (active != null && a == null) {
         GlassCard {
-            Text(if (foodMode) "手機正在錄音中，結束後才能記錄飲食" else "飲食記錄中，請到「飲食」分頁查看",
+            Text(if (foodMode) "手機正在錄音中，結束後才能記錄飲食".tr else "飲食記錄中，請到「飲食」分頁查看".tr,
                 style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
         }
         return
@@ -102,12 +105,12 @@ fun PhoneRecordCard(onOpenMeeting: (String) -> Unit, foodMode: Boolean = false) 
         // 辨识语言：跟录音一样（国语 / 台语・国台语 / 客语），记住上次的选择
         LangChooser()
         Spacer(Modifier.height(10.dp))
-        GradientButton("記錄這一餐", { com.example.wristai.FoodPhotos.pendingForVoice = null; start(food = true) },
+        GradientButton("記錄這一餐".tr, { com.example.wristai.FoodPhotos.pendingForVoice = null; start(food = true) },
             Modifier.fillMaxWidth().height(56.dp), recordDot = true)
         // 拍照记录（两种排布都有；快錄的中间录音键长按也有）
         var photo by remember { mutableStateOf<Boolean?>(null) }
         Spacer(Modifier.height(8.dp))
-        GhostButton("拍照記錄（最多 3 張）", { photo = false }, Modifier.fillMaxWidth())
+        GhostButton("拍照記錄（最多 3 張）".tr, { photo = false }, Modifier.fillMaxWidth())
         photo?.let { voice ->
             FoodPhotoCapture(withVoice = voice, onDismiss = { photo = null },
                 onStartVoice = { start(food = true) }, onFinished = { photo = null })
@@ -124,10 +127,10 @@ fun PhoneRecordCard(onOpenMeeting: (String) -> Unit, foodMode: Boolean = false) 
                 GlyphTile({ Waveform(Modifier.size(20.dp), Brand.Text) })
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("手機錄音", style = MaterialTheme.typography.titleMedium, color = Brand.Text)
+                    Text("手機錄音".tr, style = MaterialTheme.typography.titleMedium, color = Brand.Text)
                     Text(
-                        if (RemoteRecordActivity.canStartFromBackground(context)) "放在桌子中間收音最好 · 也能從手錶遙控開始"
-                        else "放在桌子中間收音最好 · 開啟「手錶遠端啟動」可從手錶遙控",
+                        if (RemoteRecordActivity.canStartFromBackground(context)) "放在桌子中間收音最好 · 也能從手錶遙控開始".tr
+                        else "放在桌子中間收音最好 · 開啟「手錶遠端啟動」可從手錶遙控".tr,
                         style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted,
                     )
                 }
@@ -140,7 +143,7 @@ fun PhoneRecordCard(onOpenMeeting: (String) -> Unit, foodMode: Boolean = false) 
             // 辨识语言：记住上次的选择，新录音用这个
             LangChooser()
             Spacer(Modifier.height(10.dp))
-            GradientButton("開始手機錄音", { start() }, Modifier.fillMaxWidth(), recordDot = true)
+            GradientButton("開始手機錄音".tr, { start() }, Modifier.fillMaxWidth(), recordDot = true)
         }
     } else {
         val now = remember { mutableLongStateOf(System.currentTimeMillis()) }
@@ -152,7 +155,7 @@ fun PhoneRecordCard(onOpenMeeting: (String) -> Unit, foodMode: Boolean = false) 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 PulseDot(Brand.Recording, 8.dp)
                 Spacer(Modifier.width(8.dp))
-                Text(if (food) "正在記錄飲食" else "手機錄音中", style = MaterialTheme.typography.labelLarge, color = Brand.Recording)
+                Text(if (food) "正在記錄飲食".tr else "手機錄音中".tr, style = MaterialTheme.typography.labelLarge, color = Brand.Recording)
                 Spacer(Modifier.width(8.dp))
                 Text(recLang(context, a.meetingId), style = MaterialTheme.typography.labelMedium, color = Brand.Cyan,
                     modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(Brand.Cyan.copy(alpha = 0.1f))
@@ -170,15 +173,15 @@ fun PhoneRecordCard(onOpenMeeting: (String) -> Unit, foodMode: Boolean = false) 
                 Box(
                     Modifier.size(60.dp).clip(CircleShape).background(Brand.Recording)
                         .clickable { PhoneRecordingService.stop(context) }
-                        .semantics { contentDescription = "停止並產生報告" },
+                        .semantics { contentDescription = "停止並產生報告".tr },
                     contentAlignment = Alignment.Center,
                 ) { Box(Modifier.size(20.dp).clip(RoundedCornerShape(5.dp)).background(Color.White)) }
             }
             Spacer(Modifier.height(12.dp))
             LevelMeter()
             Spacer(Modifier.height(10.dp))
-            Text(if (food) "說出吃了什麼、大概份量（例如：牛肉麵一碗、半糖紅茶），說完按停止"
-                else "可以關螢幕，會繼續錄；停止後自動整理",
+            Text(if (food) "說出吃了什麼、大概份量（例如：牛肉麵一碗、半糖紅茶），說完按停止".tr
+                else "可以關螢幕，會繼續錄；停止後自動整理".tr,
                 style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
         }
     }

@@ -1,5 +1,8 @@
 package com.example.wristai
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -30,7 +33,7 @@ class HealthPrivacyActivity : ComponentActivity() {
         setContent {
             WristAI_ProjectTheme(AppTheme.mode) {
                 Column(Modifier.fillMaxSize().background(Brand.Bg).systemBarsPadding()) {
-                    TopBar("大D 與健康資料", onBack = { finish() })
+                    TopBar("大D 與健康資料".tr, onBack = { finish() })
                     Column(
                         Modifier.verticalScroll(rememberScrollState()).padding(20.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),

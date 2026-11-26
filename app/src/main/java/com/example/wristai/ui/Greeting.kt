@@ -1,5 +1,8 @@
 package com.example.wristai.ui
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -25,35 +28,35 @@ fun greetingFor(
     fun pick(vararg s: String) = s[seed % s.size]
 
     val title = when (h) {
-        in 5..10 -> if (weekend) "週末早安" else "早安"
-        in 11..13 -> "午安"
-        in 14..16 -> "下午好"
-        in 17..18 -> "傍晚好"
-        in 19..22 -> "晚上好"
-        else -> "夜深了"
+        in 5..10 -> if (weekend) "週末早安".tr else "早安".tr
+        in 11..13 -> "午安".tr
+        in 14..16 -> "下午好".tr
+        in 17..18 -> "傍晚好".tr
+        in 19..22 -> "晚上好".tr
+        else -> "夜深了".tr
     }
     val line = when (h) {
         in 5..10 -> when {
-            weekend -> pick("難得週末，慢慢來就好。", "睡飽了嗎？今天放鬆一點。")
-            friday -> pick("星期五了，再撐一下就週末。", "最後一天，加油，有事交給我記。")
-            else -> pick("今天也慢慢來，要記的交給我。", "先喝杯水，開始美好的一天。", "新的一天，有想法隨時說給我聽。")
+            weekend -> pick("難得週末，慢慢來就好。".tr, "睡飽了嗎？今天放鬆一點。".tr)
+            friday -> pick("星期五了，再撐一下就週末。".tr, "最後一天，加油，有事交給我記。".tr)
+            else -> pick("今天也慢慢來，要記的交給我。".tr, "先喝杯水，開始美好的一天。".tr, "新的一天，有想法隨時說給我聽。".tr)
         }
         in 11..13 -> when {
-            usesFood && !ateLunch -> pick("午餐吃了嗎？吃完說一聲，我幫你算熱量。", "記得好好吃午飯，別餓著了。")
-            else -> pick("吃飽了，休息一下再出發。", "午後容易睏，起來走一走。")
+            usesFood && !ateLunch -> pick("午餐吃了嗎？吃完說一聲，我幫你算熱量。".tr, "記得好好吃午飯，別餓著了。".tr)
+            else -> pick("吃飽了，休息一下再出發。".tr, "午後容易睏，起來走一走。".tr)
         }
         in 14..16 -> when {
-            todayCount > 0 -> "今天已經記了 $todayCount 筆，休息一下、喝口水。"
-            else -> pick("喝口水、伸個懶腰，休息一下。", "下午也辛苦了，慢慢來。")
+            todayCount > 0 -> "今天已經記了 {0} 筆，休息一下、喝口水。".trf(todayCount)
+            else -> pick("喝口水、伸個懶腰，休息一下。".tr, "下午也辛苦了，慢慢來。".tr)
         }
-        in 17..18 -> pick("今天辛苦了，準備收工吧。", "外面天色變了，回家路上小心。")
+        in 17..18 -> pick("今天辛苦了，準備收工吧。".tr, "外面天色變了，回家路上小心。".tr)
         in 19..22 -> when {
-            usesFood && !ateDinner && h <= 20 -> "晚餐吃了嗎？吃完說一聲就好。"
-            usesFood && goal > 0 && todayKcal > goal -> "今天吃得比較多，明天清淡一點就好。"
-            todayCount > 0 -> "今天記了 $todayCount 筆，辛苦了，好好休息。"
-            else -> pick("今天辛苦了，好好放鬆。", "忙完了嗎？給自己一點時間。")
+            usesFood && !ateDinner && h <= 20 -> "晚餐吃了嗎？吃完說一聲就好。".tr
+            usesFood && goal > 0 && todayKcal > goal -> "今天吃得比較多，明天清淡一點就好。".tr
+            todayCount > 0 -> "今天記了 {0} 筆，辛苦了，好好休息。".trf(todayCount)
+            else -> pick("今天辛苦了，好好放鬆。".tr, "忙完了嗎？給自己一點時間。".tr)
         }
-        else -> pick("早點休息，事情明天再說。", "還沒睡嗎？別太累了。")
+        else -> pick("早點休息，事情明天再說。".tr, "還沒睡嗎？別太累了。".tr)
     }
     return Greeting(title, line)
 }

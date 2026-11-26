@@ -1,5 +1,8 @@
 package com.example.wristai
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import android.content.Context
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -9,13 +12,13 @@ import java.io.File
 
 enum class MeetingStatus(val label: String) {
     /** 手表还在录（长会议边录边传，分段陆续进来） */
-    RECORDING("錄音中"),
-    RECEIVED("已接收"),
-    EXPORTED("已存入三星錄音機"),
-    TRANSCRIBING("語音辨識中"),
-    SUMMARIZING("AI 整理報告中"),
-    DONE("完成"),
-    FAILED("失敗"),
+    RECORDING("錄音中".tr),
+    RECEIVED("已接收".tr),
+    EXPORTED("已存入三星錄音機".tr),
+    TRANSCRIBING("語音辨識中".tr),
+    SUMMARIZING("AI 整理報告中".tr),
+    DONE("完成".tr),
+    FAILED("失敗".tr),
 }
 
 data class Meeting(

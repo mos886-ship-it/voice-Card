@@ -1,5 +1,8 @@
 package com.example.wristai.ai
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import android.util.Base64
 import org.json.JSONArray
 import org.json.JSONObject
@@ -45,12 +48,12 @@ class FunAsrStt(private val key: String, region: String, private val model: Stri
     /** 说话者分离建议 2 小时内 */
     override val maxChunkSec = 110 * 60
     private val base = if (region == "cn") "https://dashscope.aliyuncs.com" else "https://dashscope-intl.aliyuncs.com"
-    private val auth get() = mapOf("Authorization" to "Bearer $key")
+    private val auth get() = mapOf("Authorization" to "Bearer ${key}")
 
     override fun start(audio: File, durationSec: Double): SttStart {
         // 1. 上传凭证
-        val policy = Http.json("百煉（上傳）", "$base/api/v1/uploads?action=getPolicy&model=${enc(model)}", "GET", auth)
-            .optJSONObject("data") ?: throw AiException("百煉沒有給上傳憑證")
+        val policy = Http.json("百煉（上傳）".tr, "${base}/api/v1/uploads?action=getPolicy&model=${enc(model)}", "GET", auth)
+            .optJSONObject("data") ?: throw AiException("百煉沒有給上傳憑證".tr)
         val objectKey = policy.getString("upload_dir") + "/" + audio.name
         // 2. 上传到临时空间
         val up = Http.multipart(
@@ -66,33 +69,33 @@ class FunAsrStt(private val key: String, region: String, private val model: Stri
             ),
             "file", audio, audio.name, "audio/mp4",
         )
-        if (up.code !in 200..299) throw AiException("百煉上傳音檔失敗（HTTP ${up.code}）")
+        if (up.code !in 200..299) throw AiException("百煉上傳音檔失敗（HTTP {0}）".trf(up.code))
         // 3. 送辨识任务
         val body = JSONObject()
             .put("model", model)
-            .put("input", JSONObject().put("file_urls", JSONArray().put("oss://$objectKey")))
+            .put("input", JSONObject().put("file_urls", JSONArray().put("oss://${objectKey}")))
             .put("parameters", JSONObject().put("diarization_enabled", true))
-        val r = Http.json("Fun-ASR", "$base/api/v1/services/audio/asr/transcription", "POST",
+        val r = Http.json("Fun-ASR", "${base}/api/v1/services/audio/asr/transcription", "POST",
             auth + mapOf("X-DashScope-Async" to "enable", "X-DashScope-OssResourceResolve" to "enable"), body)
         val task = r.optJSONObject("output")?.optString("task_id").orEmpty()
-        if (task.isBlank()) throw AiException("Fun-ASR 沒有回傳任務編號")
+        if (task.isBlank()) throw AiException("Fun-ASR 沒有回傳任務編號".tr)
         return SttStart.Pending(task)
     }
 
     override fun poll(taskId: String): List<Seg>? {
-        val out = Http.json("Fun-ASR", "$base/api/v1/tasks/${enc(taskId)}", "GET", auth).optJSONObject("output")
-            ?: throw AiException("Fun-ASR 查詢結果格式不對")
+        val out = Http.json("Fun-ASR", "${base}/api/v1/tasks/${enc(taskId)}", "GET", auth).optJSONObject("output")
+            ?: throw AiException("Fun-ASR 查詢結果格式不對".tr)
         when (out.optString("task_status")) {
             "PENDING", "RUNNING" -> return null
             "SUCCEEDED" -> Unit
-            else -> throw AiException("Fun-ASR 辨識失敗：${out.optString("message").ifBlank { out.optString("task_status") }}")
+            else -> throw AiException("Fun-ASR 辨識失敗：{0}".trf(out.optString("message").ifBlank { out.optString("task_status") }))
         }
-        val result = out.optJSONArray("results")?.optJSONObject(0) ?: throw AiException("Fun-ASR 沒有結果")
+        val result = out.optJSONArray("results")?.optJSONObject(0) ?: throw AiException("Fun-ASR 沒有結果".tr)
         if (result.optString("subtask_status") == "FAILED")
-            throw AiException("Fun-ASR 辨識失敗：${result.optString("message").ifBlank { result.optString("code") }}")
+            throw AiException("Fun-ASR 辨識失敗：{0}".trf(result.optString("message").ifBlank { result.optString("code") }))
         val url = result.optString("transcription_url")
         val r = Http.request(url, "GET")
-        if (r.code !in 200..299) throw AiException("Fun-ASR 下載結果失敗（HTTP ${r.code}）")
+        if (r.code !in 200..299) throw AiException("Fun-ASR 下載結果失敗（HTTP {0}）".trf(r.code))
         return parseFunAsr(r.body)
     }
 
@@ -122,39 +125,39 @@ class FunAsrStt(private val key: String, region: String, private val model: Stri
  * 签名：signa = Base64(HmacSHA1(secretKey, MD5(appId + ts)))。
  */
 class IflytekStt(private val appId: String, private val secret: String) : Stt {
-    override val name = "訊飛錄音轉寫"
+    override val name = "訊飛錄音轉寫".tr
     override val modelId = "iflytek-lfasr"
     override val maxChunkSec = 4 * 3600 + 30 * 60
     private val host = "https://raasr.xfyun.cn/v2/api"
 
     private fun authParams(): String {
         val ts = (System.currentTimeMillis() / 1000).toString()
-        return "appId=${enc(appId)}&ts=$ts&signa=${enc(signa(appId, secret, ts))}"
+        return "appId=${enc(appId)}&ts=${ts}&signa=${enc(signa(appId, secret, ts))}"
     }
 
     override fun start(audio: File, durationSec: Double): SttStart {
-        val url = "$host/upload?${authParams()}&fileName=${enc(audio.name)}&fileSize=${audio.length()}" +
+        val url = "${host}/upload?${authParams()}&fileName=${enc(audio.name)}&fileSize=${audio.length()}" +
             "&duration=${(durationSec * 1000).toLong()}&roleType=1&language=cn"
         val r = Http.request(url, "POST", body = audio.readBytes(), contentType = "application/octet-stream")
-        val j = runCatching { JSONObject(r.body) }.getOrNull() ?: throw AiException("訊飛上傳失敗（HTTP ${r.code}）")
-        if (j.optString("code") != "000000") throw AiException("訊飛上傳失敗：${j.optString("descInfo")}（${j.optString("code")}）")
+        val j = runCatching { JSONObject(r.body) }.getOrNull() ?: throw AiException("訊飛上傳失敗（HTTP {0}）".trf(r.code))
+        if (j.optString("code") != "000000") throw AiException("訊飛上傳失敗：{0}（{1}）".trf(j.optString("descInfo"), j.optString("code")))
         val order = j.optJSONObject("content")?.optString("orderId").orEmpty()
-        if (order.isBlank()) throw AiException("訊飛沒有回傳訂單編號")
+        if (order.isBlank()) throw AiException("訊飛沒有回傳訂單編號".tr)
         return SttStart.Pending(order)
     }
 
     override fun poll(taskId: String): List<Seg>? {
-        val url = "$host/getResult?${authParams()}&orderId=${enc(taskId)}&resultType=transfer"
+        val url = "${host}/getResult?${authParams()}&orderId=${enc(taskId)}&resultType=transfer"
         // 文件同时写了 GET 和 POST：先 POST，不接受再用 GET
         var r = Http.request(url, "POST", body = ByteArray(0), contentType = "application/json")
         if (r.code == 405) r = Http.request(url, "GET")
-        val j = runCatching { JSONObject(r.body) }.getOrNull() ?: throw AiException("訊飛查詢失敗（HTTP ${r.code}）")
-        if (j.optString("code") != "000000") throw AiException("訊飛查詢失敗：${j.optString("descInfo")}（${j.optString("code")}）")
+        val j = runCatching { JSONObject(r.body) }.getOrNull() ?: throw AiException("訊飛查詢失敗（HTTP {0}）".trf(r.code))
+        if (j.optString("code") != "000000") throw AiException("訊飛查詢失敗：{0}（{1}）".trf(j.optString("descInfo"), j.optString("code")))
         val content = j.optJSONObject("content") ?: return null
         val info = content.optJSONObject("orderInfo")
         return when (info?.optInt("status", 0)) {
             4 -> parseIflytek(content.optString("orderResult"))
-            -1 -> throw AiException("訊飛轉寫失敗（failType ${info.optInt("failType")}）")
+            -1 -> throw AiException("訊飛轉寫失敗（failType {0}）".trf(info.optInt("failType")))
             else -> null
         }
     }
@@ -200,7 +203,7 @@ class IflytekStt(private val appId: String, private val secret: String) : Stt {
  * 一次最多 25 MB，所以每段 85 分钟（32 kbps 约 20 MB）。同步：送出就拿到结果。
  */
 class OpenAiStt(private val key: String, private val model: String) : Stt {
-    override val name = "OpenAI 轉錄"
+    override val name = "OpenAI 轉錄".tr
     override val modelId = model
     override val maxChunkSec = 85 * 60
 
@@ -212,12 +215,12 @@ class OpenAiStt(private val key: String, private val model: String) : Stt {
             if (diarize) add("chunking_strategy" to "auto")
         }
         val r = Http.multipart("https://api.openai.com/v1/audio/transcriptions",
-            mapOf("Authorization" to "Bearer $key"), fields, "file", audio, audio.name, "audio/mp4")
-        if (r.code !in 200..299) throw AiException("OpenAI 轉錄錯誤（HTTP ${r.code}）：${Http.errorText(r.body)}")
+            mapOf("Authorization" to "Bearer ${key}"), fields, "file", audio, audio.name, "audio/mp4")
+        if (r.code !in 200..299) throw AiException("OpenAI 轉錄錯誤（HTTP {0}）：{1}".trf(r.code, Http.errorText(r.body)))
         return SttStart.Done(parseOpenAi(r.body))
     }
 
-    override fun poll(taskId: String): List<Seg>? = throw AiException("OpenAI 轉錄不需要查詢")
+    override fun poll(taskId: String): List<Seg>? = throw AiException("OpenAI 轉錄不需要查詢".tr)
 
     companion object {
         fun parseOpenAi(json: String): List<Seg> {

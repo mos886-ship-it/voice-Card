@@ -1,5 +1,8 @@
 package com.example.wristai.ui
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import androidx.compose.foundation.layout.size
 
 import androidx.compose.material.icons.filled.Edit
@@ -108,20 +111,20 @@ fun DetailScreen(id: String, onBack: () -> Unit, onOpenSettings: () -> Unit) {
                 kotlinx.coroutines.delay(3000)
             }
         }
-        TopBar("錄音詳情", onBack) {
+        TopBar("錄音詳情".tr, onBack) {
             if (report != null) {
-                IconCircle(Icons.Filled.Share, "分享", {
+                IconCircle(Icons.Filled.Share, "分享".tr, {
                     val share = Intent(Intent.ACTION_SEND).setType("text/plain")
                         .putExtra(Intent.EXTRA_SUBJECT, meetingTitle(meeting))
                         .putExtra(Intent.EXTRA_TEXT, buildString {
                             append(withRecordingTime(report, meeting, geo))
-                            if (transcript != null) append("\n\n## 逐字稿\n").append(Speakers.apply(transcript, names))
+                            if (transcript != null) append("\n\n## 逐字稿\n".tr).append(Speakers.apply(transcript, names))
                         })
-                    context.startActivity(Intent.createChooser(share, "分享報告"))
+                    context.startActivity(Intent.createChooser(share, "分享報告".tr))
                 })
                 Spacer(Modifier.width(8.dp))
             }
-            IconCircle(Icons.Filled.Delete, "刪除", { confirmDelete = true }, tint = Brand.Error)
+            IconCircle(Icons.Filled.Delete, "刪除".tr, { confirmDelete = true }, tint = Brand.Error)
         }
 
         Column(
@@ -134,16 +137,16 @@ fun DetailScreen(id: String, onBack: () -> Unit, onOpenSettings: () -> Unit) {
                     Text(meetingTitle(meeting), style = MaterialTheme.typography.headlineSmall, color = Brand.Text,
                         modifier = Modifier.weight(1f, fill = false))
                     Spacer(Modifier.width(8.dp))
-                    Icon(Icons.Filled.Edit, "改標題", Modifier.size(16.dp), tint = Brand.TextFaint)
+                    Icon(Icons.Filled.Edit, "改標題".tr, Modifier.size(16.dp), tint = Brand.TextFaint)
                 }
                 Spacer(Modifier.height(6.dp))
                 // 录音时间与汇入时间分开显示（汇入的档案 createdAt 是推回来的原始录音时间）
                 // 录音起讫（含最后录到的时间）；汇入的另外显示汇入时间
-                Text(if (meeting.source == com.example.wristai.FoodPhotos.SOURCE) "拍照  ${formatWhen(meeting.createdAt)}"
-                    else "錄音  ${recordingRange(meeting)}",
+                Text(if (meeting.source == com.example.wristai.FoodPhotos.SOURCE) "拍照  {0}".trf(formatWhen(meeting.createdAt))
+                    else "錄音  {0}".trf(recordingRange(meeting)),
                     style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
                 meeting.importedAt?.let {
-                    Text("匯入  ${formatWhen(it)}", style = MaterialTheme.typography.bodySmall, color = Brand.TextFaint)
+                    Text("匯入  {0}".trf(formatWhen(it)), style = MaterialTheme.typography.bodySmall, color = Brand.TextFaint)
                 }
                 Spacer(Modifier.height(10.dp))
                 StatusChip(style)
@@ -163,7 +166,7 @@ fun DetailScreen(id: String, onBack: () -> Unit, onOpenSettings: () -> Unit) {
                 }
                 if (lang == com.example.wristai.SpeechLang.HAK) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("辨識語言：" + com.example.wristai.SpeechLang.display(meeting.lang, meeting.dialect) + "腔",
+                        Text("辨識語言：".tr + com.example.wristai.SpeechLang.display(meeting.lang, meeting.dialect) + "腔".tr,
                             style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted, modifier = Modifier.weight(1f))
                         DialectMenu(com.example.wristai.HakkaDialect.of(meeting.dialect), enabled = canChange) { d ->
                             if (hasReport) { pendingLang = lang; pendingDialect = d }
@@ -182,16 +185,16 @@ fun DetailScreen(id: String, onBack: () -> Unit, onOpenSettings: () -> Unit) {
             // ---------- 状态卡 ----------
             when {
                 meeting.status == MeetingStatus.RECORDING -> GlassCard(highlight = true) {
-                    Text(if (meeting.source == "phone") "手機正在錄音" else "手錶正在錄音", style = MaterialTheme.typography.titleMedium, color = Brand.Text)
+                    Text(if (meeting.source == "phone") "手機正在錄音".tr else "手錶正在錄音".tr, style = MaterialTheme.typography.titleMedium, color = Brand.Text)
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        "已同步 ${formatDuration(meeting.durationSec)} 到手機（每 5 分鐘一段）。" +
-                            if (canReport) "AI 會先分析已錄好的部分，錄音結束後很快就有完整報告。" else "錄音結束後會存入三星錄音機。",
+                        "已同步 {0} 到手機（每 5 分鐘一段）。".trf(formatDuration(meeting.durationSec)) +
+                            if (canReport) "AI 會先分析已錄好的部分，錄音結束後很快就有完整報告。".tr else "錄音結束後會存入三星錄音機。".tr,
                         style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted,
                     )
                     if (meeting.chunkDone > 0) {
                         Spacer(Modifier.height(6.dp))
-                        Text("已預先分析 ${meeting.chunkDone} 段（每段 ${Settings.geminiChunkSec(context) / 60} 分鐘）",
+                        Text("已預先分析 {0} 段（每段 {1} 分鐘）".trf(meeting.chunkDone, Settings.geminiChunkSec(context) / 60),
                             style = MaterialTheme.typography.labelMedium, color = Brand.Cyan)
                     }
                     Spacer(Modifier.height(14.dp))
@@ -205,34 +208,34 @@ fun DetailScreen(id: String, onBack: () -> Unit, onOpenSettings: () -> Unit) {
                     Spacer(Modifier.height(4.dp))
                     Text(
                         if (meeting.chunkTotal > 1)
-                            "長錄音分成 ${meeting.chunkTotal} 段分析，最後整合成一份報告。完成後會通知你，並把摘要推送到手錶。"
-                        else "聆聽錄音、分辨每位說話者、整理重點與待辦事項。完成後會通知你，並把摘要推送到手錶。",
+                            "長錄音分成 {0} 段分析，最後整合成一份報告。完成後會通知你，並把摘要推送到手錶。".trf(meeting.chunkTotal)
+                        else "聆聽錄音、分辨每位說話者、整理重點與待辦事項。完成後會通知你，並把摘要推送到手錶。".tr,
                         style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
                     Spacer(Modifier.height(14.dp))
                     ScanningBar()
                     Spacer(Modifier.height(12.dp))
-                    GhostButton("中斷處理", { com.example.wristai.ProcessMeetingWorker.cancel(context, id) },
+                    GhostButton("中斷處理".tr, { com.example.wristai.ProcessMeetingWorker.cancel(context, id) },
                         Modifier.fillMaxWidth(), tint = Brand.Error)
                 }
                 meeting.status == MeetingStatus.FAILED -> Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     AlertCard(
-                        title = if (meeting.error == com.example.wristai.ProcessMeetingWorker.CANCELED) "已中斷處理"
-                            else meeting.steps.getOrNull(meeting.step)?.let { "「$it」這一步失敗" } ?: "報告產生失敗",
-                        body = if (meeting.error == com.example.wristai.ProcessMeetingWorker.CANCELED) "按「重試」可以接著處理。"
-                            else meeting.error ?: "未知錯誤",
+                        title = if (meeting.error == com.example.wristai.ProcessMeetingWorker.CANCELED) "已中斷處理".tr
+                            else meeting.steps.getOrNull(meeting.step)?.let { "「{0}」這一步失敗".trf(it) } ?: "報告產生失敗".tr,
+                        body = if (meeting.error == com.example.wristai.ProcessMeetingWorker.CANCELED) "按「重試」可以接著處理。".tr
+                            else meeting.error ?: "未知錯誤".tr,
                         action = "重試" to ::regenerate,
                     )
                     if (meeting.steps.isNotEmpty()) GlassCard { ProcessSteps(meeting) }
                 }
                 meeting.status == MeetingStatus.EXPORTED && !canReport -> GlassCard {
-                    Text(if (meeting.source == "call") "通話錄音已匯入" else "已存入三星錄音機", style = MaterialTheme.typography.titleMedium, color = Brand.Text)
+                    Text(if (meeting.source == "call") "通話錄音已匯入".tr else "已存入三星錄音機".tr, style = MaterialTheme.typography.titleMedium, color = Brand.Text)
                     Spacer(Modifier.height(4.dp))
-                    Text("可在錄音機用 Galaxy AI 手動轉錄與摘要；或啟用免費的 Gemini，讓 大D 自動產生完整報告。",
+                    Text("可在錄音機用 Galaxy AI 手動轉錄與摘要；或啟用免費的 Gemini，讓 大D 自動產生完整報告。".tr,
                         style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
                     Spacer(Modifier.height(14.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        GradientButton("啟用自動報告", onOpenSettings, Modifier.weight(1f))
-                        if (recorder != null) GhostButton("開啟錄音機", { context.startActivity(recorder) }, Modifier.weight(1f))
+                        GradientButton("啟用自動報告".tr, onOpenSettings, Modifier.weight(1f))
+                        if (recorder != null) GhostButton("開啟錄音機".tr, { context.startActivity(recorder) }, Modifier.weight(1f))
                     }
                 }
             }
@@ -246,12 +249,12 @@ fun DetailScreen(id: String, onBack: () -> Unit, onOpenSettings: () -> Unit) {
             if (!style.busy && canReport && meeting.status != MeetingStatus.FAILED) {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     GradientButton(
-                        if (report == null) "產生 AI 報告" else "重新產生",
+                        if (report == null) "產生 AI 報告".tr else "重新產生".tr,
                         ::regenerate, Modifier.weight(1f),
                         icon = if (report == null) Icons.Filled.PlayArrow else Icons.Filled.Refresh,
                     )
                     if (meeting.exportedUri != null && recorder != null) {
-                        GhostButton("錄音機", { context.startActivity(recorder) }, Modifier.weight(1f))
+                        GhostButton("錄音機".tr, { context.startActivity(recorder) }, Modifier.weight(1f))
                     }
                 }
             }
@@ -259,7 +262,7 @@ fun DetailScreen(id: String, onBack: () -> Unit, onOpenSettings: () -> Unit) {
             // ---------- 内容 ----------
             if (report != null || transcript != null) {
                 audioFile?.let { AudioPlayerBar(player!!) }
-                Segmented(listOf("報告", "逐字稿"), tab) { tab = it }
+                Segmented(listOf("報告".tr, "逐字稿".tr), tab) { tab = it }
                 GlassCard {
                     if (tab == 0) {
                         // 报告的基本资料栏位：时间、地点、来源（不靠 AI 写，旧报告也有）
@@ -272,7 +275,7 @@ fun DetailScreen(id: String, onBack: () -> Unit, onOpenSettings: () -> Unit) {
                             }
                         })
                         Spacer(Modifier.height(12.dp))
-                        if (report != null) ReportView(report, names = names, onRenameSpeaker = { renaming = it }) else Empty("尚未產生報告")
+                        if (report != null) ReportView(report, names = names, onRenameSpeaker = { renaming = it }) else Empty("尚未產生報告".tr)
                     } else {
                         if (transcript != null) TranscriptView(
                             transcript, names = names, onRename = { renaming = it },
@@ -283,7 +286,7 @@ fun DetailScreen(id: String, onBack: () -> Unit, onOpenSettings: () -> Unit) {
                                 java.io.File(MeetingStore.transcriptFile(context, meeting.id).parentFile, "input.txt").exists()
                             }.let { isText -> if (isText) null else com.example.wristai.SpeechLang.of(meeting.lang) },
                             dialect = meeting.dialect,
-                        ) else Empty("尚無逐字稿")
+                        ) else Empty("尚無逐字稿".tr)
                     }
                 }
             }
@@ -296,7 +299,7 @@ fun DetailScreen(id: String, onBack: () -> Unit, onOpenSettings: () -> Unit) {
         AlertDialog(
             onDismissRequest = { editingTitle = false },
             containerColor = Brand.SurfaceHigh,
-            title = { Text("標題", color = Brand.Text) },
+            title = { Text("標題".tr, color = Brand.Text) },
             text = {
                 OutlinedTextField(
                     value, { value = it }, singleLine = true,
@@ -311,9 +314,9 @@ fun DetailScreen(id: String, onBack: () -> Unit, onOpenSettings: () -> Unit) {
                 TextButton(onClick = {
                     MeetingStore.update(context, id) { it.copy(title = value.trim().ifBlank { null }) }
                     editingTitle = false
-                }) { Text("儲存", color = Brand.Cyan) }
+                }) { Text("儲存".tr, color = Brand.Cyan) }
             },
-            dismissButton = { TextButton(onClick = { editingTitle = false }) { Text("取消", color = Brand.TextMuted) } },
+            dismissButton = { TextButton(onClick = { editingTitle = false }) { Text("取消".tr, color = Brand.TextMuted) } },
         )
     }
 
@@ -328,14 +331,14 @@ fun DetailScreen(id: String, onBack: () -> Unit, onOpenSettings: () -> Unit) {
         AlertDialog(
             onDismissRequest = { renaming = null },
             containerColor = Brand.SurfaceHigh,
-            title = { Text("$label 是誰？", color = Brand.Text) },
+            title = { Text("{0} 是誰？".trf(label), color = Brand.Text) },
             text = {
                 Column {
-                    Text("改名後，報告、逐字稿和分享內容都會換成這個名字。", style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
+                    Text("改名後，報告、逐字稿和分享內容都會換成這個名字。".tr, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
                     Spacer(Modifier.height(12.dp))
                     OutlinedTextField(
                         value, { value = it }, singleLine = true,
-                        placeholder = { Text("例如：王經理", color = Brand.TextFaint) },
+                        placeholder = { Text("例如：王經理".tr, color = Brand.TextFaint) },
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Brand.Text, unfocusedTextColor = Brand.Text,
                             focusedBorderColor = Brand.Cyan, unfocusedBorderColor = Brand.Outline, cursorColor = Brand.Cyan,
@@ -343,10 +346,10 @@ fun DetailScreen(id: String, onBack: () -> Unit, onOpenSettings: () -> Unit) {
                     )
                 }
             },
-            confirmButton = { TextButton(onClick = { save(value) }) { Text("儲存", color = Brand.Cyan) } },
+            confirmButton = { TextButton(onClick = { save(value) }) { Text("儲存".tr, color = Brand.Cyan) } },
             dismissButton = {
                 TextButton(onClick = { if (names.containsKey(label)) save("") else renaming = null }) {
-                    Text(if (names.containsKey(label)) "還原代號" else "取消", color = Brand.TextMuted)
+                    Text(if (names.containsKey(label)) "還原代號".tr else "取消".tr, color = Brand.TextMuted)
                 }
             },
         )
@@ -362,15 +365,15 @@ fun DetailScreen(id: String, onBack: () -> Unit, onOpenSettings: () -> Unit) {
         AlertDialog(
             onDismissRequest = { pendingLang = null; pendingDialect = null },
             containerColor = Brand.SurfaceHigh,
-            title = { Text("改用「${l.label}${hakDialect(l)?.let { "・" + it.label + "腔" } ?: ""}」重新產生？", color = Brand.Text) },
+            title = { Text("改用「{0}{1}」重新產生？".trf(l.label, hakDialect(l)?.let { "・" + it.label + "腔".tr } ?: ""), color = Brand.Text) },
             text = {
                 Text(
                     (when (l) {
-                        com.example.wristai.SpeechLang.NAN -> "台語・國台語辨識比較慢（50 秒的錄音約 1 分鐘）。"
-                        com.example.wristai.SpeechLang.HAK -> "客語辨識比較慢；大D的主機還沒裝客語模型時會改用 Gemini。"
-                        else -> if (l.other) "逐字稿照${l.label}原文寫，報告用中文；大D的主機還不能辨識時會改用 Gemini。" else ""
+                        com.example.wristai.SpeechLang.NAN -> "台語・國台語辨識比較慢（50 秒的錄音約 1 分鐘）。".tr
+                        com.example.wristai.SpeechLang.HAK -> "客語辨識比較慢；大D的主機還沒裝客語模型時會改用 Gemini。".tr
+                        else -> if (l.other) "逐字稿照{0}原文寫，報告用中文；大D的主機還不能辨識時會改用 Gemini。".trf(l.label) else ""
                     }) +
-                        "目前的報告和逐字稿會被新的取代。",
+                        "目前的報告和逐字稿會被新的取代。".tr,
                     color = Brand.TextMuted,
                 )
             },
@@ -380,9 +383,9 @@ fun DetailScreen(id: String, onBack: () -> Unit, onOpenSettings: () -> Unit) {
                     pendingLang = null; pendingDialect = null
                     MeetingStore.update(context, id) { it.copy(lang = l.code, dialect = d?.code) }
                     regenerate()
-                }) { Text("重新產生", color = Brand.Cyan) }
+                }) { Text("重新產生".tr, color = Brand.Cyan) }
             },
-            dismissButton = { TextButton(onClick = { pendingLang = null }) { Text("取消", color = Brand.TextMuted) } },
+            dismissButton = { TextButton(onClick = { pendingLang = null }) { Text("取消".tr, color = Brand.TextMuted) } },
         )
     }
 
@@ -391,13 +394,13 @@ fun DetailScreen(id: String, onBack: () -> Unit, onOpenSettings: () -> Unit) {
             onDismissRequest = { confirmDelete = false },
             containerColor = Brand.SurfaceHigh,
             title = { Text("刪除這段錄音？", color = Brand.Text) },
-            text = { Text("會刪除 大D 裡的錄音、報告與逐字稿，無法復原。已存入三星錄音機的檔案不受影響。", color = Brand.TextMuted) },
+            text = { Text("會刪除 大D 裡的錄音、報告與逐字稿，無法復原。已存入三星錄音機的檔案不受影響。".tr, color = Brand.TextMuted) },
             confirmButton = {
                 TextButton(onClick = { confirmDelete = false; MeetingStore.delete(context, id); onBack() }) {
-                    Text("刪除", color = Brand.Error)
+                    Text("刪除".tr, color = Brand.Error)
                 }
             },
-            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("取消", color = Brand.TextMuted) } },
+            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("取消".tr, color = Brand.TextMuted) } },
         )
     }
 }

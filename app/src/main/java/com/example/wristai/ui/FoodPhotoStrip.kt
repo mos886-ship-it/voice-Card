@@ -1,5 +1,8 @@
 package com.example.wristai.ui
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -39,14 +42,14 @@ fun FoodPhotoStrip(id: String, status: MeetingStatus) {
     var big by remember { mutableStateOf<Int?>(null) }
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         images.forEachIndexed { i, img ->
-            Image(img, "飲食照片 ${i + 1}", Modifier.weight(1f).height(if (images.size == 1) 200.dp else 120.dp)
+            Image(img, "飲食照片 {0}".trf(i + 1), Modifier.weight(1f).height(if (images.size == 1) 200.dp else 120.dp)
                 .clip(RoundedCornerShape(12.dp)).clickable { big = i }, contentScale = ContentScale.Crop)
         }
     }
     big?.let { i ->
         Dialog(onDismissRequest = { big = null }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
             Box(Modifier.fillMaxSize().background(Color.Black).clickable { big = null }, contentAlignment = Alignment.Center) {
-                Image(images[i], "飲食照片 ${i + 1}", Modifier.fillMaxWidth(), contentScale = ContentScale.Fit)
+                Image(images[i], "飲食照片 {0}".trf(i + 1), Modifier.fillMaxWidth(), contentScale = ContentScale.Fit)
             }
         }
     }

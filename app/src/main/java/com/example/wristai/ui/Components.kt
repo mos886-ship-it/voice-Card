@@ -1,5 +1,8 @@
 package com.example.wristai.ui
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -55,7 +58,7 @@ import com.example.wristai.ui.theme.Brand
 fun BrandMark(size: Dp = 36.dp) {
     // dw 圓形徽章（res/drawable/ic_logo.xml，與 App 圖示同一組圖形）
     androidx.compose.foundation.Image(
-        androidx.compose.ui.res.painterResource(com.example.wristai.R.drawable.ic_logo), "大D",
+        androidx.compose.ui.res.painterResource(com.example.wristai.R.drawable.ic_logo), "大D".tr,
         Modifier.size(size),
     )
 }
@@ -178,21 +181,21 @@ fun Meeting.statusStyle(): StatusStyle {
     if (!base.busy || status == MeetingStatus.RECORDING || cur == null) return base
     // 「语音辨识 2/5」「上传音档」：比「AI 分析中」清楚现在做到哪
     val progress = stepDetail?.let { Regex("""\d+/\d+""").find(it)?.value }
-    return base.copy(label = cur + (progress?.let { " $it" } ?: ""))
+    return base.copy(label = cur + (progress?.let { " ${it}" } ?: ""))
 }
 
 private fun Meeting.baseStatusStyle(): StatusStyle = when (status) {
-    MeetingStatus.RECORDING -> StatusStyle(if (source == "phone") "手機錄音中" else "手錶錄音中", Brand.Recording, true)
-    MeetingStatus.RECEIVED -> StatusStyle("排隊中", Brand.Cyan, true)
+    MeetingStatus.RECORDING -> StatusStyle(if (source == "phone") "手機錄音中".tr else "手錶錄音中".tr, Brand.Recording, true)
+    MeetingStatus.RECEIVED -> StatusStyle("排隊中".tr, Brand.Cyan, true)
     MeetingStatus.TRANSCRIBING -> StatusStyle(
-        if (chunkTotal > 0) "辨識中 $chunkDone/$chunkTotal" else "辨識中", Brand.Cyan, true)
+        if (chunkTotal > 0) "辨識中 {0}/{1}".trf(chunkDone, chunkTotal) else "辨識中".tr, Brand.Cyan, true)
     MeetingStatus.SUMMARIZING -> StatusStyle(
-        if (chunkTotal > 1) "AI 分析中 ${minOf(chunkDone + 1, chunkTotal)}/$chunkTotal" else "AI 分析中", Brand.Cyan, true)
-    MeetingStatus.DONE -> StatusStyle("報告完成", Brand.Success, false)
+        if (chunkTotal > 1) "AI 分析中 {0}/{1}".trf(minOf(chunkDone + 1, chunkTotal), chunkTotal) else "AI 分析中".tr, Brand.Cyan, true)
+    MeetingStatus.DONE -> StatusStyle("報告完成".tr, Brand.Success, false)
     // 通话录音本来就在手机的通话录音里，没有另存到录音机
-    MeetingStatus.EXPORTED -> StatusStyle(if (source == "call") "待整理" else "已存錄音機", Brand.Violet, false)
-    MeetingStatus.FAILED -> if (error == com.example.wristai.ProcessMeetingWorker.CANCELED) StatusStyle("已中斷", Brand.Warning, false)
-        else StatusStyle("處理失敗", Brand.Error, false)
+    MeetingStatus.EXPORTED -> StatusStyle(if (source == "call") "待整理".tr else "已存錄音機".tr, Brand.Violet, false)
+    MeetingStatus.FAILED -> if (error == com.example.wristai.ProcessMeetingWorker.CANCELED) StatusStyle("已中斷".tr, Brand.Warning, false)
+        else StatusStyle("處理失敗".tr, Brand.Error, false)
 }
 
 @Composable

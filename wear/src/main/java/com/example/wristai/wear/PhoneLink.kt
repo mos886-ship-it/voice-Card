@@ -1,5 +1,8 @@
 package com.example.wristai.wear
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import android.content.Context
 import android.util.Log
 import com.example.voiceai.shared.WristAiProtocol
@@ -36,7 +39,7 @@ object PhoneLink {
             .await()
             .nodes
             .let { nodes -> nodes.firstOrNull { it.isNearby } ?: nodes.firstOrNull() }
-            ?: error("找不到手機")
+            ?: error("找不到手機".tr)
 
     private suspend fun sendFile(context: Context, file: File, path: String) = withContext(Dispatchers.IO) {
         val phone = findPhone(context)
@@ -54,7 +57,7 @@ object PhoneLink {
                 timeout.cancel()
                 r
             }
-            if (ack != 1) error("手機沒有確認收到")
+            if (ack != 1) error("手機沒有確認收到".tr)
         } catch (e: Exception) {
             runCatching { channelClient.close(channel).await() }
             throw e

@@ -1,5 +1,8 @@
 package com.example.wristai
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import android.content.Context
 import android.util.Log
 import com.example.voiceai.shared.MeetingSummary
@@ -29,6 +32,7 @@ object WatchNotifier {
     fun broadcastTheme(context: Context) {
         val key = if (Settings.themeMode(context) == "ink") "ink" else "dark"   // 手表：水墨跟着换，其他（含浮世繪）维持深色（OLED 省电）
         broadcast(context, WristAiProtocol.PATH_THEME, key)
+        broadcast(context, WristAiProtocol.PATH_UI_LANG, com.example.voiceai.shared.I18n.lang)   // 手表跟着手机的介面语言
     }
 
     /** 把辨识语言（国语 / 台语 / 客语＋腔调）推给手表，手表的语言选择跟手机同步。 */
@@ -65,12 +69,12 @@ object WatchNotifier {
         val m = MeetingStore.get(context, id)
         val report = MeetingStore.reportFile(context, id).takeIf { it.exists() }?.readText()
         val md = report?.let { Speakers.apply(it, m?.speakerNames ?: emptyMap()) }?.let {
-            if (it.toByteArray().size > 80_000) it.take(25_000) + "\n\n（內容較長，完整內容請在手機查看）" else it
+            if (it.toByteArray().size > 80_000) it.take(25_000) + "\n\n（內容較長，完整內容請在手機查看）".tr else it
         }
         val json = org.json.JSONObject()
             .put("id", id)
             .put("title", m?.title ?: "")
-            .put("status", when { m == null -> "找不到"; m.status == MeetingStatus.DONE -> "DONE"; else -> m.status.label })
+            .put("status", when { m == null -> "找不到".tr; m.status == MeetingStatus.DONE -> "DONE"; else -> m.status.label })
             .put("markdown", md ?: "")
             .put("durationSec", m?.durationSec ?: 0.0)
             .put("createdAt", m?.createdAt ?: 0L)
@@ -124,10 +128,10 @@ object WatchNotifier {
                 .put("lang", if (SpeechLang.of(m.lang) == SpeechLang.ZH) "" else com.example.voiceai.shared.SpeechLangs.display(m.lang, m.dialect))
                 .put("status", when (m.status) {
                     MeetingStatus.DONE -> "DONE"
-                    MeetingStatus.FAILED -> if (m.error == ProcessMeetingWorker.CANCELED) "已中斷" else "失敗"
-                    MeetingStatus.RECORDING -> "錄音中"
-                    MeetingStatus.EXPORTED -> "已存錄音機"   // 装置端模式：在三星录音机用 Galaxy AI 整理，不是卡住
-                    else -> "整理中"
+                    MeetingStatus.FAILED -> if (m.error == ProcessMeetingWorker.CANCELED) "已中斷".tr else "失敗".tr
+                    MeetingStatus.RECORDING -> "錄音中".tr
+                    MeetingStatus.EXPORTED -> "已存錄音機".tr   // 装置端模式：在三星录音机用 Galaxy AI 整理，不是卡住
+                    else -> "整理中".tr
                 }))
         }
         val monthsArr = org.json.JSONArray()
@@ -159,13 +163,13 @@ object WatchNotifier {
                 ).nodes
                 for (n in nodes) com.google.android.gms.tasks.Tasks.await(
                     Wearable.getMessageClient(context).sendMessage(n.id, path, text.toByteArray()))
-            }.onFailure { Log.w(TAG, "broadcast $path failed: ${it.message}") }
+            }.onFailure { Log.w(TAG, "broadcast ${path} failed: ${it.message}") }
         }
     }
 
     private fun send(context: Context, nodeId: String?, path: String, data: ByteArray) {
         if (nodeId.isNullOrBlank()) return
         Wearable.getMessageClient(context).sendMessage(nodeId, path, data)
-            .addOnFailureListener { Log.w(TAG, "sendMessage $path failed", it) }
+            .addOnFailureListener { Log.w(TAG, "sendMessage ${path} failed", it) }
     }
 }

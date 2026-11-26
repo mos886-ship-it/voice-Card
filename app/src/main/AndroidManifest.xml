@@ -42,6 +42,7 @@
 
     <!-- 大D的主機在使用者家里 / 固定 IP，只有 http（没有网域可以申请凭证） -->
     <application
+        android:name=".WristAiApp"
         android:usesCleartextTraffic="true"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"

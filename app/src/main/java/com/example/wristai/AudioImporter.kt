@@ -1,5 +1,8 @@
 package com.example.wristai
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import android.content.Context
 import android.media.MediaCodec
 import android.media.MediaExtractor
@@ -49,7 +52,7 @@ object AudioImporter {
             WavFile.finalizeHeader(tmp)
             if (!tmp.renameTo(target)) { tmp.copyTo(target, true); tmp.delete() }
             val duration = WavFile.durationSeconds(target)
-            if (duration < 1.0) throw IllegalStateException("音檔太短或無法解碼（${"%.1f".format(duration)} 秒）")
+            if (duration < 1.0) throw IllegalStateException("音檔太短或無法解碼（{0} 秒）".trf("%.1f".format(duration)))
 
             MeetingStore.save(
                 context,
@@ -57,7 +60,7 @@ object AudioImporter {
                     source = source, importedAt = importedAt, lang = SpeechLang.currentCode(context), dialect = SpeechLang.currentDialect(context)),
             )
             ProcessMeetingWorker.enqueue(context, id)
-            Log.d(TAG, "Imported $uri as $id (${duration}s)")
+            Log.d(TAG, "Imported ${uri} as ${id} (${duration}s)")
             return id
         } catch (e: Exception) {
             MeetingStore.delete(context, id)
@@ -136,10 +139,10 @@ object AudioImporter {
         context.contentResolver.openAssetFileDescriptor(uri, "r")?.use { afd ->
             if (afd.declaredLength >= 0) extractor.setDataSource(afd.fileDescriptor, afd.startOffset, afd.declaredLength)
             else extractor.setDataSource(afd.fileDescriptor)
-        } ?: throw IllegalArgumentException("無法開啟音檔")
+        } ?: throw IllegalArgumentException("無法開啟音檔".tr)
         val track = (0 until extractor.trackCount).firstOrNull {
             extractor.getTrackFormat(it).getString(MediaFormat.KEY_MIME)?.startsWith("audio/") == true
-        } ?: throw IllegalArgumentException("檔案裡沒有音訊")
+        } ?: throw IllegalArgumentException("檔案裡沒有音訊".tr)
         extractor.selectTrack(track)
         val format = extractor.getTrackFormat(track)
         val codec = MediaCodec.createDecoderByType(format.getString(MediaFormat.KEY_MIME)!!)

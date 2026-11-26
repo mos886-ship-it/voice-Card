@@ -1,5 +1,8 @@
 package com.example.wristai.ui
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -116,8 +119,8 @@ fun FoodPhotoCapture(
             Modifier.padding(16.dp).fillMaxWidth().clip(RoundedCornerShape(Brand.CardRadius)).background(Brand.Surface).padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text("拍照記錄飲食", style = MaterialTheme.typography.titleLarge, color = Brand.Text)
-            Segmented(listOf("只拍照", "拍照＋口述"), if (voice) 1 else 0) { voice = it == 1 }
+            Text("拍照記錄飲食".tr, style = MaterialTheme.typography.titleLarge, color = Brand.Text)
+            Segmented(listOf("只拍照".tr, "拍照＋口述".tr), if (voice) 1 else 0) { voice = it == 1 }
 
             // ---------- 已拍的照片（最多 3 张） ----------
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -132,30 +135,30 @@ fun FoodPhotoCapture(
                         ) { Text("✕", color = Color.White, fontSize = 12.sp) }
                     }
                 }
-                if (staged.isEmpty()) Text(if (busy) "處理照片中…" else "還沒有照片：便當、飲料可以分開拍，最多 3 張",
+                if (staged.isEmpty()) Text(if (busy) "處理照片中…".tr else "還沒有照片：便當、飲料可以分開拍，最多 3 張".tr,
                     style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted, modifier = Modifier.padding(vertical = 8.dp))
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 val room = staged.size < FoodPhotos.MAX && !busy
-                GhostButton(if (staged.isEmpty()) "拍照" else "再拍一張", { if (room) openCamera() }, Modifier.weight(1f),
+                GhostButton(if (staged.isEmpty()) "拍照".tr else "再拍一張".tr, { if (room) openCamera() }, Modifier.weight(1f),
                     tint = if (room) Brand.Text else Brand.TextFaint)
-                GhostButton("從相簿選", {
+                GhostButton("從相簿選".tr, {
                     if (room) picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                 }, Modifier.weight(1f), tint = if (room) Brand.Text else Brand.TextFaint)
             }
 
             Text(
-                if (voice) "按下一步後直接說，例如「大杯半糖」「飯吃一半」；照片和口述會合成一筆記錄。"
-                else "照片看不出份量和甜度，選「拍照＋口述」補一句話，熱量會準很多。包裝食品可以拍營養標示。",
+                if (voice) "按下一步後直接說，例如「大杯半糖」「飯吃一半」；照片和口述會合成一筆記錄。".tr
+                else "照片看不出份量和甜度，選「拍照＋口述」補一句話，熱量會準很多。包裝食品可以拍營養標示。".tr,
                 style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted,
             )
             Text("照片會縮小、去掉位置資訊後交給 Gemini 辨識；照片和拍攝地點留在這支手機的記錄裡。",
                 style = MaterialTheme.typography.labelSmall, color = Brand.TextFaint)
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                GhostButton("取消", { FoodPhotos.clearStaging(context); FoodPhotos.cancelGeo(); onDismiss() }, Modifier.weight(1f))
-                GradientButton(if (voice) "下一步：口述" else "送出", {
+                GhostButton("取消".tr, { FoodPhotos.clearStaging(context); FoodPhotos.cancelGeo(); onDismiss() }, Modifier.weight(1f))
+                GradientButton(if (voice) "下一步：口述".tr else "送出".tr, {
                     val list = staged.toList()
                     if (voice) {
                         FoodPhotos.pendingForVoice = list

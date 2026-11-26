@@ -1,5 +1,8 @@
 package com.example.wristai.backup
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import android.content.Context
 import android.util.Log
 import androidx.work.Constraints
@@ -48,36 +51,36 @@ class BackupWorker(context: Context, params: WorkerParameters) : CoroutineWorker
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         val c = applicationContext
         val restore = inputData.getString(KEY_MODE) == MODE_RESTORE
-        val verb = if (restore) "取回" else "備份"
-        DriveBackup.report(DriveBackup.Status(running = true, text = "$verb：連線到 Google 雲端硬碟…"))
+        val verb = if (restore) "取回".tr else "備份".tr
+        DriveBackup.report(DriveBackup.Status(running = true, text = "{0}：連線到 Google 雲端硬碟…".trf(verb)))
         try {
             val token = DriveBackup.token(c)
             val n = if (restore) {
                 DriveBackup.restore(c, token) { i, total ->
-                    DriveBackup.report(DriveBackup.Status(true, "取回中 ${i + 1}/$total", done = i, total = total))
+                    DriveBackup.report(DriveBackup.Status(true, "取回中 {0}/{1}".trf(i + 1, total), done = i, total = total))
                 }
             } else {
                 DriveBackup.backup(c, token) { i, total ->
-                    DriveBackup.report(DriveBackup.Status(true, "備份中 ${minOf(i + 1, total)}/$total", done = i, total = total))
+                    DriveBackup.report(DriveBackup.Status(true, "備份中 {0}/{1}".trf(minOf(i + 1, total), total), done = i, total = total))
                 }
             }
             DriveBackup.report(DriveBackup.Status(text = when {
-                restore && n == 0 -> "雲端上沒有手機缺少的錄音"
-                restore -> "已取回 $n 筆"
-                n == 0 -> "都已備份，沒有新的"
-                else -> "已備份 $n 筆"
+                restore && n == 0 -> "雲端上沒有手機缺少的錄音".tr
+                restore -> "已取回 {0} 筆".trf(n)
+                n == 0 -> "都已備份，沒有新的".tr
+                else -> "已備份 {0} 筆".trf(n)
             }))
             Result.success()
         } catch (e: DriveBackup.NeedsConsent) {
-            DriveBackup.report(DriveBackup.Status(text = "Google 雲端硬碟要重新授權：請到設定按「連結 Google 雲端硬碟」", error = true))
+            DriveBackup.report(DriveBackup.Status(text = "Google 雲端硬碟要重新授權：請到設定按「連結 Google 雲端硬碟」".tr, error = true))
             Result.failure()
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: Exception) {
-            Log.w(TAG, "$verb failed", e)
+            Log.w(TAG, "${verb} failed", e)
             val msg = e.message ?: e.javaClass.simpleName
             val net = e is java.io.IOException && e !is DriveBackup.BackupException
-            DriveBackup.report(DriveBackup.Status(text = "$verb 失敗：" + if (net) "連不到 Google（網路？）" else msg, error = true))
+            DriveBackup.report(DriveBackup.Status(text = "{0} 失敗：".trf(verb) + if (net) "連不到 Google（網路？）".tr else msg, error = true))
             // 网路问题：WorkManager 等一下再试；其他（授权、空间不够）重试也没用
             if (net && runAttemptCount < 3) Result.retry() else Result.failure()
         }

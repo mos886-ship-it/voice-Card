@@ -1,5 +1,8 @@
 package com.example.wristai.ui
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
@@ -71,7 +74,7 @@ fun OnboardingScreen(onFinish: (openCloudSetup: Boolean) -> Unit) {
                 )
             }
             Spacer(Modifier.weight(1f))
-            if (step < total - 1) TextButton(onClick = { step = total - 1 }) { Text("略過", color = Brand.TextMuted) }
+            if (step < total - 1) TextButton(onClick = { step = total - 1 }) { Text("略過".tr, color = Brand.TextMuted) }
         }
         AnimatedContent(step, transitionSpec = { fadeIn() togetherWith fadeOut() }, label = "onboarding",
             modifier = Modifier.weight(1f)) { s ->
@@ -85,7 +88,7 @@ fun OnboardingScreen(onFinish: (openCloudSetup: Boolean) -> Unit) {
             }
         }
         if (step < total - 1) {
-            GradientButton(if (step == 0) "開始設定" else "下一步", { step++ }, Modifier.fillMaxWidth())
+            GradientButton(if (step == 0) "開始設定".tr else "下一步".tr, { step++ }, Modifier.fillMaxWidth())
         }
     }
 }
@@ -115,11 +118,11 @@ private fun Welcome() {
     Column(horizontalAlignment = Alignment.Start) {
         BrandMark(64.dp)
         Spacer(Modifier.height(24.dp))
-        Title("手錶一按，錄音自動變重點", "會議、課堂、訪談、通話、靈感筆記…大D 把錄音、逐字稿、重點與待辦一次整理好。")
-        Feature("手錶或手機一鍵錄音", "手錶錄、手機錄都可以，也能從手錶遙控手機錄音")
-        Feature("長達 6 小時的錄音", "邊錄邊同步，錄完很快就有完整報告")
-        Feature("分出每位說話者", "逐字稿依說話者分色，點一句就能聽原音")
-        Feature("摘要推送到手錶", "錄音一結束，重點就在手腕上")
+        Title("手錶一按，錄音自動變重點".tr, "會議、課堂、訪談、通話、靈感筆記…大D 把錄音、逐字稿、重點與待辦一次整理好。".tr)
+        Feature("手錶或手機一鍵錄音".tr, "手錶錄、手機錄都可以，也能從手錶遙控手機錄音".tr)
+        Feature("長達 6 小時的錄音".tr, "邊錄邊同步，錄完很快就有完整報告".tr)
+        Feature("分出每位說話者".tr, "逐字稿依說話者分色，點一句就能聽原音".tr)
+        Feature("摘要推送到手錶".tr, "錄音一結束，重點就在手腕上".tr)
     }
 }
 
@@ -134,13 +137,13 @@ private fun Permissions() {
         r[Manifest.permission.POST_NOTIFICATIONS]?.let { notif = it }
     }
     Column {
-        Title("需要兩個權限", "只用在你按下錄音的時候，不會在背景偷聽。")
-        PermissionRow("麥克風", "用手機錄音、讓手錶遙控手機錄音", mic)
+        Title("需要兩個權限".tr, "只用在你按下錄音的時候，不會在背景偷聽。".tr)
+        PermissionRow("麥克風".tr, "用手機錄音、讓手錶遙控手機錄音".tr, mic)
         Spacer(Modifier.height(10.dp))
-        PermissionRow("通知", "報告完成、錄音中的狀態提醒", notif)
+        PermissionRow("通知".tr, "報告完成、錄音中的狀態提醒".tr, notif)
         Spacer(Modifier.height(20.dp))
         if (!mic || !notif) {
-            GhostButton("允許權限", {
+            GhostButton("允許權限".tr, {
                 launcher.launch(buildList {
                     add(Manifest.permission.RECORD_AUDIO)
                     if (Build.VERSION.SDK_INT >= 33) add(Manifest.permission.POST_NOTIFICATIONS)
@@ -158,8 +161,8 @@ private fun PermissionRow(name: String, why: String, ok: Boolean) {
                 Text(name, style = MaterialTheme.typography.titleMedium, color = Brand.Text)
                 Text(why, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
             }
-            if (ok) Icon(Icons.Filled.CheckCircle, "已允許", tint = Brand.Success)
-            else Text("未允許", style = MaterialTheme.typography.labelMedium, color = Brand.Warning)
+            if (ok) Icon(Icons.Filled.CheckCircle, "已允許".tr, tint = Brand.Success)
+            else Text("未允許".tr, style = MaterialTheme.typography.labelMedium, color = Brand.Warning)
         }
     }
 }
@@ -168,15 +171,15 @@ private fun PermissionRow(name: String, why: String, ok: Boolean) {
 private fun WatchStep() {
     val watch = rememberWatchName()
     Column {
-        Title("連接你的手錶", "Galaxy Watch 安裝 大D 後，就能在手腕上一鍵錄音。沒有手錶也能只用手機。")
+        Title("連接你的手錶".tr, "Galaxy Watch 安裝 大D 後，就能在手腕上一鍵錄音。沒有手錶也能只用手機。".tr)
         GlassCard(highlight = watch != null) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(10.dp).clip(CircleShape).background(if (watch != null) Brand.Success else Brand.TextFaint))
                 Spacer(Modifier.width(12.dp))
                 Column {
-                    Text(watch ?: "尚未偵測到手錶", style = MaterialTheme.typography.titleMedium, color = Brand.Text)
+                    Text(watch ?: "尚未偵測到手錶".tr, style = MaterialTheme.typography.titleMedium, color = Brand.Text)
                     Text(
-                        if (watch != null) "已連線，可以開始錄音了" else "請在 Galaxy Wearable 配對手錶，並在手錶的 Play 商店安裝 大D",
+                        if (watch != null) "已連線，可以開始錄音了".tr else "請在 Galaxy Wearable 配對手錶，並在手錶的 Play 商店安裝 大D".tr,
                         style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted,
                     )
                 }
@@ -189,20 +192,20 @@ private fun WatchStep() {
 private fun AiChoice(onFinish: (Boolean) -> Unit) {
     var cloud by rememberSaveable { mutableStateOf(false) }
     Column {
-        Title("錄音要怎麼整理？", "之後隨時可以在設定更改。")
+        Title("錄音要怎麼整理？".tr, "之後隨時可以在設定更改。".tr)
         ChoiceCard(
-            selected = !cloud, badge = "推薦",
-            title = "裝置端 · Galaxy AI",
-            body = "錄音只存在你的手機，自動放進三星「錄音機」，用 Galaxy AI 轉錄與摘要。隱私最好、免費。",
+            selected = !cloud, badge = "推薦".tr,
+            title = "裝置端 · Galaxy AI".tr,
+            body = "錄音只存在你的手機，自動放進三星「錄音機」，用 Galaxy AI 轉錄與摘要。隱私最好、免費。".tr,
         ) { cloud = false }
         Spacer(Modifier.height(12.dp))
         ChoiceCard(
             selected = cloud, badge = null,
-            title = "雲端自動報告 · Gemini",
-            body = "錄完自動產生完整報告、分說話者逐字稿並推送到手錶。需要免費的 Google 金鑰；錄音會上傳到 Google 處理。",
+            title = "雲端自動報告 · Gemini".tr,
+            body = "錄完自動產生完整報告、分說話者逐字稿並推送到手錶。需要免費的 Google 金鑰；錄音會上傳到 Google 處理。".tr,
         ) { cloud = true }
         Spacer(Modifier.height(24.dp))
-        GradientButton(if (cloud) "下一步：設定金鑰" else "完成，開始使用", { onFinish(cloud) }, Modifier.fillMaxWidth())
+        GradientButton(if (cloud) "下一步：設定金鑰".tr else "完成，開始使用".tr, { onFinish(cloud) }, Modifier.fillMaxWidth())
     }
 }
 

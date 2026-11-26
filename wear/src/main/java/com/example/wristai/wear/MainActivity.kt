@@ -1,5 +1,8 @@
 package com.example.wristai.wear
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import android.Manifest
 import android.os.Build
 import android.os.Bundle
@@ -109,6 +112,18 @@ class MainActivity : ComponentActivity() {
         Brand.load(this)   // 主题跟着手机（水墨 / 深色）
         setContent { WatchTheme { WatchApp() } }
     }
+
+    override fun onStart() { super.onStart(); WearMain.current = java.lang.ref.WeakReference(this) }
+    override fun onStop() { if (WearMain.current?.get() == this) WearMain.current = null; super.onStop() }
+}
+
+/** 手表画面开着没（手机换介面语言时：开着就重开画面，没开就整个 App 重启）。 */
+object WearMain {
+    @Volatile var current: java.lang.ref.WeakReference<MainActivity>? = null
+    val visible: Boolean get() = current?.get() != null
+    fun restart(c: android.content.Context) {
+        current?.get()?.let { a -> a.runOnUiThread { a.recreate() } }
+    }
 }
 
 /** 把品牌色套进 Wear Material 3 的配色（按钮、卡片、时间都会跟着换）。 */
@@ -161,7 +176,7 @@ private fun WatchApp() {
     }.toTypedArray()
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
         if (result[Manifest.permission.RECORD_AUDIO] == true) RecordingService.start(context, pendingFood.value)
-        else WatchState.setRecorder(RecorderStatus.Failed("需要麥克風權限才能錄音"))
+        else WatchState.setRecorder(RecorderStatus.Failed("需要麥克風權限才能錄音".tr))
     }
     val isRecording = recorder is RecorderStatus.Recording
     val sending = recorder is RecorderStatus.Sending
@@ -171,7 +186,7 @@ private fun WatchApp() {
     fun startWatch(food: Boolean) { pendingFood.value = food; permissionLauncher.launch(permissions) }
     fun phoneCommand(cmd: String, waiting: String) {
         WatchState.setPhoneStatus(waiting)
-        scope.launch { runCatching { PhoneLink.sendPhoneCommand(context, cmd) }.onFailure { WatchState.setPhoneStatus("找不到手機") } }
+        scope.launch { runCatching { PhoneLink.sendPhoneCommand(context, cmd) }.onFailure { WatchState.setPhoneStatus("找不到手機".tr) } }
     }
 
     // 两个左右滑的分页：① 录音（手表 / 饮食 / 手机录音都在这页）② 摘要（重送、最近摘要）
@@ -206,7 +221,7 @@ private fun WatchApp() {
     fun openSearch() {
         val intent = androidx.wear.input.RemoteInputIntentHelper.createActionRemoteInputIntent()
         androidx.wear.input.RemoteInputIntentHelper.putRemoteInputsExtra(intent,
-            listOf(android.app.RemoteInput.Builder("q").setLabel("說出或輸入關鍵字").build()))
+            listOf(android.app.RemoteInput.Builder("q").setLabel("說出或輸入關鍵字".tr).build()))
         runCatching { searchLauncher.launch(intent) }
     }
     AppScaffold(
@@ -221,7 +236,7 @@ private fun WatchApp() {
                 phoneStatus = phoneStatus,
                 lang = lang,
                 onStop = {
-                    if (phoneMode) phoneCommand(WristAiProtocol.CMD_STOP, "正在停止手機錄音…")
+                    if (phoneMode) phoneCommand(WristAiProtocol.CMD_STOP, "正在停止手機錄音…".tr)
                     else RecordingService.stop(context)
                 },
             )
@@ -254,7 +269,7 @@ private fun WatchApp() {
                             onLang = { pickLang = true },
                             onRecord = { if (!sending) startWatch(food = false) },
                             onFood = { if (!sending) startWatch(food = true) },
-                            onPhone = { phoneCommand(WristAiProtocol.CMD_START, "正在啟動手機錄音…") },
+                            onPhone = { phoneCommand(WristAiProtocol.CMD_START, "正在啟動手機錄音…".tr) },
                         )
                         else -> SummaryPage(
                             pending = pending,
@@ -273,8 +288,8 @@ private fun WatchApp() {
                                 scope.launch {
                                     WatchState.setRecorder(RecorderStatus.Sending)
                                     val result = runCatching { PhoneLink.sendPending(context) }
-                                    WatchState.setRecorder(if (result.isSuccess) RecorderStatus.Sent("") else RecorderStatus.Failed("重送失敗，請確認手機連線"))
-                                    if (result.isSuccess) WatchState.setPhoneStatus("已傳到手機，等待 AI 處理…")
+                                    WatchState.setRecorder(if (result.isSuccess) RecorderStatus.Sent("") else RecorderStatus.Failed("重送失敗，請確認手機連線".tr))
+                                    if (result.isSuccess) WatchState.setPhoneStatus("已傳到手機，等待 AI 處理…".tr)
                                 }
                             },
                         )
@@ -310,13 +325,13 @@ private fun RecordPage(
         Spacer(Modifier.height(6.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
             SideAction(
-                label = if (kcal > 0) "$kcal 大卡" else "飲食",
+                label = if (kcal > 0) "{0} 大卡".trf(kcal) else "飲食".tr,
                 color = Brand.Success, enabled = !sending, onClick = onFood,
                 progress = if (today != null) (kcal.toFloat() / goal).coerceIn(0f, 1f) else null,
                 over = kcal > goal,
             ) { c -> BowlIcon(c, 22.dp) }
             Box(Modifier.width(96.dp)) { RecordCircle(recording = false, sending = sending, onClick = onRecord, compact = true) }
-            SideAction(label = "手機", color = Brand.Blue, enabled = !sending, onClick = onPhone) { c ->
+            SideAction(label = "手機".tr, color = Brand.Blue, enabled = !sending, onClick = onPhone) { c ->
                 PhoneGlyph(c, 24.dp, dotColor = if (c == Color.White) Brand.Recording else Color.Unspecified)
             }
         }
@@ -356,7 +371,7 @@ private fun SideAction(
 /** 报告书的查询条件：关键字 / 类别（all、rec、food）/ 月份（"2026-11"）。 */
 private data class ListQuery(val q: String = "", val kind: String = "all", val month: String = "") {
     /** 预设查询的代号是空字串（手机主动推的清单也是这个代号）。 */
-    val key: String get() = if (q.isEmpty() && kind == "all" && month.isEmpty()) "" else "$kind|$month|$q"
+    val key: String get() = if (q.isEmpty() && kind == "all" && month.isEmpty()) "" else "${kind}|${month}|${q}"
     val filtered: Boolean get() = q.isNotEmpty() || month.isNotEmpty()
     fun request(offset: Int): String = org.json.JSONObject()
         .put("q", q).put("kind", kind).put("month", month)
@@ -375,7 +390,7 @@ private fun HeaderIconButton(icon: androidx.compose.ui.graphics.vector.ImageVect
 /** "2026-11" → "26年11月" */
 private fun monthLabel(ym: String): String {
     val p = ym.split('-'); if (p.size != 2) return ym
-    return "${p[0].takeLast(2)}年${p[1].trimStart('0')}月"
+    return "{0}年{1}月".trf(p[0].takeLast(2), p[1].trimStart('0'))
 }
 
 /**
@@ -400,16 +415,16 @@ private fun SummaryPage(
             item {
                 Row(Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 2.dp), horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically) {
-                    HeaderIconButton(Icons.Filled.Search, "搜尋", active = query.q.isNotEmpty(), onClick = onSearch)
-                    Text("報告書", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Brand.Text,
+                    HeaderIconButton(Icons.Filled.Search, "搜尋".tr, active = query.q.isNotEmpty(), onClick = onSearch)
+                    Text("報告書".tr, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Brand.Text,
                         modifier = Modifier.padding(horizontal = 14.dp))
-                    HeaderIconButton(Icons.Filled.DateRange, "月份", active = monthMode || query.month.isNotEmpty(), onClick = onToggleMonths)
+                    HeaderIconButton(Icons.Filled.DateRange, "月份".tr, active = monthMode || query.month.isNotEmpty(), onClick = onToggleMonths)
                 }
             }
             // 类别
             item {
                 Row(Modifier.fillMaxWidth().padding(vertical = 2.dp, horizontal = 14.dp), horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally)) {
-                    for ((k, label) in listOf("all" to "全部", "rec" to "錄音", "food" to "飲食")) {
+                    for ((k, label) in listOf("all" to "全部".tr, "rec" to "錄音".tr, "food" to "飲食".tr)) {
                         val on = query.kind == k
                         Box(
                             Modifier.clip(CircleShape).background(if (on) Brand.Text else Brand.SurfaceHigh)
@@ -423,10 +438,10 @@ private fun SummaryPage(
                 Button(
                     onClick = onClear, modifier = Modifier.fillMaxWidth(),
                     icon = { Icon(Icons.Filled.Close, null, tint = Brand.Warning) },
-                    secondaryLabel = { Text(if (result != null) "共 ${result.total} 筆 · 點此清除" else "點此清除") },
+                    secondaryLabel = { Text(if (result != null) "共 {0} 筆 · 點此清除".trf(result.total) else "點此清除".tr) },
                     colors = ButtonDefaults.filledTonalButtonColors(),
                 ) {
-                    Text(listOfNotNull(query.q.takeIf { it.isNotEmpty() }?.let { "「$it」" }, query.month.takeIf { it.isNotEmpty() }?.let(::monthLabel))
+                    Text(listOfNotNull(query.q.takeIf { it.isNotEmpty() }?.let { "「{0}」".trf(it) }, query.month.takeIf { it.isNotEmpty() }?.let(::monthLabel))
                         .joinToString(" · "), maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }
             }
@@ -435,22 +450,22 @@ private fun SummaryPage(
                     onClick = onResend,
                     modifier = Modifier.fillMaxWidth(),
                     icon = { Icon(Icons.Filled.Refresh, null, tint = Brand.Warning) },
-                    secondaryLabel = { Text("手機連上後送出") },
+                    secondaryLabel = { Text("手機連上後送出".tr) },
                     colors = ButtonDefaults.filledTonalButtonColors(),
-                ) { Text("重送 $pending 段") }
+                ) { Text("重送 {0} 段".trf(pending)) }
             }
             if (monthMode) {
                 // 📅 依月份：每个月几笔，点了只看那个月
                 val months = result?.months ?: emptyList()
                 if (months.isEmpty()) item {
-                    Text(if (loading) "正在從手機取得…" else "沒有資料", fontSize = 12.sp, color = Brand.TextMuted,
+                    Text(if (loading) "正在從手機取得…".tr else "沒有資料".tr, fontSize = 12.sp, color = Brand.TextMuted,
                         textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
                 }
-                for ((ym, count) in months) item(key = "m_$ym") {
+                for ((ym, count) in months) item(key = "m_${ym}") {
                     Button(
                         onClick = { onPickMonth(ym) }, modifier = Modifier.fillMaxWidth(),
                         icon = { Icon(Icons.Filled.DateRange, null, tint = Brand.TextMuted) },
-                        secondaryLabel = { Text("$count 筆") },
+                        secondaryLabel = { Text("{0} 筆".trf(count)) },
                         colors = ButtonDefaults.filledTonalButtonColors(),
                     ) { Text(monthLabel(ym)) }
                 }
@@ -458,16 +473,16 @@ private fun SummaryPage(
                 if (items.isEmpty()) item {
                     Text(
                         when {
-                            loading -> "正在從手機取得…"
-                            query.filtered || query.kind != "all" -> "找不到符合的報告"
-                            else -> "還沒有錄音。\n錄完後，手機整理好的報告會列在這裡。"
+                            loading -> "正在從手機取得…".tr
+                            query.filtered || query.kind != "all" -> "找不到符合的報告".tr
+                            else -> "還沒有錄音。\n錄完後，手機整理好的報告會列在這裡。".tr
                         },
                         fontSize = 12.sp, color = if (loading) Brand.Cyan else Brand.TextMuted, textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
                     )
                 }
                 for ((day, list) in groups) {
-                    item(key = "h_$day") {
+                    item(key = "h_${day}") {
                         Text(day, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Brand.TextMuted,
                             modifier = Modifier.fillMaxWidth().padding(start = 14.dp, top = 8.dp, bottom = 2.dp))
                     }
@@ -494,7 +509,7 @@ private fun SummaryPage(
                     Button(
                         onClick = onMore, modifier = Modifier.fillMaxWidth(), enabled = !loading,
                         colors = ButtonDefaults.filledTonalButtonColors(),
-                    ) { Text(if (loading) "載入中…" else "顯示更多（還有 ${result.total - items.size} 筆）", textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) }
+                    ) { Text(if (loading) "載入中…".tr else "顯示更多（還有 {0} 筆）".trf(result.total - items.size), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) }
                 }
             }
         }
@@ -506,13 +521,13 @@ private fun dayLabel(ms: Long): String {
     val cal = java.util.Calendar.getInstance()
     val today = WatchState.todayStart()
     return when {
-        ms >= today -> "今天 " + java.text.SimpleDateFormat("yy/M/d", java.util.Locale.TAIWAN).format(java.util.Date(ms))
-        ms >= today - 86_400_000L -> "昨天 " + java.text.SimpleDateFormat("yy/M/d", java.util.Locale.TAIWAN).format(java.util.Date(ms))
+        ms >= today -> "今天 ".tr + java.text.SimpleDateFormat("yy/M/d", java.util.Locale.TAIWAN).format(java.util.Date(ms))
+        ms >= today - 86_400_000L -> "昨天 ".tr + java.text.SimpleDateFormat("yy/M/d", java.util.Locale.TAIWAN).format(java.util.Date(ms))
         else -> {
             val c = java.util.Calendar.getInstance().apply { timeInMillis = ms }
-            val week = "日一二三四五六"[c.get(java.util.Calendar.DAY_OF_WEEK) - 1]
+            val week = com.example.voiceai.shared.I18n.weekdayShort(c.get(java.util.Calendar.DAY_OF_WEEK))
             val fmt = "yy/M/d"   // 一律带两位数年份
-            java.text.SimpleDateFormat(fmt, java.util.Locale.TAIWAN).format(java.util.Date(ms)) + " 週$week"
+            java.text.SimpleDateFormat(fmt, java.util.Locale.TAIWAN).format(java.util.Date(ms)) + " 週{0}".trf(week)
         }
     }
 }
@@ -563,7 +578,7 @@ private sealed class Block {
     data class Row(val head: String, val rest: List<String>) : Block()
 }
 
-private val EMPTY_CELLS = setOf("", "無", "无", "未指定", "未知", "-", "—", "N/A")
+private val EMPTY_CELLS = setOf("", "無", "无", "未指定", "未知", "-", "—", "N/A", "None", "Unknown", "Unassigned", "없음", "미상", "미지정")
 
 /**
  * 把手机的 Markdown 报告转成手表好读的小块：
@@ -591,7 +606,7 @@ private fun reportBlocks(markdown: String): List<Block> {
                 if (tableHeader == null) { tableHeader = cells; continue }
                 if (cells.first() in EMPTY_CELLS) continue
                 val rest = cells.drop(1).mapIndexedNotNull { i, v ->
-                    if (v in EMPTY_CELLS) null else (tableHeader!!.getOrNull(i + 1)?.let { "$it：" } ?: "") + v
+                    if (v in EMPTY_CELLS) null else (tableHeader!!.getOrNull(i + 1)?.let { "{0}：".trf(it) } ?: "") + v
                 }
                 body += Block.Row(cells.first(), rest)
             }
@@ -625,7 +640,7 @@ private fun DetailScreen(id: String, summary: MeetingSummary?, entry: WatchState
         WatchState.loadDetail(context, id)
         waiting = true; error = null
         val before = WatchState.details.value[id]
-        runCatching { PhoneLink.requestDetail(context, id) }.onFailure { error = "找不到手機，先顯示存下來的內容" }
+        runCatching { PhoneLink.requestDetail(context, id) }.onFailure { error = "找不到手機，先顯示存下來的內容".tr }
         // 最多等 8 秒；手机回了就提早结束
         for (i in 0 until 40) { if (error != null || WatchState.details.value[id] !== before) break; delay(200) }
         waiting = false
@@ -649,7 +664,7 @@ private fun DetailScreen(id: String, summary: MeetingSummary?, entry: WatchState
     ScreenScaffold(scrollState = listState) { contentPadding ->
         TransformingLazyColumn(state = listState, contentPadding = contentPadding) {
             item {
-                Text(d?.title?.takeIf { it.isNotBlank() } ?: summary?.title ?: entry?.title ?: "錄音明細",
+                Text(d?.title?.takeIf { it.isNotBlank() } ?: summary?.title ?: entry?.title ?: "錄音明細".tr,
                     fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Brand.Text, textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp))
             }
@@ -662,16 +677,16 @@ private fun DetailScreen(id: String, summary: MeetingSummary?, entry: WatchState
                     if (recAt != null) {
                         val end = recAt + (dur * 1000).toLong()
                         val sameDay = stamp(recAt).substringBefore(' ') == stamp(end).substringBefore(' ')
-                        Text("錄音 " + stamp(recAt, seconds = true) + " –" + (if (sameDay) "" else "\n" + stamp(end).substringBefore(' ')) +
+                        Text("錄音 ".tr + stamp(recAt, seconds = true) + " –" + (if (sameDay) "" else "\n" + stamp(end).substringBefore(' ')) +
                             " " + java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.TAIWAN).format(java.util.Date(end)),
                             fontSize = 11.sp, color = Brand.TextMuted, textAlign = TextAlign.Center)
                     }
                     val meta = listOfNotNull(
-                        durationText(dur).removePrefix(" · ").takeIf { it.isNotEmpty() }?.let { "長度 $it" },
-                        summary?.createdAt?.let { "報告 " + stamp(it) },
+                        durationText(dur).removePrefix(" · ").takeIf { it.isNotEmpty() }?.let { "長度 {0}".trf(it) },
+                        summary?.createdAt?.let { "報告 ".tr + stamp(it) },
                     ).joinToString(" · ")
                     if (meta.isNotEmpty()) Text(meta, fontSize = 11.sp, color = Brand.TextFaint, textAlign = TextAlign.Center)
-                    d?.lang?.takeIf { it.isNotEmpty() }?.let { Text("語言 $it", fontSize = 11.sp, color = Brand.TextFaint, textAlign = TextAlign.Center) }
+                    d?.lang?.takeIf { it.isNotEmpty() }?.let { Text("語言 {0}".trf(it), fontSize = 11.sp, color = Brand.TextFaint, textAlign = TextAlign.Center) }
                     // GPS 戳记：地名（没有地名就显示座标）
                     d?.geo?.let { g ->
                         Text("📍 " + (g.place ?: "%.4f, %.4f".format(g.lat, g.lon)), fontSize = 11.sp, color = Brand.TextMuted,
@@ -684,23 +699,23 @@ private fun DetailScreen(id: String, summary: MeetingSummary?, entry: WatchState
                 d == null || d.status == "找不到" -> {
                     item {
                         Text(when {
-                            d?.status == "找不到" -> "手機上已經沒有這筆錄音"
-                            waiting && error == null -> "正在從手機取得明細…"
-                            else -> error ?: "手機沒有回應"
+                            d?.status == "找不到" -> "手機上已經沒有這筆錄音".tr
+                            waiting && error == null -> "正在從手機取得明細…".tr
+                            else -> error ?: "手機沒有回應".tr
                         }, fontSize = 12.sp, color = if (waiting && error == null) Brand.Cyan else Brand.Warning,
                             textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 6.dp))
                     }
                     summary?.let { s -> item { Text(s.summary, fontSize = 13.sp, color = Brand.Text, modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp)) } }
                 }
                 d.status != "DONE" -> item {
-                    Text(if (d.status.contains("錄音機")) "已存到手機的三星錄音機，\n可在手機用 Galaxy AI 整理" else "手機還在整理：${d.status}", fontSize = 12.sp, color = Brand.Cyan, textAlign = TextAlign.Center,
+                    Text(if (d.status.contains("錄音機")) "已存到手機的三星錄音機，\n可在手機用 Galaxy AI 整理".tr else "手機還在整理：{0}".trf(d.status), fontSize = 12.sp, color = Brand.Cyan, textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth().padding(top = 6.dp))
                 }
                 else -> {
                     // 哪个 AI 整理的（跟手机报告的「AI」栏一样），改用备援引擎时说明原因
                     if (d.ai.isNotEmpty() || d.note.isNotEmpty()) item {
                         Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 2.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                            if (d.ai.isNotEmpty()) Text("AI：" + d.ai, fontSize = 11.sp, color = Brand.TextMuted, textAlign = TextAlign.Center)
+                            if (d.ai.isNotEmpty()) Text("AI：".tr + d.ai, fontSize = 11.sp, color = Brand.TextMuted, textAlign = TextAlign.Center)
                             if (d.note.isNotEmpty()) Text(d.note, fontSize = 11.sp, lineHeight = 14.sp, color = Brand.Warning, textAlign = TextAlign.Center)
                         }
                     }
@@ -726,7 +741,7 @@ private fun DetailScreen(id: String, summary: MeetingSummary?, entry: WatchState
             }
             if (!waiting && (d == null || error != null)) item {
                 Button(onClick = { attempt++ }, modifier = Modifier.fillMaxWidth(),
-                    icon = { Icon(Icons.Filled.Refresh, null) }, colors = ButtonDefaults.filledTonalButtonColors()) { Text("重新取得") }
+                    icon = { Icon(Icons.Filled.Refresh, null) }, colors = ButtonDefaults.filledTonalButtonColors()) { Text("重新取得".tr) }
             }
         }
     }
@@ -740,7 +755,7 @@ private fun LangChip(lang: WatchState.Lang, enabled: Boolean, onClick: () -> Uni
         Modifier.clip(CircleShape).background(Brand.SurfaceHigh)
             .then(if (enabled) Modifier.clickableNoRipple(onClick) else Modifier)
             .padding(horizontal = 18.dp, vertical = 7.dp)
-            .semantics { contentDescription = "辨識語言：" + lang.label },
+            .semantics { contentDescription = "辨識語言：".tr + lang.label },
     ) { Text(lang.label + " ▾", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = if (enabled) Brand.Cyan else Brand.TextFaint, maxLines = 1) }
 }
 
@@ -752,10 +767,10 @@ private fun LangChip(lang: WatchState.Lang, enabled: Boolean, onClick: () -> Uni
 private fun LangScreen(cur: WatchState.Lang, onPick: (WatchState.Lang, Boolean) -> Unit, onBack: () -> Unit) {
     BackHandler(onBack = onBack)
     val listState = rememberTransformingLazyColumnState()
-    val hints = mapOf("zh" to "最快", "nan" to "有台語就選這個，比較慢", "hak" to "數位部 Taiwan Tongues")
+    val hints = mapOf("zh" to "最快".tr, "nan" to "有台語就選這個，比較慢".tr, "hak" to "數位部 Taiwan Tongues".tr)
     ScreenScaffold(scrollState = listState) { contentPadding ->
         TransformingLazyColumn(state = listState, contentPadding = contentPadding) {
-            item { ListHeader { Text("辨識語言") } }
+            item { ListHeader { Text("辨識語言".tr) } }
             for ((code, name) in com.example.voiceai.shared.SpeechLangs.LANGS) item(key = code) {
                 val on = cur.lang == code
                 Button(
@@ -766,18 +781,18 @@ private fun LangScreen(cur: WatchState.Lang, onPick: (WatchState.Lang, Boolean) 
                 ) { Text((if (on) "✓ " else "") + name) }
             }
             if (cur.lang == "hak") {
-                item { ListHeader { Text("客語腔調") } }
-                for ((code, name) in com.example.voiceai.shared.SpeechLangs.DIALECTS) item(key = "d_$code") {
+                item { ListHeader { Text("客語腔調".tr) } }
+                for ((code, name) in com.example.voiceai.shared.SpeechLangs.DIALECTS) item(key = "d_${code}") {
                     val on = (cur.dialect ?: "sixian") == code
                     Button(
                         onClick = { onPick(WatchState.Lang("hak", code), true) },
                         modifier = Modifier.fillMaxWidth(),
                         colors = if (on) ButtonDefaults.buttonColors() else ButtonDefaults.filledTonalButtonColors(),
-                    ) { Text((if (on) "✓ " else "") + name + "腔") }
+                    ) { Text((if (on) "✓ " else "") + name + "腔".tr) }
                 }
             }
             item {
-                Text("手機的語言也會一起改", fontSize = 11.sp, color = Brand.TextFaint, textAlign = TextAlign.Center,
+                Text("手機的語言也會一起改".tr, fontSize = 11.sp, color = Brand.TextFaint, textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth().padding(top = 6.dp))
             }
         }
@@ -843,14 +858,14 @@ private fun Hero(recorder: RecorderStatus, phoneRec: Long?, phoneStatus: String?
                         drawArc(Brand.Accent, spin, 100f, false, topLeft = Offset.Zero, size = Size(size.width, size.height), style = Stroke(2.dp.toPx(), cap = StrokeCap.Round))
                     }
                     Spacer(Modifier.width(6.dp))
-                    Text("正在傳送到手機…", fontSize = 12.sp, color = Brand.Cyan)
+                    Text("正在傳送到手機…".tr, fontSize = 12.sp, color = Brand.Cyan)
                 }
             }
             else -> {
                 val (msg, color) = when (recorder) {
-                    is RecorderStatus.Sent -> (phoneStatus ?: "✓ 已傳送到手機") to Brand.Success
+                    is RecorderStatus.Sent -> (phoneStatus ?: "✓ 已傳送到手機".tr) to Brand.Success
                     is RecorderStatus.Failed -> recorder.message to Brand.Warning
-                    else -> (phoneStatus ?: "點一下開始錄音") to if (phoneStatus != null) Brand.Cyan else Brand.TextMuted
+                    else -> (phoneStatus ?: "點一下開始錄音".tr) to if (phoneStatus != null) Brand.Cyan else Brand.TextMuted
                 }
                 Text(msg, fontSize = 12.sp, lineHeight = 16.sp, color = color, textAlign = TextAlign.Center)
             }
@@ -882,7 +897,7 @@ private fun RecordingScreen(recorder: RecorderStatus, phoneRec: Long?, phoneStat
                 drawCircle(Brand.Recording, radius = size.minDimension / 4)
             }
             Spacer(Modifier.width(5.dp))
-            Text(when { phoneRec != null -> "手機錄音中"; r?.food == true -> "飲食記錄中"; else -> "錄音中 · " + lang.label },
+            Text(when { phoneRec != null -> "手機錄音中".tr; r?.food == true -> "飲食記錄中".tr; else -> "錄音中 · ".tr + lang.label },
                 fontSize = 12.sp, color = Brand.Recording, fontWeight = FontWeight.SemiBold)
         }
         Text(
@@ -895,13 +910,13 @@ private fun RecordingScreen(recorder: RecorderStatus, phoneRec: Long?, phoneStat
         RecordCircle(recording = true, sending = false, onClick = onStop, compact = true)
         Text(
             when {
-                phoneRec != null -> phoneStatus ?: "點一下停止"
-                level.loud -> "聲音太大，離遠一點"
-                level.quiet -> "幾乎沒聲音，靠近一點"
-                r?.food == true -> "說完按停止"
-                r != null && r.waiting > 0 -> "${r.waiting} 段待傳"
-                r != null && r.synced > 0 -> "已同步 ${r.synced} 段"
-                else -> "每 5 分鐘同步到手機"
+                phoneRec != null -> phoneStatus ?: "點一下停止".tr
+                level.loud -> "聲音太大，離遠一點".tr
+                level.quiet -> "幾乎沒聲音，靠近一點".tr
+                r?.food == true -> "說完按停止".tr
+                r != null && r.waiting > 0 -> "{0} 段待傳".trf(r.waiting)
+                r != null && r.synced > 0 -> "已同步 {0} 段".trf(r.synced)
+                else -> "每 5 分鐘同步到手機".tr
             },
             fontSize = 11.sp, color = when {
                 phoneRec == null && level.loud -> Brand.Warning

@@ -1,5 +1,8 @@
 package com.example.wristai.ui
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import android.content.Context
 import android.content.Intent
 import androidx.activity.compose.BackHandler
@@ -96,8 +99,8 @@ fun FilesScreen(onBack: (() -> Unit)? = null, onOpen: (String) -> Unit = {}, onO
     val totalOther = sizes.values.sumOf { it.other }
 
     Column(Modifier.fillMaxSize()) {
-        if (onBack != null) TopBar("檔案管理", onBack)
-        else Text("檔案管理", style = MaterialTheme.typography.headlineSmall, color = Brand.Text,
+        if (onBack != null) TopBar("檔案管理".tr, onBack)
+        else Text("檔案管理".tr, style = MaterialTheme.typography.headlineSmall, color = Brand.Text,
             modifier = Modifier.padding(start = 20.dp, top = 12.dp, bottom = 8.dp))
         LazyColumn(
             Modifier.weight(1f),
@@ -106,7 +109,7 @@ fun FilesScreen(onBack: (() -> Unit)? = null, onOpen: (String) -> Unit = {}, onO
         ) {
             item {
                 // 一行摘要
-                Text("${meetings.size} 筆 · 錄音檔 ${bytes(totalAudio)} · 報告等 ${bytes(totalOther)}",
+                Text("{0} 筆 · 錄音檔 {1} · 報告等 {2}".trf(meetings.size, bytes(totalAudio), bytes(totalOther)),
                     style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
             }
             // 备份 / 同步按钮（连结帐号、备份选项在「設定」）
@@ -117,14 +120,14 @@ fun FilesScreen(onBack: (() -> Unit)? = null, onOpen: (String) -> Unit = {}, onO
                 BackupActions(pending, onOpenSettings)
             }
             item {
-                Chips(listOf("全部", "錄音", "飲食"), kind) { kind = it }
+                Chips(listOf("全部".tr, "錄音".tr, "飲食".tr), kind) { kind = it }
                 note?.let {
                     Spacer(Modifier.height(6.dp))
                     Text(it, style = MaterialTheme.typography.bodySmall, color = Brand.Success)
                 }
             }
             if (shown.isEmpty()) item {
-                Text("沒有檔案", style = MaterialTheme.typography.bodyMedium, color = Brand.TextMuted)
+                Text("沒有檔案".tr, style = MaterialTheme.typography.bodyMedium, color = Brand.TextMuted)
             }
             items(shown, key = { it.id }) { m ->
                 FileRow(m, sizes[m.id], backupState(m, cloud, local)) { acting = m }
@@ -142,36 +145,36 @@ fun FilesScreen(onBack: (() -> Unit)? = null, onOpen: (String) -> Unit = {}, onO
             text = {
                 Column {
                     sizes[m.id]?.let {
-                        Text("錄音檔 ${bytes(it.audio)} · 報告等 ${bytes(it.other)}",
+                        Text("錄音檔 {0} · 報告等 {1}".trf(bytes(it.audio), bytes(it.other)),
                             style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
                     }
                     Spacer(Modifier.height(8.dp))
-                    ActionLine("打開") { acting = null; onOpen(m.id) }
-                    if (hasAudio) ActionLine("分享錄音檔（m4a）") {
+                    ActionLine("打開".tr) { acting = null; onOpen(m.id) }
+                    if (hasAudio) ActionLine("分享錄音檔（m4a）".tr) {
                         acting = null
                         scope.launch {
-                            note = "準備錄音檔…"
+                            note = "準備錄音檔…".tr
                             val r = withContext(Dispatchers.IO) { runCatching { shareAudio(context, m) } }
-                            note = r.exceptionOrNull()?.let { "分享失敗：${it.message}" }
+                            note = r.exceptionOrNull()?.let { "分享失敗：{0}".trf(it.message) }
                         }
                     }
-                    if (hasAudio) ActionLine("只刪錄音檔（保留報告）", Brand.Warning) { acting = null; confirm = m to true }
-                    ActionLine("刪除整筆", Brand.Error) { acting = null; confirm = m to false }
+                    if (hasAudio) ActionLine("只刪錄音檔（保留報告）".tr, Brand.Warning) { acting = null; confirm = m to true }
+                    ActionLine("刪除整筆".tr, Brand.Error) { acting = null; confirm = m to false }
                 }
             },
-            confirmButton = { TextButton(onClick = { acting = null }) { Text("關閉") } },
+            confirmButton = { TextButton(onClick = { acting = null }) { Text("關閉".tr) } },
         )
     }
     confirm?.let { (m, audioOnly) ->
         val backedUp = backupState(m, cloud, local) == BackupState.DONE
         AlertDialog(
             onDismissRequest = { confirm = null },
-            title = { Text(if (audioOnly) "只刪錄音檔？" else "刪除整筆？") },
+            title = { Text(if (audioOnly) "只刪錄音檔？".tr else "刪除整筆？".tr) },
             text = {
                 Text(
-                    (if (audioOnly) "報告和逐字稿會留著，但之後不能再播放、也不能重新產生報告。"
-                    else "錄音、報告、逐字稿都會從手機刪除。") +
-                        if (backedUp) "\nGoogle 雲端硬碟的備份會留著，可以再取回。" else "\n這筆還沒備份，刪除後無法復原。",
+                    (if (audioOnly) "報告和逐字稿會留著，但之後不能再播放、也不能重新產生報告。".tr
+                    else "錄音、報告、逐字稿都會從手機刪除。".tr) +
+                        if (backedUp) "\nGoogle 雲端硬碟的備份會留著，可以再取回。".tr else "\n這筆還沒備份，刪除後無法復原。".tr,
                 )
             },
             confirmButton = {
@@ -182,11 +185,11 @@ fun FilesScreen(onBack: (() -> Unit)? = null, onOpen: (String) -> Unit = {}, onO
                             if (audioOnly) deleteAudio(context, m.id) else MeetingStore.delete(context, m.id)
                         }
                         changed++
-                        note = if (audioOnly) "已刪除「${meetingTitle(m)}」的錄音檔" else "已刪除「${meetingTitle(m)}」"
+                        note = if (audioOnly) "已刪除「{0}」的錄音檔".trf(meetingTitle(m)) else "已刪除「{0}」".trf(meetingTitle(m))
                     }
-                }) { Text("刪除", color = Brand.Error) }
+                }) { Text("刪除".tr, color = Brand.Error) }
             },
-            dismissButton = { TextButton(onClick = { confirm = null }) { Text("返回") } },
+            dismissButton = { TextButton(onClick = { confirm = null }) { Text("返回".tr) } },
         )
     }
 }
@@ -213,11 +216,11 @@ private fun FileRow(m: Meeting, size: FileSize?, state: BackupState, onClick: ()
                 Text(
                     listOfNotNull(
                         fmt.format(Date(m.createdAt)),
-                        if (FoodLog.isFood(m.id)) "飲食" else null,
+                        if (FoodLog.isFood(m.id)) "飲食".tr else null,
                         m.durationSec.takeIf { it > 0 }?.let { humanDuration(it) },
                         when {
                             size == null -> null
-                            size.audio == 0L -> "沒有錄音檔 · ${bytes(size.other)}"
+                            size.audio == 0L -> "沒有錄音檔 · {0}".trf(bytes(size.other))
                             else -> bytes(size.total)
                         },
                     ).joinToString(" · "),
@@ -270,12 +273,12 @@ private fun deleteAudio(c: Context, id: String) {
 private fun shareAudio(c: Context, m: Meeting) {
     val dir = File(c.cacheDir, "share").apply { mkdirs(); listFiles()?.forEach { it.delete() } }
     val name = meetingTitle(m).replace(Regex("[\\\\/:*?\"<>|\\n\\r]"), " ").trim().take(40).ifEmpty { m.id }
-    val out = File(dir, "$name.m4a")
+    val out = File(dir, "${name}.m4a")
     VoiceRecorderExporter.encodeM4a(MeetingStore.audioFile(c, m.id), out, outRate = 16_000, bitRate = 48_000)
     val uri = FileProvider.getUriForFile(c, c.packageName + ".files", out)
     val send = Intent(Intent.ACTION_SEND).setType("audio/mp4").putExtra(Intent.EXTRA_STREAM, uri)
         .putExtra(Intent.EXTRA_SUBJECT, meetingTitle(m)).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-    c.startActivity(Intent.createChooser(send, "分享錄音檔").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    c.startActivity(Intent.createChooser(send, "分享錄音檔".tr).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
 }
 
 private fun bytes(n: Long): String = when {

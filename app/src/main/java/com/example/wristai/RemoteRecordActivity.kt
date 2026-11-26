@@ -1,5 +1,8 @@
 package com.example.wristai
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -48,7 +51,7 @@ class RemoteRecordActivity : ComponentActivity() {
         fun requestFromWatch(context: Context, watchNode: String?) {
             if (PhoneRecorder.active.value != null) { PhoneRecordingService.broadcastState(context); return }
             if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-                WatchNotifier.sendStatus(context, watchNode, "請先在手機打開 大D 允許麥克風")
+                WatchNotifier.sendStatus(context, watchNode, "請先在手機打開 大D 允許麥克風".tr)
                 return
             }
             if (android.provider.Settings.canDrawOverlays(context) || MainActivity.isVisible) {
@@ -58,21 +61,21 @@ class RemoteRecordActivity : ComponentActivity() {
             // 退回：全萤幕通知（锁屏 / 熄屏时系统会像来电一样直接打开录音画面）；不能用时就是普通通知，点一下开始
             val nm = context.getSystemService(NotificationManager::class.java)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                nm.createNotificationChannel(NotificationChannel(CHANNEL_ID, "手錶遙控錄音", NotificationManager.IMPORTANCE_HIGH))
+                nm.createNotificationChannel(NotificationChannel(CHANNEL_ID, "手錶遙控錄音".tr, NotificationManager.IMPORTANCE_HIGH))
             }
             val pi = PendingIntent.getActivity(context, 2, intent(context, watchNode),
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
             nm.notify(NOTIFICATION_ID, NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.ic_btn_speak_now)
-                .setContentTitle("手錶要求開始手機錄音")
-                .setContentText("點一下開始錄音（到設定開啟「手錶遠端啟動」就不用點）")
+                .setContentTitle("手錶要求開始手機錄音".tr)
+                .setContentText("點一下開始錄音（到設定開啟「手錶遠端啟動」就不用點）".tr)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setCategory(NotificationCompat.CATEGORY_CALL)
                 .setAutoCancel(true)
                 .setContentIntent(pi)
                 .setFullScreenIntent(pi, true)
                 .build())
-            if (!canUseFullScreen(context)) WatchNotifier.sendStatus(context, watchNode, "請在手機點通知開始錄音")
+            if (!canUseFullScreen(context)) WatchNotifier.sendStatus(context, watchNode, "請在手機點通知開始錄音".tr)
         }
     }
 

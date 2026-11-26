@@ -1,5 +1,8 @@
 package com.example.wristai.ui
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import android.media.MediaPlayer
 import android.media.PlaybackParams
 import androidx.compose.foundation.background
@@ -61,7 +64,7 @@ class PlayerState internal constructor(private val file: File) {
                 setOnCompletionListener { this@PlayerState.playing = false }
             }
         }.onSuccess { player = it; durationMs = it.duration }
-            .onFailure { error = "無法播放：${it.message}" }
+            .onFailure { error = "無法播放：{0}".trf(it.message) }
             .getOrNull()
     }
 
@@ -164,9 +167,9 @@ fun AudioPlayerBar(state: PlayerState, modifier: Modifier = Modifier) {
         }
         Spacer(Modifier.padding(top = 4.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-            ChipButton("−15 秒") { state.skip(-15_000) }
-            ChipButton("+15 秒") { state.skip(15_000) }
-            ChipButton("${if (state.speed % 1f == 0f) state.speed.toInt() else state.speed}× 速度") { state.cycleSpeed() }
+            ChipButton("−15 秒".tr) { state.skip(-15_000) }
+            ChipButton("+15 秒".tr) { state.skip(15_000) }
+            ChipButton("{0}× 速度".trf(if (state.speed % 1f == 0f) state.speed.toInt() else state.speed)) { state.cycleSpeed() }
         }
         state.error?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Brand.Warning) }
     }

@@ -1,5 +1,8 @@
 package com.example.wristai.ui
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -41,7 +44,7 @@ fun FoodScreen(onOpen: (String) -> Unit, onOpenSettings: () -> Unit) {
     val food = remember(all) { all.filter { FoodLog.isFood(it.id) }.sortedByDescending { it.createdAt } }
     val goal = Settings.dailyKcalGoal(context)
     val hasCloud = Settings.geminiKey(context).isNotBlank()
-    val dayFmt = remember { SimpleDateFormat("M/d EEEE", Locale.TAIWAN) }
+    val dayFmt = remember { SimpleDateFormat("M/d EEEE", com.example.voiceai.shared.I18n.locale) }
     val keyFmt = remember { SimpleDateFormat("yyyyMMdd", Locale.US) }
     val days = remember(food) { food.groupBy { keyFmt.format(Date(it.createdAt)) }.toList() }
 
@@ -52,26 +55,26 @@ fun FoodScreen(onOpen: (String) -> Unit, onOpenSettings: () -> Unit) {
     ) {
         item {
             Column(Modifier.padding(bottom = 4.dp)) {
-                Text("飲食", style = MaterialTheme.typography.headlineSmall, color = Brand.Text)
-                Text("說出吃了什麼，AI 幫你估算熱量與營養", style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
+                Text("飲食".tr, style = MaterialTheme.typography.headlineSmall, color = Brand.Text)
+                Text("說出吃了什麼，AI 幫你估算熱量與營養".tr, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
             }
         }
 
         if (!hasCloud) {
             item {
                 GlassCard(highlight = true) {
-                    Text("需要啟用雲端 AI", style = MaterialTheme.typography.titleMedium, color = Brand.Text)
-                    Text("估算熱量要用 Gemini（免費）；裝置端的 Galaxy AI 無法計算熱量。",
+                    Text("需要啟用雲端 AI".tr, style = MaterialTheme.typography.titleMedium, color = Brand.Text)
+                    Text("估算熱量要用 Gemini（免費）；裝置端的 Galaxy AI 無法計算熱量。".tr,
                         style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
                     Spacer(Modifier.height(12.dp))
-                    GradientButton("前往設定", onOpenSettings, Modifier.fillMaxWidth())
+                    GradientButton("前往設定".tr, onOpenSettings, Modifier.fillMaxWidth())
                 }
             }
         }
 
         item { PhoneRecordCard(onOpenMeeting = onOpen, foodMode = true) }
         item {
-            Text("手錶上也可以按「飲食記錄」直接說", style = MaterialTheme.typography.labelSmall, color = Brand.TextFaint,
+            Text("手錶上也可以按「飲食記錄」直接說".tr, style = MaterialTheme.typography.labelSmall, color = Brand.TextFaint,
                 modifier = Modifier.fillMaxWidth().padding(top = 0.dp))
         }
 
@@ -80,9 +83,9 @@ fun FoodScreen(onOpen: (String) -> Unit, onOpenSettings: () -> Unit) {
         if (food.isEmpty()) {
             item {
                 GlassCard {
-                    Text("還沒有飲食記錄", style = MaterialTheme.typography.titleMedium, color = Brand.Text)
+                    Text("還沒有飲食記錄".tr, style = MaterialTheme.typography.titleMedium, color = Brand.Text)
                     Spacer(Modifier.height(4.dp))
-                    Text("例如：「中午吃了一碗牛肉麵，加一杯大杯半糖紅茶」",
+                    Text("例如：「中午吃了一碗牛肉麵，加一杯大杯半糖紅茶」".tr,
                         style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
                 }
             }
@@ -94,7 +97,7 @@ fun FoodScreen(onOpen: (String) -> Unit, onOpenSettings: () -> Unit) {
                 Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(dayFmt.format(Date(entries.first().createdAt)), style = MaterialTheme.typography.titleSmall,
                         color = Brand.Text, modifier = Modifier.weight(1f))
-                    Text("$total 大卡", style = MaterialTheme.typography.labelLarge,
+                    Text("{0} 大卡".trf(total), style = MaterialTheme.typography.labelLarge,
                         color = if (total > goal) Brand.Warning else Brand.Cyan)
                 }
             }
@@ -117,7 +120,7 @@ private fun FoodRow(m: Meeting, onClick: () -> Unit) {
                     maxLines = 1, overflow = TextOverflow.Ellipsis)
                 val n = m.nutrition
                 if (n != null && m.status == MeetingStatus.DONE) {
-                    Text(listOf("蛋白質 ${n.protein}g", "碳水 ${n.carbs}g", "脂肪 ${n.fat}g").joinToString(" · ") { nobreak(it) },
+                    Text(listOf("蛋白質 {0}g".trf(n.protein), "碳水 {0}g".trf(n.carbs), "脂肪 {0}g".trf(n.fat)).joinToString(" · ") { nobreak(it) },
                         style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
                 } else {
                     Spacer(Modifier.height(6.dp))
@@ -127,7 +130,7 @@ private fun FoodRow(m: Meeting, onClick: () -> Unit) {
             m.nutrition?.takeIf { m.status == MeetingStatus.DONE }?.let {
                 Spacer(Modifier.width(8.dp))
                 Text("${it.kcal}", style = MaterialTheme.typography.titleLarge, color = Brand.Cyan)
-                Text(" 大卡", style = MaterialTheme.typography.labelSmall, color = Brand.TextMuted)
+                Text(" 大卡".tr, style = MaterialTheme.typography.labelSmall, color = Brand.TextMuted)
             }
         }
         if (style.busy) {

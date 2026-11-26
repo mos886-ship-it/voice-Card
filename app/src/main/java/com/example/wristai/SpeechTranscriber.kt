@@ -1,5 +1,8 @@
 package com.example.wristai
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import android.content.Context
 import android.content.Intent
 import android.media.AudioFormat
@@ -48,14 +51,14 @@ class SpeechTranscriber(private val context: Context, private val language: Stri
     /** 识别第 [index] 段（从 0 开始），返回文字（可能为空字符串 = 这段没人说话）。 */
     suspend fun transcribeChunk(wav: File, index: Int): String {
         if (!isSupported()) {
-            throw TranscriptionException("手機需要 Android 13 以上才能辨識錄音檔（目前 Android ${Build.VERSION.RELEASE}）")
+            throw TranscriptionException("手機需要 Android 13 以上才能辨識錄音檔（目前 Android {0}）".trf(Build.VERSION.RELEASE))
         }
         if (context.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) !=
             android.content.pm.PackageManager.PERMISSION_GRANTED
         ) {
-            throw TranscriptionException("請打開手機 大D App 並允許「麥克風」權限（系統語音辨識需要），再按重試")
+            throw TranscriptionException("請打開手機 大D App 並允許「麥克風」權限（系統語音辨識需要），再按重試".tr)
         }
-        val pcm = File(context.cacheDir, "chunk_$index.pcm")
+        val pcm = File(context.cacheDir, "chunk_${index}.pcm")
         try {
             val bytes = extractChunk(wav, index, pcm)
             if (bytes < AudioSpec.BYTES_PER_SECOND / 2) return ""
@@ -100,7 +103,7 @@ class SpeechTranscriber(private val context: Context, private val language: Stri
             }
         }
         if (!SpeechRecognizer.isRecognitionAvailable(context)) {
-            throw TranscriptionException("這支手機沒有可用的語音辨識服務（請安裝 / 啟用 Google 語音服務）")
+            throw TranscriptionException("這支手機沒有可用的語音辨識服務（請安裝 / 啟用 Google 語音服務）".tr)
         }
         return recognize(pcm, onDevice = false)
     }
@@ -116,7 +119,7 @@ class SpeechTranscriber(private val context: Context, private val language: Stri
             suspendCancellableCoroutine { cont ->
                 val segments = mutableListOf<String>()
                 fun finish() {
-                    if (cont.isActive) cont.resume(segments.joinToString("，"))
+                    if (cont.isActive) cont.resume(segments.joinToString("，".tr))
                 }
 
                 fun firstResult(bundle: Bundle?): String? =
@@ -142,7 +145,7 @@ class SpeechTranscriber(private val context: Context, private val language: Stri
                                 error == SpeechRecognizer.ERROR_NO_MATCH ||
                                 error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> finish()
                             cont.isActive -> cont.resumeWithException(
-                                TranscriptionException("語音辨識錯誤 ${errorName(error)}（${if (onDevice) "離線" else "線上"}）")
+                                TranscriptionException("語音辨識錯誤 {0}（{1}）".trf(errorName(error), if (onDevice) "離線".tr else "線上".tr))
                             )
                         }
                     }
@@ -188,10 +191,10 @@ class SpeechTranscriber(private val context: Context, private val language: Stri
         SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "BUSY"
         SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "PERMISSIONS"
         SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED -> "LANGUAGE_NOT_SUPPORTED"
-        SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE -> "LANGUAGE_UNAVAILABLE（請到系統設定下載離線語音包）"
+        SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE -> "LANGUAGE_UNAVAILABLE（請到系統設定下載離線語音包）".tr
         SpeechRecognizer.ERROR_TOO_MANY_REQUESTS -> "TOO_MANY_REQUESTS"
         SpeechRecognizer.ERROR_SERVER_DISCONNECTED -> "SERVER_DISCONNECTED"
         SpeechRecognizer.ERROR_CANNOT_CHECK_SUPPORT -> "CANNOT_CHECK_SUPPORT"
-        else -> "code=$code"
+        else -> "code=${code}"
     }
 }

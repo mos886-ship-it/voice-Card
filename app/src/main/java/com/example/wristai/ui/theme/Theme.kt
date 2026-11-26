@@ -1,5 +1,8 @@
 package com.example.wristai.ui.theme
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
@@ -35,10 +38,10 @@ object AppTheme {
  * 旧值 light、system 当清晰。手表：水墨 → 水墨，其他 → 深色。
  */
 enum class ThemeMode(val key: String, val label: String, val note: String) {
-    CLEAR("clear", "清晰", "淺灰紙底、白卡片、藍色重點：資訊清楚，適合工作。"),
-    TAIWAN("taiwan", "台灣", "夜藍底、晶片青與梅花紅，以科技為主題，可選背景畫。深色，適合晚上與會議室。"),
-    UKIYOE("ukiyoe", "浮世繪", "和紙底、普魯士藍與朱紅，木刻版畫的平塗色塊與墨線，可選背景畫。手錶維持深色。"),
-    INK("ink", "水墨", "宣紙底、墨黑字、朱紅點綴，跟 logo 同一套。手錶也會換成水墨。");
+    CLEAR("clear", "清晰".tr, "淺灰紙底、白卡片、藍色重點：資訊清楚，適合工作。".tr),
+    TAIWAN("taiwan", "台灣".tr, "夜藍底、晶片青與梅花紅，以科技為主題，可選背景畫。深色，適合晚上與會議室。".tr),
+    UKIYOE("ukiyoe", "浮世繪".tr, "和紙底、普魯士藍與朱紅，木刻版畫的平塗色塊與墨線，可選背景畫。手錶維持深色。".tr),
+    INK("ink", "水墨".tr, "宣紙底、墨黑字、朱紅點綴，跟 logo 同一套。手錶也會換成水墨。".tr);
 
     val palette get() = when (this) { CLEAR -> ClearPalette; TAIWAN -> TaiwanPalette; UKIYOE -> UkiyoePalette; INK -> InkPalette }
 
@@ -58,8 +61,8 @@ enum class ThemeMode(val key: String, val label: String, val note: String) {
  * - 總覽 overview：主頁｜錄音｜飲食｜檔案｜設定，主页是问候、快捷方块、今日统计、最新报告。
  */
 enum class LayoutMode(val key: String, val label: String, val note: String) {
-    QUICK("quick", "快錄", "今天｜資料庫｜中間錄音鍵｜飲食｜設定。任何分頁一按就錄，檔案管理在資料庫的「管理」。"),
-    OVERVIEW("overview", "總覽", "主頁｜錄音｜飲食｜檔案｜設定。主頁有問候、快捷方塊、今日統計與最新報告。");
+    QUICK("quick", "快錄".tr, "今天｜資料庫｜中間錄音鍵｜飲食｜設定。任何分頁一按就錄，檔案管理在資料庫的「管理」。".tr),
+    OVERVIEW("overview", "總覽".tr, "主頁｜錄音｜飲食｜檔案｜設定。主頁有問候、快捷方塊、今日統計與最新報告。".tr);
 
     companion object {
         /** 1.1.87 存的是 new / classic，照样认得。 */
@@ -84,10 +87,10 @@ enum class LayoutMode(val key: String, val label: String, val note: String) {
  * 不用任何公司名称或商标。
  */
 enum class TaiwanBackground(val key: String, val label: String, val res: Int?) {
-    ISLAND("island", "島嶼電路", com.example.wristai.R.drawable.taiwan_bg_island),
-    WAFER("wafer", "晶圓", com.example.wristai.R.drawable.taiwan_bg_wafer),
-    CITY("city", "夜城", com.example.wristai.R.drawable.taiwan_bg_city),
-    NONE("none", "無", null);
+    ISLAND("island", "島嶼電路".tr, com.example.wristai.R.drawable.taiwan_bg_island),
+    WAFER("wafer", "晶圓".tr, com.example.wristai.R.drawable.taiwan_bg_wafer),
+    CITY("city", "夜城".tr, com.example.wristai.R.drawable.taiwan_bg_city),
+    NONE("none", "無".tr, null);
 
     companion object {
         fun from(key: String?) = entries.firstOrNull { it.key == key } ?: ISLAND
@@ -95,10 +98,10 @@ enum class TaiwanBackground(val key: String, val label: String, val res: Int?) {
 }
 
 enum class UkiyoeBackground(val key: String, val label: String, val res: Int?) {
-    GEISHA("geisha", "藝伎武士", com.example.wristai.R.drawable.ukiyoe_bg_geisha),
-    CRANE("crane", "靈鶴", com.example.wristai.R.drawable.ukiyoe_bg_crane),
-    CASTLE("castle", "大阪城", com.example.wristai.R.drawable.ukiyoe_bg_castle),
-    NONE("none", "無", null);
+    GEISHA("geisha", "藝伎武士".tr, com.example.wristai.R.drawable.ukiyoe_bg_geisha),
+    CRANE("crane", "靈鶴".tr, com.example.wristai.R.drawable.ukiyoe_bg_crane),
+    CASTLE("castle", "大阪城".tr, com.example.wristai.R.drawable.ukiyoe_bg_castle),
+    NONE("none", "無".tr, null);
 
     companion object {
         fun from(key: String?) = entries.firstOrNull { it.key == key } ?: GEISHA
@@ -106,10 +109,10 @@ enum class UkiyoeBackground(val key: String, val label: String, val res: Int?) {
 }
 
 enum class InkBackground(val key: String, val label: String, val res: Int?) {
-    BOAT("boat", "孤舟", com.example.wristai.R.drawable.ink_bg_boat),
-    LOTUS("lotus", "荷塘", com.example.wristai.R.drawable.ink_bg_lotus),
-    SHRIMP("shrimp", "魚蝦", com.example.wristai.R.drawable.ink_bg_shrimp),
-    NONE("none", "無", null);
+    BOAT("boat", "孤舟".tr, com.example.wristai.R.drawable.ink_bg_boat),
+    LOTUS("lotus", "荷塘".tr, com.example.wristai.R.drawable.ink_bg_lotus),
+    SHRIMP("shrimp", "魚蝦".tr, com.example.wristai.R.drawable.ink_bg_shrimp),
+    NONE("none", "無".tr, null);
 
     companion object {
         fun from(key: String?) = entries.firstOrNull { it.key == key } ?: BOAT

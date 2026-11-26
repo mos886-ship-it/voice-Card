@@ -1,5 +1,8 @@
 package com.example.wristai
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import android.Manifest
 import android.content.Context
 import android.content.Intent
@@ -62,6 +65,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (WristAiApp.restartIfLanguageChanged(this)) return
         // 浅色主题 → 状态列 / 导航列用深色图示
         AppTheme.mode = ThemeMode.from(Settings.themeMode(this))
         AppTheme.layout = com.example.wristai.ui.theme.LayoutMode.from(Settings.layoutMode(this))
@@ -170,23 +174,23 @@ private fun App() {
                 }
                 r == Tab.SETTINGS.route -> SettingsScreen()
                 // 档案管理：资料库右上的「管理」打开（不是分页）
-                r == "files" -> com.example.wristai.ui.FilesScreen(onBack = { route = lastTab }, onOpen = { route = "detail:$it" }, onOpenSettings = { go(Tab.SETTINGS.route) })
+                r == "files" -> com.example.wristai.ui.FilesScreen(onBack = { route = lastTab }, onOpen = { route = "detail:${it}" }, onOpenSettings = { go(Tab.SETTINGS.route) })
                 // 總覽排布：档案是一个分页
-                r == Tab.FILES.route -> com.example.wristai.ui.FilesScreen(onBack = null, onOpen = { route = "detail:$it" }, onOpenSettings = { go(Tab.SETTINGS.route) })
+                r == Tab.FILES.route -> com.example.wristai.ui.FilesScreen(onBack = null, onOpen = { route = "detail:${it}" }, onOpenSettings = { go(Tab.SETTINGS.route) })
                 r == Tab.HOME.route && overview -> com.example.wristai.ui.OverviewDashboardScreen(
-                    onOpen = { route = "detail:$it" },
+                    onOpen = { route = "detail:${it}" },
                     onOpenRecords = { go(Tab.RECORDS.route) },
                     onOpenFood = { go(Tab.FOOD.route) },
                     onOpenSettings = { go(Tab.SETTINGS.route) },
                 )
                 r == Tab.HOME.route -> DashboardScreen(
-                    onOpen = { route = "detail:$it" },
+                    onOpen = { route = "detail:${it}" },
                     onOpenRecords = { go(Tab.RECORDS.route) },
                     onOpenFood = { go(Tab.FOOD.route) },
                     onOpenSettings = { go(Tab.SETTINGS.route) },
                 )
                 r == Tab.FOOD.route -> FoodScreen(
-                    onOpen = { route = "detail:$it" },
+                    onOpen = { route = "detail:${it}" },
                     onOpenSettings = { go(Tab.SETTINGS.route) },
                 )
                 r.startsWith("detail:") -> DetailScreen(
@@ -195,7 +199,7 @@ private fun App() {
                     onOpenSettings = { go(Tab.SETTINGS.route) },
                 )
                 else -> HomeScreen(
-                    onOpen = { route = "detail:$it" },
+                    onOpen = { route = "detail:${it}" },
                     onOpenSettings = { go(Tab.SETTINGS.route) },
                     onImport = { ctx, uri -> importAudio(ctx, uri) },
                     onManage = { route = "files" },
@@ -209,17 +213,17 @@ private fun App() {
 
 fun importAudio(context: Context, uri: Uri) {
     val app = context.applicationContext
-    Toast.makeText(app, "匯入中…", Toast.LENGTH_SHORT).show()
+    Toast.makeText(app, "匯入中…".tr, Toast.LENGTH_SHORT).show()
     CoroutineScope(Dispatchers.IO).launch {
         val msg = runCatching { AudioImporter.import(app, uri) }
             .fold({ id ->
                 val m = MeetingStore.meetings.value.firstOrNull { it.id == id }
                 if (m != null && m.importedAt != null && m.importedAt - m.createdAt > 120_000)
                     "已匯入（錄音時間 ${java.text.SimpleDateFormat("M/d HH:mm", java.util.Locale.TAIWAN).format(java.util.Date(m.createdAt))}），開始處理"
-                else "已匯入，開始處理"
+                else "已匯入，開始處理".tr
             }, {
-                android.util.Log.e("AudioImporter", "Import failed: $uri", it)
-                "匯入失敗：${it.message}"
+                android.util.Log.e("AudioImporter", "Import failed: ${uri}", it)
+                "匯入失敗：{0}".trf(it.message)
             })
         withContext(Dispatchers.Main) { Toast.makeText(app, msg, Toast.LENGTH_LONG).show() }
     }

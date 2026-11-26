@@ -1,5 +1,8 @@
 package com.example.wristai.ui
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
@@ -80,7 +83,7 @@ fun LocalHostSection() {
         scope.launch {
             val r = withContext(Dispatchers.IO) { runCatching(work) }
             busy = false
-            r.onSuccess { msg -> msg?.let { result = true to it } }.onFailure { result = false to (it.message ?: "失敗") }
+            r.onSuccess { msg -> msg?.let { result = true to it } }.onFailure { result = false to (it.message ?: "失敗".tr) }
             if (hasToken != LocalHost.hasToken(context) || r.isSuccess) url = LocalHost.url(context).ifBlank { url }
             hasToken = LocalHost.hasToken(context)
             // 只有成功才接着做（失败时保留错误讯息和使用者打的字）
@@ -102,15 +105,15 @@ fun LocalHostSection() {
                 devices = d
                 loadingModel = h.state == "loading"
                 result = true to when (h.state) {
-                    "loading" -> "連線成功，主機正在載入模型（第一次會先下載，可能要幾分鐘）…"
-                    "error" -> "連線成功，但主機的模型載入失敗：${h.error ?: "未知原因"}"
-                    else -> "連線成功：" + listOfNotNull(h.asr, h.llm).joinToString("、") + when {
-                        h.ahead > 0 -> "（現在送的話前面還有 ${h.ahead} 筆）"
-                        h.busy -> "（主機正在處理別的錄音）"
+                    "loading" -> "連線成功，主機正在載入模型（第一次會先下載，可能要幾分鐘）…".tr
+                    "error" -> "連線成功，但主機的模型載入失敗：{0}".trf(h.error ?: "未知原因".tr)
+                    else -> "連線成功：".tr + listOfNotNull(h.asr, h.llm).joinToString("、".tr) + when {
+                        h.ahead > 0 -> "（現在送的話前面還有 {0} 筆）".trf(h.ahead)
+                        h.busy -> "（主機正在處理別的錄音）".tr
                         else -> ""
                     }
                 }
-            }.onFailure { result = false to (it.message ?: "連線失敗") }
+            }.onFailure { result = false to (it.message ?: "連線失敗".tr) }
         }
     }
 
@@ -123,14 +126,14 @@ fun LocalHostSection() {
                 .setBarcodeFormats(com.google.mlkit.vision.barcode.common.Barcode.FORMAT_QR_CODE).build(),
         ).startScan()
             .addOnSuccessListener { code -> code.rawValue?.let { PendingPair.link = it } }
-            .addOnFailureListener { e -> result = false to "沒辦法開啟掃描：${e.message ?: "請確認手機有 Google Play 服務"}" }
+            .addOnFailureListener { e -> result = false to "沒辦法開啟掃描：{0}".trf(e.message ?: "請確認手機有 Google Play 服務".tr) }
     } }
 
     // 扫到的 QR / 点到的 dylan://pair 连结 → 配对
     LaunchedEffect(PendingPair.link) {
         val link = PendingPair.link ?: return@LaunchedEffect
         PendingPair.link = null
-        run({ val used = LocalHost.pairLink(context, link); "已連上大D的主機（$used）" }) { refresh() }
+        run({ val used = LocalHost.pairLink(context, link); "已連上大D的主機（{0}）".trf(used) }) { refresh() }
     }
 
     // 已连上 → 进设定页时顺便读一次状态（模型、装置清单）
@@ -144,59 +147,59 @@ fun LocalHostSection() {
             models = m
             if (m.state != "loading") {
                 loadingModel = false
-                result = (m.state != "error") to (if (m.state == "error") "主機換模型失敗" else "已換成 " + LocalHost.label(m.model ?: LocalHost.lastTag(context)))
+                result = (m.state != "error") to (if (m.state == "error") "主機換模型失敗".tr else "已換成 ".tr + LocalHost.label(m.model ?: LocalHost.lastTag(context)))
             }
         }
     }
 
     val connected = hasToken && url.isNotBlank()
 
-    SectionLabel("大D的主機")
+    SectionLabel("大D的主機".tr)
     GlassCard(highlight = connected) {
         if (connected) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Filled.CheckCircle, null, tint = Brand.Success, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("已連上大D的主機", style = MaterialTheme.typography.titleMedium, color = Brand.Text)
+                Text("已連上大D的主機".tr, style = MaterialTheme.typography.titleMedium, color = Brand.Text)
             }
             Text(url, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
-            Text("錄音和飲食記錄優先交給你自己的電腦處理；連不到時自動改用其他引擎。",
+            Text("錄音和飲食記錄優先交給你自己的電腦處理；連不到時自動改用其他引擎。".tr,
                 style = MaterialTheme.typography.bodySmall, color = Brand.TextFaint)
             Spacer(Modifier.height(12.dp))
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                GhostButton(if (busy) "處理中…" else "測試連線", { if (!busy) test() }, Modifier.weight(1f), tint = Brand.Cyan)
-                TextButton(onClick = { confirmUnpair = true }) { Text("取消配對", color = Brand.TextMuted) }
+                GhostButton(if (busy) "處理中…".tr else "測試連線".tr, { if (!busy) test() }, Modifier.weight(1f), tint = Brand.Cyan)
+                TextButton(onClick = { confirmUnpair = true }) { Text("取消配對".tr, color = Brand.TextMuted) }
             }
         } else {
-            Text("用你自己的電腦跑 AI", style = MaterialTheme.typography.titleMedium, color = Brand.Text)
+            Text("用你自己的電腦跑 AI".tr, style = MaterialTheme.typography.titleMedium, color = Brand.Text)
             Text(
-                "免費、沒有額度、錄音不出你的設備，可分辨說話者。在家裡的 Wi-Fi 用瀏覽器打開主機的配對頁" +
-                    "（例 http://Dylan-Mac-mini.local:8765/pair）掃 QR 碼；或填位址和配對密碼。",
+                "免費、沒有額度、錄音不出你的設備，可分辨說話者。在家裡的 Wi-Fi 用瀏覽器打開主機的配對頁".tr +
+                    "（例 http://Dylan-Mac-mini.local:8765/pair）掃 QR 碼；或填位址和配對密碼。".tr,
                 style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted,
             )
             Spacer(Modifier.height(12.dp))
-            GradientButton(if (busy) "配對中…" else "掃描主機上的 QR 碼", {
+            GradientButton(if (busy) "配對中…".tr else "掃描主機上的 QR 碼".tr, {
                 if (!busy) context.findActivity()?.let(scanner)
             }, Modifier.fillMaxWidth())
             Spacer(Modifier.height(14.dp))
-            Text("或用配對密碼", style = MaterialTheme.typography.labelLarge, color = Brand.TextMuted)
+            Text("或用配對密碼".tr, style = MaterialTheme.typography.labelLarge, color = Brand.TextMuted)
             Spacer(Modifier.height(6.dp))
             OutlinedTextField(
                 value = url, onValueChange = { url = it; result = null },
-                label = { Text("位址") }, placeholder = { Text("例 http://192.168.1.20:8765", color = Brand.TextFaint) },
+                label = { Text("位址".tr) }, placeholder = { Text("例 http://192.168.1.20:8765".tr, color = Brand.TextFaint) },
                 singleLine = true, shape = RoundedCornerShape(14.dp), colors = engineFieldColors(), modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(8.dp))
             OutlinedTextField(
                 value = pairPassword, onValueChange = { pairPassword = it; result = null },
-                label = { Text("配對密碼") }, singleLine = true, visualTransformation = PasswordVisualTransformation(),
+                label = { Text("配對密碼".tr) }, singleLine = true, visualTransformation = PasswordVisualTransformation(),
                 shape = RoundedCornerShape(14.dp), colors = engineFieldColors(), modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(10.dp))
-            GhostButton(if (busy) "配對中…" else "配對", {
+            GhostButton(if (busy) "配對中…".tr else "配對".tr, {
                 if (!busy && url.isNotBlank() && pairPassword.isNotBlank()) {
                     val u = url; val pw = pairPassword
-                    run({ LocalHost.pair(context, u, password = pw); "已連上大D的主機" }) { pairPassword = ""; refresh() }
+                    run({ LocalHost.pair(context, u, password = pw); "已連上大D的主機".tr }) { pairPassword = ""; refresh() }
                 }
             }, Modifier.fillMaxWidth(), tint = Brand.Cyan)
 
@@ -204,17 +207,17 @@ fun LocalHostSection() {
             if (UiMode.tech) {
                 Spacer(Modifier.height(6.dp))
                 TextButton(onClick = { advanced = !advanced }) {
-                    Text(if (advanced) "收起進階" else "進階：直接貼主存取碼", color = Brand.TextMuted)
+                    Text(if (advanced) "收起進階".tr else "進階：直接貼主存取碼".tr, color = Brand.TextMuted)
                 }
                 if (advanced) {
                     OutlinedTextField(
                         value = mainToken, onValueChange = { mainToken = it },
-                        label = { Text("主存取碼（主機的 ~/dylan-local/config.json）") }, singleLine = true,
+                        label = { Text("主存取碼（主機的 ~/dylan-local/config.json）".tr) }, singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
                         shape = RoundedCornerShape(14.dp), colors = engineFieldColors(), modifier = Modifier.fillMaxWidth(),
                     )
                     Spacer(Modifier.height(8.dp))
-                    GhostButton("儲存並測試", {
+                    GhostButton("儲存並測試".tr, {
                         if (url.isNotBlank() && mainToken.isNotBlank()) {
                             LocalHost.setUrl(context, url); LocalHost.setToken(context, mainToken)
                             mainToken = ""; url = LocalHost.url(context); hasToken = true; test()
@@ -234,7 +237,7 @@ fun LocalHostSection() {
             val isAdmin = devices?.admin ?: models?.admin ?: true
             if (!isAdmin) {
                 Spacer(Modifier.height(10.dp))
-                Text("你是這台主機的一般使用者：模型和配對密碼由主機管理者設定。很多人同時送錄音時會輪流處理，處理步驟會顯示前面還有幾筆。",
+                Text("你是這台主機的一般使用者：模型和配對密碼由主機管理者設定。很多人同時送錄音時會輪流處理，處理步驟會顯示前面還有幾筆。".tr,
                     style = MaterialTheme.typography.bodySmall, color = Brand.TextFaint)
             }
             // ---------- 配对密码（给之后的装置用；只有管理者） ----------
@@ -243,28 +246,28 @@ fun LocalHostSection() {
             if (devices != null && isAdmin) Spacer(Modifier.height(14.dp))
             if (devices != null && isAdmin) Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("配對密碼", style = MaterialTheme.typography.labelLarge, color = Brand.Text)
-                    Text(if (pwSet) "已設定：其他手機或平板輸入位址和密碼就能連上" else "還沒設定：設定後，其他裝置人在外面也能配對",
+                    Text("配對密碼".tr, style = MaterialTheme.typography.labelLarge, color = Brand.Text)
+                    Text(if (pwSet) "已設定：其他手機或平板輸入位址和密碼就能連上".tr else "還沒設定：設定後，其他裝置人在外面也能配對".tr,
                         style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
                 }
                 TextButton(onClick = { showPasswordField = !showPasswordField; newPassword = "" }) {
-                    Text(if (showPasswordField) "取消" else if (pwSet) "更換" else "設定", color = Brand.Cyan)
+                    Text(if (showPasswordField) "取消".tr else if (pwSet) "更換".tr else "設定".tr, color = Brand.Cyan)
                 }
             }
             if (showPasswordField && devices != null && isAdmin) {
                 OutlinedTextField(
                     value = newPassword, onValueChange = { newPassword = it },
-                    label = { Text("新的配對密碼（至少 8 個字）") }, singleLine = true, visualTransformation = PasswordVisualTransformation(),
+                    label = { Text("新的配對密碼（至少 8 個字）".tr) }, singleLine = true, visualTransformation = PasswordVisualTransformation(),
                     shape = RoundedCornerShape(14.dp), colors = engineFieldColors(), modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(Modifier.height(8.dp))
-                GhostButton("儲存密碼", {
+                GhostButton("儲存密碼".tr, {
                     if (newPassword.length >= 8) {
                         val pw = newPassword
-                        run({ LocalHost.setPassword(context, pw); "配對密碼已儲存（已配對的裝置不受影響）" }) {
+                        run({ LocalHost.setPassword(context, pw); "配對密碼已儲存（已配對的裝置不受影響）".tr }) {
                             showPasswordField = false; newPassword = ""; refresh()
                         }
-                    } else result = false to "密碼至少 8 個字"
+                    } else result = false to "密碼至少 8 個字".tr
                 }, Modifier.fillMaxWidth(), tint = Brand.Cyan)
             }
 
@@ -280,17 +283,17 @@ fun LocalHostSection() {
                         r.onSuccess {
                             models = m.copy(asrId = a, llmId = l, state = "loading")
                             loadingModel = true
-                            result = true to "主機正在載入模型（第一次會先下載，可能要幾分鐘）…"
-                        }.onFailure { result = false to (it.message ?: "換模型失敗") }
+                            result = true to "主機正在載入模型（第一次會先下載，可能要幾分鐘）…".tr
+                        }.onFailure { result = false to (it.message ?: "換模型失敗".tr) }
                     }
                 }
-                Text("語音辨識", style = MaterialTheme.typography.labelLarge, color = Brand.TextMuted)
+                Text("語音辨識".tr, style = MaterialTheme.typography.labelLarge, color = Brand.TextMuted)
                 Spacer(Modifier.height(6.dp))
                 Chips(m.asrOptions.map { it.label }, m.asrOptions.indexOfFirst { it.id == m.asrId }) { i ->
                     if (!loadingModel) choose(m.asrOptions[i].id, null)
                 }
                 Spacer(Modifier.height(10.dp))
-                Text("報告模型", style = MaterialTheme.typography.labelLarge, color = Brand.TextMuted)
+                Text("報告模型".tr, style = MaterialTheme.typography.labelLarge, color = Brand.TextMuted)
                 Spacer(Modifier.height(6.dp))
                 Chips(m.llmOptions.map { it.label }, m.llmOptions.indexOfFirst { it.id == m.llmId }) { i ->
                     if (!loadingModel) choose(null, m.llmOptions[i].id)
@@ -301,20 +304,20 @@ fun LocalHostSection() {
             val d = devices
             if (UiMode.tech && d != null && d.devices.isNotEmpty()) {
                 Spacer(Modifier.height(14.dp))
-                Text("已配對的裝置", style = MaterialTheme.typography.labelLarge, color = Brand.TextMuted)
+                Text("已配對的裝置".tr, style = MaterialTheme.typography.labelLarge, color = Brand.TextMuted)
                 val fmt = remember { SimpleDateFormat("yy/M/d HH:mm", Locale.TAIWAN) }
                 for (dev in d.devices) {
                     Spacer(Modifier.height(6.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text(dev.name + if (dev.current) "（這台）" else "", style = MaterialTheme.typography.bodyMedium,
+                            Text(dev.name + if (dev.current) "（這台）".tr else "", style = MaterialTheme.typography.bodyMedium,
                                 color = Brand.Text, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Text(
                                 listOfNotNull(
-                                    "配對 " + fmt.format(Date(dev.created * 1000)),
-                                    dev.lastSeen?.let { "最後使用 " + fmt.format(Date(it * 1000)) },
-                                    when (dev.via) { "qr" -> "QR 碼"; "password" -> "密碼"; else -> null },
-                                    if (dev.admin) "管理者" else null,
+                                    "配對 ".tr + fmt.format(Date(dev.created * 1000)),
+                                    dev.lastSeen?.let { "最後使用 ".tr + fmt.format(Date(it * 1000)) },
+                                    when (dev.via) { "qr" -> "QR 碼".tr; "password" -> "密碼".tr; else -> null },
+                                    if (dev.admin) "管理者".tr else null,
                                 ).joinToString(" · "),
                                 style = MaterialTheme.typography.labelSmall, color = Brand.TextFaint,
                             )
@@ -322,10 +325,10 @@ fun LocalHostSection() {
                         // 管理者可以把别台设成管理者（例如家人的手机），或取消
                         if (d.admin && !dev.current) TextButton(onClick = {
                             run({ LocalHost.setAdmin(context, dev.id, !dev.admin)
-                                if (dev.admin) "「${dev.name}」改成一般使用者" else "「${dev.name}」已設為管理者" }) { refresh() }
-                        }) { Text(if (dev.admin) "改一般" else "設管理者", color = Brand.Cyan) }
+                                if (dev.admin) "「{0}」改成一般使用者".trf(dev.name) else "「{0}」已設為管理者".trf(dev.name) }) { refresh() }
+                        }) { Text(if (dev.admin) "改一般".tr else "設管理者".tr, color = Brand.Cyan) }
                         TextButton(onClick = { if (dev.current) confirmUnpair = true else revokeTarget = dev }) {
-                            Text("取消", color = Brand.Error)
+                            Text("取消".tr, color = Brand.Error)
                         }
                     }
                 }
@@ -336,29 +339,29 @@ fun LocalHostSection() {
     if (confirmUnpair) {
         AlertDialog(
             onDismissRequest = { confirmUnpair = false },
-            title = { Text("取消這台的配對？") },
-            text = { Text("這台手機的存取碼會作廢，錄音改用其他引擎。之後可以再掃 QR 碼或用配對密碼連回來。") },
+            title = { Text("取消這台的配對？".tr) },
+            text = { Text("這台手機的存取碼會作廢，錄音改用其他引擎。之後可以再掃 QR 碼或用配對密碼連回來。".tr) },
             confirmButton = {
                 TextButton(onClick = {
                     confirmUnpair = false
-                    run({ LocalHost.unpair(context); "已取消配對" }) { models = null; devices = null }
-                }) { Text("取消配對", color = Brand.Error) }
+                    run({ LocalHost.unpair(context); "已取消配對".tr }) { models = null; devices = null }
+                }) { Text("取消配對".tr, color = Brand.Error) }
             },
-            dismissButton = { TextButton(onClick = { confirmUnpair = false }) { Text("返回") } },
+            dismissButton = { TextButton(onClick = { confirmUnpair = false }) { Text("返回".tr) } },
         )
     }
     revokeTarget?.let { dev ->
         AlertDialog(
             onDismissRequest = { revokeTarget = null },
-            title = { Text("取消「${dev.name}」的配對？") },
-            text = { Text("那台裝置的存取碼會作廢，要重新配對才能再用大D的主機。") },
+            title = { Text("取消「{0}」的配對？".trf(dev.name)) },
+            text = { Text("那台裝置的存取碼會作廢，要重新配對才能再用大D的主機。".tr) },
             confirmButton = {
                 TextButton(onClick = {
                     revokeTarget = null
-                    run({ LocalHost.revoke(context, dev.id); "已取消「${dev.name}」" }) { refresh() }
-                }) { Text("取消配對", color = Brand.Error) }
+                    run({ LocalHost.revoke(context, dev.id); "已取消「{0}」".trf(dev.name) }) { refresh() }
+                }) { Text("取消配對".tr, color = Brand.Error) }
             },
-            dismissButton = { TextButton(onClick = { revokeTarget = null }) { Text("返回") } },
+            dismissButton = { TextButton(onClick = { revokeTarget = null }) { Text("返回".tr) } },
         )
     }
 }

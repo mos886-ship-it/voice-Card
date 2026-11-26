@@ -1,5 +1,8 @@
 package com.example.wristai.ai
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
@@ -45,7 +48,7 @@ object LocalHost {
     /** 使用者打的位址整理成「http://主机:埠」：去掉空白与结尾的「/」，没写 http:// 就补上。 */
     fun normalize(raw: String): String {
         var v = raw.trim().trimEnd('/')
-        if (v.isNotEmpty() && !v.startsWith("http://", true) && !v.startsWith("https://", true)) v = "http://$v"
+        if (v.isNotEmpty() && !v.startsWith("http://", true) && !v.startsWith("https://", true)) v = "http://${v}"
         return v
     }
 
@@ -75,13 +78,13 @@ object LocalHost {
     // ---------------- 名称 ----------------
 
     private val NAMES = mapOf(
-        "funasr" to "FunASR", "breeze" to "Breeze-ASR-26", "hakka" to "客語 Whisper", "taiwan-tongues" to "Taiwan Tongues", "text" to "文字",
-        "qwen3-8b" to "Qwen3-8B", "sarc-taigi-12b" to "SARC 台語 12B",
+        "funasr" to "FunASR", "breeze" to "Breeze-ASR-26", "hakka" to "客語 Whisper".tr, "taiwan-tongues" to "Taiwan Tongues", "text" to "文字".tr,
+        "qwen3-8b" to "Qwen3-8B", "sarc-taigi-12b" to "SARC 台語 12B".tr,
     )
 
     /** 模型代号 → 「大D的主機：FunASR ＋ Qwen3-8B」。认不得的代号照原样（主机上可以自己加模型）。 */
     fun label(tag: String): String =
-        "大D的主機：" + tag.removePrefix("local-").split('|').filter { it.isNotBlank() }.joinToString(" ＋ ") { NAMES[it] ?: it }
+        "大D的主機：".tr + tag.removePrefix("local-").split('|').filter { it.isNotBlank() }.joinToString(" ＋ ".tr) { NAMES[it] ?: it }
 
     fun isLocalTag(model: String?) = model?.startsWith("local-") == true
 
@@ -112,7 +115,7 @@ object LocalHost {
             requestMethod = method
             connectTimeout = 5_000
             readTimeout = readTimeoutMs
-            setRequestProperty("Authorization", "Bearer $token")
+            setRequestProperty("Authorization", "Bearer ${token}")
         }
 
     private fun read(conn: HttpURLConnection): Pair<Int, String> {
@@ -123,27 +126,27 @@ object LocalHost {
     }
 
     private fun errorOf(code: Int, body: String): String = when (code) {
-        401 -> "大D的主機不認得這台手機（配對可能被取消了）：請到設定按「取消配對」再重新配對"
-        429 -> "存取碼錯太多次，主機暫時擋掉這支手機（一小時後或重開主機服務就解除）"
+        401 -> "大D的主機不認得這台手機（配對可能被取消了）：請到設定按「取消配對」再重新配對".tr
+        429 -> "存取碼錯太多次，主機暫時擋掉這支手機（一小時後或重開主機服務就解除）".tr
         else -> runCatching { JSONObject(body).optString("error") }.getOrNull()?.takeIf { it.isNotBlank() }
-            ?: "大D的主機回應錯誤 $code"
+            ?: "大D的主機回應錯誤 {0}".trf(code)
     }
 
     private fun unreachable(e: Exception): AiException {
         android.util.Log.w("LocalHost", "unreachable: ${e.javaClass.simpleName}: ${e.message}")
-        return AiException("連不到大D的主機：請確認主機開著、服務在跑、手機連得到主機（同一個 Wi-Fi 或固定 IP）")
+        return AiException("連不到大D的主機：請確認主機開著、服務在跑、手機連得到主機（同一個 Wi-Fi 或固定 IP）".tr)
     }
 
     /** 测试连线 / 送出前的检查（5 秒）。[url]、[token] 给设定页测还没存的值。 */
     fun health(c: Context, url: String = url(c), token: String = token(c)): Health {
         val base = normalize(url)
-        if (base.isEmpty() || runCatching { URL(base) }.isFailure) throw AiException("位址格式不對，例如 http://192.168.1.20:8765")
+        if (base.isEmpty() || runCatching { URL(base) }.isFailure) throw AiException("位址格式不對，例如 http://192.168.1.20:8765".tr)
         val (code, body) = try {
             val conn = open(c, base, token, "/v1/health", "GET", 5_000)
             try { read(conn) } finally { conn.disconnect() }
         } catch (e: Exception) { throw unreachable(e) }
         if (code != 200) throw AiException(errorOf(code, body))
-        val j = runCatching { JSONObject(body) }.getOrElse { throw AiException("大D的主機回應看不懂") }
+        val j = runCatching { JSONObject(body) }.getOrElse { throw AiException("大D的主機回應看不懂".tr) }
         return Health(
             ok = j.optBoolean("ok"), asr = j.optString("asr").ifBlank { null }, llm = j.optString("llm").ifBlank { null },
             model = j.optString("model").ifBlank { null }, state = j.optString("state").ifBlank { null },
@@ -184,7 +187,7 @@ object LocalHost {
             readTimeout = 10_000
             doOutput = true
             setRequestProperty("Content-Type", "application/json")
-            if (token.isNotEmpty()) setRequestProperty("Authorization", "Bearer $token")
+            if (token.isNotEmpty()) setRequestProperty("Authorization", "Bearer ${token}")
         }
         try {
             conn.outputStream.use { it.write(json.toString().toByteArray(Charsets.UTF_8)) }
@@ -213,14 +216,14 @@ object LocalHost {
      */
     fun pair(c: Context, url: String, password: String? = null, code: String? = null) {
         val base = normalize(url)
-        if (base.isEmpty() || runCatching { URL(base) }.isFailure) throw AiException("位址格式不對，例如 http://192.168.1.20:8765")
+        if (base.isEmpty() || runCatching { URL(base) }.isFailure) throw AiException("位址格式不對，例如 http://192.168.1.20:8765".tr)
         val json = JSONObject().put("name", deviceLabel(c))
         if (password != null) json.put("password", password)
         if (code != null) json.put("code", code)
         val (status, body) = postJson(c, base, "", "/v1/pair", json)
-        if (status != 200) throw AiException(jsonError(body, "配對失敗（$status）"))
-        val j = runCatching { JSONObject(body) }.getOrElse { throw AiException("大D的主機回應看不懂") }
-        val token = j.optString("token").takeIf { it.isNotBlank() } ?: throw AiException("大D的主機沒有給存取碼")
+        if (status != 200) throw AiException(jsonError(body, "配對失敗（{0}）".trf(status)))
+        val j = runCatching { JSONObject(body) }.getOrElse { throw AiException("大D的主機回應看不懂".tr) }
+        val token = j.optString("token").takeIf { it.isNotBlank() } ?: throw AiException("大D的主機沒有給存取碼".tr)
         setUrl(c, base)
         setToken(c, token, j.optString("id").ifBlank { null })
     }
@@ -241,9 +244,9 @@ object LocalHost {
 
     /** 扫到的 QR / 点到的连结：先试对外位址，连不到再试区网位址（配对码还没用掉）。回传用的位址。 */
     fun pairLink(c: Context, link: String): String {
-        val l = parseLink(link) ?: throw AiException("這不是大D的主機的配對 QR 碼")
-        if (l.urls.isEmpty()) throw AiException("QR 碼裡沒有位址")
-        var last = "連不到大D的主機"
+        val l = parseLink(link) ?: throw AiException("這不是大D的主機的配對 QR 碼".tr)
+        if (l.urls.isEmpty()) throw AiException("QR 碼裡沒有位址".tr)
+        var last = "連不到大D的主機".tr
         for (u in l.urls) {
             try {
                 pair(c, u, code = l.code)
@@ -310,7 +313,7 @@ object LocalHost {
         }.getOrNull()?.takeIf { it.isNotBlank() }
             ?: runCatching { android.provider.Settings.Secure.getString(c.contentResolver, "bluetooth_name") }.getOrNull()
                 ?.takeIf { it.isNotBlank() }
-        return if (name == null || name == model || name == android.os.Build.MODEL) model else "$name（$model）"
+        return if (name == null || name == model || name == android.os.Build.MODEL) model else "{0}（{1}）".trf(name, model)
     }
 
     /** 型号代码 → 好读的名字（常见的三星机型；认不得照原样）。 */
@@ -343,7 +346,7 @@ object LocalHost {
     class JobGone : Exception()
 
     private fun parseJob(body: String): Job {
-        val j = runCatching { JSONObject(body.trim()) }.getOrElse { throw AiException("大D的主機回應看不懂：${body.trim().take(120)}") }
+        val j = runCatching { JSONObject(body.trim()) }.getOrElse { throw AiException("大D的主機回應看不懂：{0}".trf(body.trim().take(120))) }
         return Job(
             id = j.optString("id"), state = j.optString("state"), ahead = j.optInt("ahead"), waitSec = j.optInt("wait_sec"),
             text = j.optString("text").ifBlank { null }, model = j.optString("model").ifBlank { null },
@@ -387,13 +390,13 @@ object LocalHost {
             } finally { conn.disconnect() }
         } catch (e: AiException) { throw e } catch (e: Exception) { throw unreachable(e) }
         if (code != 202 && code != 200) throw AiException(errorOf(code, body))
-        return parseJob(body).also { if (it.id.isBlank()) throw AiException("大D的主機沒有給工作編號") }
+        return parseJob(body).also { if (it.id.isBlank()) throw AiException("大D的主機沒有給工作編號".tr) }
     }
 
     /** 查一笔工作。找不到 → [JobGone]；连不到 → [Unreachable]（暂时的，等一下再查）。 */
     fun job(c: Context, id: String): Job {
         val (code, body) = try {
-            val conn = open(c, url(c), token(c), "/v1/jobs/$id", "GET", 15_000)
+            val conn = open(c, url(c), token(c), "/v1/jobs/${id}", "GET", 15_000)
             try { read(conn) } finally { conn.disconnect() }
         } catch (e: Exception) { throw Unreachable(unreachable(e).message!!) }
         if (code == 404) throw JobGone()
@@ -404,18 +407,18 @@ object LocalHost {
     /** 删掉主机上的这笔（拿到结果后、或使用者中断时）。回传主机上是不是已经没有了（找不到也算）。
      *  失败不要紧，主机 24 小时后会自己删。 */
     fun deleteJob(c: Context, id: String): Boolean = runCatching {
-        val conn = open(c, url(c), token(c), "/v1/jobs/$id", "DELETE", 10_000)
+        val conn = open(c, url(c), token(c), "/v1/jobs/${id}", "DELETE", 10_000)
         try { read(conn).first } finally { conn.disconnect() }
     }.getOrNull().let { it == 200 || it == 404 }
 
     /** 「前面還有 2 筆，約 6 分鐘」：给处理步骤和手表看。 */
     fun queueText(ahead: Int, waitSec: Int): String {
         val wait = when {
-            waitSec < 60 -> "不到 1 分鐘"
-            waitSec < 3600 -> "約 ${(waitSec + 59) / 60} 分鐘"
-            else -> "約 ${waitSec / 3600} 小時 ${(waitSec % 3600 + 59) / 60} 分"
+            waitSec < 60 -> "不到 1 分鐘".tr
+            waitSec < 3600 -> "約 {0} 分鐘".trf((waitSec + 59) / 60)
+            else -> "約 {0} 小時 {1} 分".trf(waitSec / 3600, (waitSec % 3600 + 59) / 60)
         }
-        return if (ahead <= 0) "輪到你了，$wait" else "排隊中：前面還有 $ahead 筆，$wait"
+        return if (ahead <= 0) "輪到你了，{0}".trf(wait) else "排隊中：前面還有 {0} 筆，{1}".trf(ahead, wait)
     }
 
     /**
@@ -435,9 +438,9 @@ object LocalHost {
             } finally { conn.disconnect() }
         } catch (e: AiException) { throw e } catch (e: Exception) { throw unreachable(e) }
         if (code != 200) throw AiException(errorOf(code, body))
-        val j = runCatching { JSONObject(body.trim()) }.getOrElse { throw AiException("大D的主機回應看不懂：${body.trim().take(120)}") }
+        val j = runCatching { JSONObject(body.trim()) }.getOrElse { throw AiException("大D的主機回應看不懂：{0}".trf(body.trim().take(120))) }
         j.optString("error").takeIf { it.isNotBlank() }?.let { throw AiException(it) }
-        val out = j.optString("text").takeIf { it.isNotBlank() } ?: throw AiException("大D的主機沒有回傳報告")
+        val out = j.optString("text").takeIf { it.isNotBlank() } ?: throw AiException("大D的主機沒有回傳報告".tr)
         val tag = j.optString("model").ifBlank { DEFAULT_TAG }
         rememberTag(c, tag)
         return Result(out, tag)

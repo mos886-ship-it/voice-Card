@@ -1,5 +1,8 @@
 package com.example.wristai.ui
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -62,12 +65,12 @@ import kotlin.math.sin
  * 總覽：主頁｜錄音｜飲食｜檔案｜設定。
  */
 enum class Tab(val route: String, private val quickLabel: String, private val overviewLabel: String) {
-    HOME("tab:home", "今天", "主頁"),
-    RECORDS("tab:records", "資料庫", "錄音"),
-    FOOD("tab:food", "飲食", "飲食"),
+    HOME("tab:home", "今天".tr, "主頁".tr),
+    RECORDS("tab:records", "資料庫".tr, "錄音".tr),
+    FOOD("tab:food", "飲食".tr, "飲食".tr),
     /** 档案管理：總覽是一个分页；快錄在资料库的「管理」。 */
-    FILES("tab:files", "檔案", "檔案"),
-    SETTINGS("tab:settings", "設定", "設定");
+    FILES("tab:files", "檔案".tr, "檔案".tr),
+    SETTINGS("tab:settings", "設定".tr, "設定".tr);
 
     val label get() = when (AppTheme.layout) {
         LayoutMode.QUICK -> quickLabel
@@ -116,7 +119,7 @@ private fun RecordKey(onStarted: () -> Unit) {
                     },
                     onLongClick = { if (!recording) menu = true },
                 )
-                .semantics { contentDescription = if (recording) "停止錄音" else "開始錄音" },
+                .semantics { contentDescription = if (recording) "停止錄音".tr else "開始錄音".tr },
             contentAlignment = Alignment.Center,
         ) {
             if (recording) Box(Modifier.size(16.dp).clip(RoundedCornerShape(4.dp)).background(Color.White))
@@ -124,11 +127,11 @@ private fun RecordKey(onStarted: () -> Unit) {
         }
         // 长按：记录饮食的三种方式——说 / 拍 / 拍＋说
         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-            DropdownMenuItem(text = { Text("說：記錄飲食") }, leadingIcon = { BowlGlyph(Brand.Text) },
+            DropdownMenuItem(text = { Text("說：記錄飲食".tr) }, leadingIcon = { BowlGlyph(Brand.Text) },
                 onClick = { menu = false; FoodPhotos.pendingForVoice = null; starter(true); onStarted() })
-            DropdownMenuItem(text = { Text("拍：拍照記錄") }, leadingIcon = { BowlGlyph(Brand.Text) },
+            DropdownMenuItem(text = { Text("拍：拍照記錄".tr) }, leadingIcon = { BowlGlyph(Brand.Text) },
                 onClick = { menu = false; photo = false })
-            DropdownMenuItem(text = { Text("拍＋說：拍照再補一句") }, leadingIcon = { BowlGlyph(Brand.Text) },
+            DropdownMenuItem(text = { Text("拍＋說：拍照再補一句".tr) }, leadingIcon = { BowlGlyph(Brand.Text) },
                 onClick = { menu = false; photo = true })
         }
     }

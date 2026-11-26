@@ -1,5 +1,8 @@
 package com.example.wristai.ui
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import androidx.compose.ui.graphics.Brush
 
 import androidx.compose.runtime.setValue
@@ -90,22 +93,22 @@ fun currentEngine(context: Context): EngineInfo = when {
     // 大D的主機（使用者自己的电脑）：有设定就优先
     com.example.wristai.ai.LocalHost.configured(context) -> EngineInfo(
         com.example.wristai.ai.LocalHost.label(com.example.wristai.ai.LocalHost.lastTag(context)),
-        "你自己的電腦 · 免費、錄音不出你的設備；連不到時自動改用其他引擎", true, Brand.Success,
+        "你自己的電腦 · 免費、錄音不出你的設備；連不到時自動改用其他引擎".tr, true, Brand.Success,
     )
     com.example.wristai.ai.AiConfig.mode(context) == com.example.wristai.ai.AiConfig.MODE_PIPELINE -> {
         val missing = com.example.wristai.ai.AiConfig.pipelineMissing(context)
         EngineInfo(
-            com.example.wristai.ai.AiConfig.sttKind(context).label + " ＋ " + com.example.wristai.ai.AiConfig.llmKind(context).label,
-            missing ?: "語音辨識 ＋ 報告模型 · 錄完自動產生報告", missing == null, if (missing == null) Brand.Cyan else Brand.Warning,
+            com.example.wristai.ai.AiConfig.sttKind(context).label + " ＋ ".tr + com.example.wristai.ai.AiConfig.llmKind(context).label,
+            missing ?: "語音辨識 ＋ 報告模型 · 錄完自動產生報告".tr, missing == null, if (missing == null) Brand.Cyan else Brand.Warning,
         )
     }
     com.example.wristai.ai.AiConfig.explicit(context) && com.example.wristai.ai.AiConfig.mode(context) == com.example.wristai.ai.AiConfig.MODE_DEVICE ->
-        EngineInfo("Galaxy AI · 裝置端", "錄音存入三星錄音機，在手機上轉錄 / 摘要（不上傳）", VoiceRecorderExporter.launchIntent(context) != null, Brand.Violet)
-    Settings.geminiKey(context).isNotBlank() -> EngineInfo("Gemini", "免費方案 · 錄完自動產生報告", true, Brand.Cyan)
-    Settings.apiKey(context).isNotBlank() -> EngineInfo("Claude", "API · 錄完自動產生報告", true, Brand.Violet)
+        EngineInfo("Galaxy AI · 裝置端".tr, "錄音存入三星錄音機，在手機上轉錄 / 摘要（不上傳）".tr, VoiceRecorderExporter.launchIntent(context) != null, Brand.Violet)
+    Settings.geminiKey(context).isNotBlank() -> EngineInfo("Gemini", "免費方案 · 錄完自動產生報告".tr, true, Brand.Cyan)
+    Settings.apiKey(context).isNotBlank() -> EngineInfo("Claude", "API · 錄完自動產生報告".tr, true, Brand.Violet)
     VoiceRecorderExporter.launchIntent(context) != null ->
-        EngineInfo("Galaxy AI · 裝置端", "錄音自動存入三星錄音機，一鍵轉錄 / 摘要", true, Brand.Violet)
-    else -> EngineInfo("尚未設定", "設定 AI 金鑰後即可自動產生報告", false, Brand.Warning)
+        EngineInfo("Galaxy AI · 裝置端".tr, "錄音自動存入三星錄音機，一鍵轉錄 / 摘要".tr, true, Brand.Violet)
+    else -> EngineInfo("尚未設定".tr, "設定 AI 金鑰後即可自動產生報告".tr, false, Brand.Warning)
 }
 
 /** 查询已连线的手表名称；没有就返回 null。每 10 秒更新一次。 */
@@ -132,7 +135,7 @@ fun rememberWatchName(): String? {
     return state.value
 }
 
-fun meetingTitle(m: Meeting): String = m.title ?: (when { com.example.wristai.FoodLog.isFood(m.id) -> "飲食 "; m.source == "call" -> "通話 "; else -> "錄音 " }) + SimpleDateFormat("M/d HH:mm", Locale.TAIWAN).format(Date(m.createdAt))
+fun meetingTitle(m: Meeting): String = m.title ?: (when { com.example.wristai.FoodLog.isFood(m.id) -> "飲食 ".tr; m.source == "call" -> "通話 ".tr; else -> "錄音 ".tr }) + SimpleDateFormat("M/d HH:mm", Locale.TAIWAN).format(Date(m.createdAt))
 /** 清单用的短日期：今年 → 11/21 19:03；其他年 → 2025/11/21 19:03。 */
 fun shortWhen(ms: Long): String {
     val sameYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR) ==
@@ -150,7 +153,7 @@ fun recordingRange(m: Meeting): String {
     val day = SimpleDateFormat("yyyy/MM/dd", Locale.TAIWAN)
     val t = SimpleDateFormat("HH:mm:ss", Locale.TAIWAN)
     val endText = if (day.format(Date(start)) == day.format(Date(end))) t.format(Date(end)) else day.format(Date(end)) + " " + t.format(Date(end))
-    return "${day.format(Date(start))} ${t.format(Date(start))} – $endText（${formatDuration(m.durationSec)}）"
+    return "{0} {1} – {2}（{3}）".trf(day.format(Date(start)), t.format(Date(start)), endText, formatDuration(m.durationSec))
 }
 
 /**
@@ -158,13 +161,13 @@ fun recordingRange(m: Meeting): String {
  * gemini-3.5-flash-lite → Google Gemini 3.5 Flash-Lite、claude-opus-5-5 → Anthropic Claude Opus 5.5。
  */
 fun aiModelLabel(model: String?): String {
-    if (model.isNullOrBlank()) return "未記錄（舊報告）"
+    if (model.isNullOrBlank()) return "未記錄（舊報告）".tr
     // 大D的主機（使用者自己的电脑）："local-funasr|qwen3-8b"
     if (com.example.wristai.ai.LocalHost.isLocalTag(model)) return com.example.wristai.ai.LocalHost.label(model)
     // 组合式："语音辨识模型|报告模型"
     if ('|' in model) {
         val (stt, llm) = model.split('|', limit = 2)
-        return sttLabel(stt) + " ＋ " + aiModelLabel(llm)
+        return sttLabel(stt) + " ＋ ".tr + aiModelLabel(llm)
     }
     val m = model.lowercase()
     fun cap(s: String) = s.replaceFirstChar { it.uppercase() }
@@ -173,18 +176,18 @@ fun aiModelLabel(model: String?): String {
             val p = m.removePrefix("gemini-").split('-')
             val ver = p.firstOrNull().orEmpty()
             val rest = p.drop(1).joinToString("-") { cap(it) }
-            "Google Gemini $ver" + if (rest.isNotEmpty()) " $rest" else ""
+            "Google Gemini ${ver}" + if (rest.isNotEmpty()) " ${rest}" else ""
         }
-        m.startsWith("qwen") -> "阿里通義千問 $model"
-        m.startsWith("llama") -> "Meta $model"
-        m.startsWith("gpt-") || m.startsWith("o1") || m.startsWith("o3") || m.startsWith("o4") -> "OpenAI $model"
+        m.startsWith("qwen") -> "阿里通義千問 {0}".trf(model)
+        m.startsWith("llama") -> "Meta ${model}"
+        m.startsWith("gpt-") || m.startsWith("o1") || m.startsWith("o3") || m.startsWith("o4") -> "OpenAI ${model}"
         m in setOf("4.0ultra", "generalv3.5", "generalv3", "max-32k", "pro-128k", "lite") || m.startsWith("spark") || m.startsWith("x1") ->
-            "訊飛星火 $model"
+            "訊飛星火 {0}".trf(model)
         m.startsWith("claude-") -> {
             val p = m.removePrefix("claude-").split('-')
             val name = p.takeWhile { s -> s.any { it.isLetter() } }.joinToString(" ") { cap(it) }
             val ver = p.dropWhile { s -> s.any { it.isLetter() } }.joinToString(".")
-            "Anthropic Claude $name $ver".trim()
+            "Anthropic Claude ${name} ${ver}".trim()
         }
         else -> model
     }
@@ -192,21 +195,21 @@ fun aiModelLabel(model: String?): String {
 
 /** 语音辨识模型代号 → 名字。 */
 private fun sttLabel(id: String): String = when {
-    id.startsWith("fun-asr") || id.startsWith("paraformer") || id.startsWith("qwen") -> "阿里 Fun-ASR 語音辨識（$id）".replace("（fun-asr）", "")
-    id == "iflytek-lfasr" -> "科大訊飛 錄音轉寫"
-    id.startsWith("gpt-") || id.startsWith("whisper") -> "OpenAI 轉錄（$id）"
+    id.startsWith("fun-asr") || id.startsWith("paraformer") || id.startsWith("qwen") -> "阿里 Fun-ASR 語音辨識（{0}）".trf(id).replace("（fun-asr）", "")
+    id == "iflytek-lfasr" -> "科大訊飛 錄音轉寫".tr
+    id.startsWith("gpt-") || id.startsWith("whisper") -> "OpenAI 轉錄（{0}）".trf(id)
     else -> id
 }
 
 /** 分享 / 汇出的报告：标题下面加一行「錄音時間：起 – 讫（长度）」。 */
 fun withRecordingTime(report: String, m: Meeting, geo: com.example.voiceai.shared.GeoFix? = null): String {
-    val line = "錄音時間：${recordingRange(m)}" + (m.importedAt?.let { "　匯入：${formatWhen(it)}" } ?: "") +
+    val line = "錄音時間：${recordingRange(m)}" + (m.importedAt?.let { "　匯入：{0}".trf(formatWhen(it)) } ?: "") +
         (geo?.let { "\n錄音地點：${it.place ?: "%.5f, %.5f".format(it.lat, it.lon)}　${it.mapUrl}" } ?: "") +
-        (m.aiModel?.let { "\n報告整理：${aiModelLabel(it)}" } ?: "")
+        (m.aiModel?.let { "\n報告整理：{0}".trf(aiModelLabel(it)) } ?: "")
     val lines = report.lines()
     return if (lines.firstOrNull()?.startsWith("# ") == true)
         (listOf(lines.first(), "", line) + lines.drop(1)).joinToString("\n")
-    else "$line\n\n$report"
+    else "${line}\n\n${report}"
 }
 
 fun formatDuration(sec: Double): String {
@@ -265,15 +268,15 @@ fun HomeScreen(onOpen: (String) -> Unit, onOpenSettings: () -> Unit, onImport: (
         item {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 4.dp)) {
                 Column(Modifier.weight(1f)) {
-                    Text(if (overview) "錄音" else "資料庫", style = MaterialTheme.typography.headlineSmall, color = Brand.Text)
-                    Text(if (meetings.isEmpty()) "會議、課堂、訪談、通話、靈感筆記" else "共 ${meetings.size} 段 · ${humanDuration(meetings.sumOf { it.durationSec })}",
+                    Text(if (overview) "錄音".tr else "資料庫".tr, style = MaterialTheme.typography.headlineSmall, color = Brand.Text)
+                    Text(if (meetings.isEmpty()) "會議、課堂、訪談、通話、靈感筆記".tr else "共 {0} 段 · {1}".trf(meetings.size, humanDuration(meetings.sumOf { it.durationSec })),
                         style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
                 }
                 if (!overview) {
-                    GhostButton("管理", onManage, tint = Brand.Cyan)
+                    GhostButton("管理".tr, onManage, tint = Brand.Cyan)
                     Spacer(Modifier.width(8.dp))
                 }
-                GhostButton("匯入", { picker.launch(arrayOf("audio/*")) }, icon = Icons.Filled.Add, tint = Brand.Cyan)
+                GhostButton("匯入".tr, { picker.launch(arrayOf("audio/*")) }, icon = Icons.Filled.Add, tint = Brand.Cyan)
             }
         }
 
@@ -286,10 +289,10 @@ fun HomeScreen(onOpen: (String) -> Unit, onOpenSettings: () -> Unit, onImport: (
             val origins = Origin.entries.filter { o -> o != Origin.FOOD && meetings.any { it.origin() == o } }
             if (origins.size > 1) item {
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip("全部", origin == null) { origin = null }
+                    FilterChip("全部".tr, origin == null) { origin = null }
                     for (o in origins) {
                         val n = meetings.count { it.origin() == o }
-                        FilterChip("${o.label} $n", origin == o.name) { origin = if (origin == o.name) null else o.name }
+                        FilterChip("${o.label} ${n}", origin == o.name) { origin = if (origin == o.name) null else o.name }
                     }
                 }
             }
@@ -298,25 +301,25 @@ fun HomeScreen(onOpen: (String) -> Unit, onOpenSettings: () -> Unit, onImport: (
             item { EmptyState() }
         } else if (shown.isEmpty()) {
             item {
-                Text("找不到符合「${debounced.trim()}」的錄音" + if (origin != null) "（目前只看「${Origin.valueOf(origin!!).label}」）" else "",
+                Text("找不到符合「{0}」的錄音".trf(debounced.trim()) + if (origin != null) "（目前只看「{0}」）".trf(Origin.valueOf(origin!!).label) else "",
                     style = MaterialTheme.typography.bodyMedium, color = Brand.TextFaint,
                     modifier = Modifier.padding(vertical = 24.dp))
             }
         } else if (terms.isNotEmpty()) {
             item {
-                Text("找到 ${shown.size} 筆", style = MaterialTheme.typography.labelLarge, color = Brand.Cyan)
+                Text("找到 {0} 筆".trf(shown.size), style = MaterialTheme.typography.labelLarge, color = Brand.Cyan)
             }
         }
         for ((day, list) in groups) {
-            item(key = "d_$day") {
+            item(key = "d_${day}") {
                 Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(day, style = MaterialTheme.typography.titleSmall, color = Brand.Text)
                     Spacer(Modifier.width(8.dp))
-                    Text("${list.size} 筆", style = MaterialTheme.typography.labelMedium, color = Brand.TextFaint)
+                    Text("{0} 筆".trf(list.size), style = MaterialTheme.typography.labelMedium, color = Brand.TextFaint)
                 }
             }
             items(list, key = { it.id }) { m ->
-                val sn = snippets[m.id]?.let { highlight(if (it.text.isEmpty()) "符合：${it.where}" else "${it.where}：${it.text}", terms) }
+                val sn = snippets[m.id]?.let { highlight(if (it.text.isEmpty()) "符合：{0}".trf(it.where.tr) else "{0}：{1}".trf(it.where.tr, it.text), terms) }
                 RecordRow(m, summaries[m.id], sn, onOpen = { onOpen(m.id) }, onDelete = { MeetingStore.delete(context, m.id) })
             }
         }
@@ -335,7 +338,7 @@ internal fun WatchPill(watch: String?, onClick: () -> Unit) {
     ) {
         Box(Modifier.size(8.dp).clip(CircleShape).background(if (watch != null) Brand.Success else Brand.TextFaint))
         Spacer(Modifier.width(6.dp))
-        Text(if (watch != null) "手錶已連線" else "手錶未連線", style = MaterialTheme.typography.labelMedium,
+        Text(if (watch != null) "手錶已連線".tr else "手錶未連線".tr, style = MaterialTheme.typography.labelMedium,
             color = if (watch != null) Brand.Text else Brand.TextMuted)
     }
 }
@@ -348,17 +351,17 @@ fun SystemStatusCard() {
     val engine by produceState(currentEngine(context)) { while (true) { delay(2_000); value = currentEngine(context) } }
     val watch = rememberWatchName()
     GlassCard(highlight = true) {
-        Text("系統狀態", style = MaterialTheme.typography.labelSmall, color = Brand.TextMuted)
+        Text("系統狀態".tr, style = MaterialTheme.typography.labelSmall, color = Brand.TextMuted)
         Spacer(Modifier.height(12.dp))
-        StatusRow("AI 報告引擎", engine.name, engine.detail, if (engine.ready) Brand.Success else engine.color)
+        StatusRow("AI 報告引擎".tr, engine.name, engine.detail, if (engine.ready) Brand.Success else engine.color)
         // 商用模式：手表只在有连线时显示；科技模式一律显示
         if (watch != null || UiMode.tech) {
             Spacer(Modifier.height(12.dp))
             Divider()
             Spacer(Modifier.height(12.dp))
             StatusRow(
-                "智慧手錶", watch ?: "未連線",
-                if (watch != null) "在手錶按下錄音即可開始" else "請確認手錶已透過 Galaxy Wearable 配對",
+                "智慧手錶".tr, watch ?: "未連線".tr,
+                if (watch != null) "在手錶按下錄音即可開始".tr else "請確認手錶已透過 Galaxy Wearable 配對".tr,
                 if (watch != null) Brand.Success else Brand.TextFaint,
             )
         }
@@ -398,16 +401,16 @@ private fun EmptyState() {
         Column(Modifier.fillMaxWidth().padding(vertical = 20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             GlyphTile({ Waveform(Modifier.size(28.dp), Color.White) }, size = 64.dp, filled = true)
             Spacer(Modifier.height(16.dp))
-            Text("還沒有錄音", style = MaterialTheme.typography.titleMedium, color = Brand.Text)
+            Text("還沒有錄音".tr, style = MaterialTheme.typography.titleMedium, color = Brand.Text)
             Spacer(Modifier.height(4.dp))
-            Text("在手錶按下「錄音」，結束後會自動傳到這裡分析",
+            Text("在手錶按下「錄音」，結束後會自動傳到這裡分析".tr,
                 style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
         }
     }
 }
 
 /** 会议来源（首页筛选、列表标示用）。 */
-enum class Origin(val label: String) { WATCH("手錶"), PHONE("手機"), CALL("通話"), FOOD("飲食"), IMPORT("匯入") }
+enum class Origin(val label: String) { WATCH("手錶".tr), PHONE("手機".tr), CALL("通話".tr), FOOD("飲食".tr), IMPORT("匯入".tr) }
 
 fun Meeting.origin(): Origin = when {
     com.example.wristai.FoodLog.isFood(id) -> Origin.FOOD
@@ -421,10 +424,10 @@ fun Meeting.origin(): Origin = when {
 private fun SearchField(value: String, onChange: (String) -> Unit) {
     OutlinedTextField(
         value = value, onValueChange = onChange, singleLine = true,
-        placeholder = { Text("搜尋：關鍵字、人名、地點、日期（空白分隔）", color = Brand.TextFaint, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+        placeholder = { Text("搜尋：關鍵字、人名、地點、日期（空白分隔）".tr, color = Brand.TextFaint, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         leadingIcon = { Icon(Icons.Filled.Search, null, tint = Brand.TextMuted) },
         trailingIcon = if (value.isNotEmpty()) ({
-            Icon(Icons.Filled.Clear, "清除", tint = Brand.TextMuted, modifier = Modifier.clickable { onChange("") })
+            Icon(Icons.Filled.Clear, "清除".tr, tint = Brand.TextMuted, modifier = Modifier.clickable { onChange("") })
         }) else null,
         shape = RoundedCornerShape(16.dp),
         colors = OutlinedTextFieldDefaults.colors(

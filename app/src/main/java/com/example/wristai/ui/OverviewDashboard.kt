@@ -1,5 +1,8 @@
 package com.example.wristai.ui
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -113,10 +116,10 @@ fun OverviewDashboardScreen(
                         usesFood = all.any { com.example.wristai.FoodLog.isFood(it.id) })
                     Text(g.title, style = MaterialTheme.typography.headlineSmall, color = Brand.Text)
                     Text(g.line, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
-                    Text(SimpleDateFormat("M 月 d 日 EEEE", Locale.TAIWAN).format(Date()),
+                    Text(SimpleDateFormat("M 月 d 日 EEEE".tr, com.example.voiceai.shared.I18n.locale).format(Date()),
                         style = MaterialTheme.typography.labelSmall, color = Brand.TextFaint)
                     // 科技模式：目前会用的 AI 引擎
-                    if (UiMode.tech && engine.ready) Text("AI：${engine.name}", style = MaterialTheme.typography.labelSmall,
+                    if (UiMode.tech && engine.ready) Text("AI：{0}".trf(engine.name), style = MaterialTheme.typography.labelSmall,
                         color = Brand.TextFaint, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 // 商用模式：手表只在有连线时显示
@@ -127,10 +130,10 @@ fun OverviewDashboardScreen(
         if (!engine.ready) {
             item {
                 GlassCard(highlight = true) {
-                    Text("還沒設定 AI", style = MaterialTheme.typography.titleMedium, color = Brand.Text)
+                    Text("還沒設定 AI".tr, style = MaterialTheme.typography.titleMedium, color = Brand.Text)
                     Text(engine.detail, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
                     Spacer(Modifier.height(12.dp))
-                    GradientButton("前往設定", onOpenSettings, Modifier.fillMaxWidth())
+                    GradientButton("前往設定".tr, onOpenSettings, Modifier.fillMaxWidth())
                 }
             }
         }
@@ -145,8 +148,8 @@ fun OverviewDashboardScreen(
                 LangChooser()
                 Spacer(Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    QuickTile("開始錄音", "會議、課堂、訪談、靈感", filled = true, modifier = Modifier.weight(1f)) { start(false) }
-                    QuickTile("記錄飲食", "說出吃了什麼", filled = false, modifier = Modifier.weight(1f)) { start(true) }
+                    QuickTile("開始錄音".tr, "會議、課堂、訪談、靈感".tr, filled = true, modifier = Modifier.weight(1f)) { start(false) }
+                    QuickTile("記錄飲食".tr, "說出吃了什麼".tr, filled = false, modifier = Modifier.weight(1f)) { start(true) }
                 }
             }
         }
@@ -154,19 +157,19 @@ fun OverviewDashboardScreen(
         // ---------- 今天 ----------
         item {
             GlassCard {
-                Text("今天", style = MaterialTheme.typography.labelSmall, color = Brand.TextMuted)
+                Text("今天".tr, style = MaterialTheme.typography.labelSmall, color = Brand.TextMuted)
                 Spacer(Modifier.height(10.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    StatTile("${todayRec.size}", "段錄音", Modifier.weight(1f).clickable(onClick = onOpenRecords))
-                    StatTile(formatMinutes(todayRec.sumOf { it.durationSec }), "錄音時長", Modifier.weight(1f).clickable(onClick = onOpenRecords))
-                    if (usesFood) StatTile("$todayKcal/$goal", "大卡", Modifier.weight(1f).clickable(onClick = onOpenFood))
+                    StatTile("${todayRec.size}", "段錄音".tr, Modifier.weight(1f).clickable(onClick = onOpenRecords))
+                    StatTile(formatMinutes(todayRec.sumOf { it.durationSec }), "錄音時長".tr, Modifier.weight(1f).clickable(onClick = onOpenRecords))
+                    if (usesFood) StatTile("${todayKcal}/${goal}", "大卡".tr, Modifier.weight(1f).clickable(onClick = onOpenFood))
                 }
             }
         }
 
         // ---------- 处理中 ----------
         if (busy.isNotEmpty()) {
-            item { SectionLabel("處理中") }
+            item { SectionLabel("處理中".tr) }
             items(busy, key = { it.id }) { m ->
                 GlassCard(onClick = { onOpen(m.id) }, contentPadding = 14.dp) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -182,14 +185,14 @@ fun OverviewDashboardScreen(
 
         // ---------- 最新报告 ----------
         if (latest != null) {
-            item { SectionLabel("最新報告") }
+            item { SectionLabel("最新報告".tr) }
             item { LatestReportCard(latest) { onOpen(latest.id) } }
         } else if (recordings.isEmpty()) {
             item {
                 GlassCard {
-                    Text("開始第一段錄音", style = MaterialTheme.typography.titleMedium, color = Brand.Text)
+                    Text("開始第一段錄音".tr, style = MaterialTheme.typography.titleMedium, color = Brand.Text)
                     Spacer(Modifier.height(4.dp))
-                    Text("按上面的「開始錄音」，或在手錶按下錄音。錄完會自動整理出重點、待辦與逐字稿。",
+                    Text("按上面的「開始錄音」，或在手錶按下錄音。錄完會自動整理出重點、待辦與逐字稿。".tr,
                         style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
                 }
             }
@@ -254,6 +257,6 @@ private fun LatestReportCard(m: Meeting, onClick: () -> Unit) {
                 maxLines = 4, overflow = TextOverflow.Ellipsis)
         }
         Spacer(Modifier.height(10.dp))
-        Text("查看完整報告 →", style = MaterialTheme.typography.labelLarge, color = Brand.Cyan)
+        Text("查看完整報告 →".tr, style = MaterialTheme.typography.labelLarge, color = Brand.Cyan)
     }
 }

@@ -1,5 +1,8 @@
 package com.example.wristai
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import kotlinx.coroutines.launch
 import android.util.Log
 import com.example.voiceai.shared.Segment
@@ -34,7 +37,7 @@ class AudioReceiverService : WearableListenerService() {
                 if (fix != null) MeetingStore.saveGeo(ctx, id, fix.copy(source = "phone"))
                 runCatching {
                     com.google.android.gms.tasks.Tasks.await(com.google.android.gms.wearable.Wearable.getMessageClient(ctx)
-                        .sendMessage(node, WristAiProtocol.PATH_GEO_ACK, "$id|${if (fix != null) 1 else 0}".toByteArray()))
+                        .sendMessage(node, WristAiProtocol.PATH_GEO_ACK, "${id}|${if (fix != null) 1 else 0}".toByteArray()))
                 }
             }
             return
@@ -84,7 +87,7 @@ class AudioReceiverService : WearableListenerService() {
                 tmp.copyTo(target, overwrite = true)
                 tmp.delete()
             }
-            Log.d(TAG, "Received $recordingId: ${target.length()} bytes")
+            Log.d(TAG, "Received ${recordingId}: ${target.length()} bytes")
 
             MeetingStore.save(
                 this,
@@ -100,12 +103,12 @@ class AudioReceiverService : WearableListenerService() {
                 )
             )
             ack(channelClient, channel)
-            WatchNotifier.sendStatus(this, channel.nodeId, "手機已收到錄音，開始處理…")
+            WatchNotifier.sendStatus(this, channel.nodeId, "手機已收到錄音，開始處理…".tr)
             ProcessMeetingWorker.enqueue(this, recordingId)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to receive $recordingId", e)
+            Log.e(TAG, "Failed to receive ${recordingId}", e)
             tmp.delete()
-            WatchNotifier.sendStatus(this, channel.nodeId, "手機接收失敗：${e.message}")
+            WatchNotifier.sendStatus(this, channel.nodeId, "手機接收失敗：{0}".trf(e.message))
         } finally {
             runCatching { Tasks.await(channelClient.close(channel)) }
         }
@@ -126,7 +129,7 @@ class AudioReceiverService : WearableListenerService() {
             val meeting = MeetingStore.get(this, seg.recordingId)
             if (complete) {
                 val min = ((meeting?.durationSec ?: 0.0) / 60).toInt()
-                WatchNotifier.sendStatus(this, channel.nodeId, "手機已收到完整錄音（$min 分鐘），開始處理…")
+                WatchNotifier.sendStatus(this, channel.nodeId, "手機已收到完整錄音（{0} 分鐘），開始處理…".trf(min))
                 ProcessMeetingWorker.enqueue(this, seg.recordingId)
             } else if (meeting?.status == MeetingStatus.RECORDING && Settings.geminiKey(this).isNotBlank()) {
                 // 还在录：让 Gemini 先处理已经满 30 分钟的部分，录完很快就有报告

@@ -1,5 +1,8 @@
 package com.example.wristai.ui
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -30,10 +33,10 @@ object UiMode {
 fun humanDuration(sec: Double): String {
     val s = sec.toLong().coerceAtLeast(0)
     return when {
-        s < 60 -> "$s 秒"
-        s < 3600 -> "${s / 60} 分"
-        s % 3600 / 60 == 0L -> "${s / 3600} 小時"
-        else -> "${s / 3600} 小時 ${s % 3600 / 60} 分"
+        s < 60 -> "{0} 秒".trf(s)
+        s < 3600 -> "{0} 分".trf(s / 60)
+        s % 3600 / 60 == 0L -> "{0} 小時".trf(s / 3600)
+        else -> "{0} 小時 {1} 分".trf(s / 3600, s % 3600 / 60)
     }
 }
 
@@ -45,11 +48,11 @@ fun dayLabel(ms: Long, now: Long = System.currentTimeMillis()): String {
     val day = start(ms)
     val today = start(now)
     val diff = Math.round((today.timeInMillis - day.timeInMillis) / 86_400_000.0)
-    if (diff == 0L) return "今天"
-    if (diff == 1L) return "昨天"
-    val week = "日一二三四五六"[day.get(Calendar.DAY_OF_WEEK) - 1]
-    val md = "${day.get(Calendar.MONTH) + 1}月${day.get(Calendar.DAY_OF_MONTH)}日 週$week"
-    return if (day.get(Calendar.YEAR) == today.get(Calendar.YEAR)) md else "${day.get(Calendar.YEAR)}年$md"
+    if (diff == 0L) return "今天".tr
+    if (diff == 1L) return "昨天".tr
+    val week = com.example.voiceai.shared.I18n.weekdayShort(day.get(Calendar.DAY_OF_WEEK))
+    val md = "{0}月{1}日 週{2}".trf(day.get(Calendar.MONTH) + 1, day.get(Calendar.DAY_OF_MONTH), week)
+    return if (day.get(Calendar.YEAR) == today.get(Calendar.YEAR)) md else "{0}年{1}".trf(day.get(Calendar.YEAR), md)
 }
 
 /** 处理耗时（科技模式）：「耗時 42 秒」；没记录 → null。 */

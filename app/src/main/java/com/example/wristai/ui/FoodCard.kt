@@ -1,5 +1,8 @@
 package com.example.wristai.ui
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -54,29 +57,29 @@ fun TodayFoodCard(meetings: List<Meeting>, goalKcal: Int, alwaysShow: Boolean = 
     val over = ratio > 1f
 
     GlassCard(onClick = if (alwaysShow) null else onClick) {
-        Text("今日飲食", style = MaterialTheme.typography.labelSmall, color = Brand.TextMuted)
+        Text("今日飲食".tr, style = MaterialTheme.typography.labelSmall, color = Brand.TextMuted)
         Spacer(Modifier.height(12.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(92.dp), contentAlignment = Alignment.Center) {
                 RingProgress(ratio.coerceIn(0f, 1f), Modifier.size(92.dp), stroke = 8.dp)
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("$kcal", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = if (over) Brand.Warning else Brand.Text)
-                    Text("/ $goalKcal 大卡", style = MaterialTheme.typography.labelSmall, color = Brand.TextFaint)
+                    Text("${kcal}", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = if (over) Brand.Warning else Brand.Text)
+                    Text("/ {0} 大卡".trf(goalKcal), style = MaterialTheme.typography.labelSmall, color = Brand.TextFaint)
                 }
             }
             Spacer(Modifier.width(18.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Macro("蛋白質", protein, Brand.Cyan)
-                Macro("碳水", carbs, Brand.Blue)
-                Macro("脂肪", fat, Brand.Violet)
+                Macro("蛋白質".tr, protein, Brand.Cyan)
+                Macro("碳水".tr, carbs, Brand.Blue)
+                Macro("脂肪".tr, fat, Brand.Violet)
             }
         }
         Spacer(Modifier.height(12.dp))
         Text(
             when {
-                today.isEmpty() -> "今天還沒有記錄 · 吃完說一下吃了什麼就好"
-                over -> "已超過今日目標 ${kcal - goalKcal} 大卡"
-                else -> "還可以吃約 ${goalKcal - kcal} 大卡"
+                today.isEmpty() -> "今天還沒有記錄 · 吃完說一下吃了什麼就好".tr
+                over -> "已超過今日目標 {0} 大卡".trf(kcal - goalKcal)
+                else -> "還可以吃約 {0} 大卡".trf(goalKcal - kcal)
             },
             style = MaterialTheme.typography.bodySmall, color = if (over) Brand.Warning else Brand.TextMuted,
         )
@@ -90,7 +93,7 @@ fun TodayFoodCard(meetings: List<Meeting>, goalKcal: Int, alwaysShow: Boolean = 
                         modifier = Modifier.width(48.dp))
                     Text(meetingTitle(m), style = MaterialTheme.typography.bodyMedium, color = Brand.Text,
                         maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                    Text("${m.nutrition!!.kcal} 大卡", style = MaterialTheme.typography.labelMedium, color = Brand.Cyan)
+                    Text("{0} 大卡".trf(m.nutrition!!.kcal), style = MaterialTheme.typography.labelMedium, color = Brand.Cyan)
                 }
             }
         }
@@ -103,7 +106,7 @@ private fun Macro(label: String, grams: Int, color: Color) {
         androidx.compose.foundation.Canvas(Modifier.size(8.dp)) { drawCircle(color) }
         Spacer(Modifier.width(8.dp))
         Text(label, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted, modifier = Modifier.weight(1f))
-        Text("$grams g", style = MaterialTheme.typography.labelLarge, color = Brand.Text)
+        Text("${grams} g", style = MaterialTheme.typography.labelLarge, color = Brand.Text)
     }
 }
 
@@ -115,16 +118,16 @@ fun NutritionHeader(m: Meeting) {
         Row(verticalAlignment = Alignment.Bottom) {
             Text("${n.kcal}", fontSize = 40.sp, fontWeight = FontWeight.Bold, color = Brand.Text)
             Spacer(Modifier.width(6.dp))
-            Text("大卡${if (n.meal.isNotBlank()) " · ${n.meal}" else ""}", style = MaterialTheme.typography.titleMedium,
+            Text("大卡{0}".trf(if (n.meal.isNotBlank()) " · ${n.meal}" else ""), style = MaterialTheme.typography.titleMedium,
                 color = Brand.TextMuted, modifier = Modifier.padding(bottom = 6.dp))
         }
         Spacer(Modifier.height(10.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            StatTile("${n.protein}g", "蛋白質", Modifier.weight(1f))
-            StatTile("${n.carbs}g", "碳水", Modifier.weight(1f))
-            StatTile("${n.fat}g", "脂肪", Modifier.weight(1f))
+            StatTile("${n.protein}g", "蛋白質".tr, Modifier.weight(1f))
+            StatTile("${n.carbs}g", "碳水".tr, Modifier.weight(1f))
+            StatTile("${n.fat}g", "脂肪".tr, Modifier.weight(1f))
         }
         Spacer(Modifier.height(8.dp))
-        Text("AI 依口述估算，僅供參考", style = MaterialTheme.typography.labelSmall, color = Brand.TextFaint)
+        Text("AI 依口述估算，僅供參考".tr, style = MaterialTheme.typography.labelSmall, color = Brand.TextFaint)
     }
 }

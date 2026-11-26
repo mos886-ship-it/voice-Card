@@ -1,5 +1,8 @@
 package com.example.wristai.ui
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -37,24 +40,24 @@ import kotlinx.coroutines.delay
 
 /** 每一步在做什么（画面上的说明）。 */
 private val STEP_INFO = mapOf(
-    "接收錄音" to "錄音已傳到手機",
-    "存入錄音機" to "另存一份到三星錄音機，之後也能用 Galaxy AI",
-    "上傳音檔" to "壓縮錄音後上傳到 AI 服務",
-    "AI 聆聽整理" to "AI 聆聽錄音、分辨說話者，寫出逐字稿與報告",
-    "分段分析" to "長錄音分段聆聽（每段約 30 分鐘），一段一段整理",
-    "整合報告" to "把各段的重點整合成一份完整報告",
-    "語音辨識" to "把錄音轉成逐字稿，並分辨不同說話者",
-    "報告整理" to "讀逐字稿，整理摘要、說話者、重點與待辦",
-    "估算熱量" to "辨認吃了什麼與份量，估算熱量與營養素",
+    "接收錄音" to "錄音已傳到手機".tr,
+    "存入錄音機" to "另存一份到三星錄音機，之後也能用 Galaxy AI".tr,
+    "上傳音檔" to "壓縮錄音後上傳到 AI 服務".tr,
+    "AI 聆聽整理" to "AI 聆聽錄音、分辨說話者，寫出逐字稿與報告".tr,
+    "分段分析" to "長錄音分段聆聽（每段約 30 分鐘），一段一段整理".tr,
+    "整合報告" to "把各段的重點整合成一份完整報告".tr,
+    "語音辨識" to "把錄音轉成逐字稿，並分辨不同說話者".tr,
+    "報告整理" to "讀逐字稿，整理摘要、說話者、重點與待辦".tr,
+    "估算熱量" to "辨認吃了什麼與份量，估算熱量與營養素".tr,
 )
 
 /** 「1 分 12 秒」「45 秒」「1 小時 3 分」 */
 fun durationWords(ms: Long): String {
     val s = (ms / 1000).coerceAtLeast(0)
     return when {
-        s >= 3600 -> "${s / 3600} 小時 ${s / 60 % 60} 分"
-        s >= 60 -> "${s / 60} 分 ${s % 60} 秒"
-        else -> "$s 秒"
+        s >= 3600 -> "{0} 小時 {1} 分".trf(s / 3600, s / 60 % 60)
+        s >= 60 -> "{0} 分 {1} 秒".trf(s / 60, s % 60)
+        else -> "{0} 秒".trf(s)
     }
 }
 
@@ -77,12 +80,12 @@ fun ProcessSteps(m: Meeting, onCancel: (() -> Unit)? = null) {
     Column {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                when { failed -> "處理過程"; running -> "AI 處理中"; else -> "處理完成" },
+                when { failed -> "處理過程".tr; running -> "AI 處理中".tr; else -> "處理完成".tr },
                 style = MaterialTheme.typography.titleMedium, color = Brand.Text, modifier = Modifier.weight(1f),
             )
             val total = when {
-                running && m.processStartedAt > 0 -> "已經過 " + clock(now - m.processStartedAt)
-                !running && m.processEndedAt > m.processStartedAt && m.processStartedAt > 0 -> "共 " + durationWords(m.processEndedAt - m.processStartedAt)
+                running && m.processStartedAt > 0 -> "已經過 ".tr + clock(now - m.processStartedAt)
+                !running && m.processEndedAt > m.processStartedAt && m.processStartedAt > 0 -> "共 ".tr + durationWords(m.processEndedAt - m.processStartedAt)
                 else -> null
             }
             total?.let { Text(it, style = MaterialTheme.typography.labelMedium, color = Brand.TextMuted) }
@@ -109,7 +112,7 @@ fun ProcessSteps(m: Meeting, onCancel: (() -> Unit)? = null) {
                 Column(Modifier.weight(1f).padding(top = 1.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            name, style = MaterialTheme.typography.titleSmall,
+                            name.tr, style = MaterialTheme.typography.titleSmall,
                             fontWeight = if (state == 1 || state == 3) FontWeight.Bold else FontWeight.Normal,
                             color = when (state) { 1 -> Brand.Cyan; 2 -> Brand.TextFaint; 3 -> Brand.Error; 4 -> Brand.Warning; else -> Brand.Text },
                             modifier = Modifier.weight(1f, fill = false),
@@ -128,11 +131,11 @@ fun ProcessSteps(m: Meeting, onCancel: (() -> Unit)? = null) {
         }
         if (running) {
             Spacer(Modifier.height(10.dp))
-            Text("可以先離開這個畫面，完成後會通知你，並把摘要推送到手錶。",
+            Text("可以先離開這個畫面，完成後會通知你，並把摘要推送到手錶。".tr,
                 style = MaterialTheme.typography.bodySmall, color = Brand.TextFaint)
             if (onCancel != null) {
                 Spacer(Modifier.height(12.dp))
-                GhostButton("中斷處理", onCancel, Modifier.fillMaxWidth(), tint = Brand.Error)
+                GhostButton("中斷處理".tr, onCancel, Modifier.fillMaxWidth(), tint = Brand.Error)
             }
         }
     }

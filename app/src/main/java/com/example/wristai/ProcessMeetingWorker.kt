@@ -1,5 +1,8 @@
 package com.example.wristai
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
@@ -58,6 +61,7 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
         const val CLEANUP_ALL = "大D的主機上的錄音與報告都已刪除"
 
         /** 「基本資料」的「隱私」：主机回报录音删了没（[purged]）、报告拿走后删了没（[reportGone]）。 */
+        // 存中文原文（显示时才翻译，换介面语言也对）
         fun cleanupText(purged: Boolean, reportGone: Boolean): String = when {
             purged && reportGone -> CLEANUP_ALL
             purged -> "大D的主機上的錄音已刪除；報告會在 24 小時內自動刪除"
@@ -70,7 +74,7 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
 
         /** 中断处理：停掉背景任务，标成「已中断」（按「重试」可以接着做）。 */
         fun cancel(context: Context, meetingId: String) {
-            WorkManager.getInstance(context).cancelUniqueWork("meeting-$meetingId")
+            WorkManager.getInstance(context).cancelUniqueWork("meeting-${meetingId}")
             // 在大D的主机排队中 / 处理中：通知主机丢掉（不占别人的位置）；按「重試」会重新送
             hostJobFile(context, meetingId).takeIf { it.exists() }?.let { f ->
                 val jid = f.readText().trim()
@@ -88,7 +92,7 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
                 .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
                 .build()
             WorkManager.getInstance(context)
-                .enqueueUniqueWork("meeting-$meetingId", ExistingWorkPolicy.APPEND_OR_REPLACE, request)
+                .enqueueUniqueWork("meeting-${meetingId}", ExistingWorkPolicy.APPEND_OR_REPLACE, request)
         }
     }
 
@@ -129,7 +133,7 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
                 throw e
             } catch (e: Exception) {
                 // 录音中先转录只是加速；失败了录完后会再做，不把会议标成失败
-                Log.w(TAG, "$id: early chunk transcription failed: ${e.message}")
+                Log.w(TAG, "${id}: early chunk transcription failed: ${e.message}")
                 Result.success()
             }
         }
@@ -142,9 +146,9 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
             val tooShort = complete && wav.exists() && com.example.voiceai.shared.WavFile.durationSeconds(wav) < PhoneRecordingService.MIN_RECORDING_SEC
             if (tooShort && meeting.importedAt == null && meeting.source != AudioImporter.SOURCE_CALL &&
                 FoodPhotos.files(ctx, id).isEmpty()) {
-                Log.d(TAG, "$id: shorter than ${PhoneRecordingService.MIN_RECORDING_SEC}s, discarded")
+                Log.d(TAG, "${id}: shorter than ${PhoneRecordingService.MIN_RECORDING_SEC}s, discarded")
                 MeetingStore.delete(ctx, id)
-                WatchNotifier.sendStatus(ctx, node, "錄音不到 1 秒，已取消")
+                WatchNotifier.sendStatus(ctx, node, "錄音不到 1 秒，已取消".tr)
                 return Result.success()
             }
         }
@@ -210,18 +214,18 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
                     LongMeeting.processChunks(ctx, id, final = true, deadline = startedAt + CHUNK_BUDGET_MS,
                         gemini = gemini, recordedAt = recordedAt) { k, n ->
                         MeetingStore.update(ctx, id) { it.copy(chunkDone = k, chunkTotal = n) }
-                        stepTo(id, "分段分析", "Gemini · ${minOf(k + 1, n)}/$n 段")
-                        WatchNotifier.sendStatus(ctx, node, "Gemini 分析中 ${k + 1}/$n 段")
+                        stepTo(id, "分段分析", "Gemini · {0}/{1} 段".trf(minOf(k + 1, n), n))
+                        WatchNotifier.sendStatus(ctx, node, "Gemini 分析中 {0}/{1} 段".trf(k + 1, n))
                     }
                 }
                 if (!done) {
-                    Log.d(TAG, "$id: time budget used, continuing chunks in a new task")
+                    Log.d(TAG, "${id}: time budget used, continuing chunks in a new task")
                     enqueue(ctx, id)
                     return Result.success()
                 }
                 MeetingStore.update(ctx, id) { it.copy(chunkDone = total) }
                 stepTo(id, "整合報告", "Gemini")
-                WatchNotifier.sendStatus(ctx, node, "Gemini 整合完整報告…")
+                WatchNotifier.sendStatus(ctx, node, "Gemini 整合完整報告…".tr)
                 val (report, transcript) = withContext(Dispatchers.IO) {
                     LongMeeting.finish(ctx, id, gemini, meeting.durationSec, recordedAt)
                 }
@@ -241,9 +245,9 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
             if (geminiKey.isNotBlank()) {
                 MeetingStore.update(ctx, id) { it.copy(status = MeetingStatus.SUMMARIZING, error = null) }
                 stepTo(id, "上傳音檔", "Gemini")
-                WatchNotifier.sendStatus(ctx, node, "Gemini 整理報告中…")
+                WatchNotifier.sendStatus(ctx, node, "Gemini 整理報告中…".tr)
                 val result = withContext(Dispatchers.IO) {
-                    val compact = File(ctx.cacheDir, "gemini_$id.m4a")
+                    val compact = File(ctx.cacheDir, "gemini_${id}.m4a")
                     try {
                         VoiceRecorderExporter.encodeM4a(audio, compact, outRate = 16_000, bitRate = 32_000)
                         GeminiReportGenerator(geminiKey, SpeechLang.geminiNote(meeting.lang, meeting.dialect)).generate(compact, meeting.durationSec, recordedAt,
@@ -252,7 +256,7 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
                         compact.delete()
                     }
                 }
-                Log.d(TAG, "$id: report by ${result.model}")
+                Log.d(TAG, "${id}: report by ${result.model}")
                 MeetingStore.transcriptFile(ctx, id).writeText(result.transcript)
                 MeetingStore.reportFile(ctx, id).writeText(result.report.markdown)
                 val names = Speakers.namesFromReport(result.report.markdown)
@@ -270,7 +274,7 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
             if (Settings.apiKey(ctx).isBlank() || com.example.wristai.ai.AiConfig.explicit(ctx)) {
                 MeetingStore.update(ctx, id) { it.copy(status = MeetingStatus.EXPORTED, error = null) }
                 finishSteps(id)
-                WatchNotifier.sendStatus(ctx, node, "已存入手機「錄音機」，用 Galaxy AI 轉錄 / 摘要")
+                WatchNotifier.sendStatus(ctx, node, "已存入手機「錄音機」，用 Galaxy AI 轉錄 / 摘要".tr)
                 ReadyNotification.show(ctx, id, meeting.durationSec)
                 return Result.success()
             }
@@ -287,12 +291,12 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
 
                 for (i in meeting.chunkDone until total) {
                     if (System.currentTimeMillis() - startedAt > TIME_BUDGET_MS) {
-                        Log.d(TAG, "$id: time budget used, continuing at chunk $i")
+                        Log.d(TAG, "${id}: time budget used, continuing at chunk ${i}")
                         enqueue(ctx, id)
                         return Result.success()
                     }
-                    stepTo(id, "語音辨識", "手機內建辨識 · ${i + 1}/$total 段")
-                    WatchNotifier.sendStatus(ctx, node, "語音辨識中 ${i + 1}/$total")
+                    stepTo(id, "語音辨識", "手機內建辨識 · {0}/{1} 段".trf(i + 1, total))
+                    WatchNotifier.sendStatus(ctx, node, "語音辨識中 {0}/{1}".trf(i + 1, total))
                     val text = transcriber.transcribeChunk(audio, i)
                     if (text.isNotBlank()) {
                         val sec = i * SpeechTranscriber.CHUNK_SECONDS
@@ -305,7 +309,7 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
             // ---------- 2. Claude 整理报告 ----------
             MeetingStore.update(ctx, id) { it.copy(status = MeetingStatus.SUMMARIZING, error = null) }
             stepTo(id, "報告整理", "Claude")
-            WatchNotifier.sendStatus(ctx, node, "AI 整理報告中…")
+            WatchNotifier.sendStatus(ctx, node, "AI 整理報告中…".tr)
             val transcript = MeetingStore.transcriptFile(ctx, id).takeIf { it.exists() }?.readText().orEmpty()
             val report = withContext(Dispatchers.IO) {
                 ReportGenerator(Settings.apiKey(ctx)).generate(transcript, meeting.durationSec, recordedAt)
@@ -321,10 +325,10 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
             throw e
         } catch (e: Exception) {
             if (isStopped) return Result.failure()   // 使用者按了「中断处理」
-            Log.e(TAG, "$id failed", e)
+            Log.e(TAG, "${id} failed", e)
             val msg = e.message ?: e.javaClass.simpleName
             MeetingStore.update(ctx, id) { it.copy(status = MeetingStatus.FAILED, error = msg) }
-            WatchNotifier.sendStatus(ctx, node, "處理失敗：$msg（可在手機上重試）")
+            WatchNotifier.sendStatus(ctx, node, "處理失敗：{0}（可在手機上重試）".trf(msg))
             return Result.failure()
         }
     }
@@ -337,9 +341,9 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
         val stt = com.example.wristai.ai.AiConfig.stt(ctx)
         val llm = com.example.wristai.ai.AiConfig.llm(ctx)
         if (stt == null || llm == null) {
-            val msg = (com.example.wristai.ai.AiConfig.pipelineMissing(ctx) ?: "AI 引擎設定不完整") + "（設定 → AI 引擎）"
+            val msg = (com.example.wristai.ai.AiConfig.pipelineMissing(ctx) ?: "AI 引擎設定不完整".tr) + "（設定 → AI 引擎）".tr
             MeetingStore.update(ctx, id) { it.copy(status = MeetingStatus.FAILED, error = msg) }
-            WatchNotifier.sendStatus(ctx, node, "請在手機完成 AI 引擎設定")
+            WatchNotifier.sendStatus(ctx, node, "請在手機完成 AI 引擎設定".tr)
             return Result.success()
         }
         if (food) plan(id, listOf("接收錄音", "語音辨識", "估算熱量"))
@@ -349,23 +353,23 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
             val finished = withContext(Dispatchers.IO) {
                 com.example.wristai.ai.Pipeline.transcribe(ctx, id, meeting.durationSec, stt, startedAt + TIME_BUDGET_MS) { done, total ->
                     MeetingStore.update(ctx, id) { it.copy(chunkDone = done, chunkTotal = total) }
-                    stepTo(id, "語音辨識", stt.name + if (total > 1) " · ${minOf(done + 1, total)}/$total 段" else "")
-                    WatchNotifier.sendStatus(ctx, node, "語音辨識中（${stt.name}）" + if (total > 1) " ${minOf(done + 1, total)}/$total" else "…")
+                    stepTo(id, "語音辨識", stt.name + if (total > 1) " · {0}/{1} 段".trf(minOf(done + 1, total), total) else "")
+                    WatchNotifier.sendStatus(ctx, node, "語音辨識中（{0}）".trf(stt.name) + if (total > 1) " ${minOf(done + 1, total)}/${total}" else "…")
                 }
             }
             if (!finished) {
-                Log.d(TAG, "$id: speech recognition still running, continuing in a new task")
+                Log.d(TAG, "${id}: speech recognition still running, continuing in a new task")
                 enqueue(ctx, id)
                 return Result.success()
             }
             val transcript = com.example.wristai.ai.Pipeline.transcriptText(ctx, id)
-            if (transcript.isBlank()) throw com.example.wristai.ai.AiException("語音辨識沒有聽到可辨識的內容")
+            if (transcript.isBlank()) throw com.example.wristai.ai.AiException("語音辨識沒有聽到可辨識的內容".tr)
             MeetingStore.transcriptFile(ctx, id).writeText(transcript)
 
             // ---------- 2. 报告模型 ----------
             MeetingStore.update(ctx, id) { it.copy(status = MeetingStatus.SUMMARIZING, error = null) }
             stepTo(id, if (food) "估算熱量" else "報告整理", llm.name)
-            WatchNotifier.sendStatus(ctx, node, if (food) "估算熱量中（${llm.name}）…" else "AI 整理報告中（${llm.name}）…")
+            WatchNotifier.sendStatus(ctx, node, if (food) "估算熱量中（{0}）…".trf(llm.name) else "AI 整理報告中（{0}）…".trf(llm.name))
             val raw = withContext(Dispatchers.IO) {
                 com.example.wristai.ai.Pipeline.report(llm, transcript, meeting.durationSec, recordedAt,
                     if (food) FoodLog.TEXT_PROMPT else GeminiReportGenerator.TEXT_REPORT_PROMPT)
@@ -392,16 +396,16 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
                 ReadyNotification.showReport(ctx, id, report.title, summary)
             }
             finishSteps(id)
-            Log.d(TAG, "$id: report by $model")
+            Log.d(TAG, "${id}: report by ${model}")
             Result.success()
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: Exception) {
             if (isStopped) return Result.failure()   // 使用者按了「中断处理」
-            Log.e(TAG, "$id pipeline failed", e)
+            Log.e(TAG, "${id} pipeline failed", e)
             val msg = e.message ?: e.javaClass.simpleName
             MeetingStore.update(ctx, id) { it.copy(status = MeetingStatus.FAILED, error = msg) }
-            WatchNotifier.sendStatus(ctx, node, "處理失敗：$msg（可在手機上重試）")
+            WatchNotifier.sendStatus(ctx, node, "處理失敗：{0}（可在手機上重試）".trf(msg))
             Result.failure()
         }
     }
@@ -412,10 +416,10 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
         // 只有照片、没有口述
         val hasAudio = meeting.durationSec > 0.3 && MeetingStore.audioFile(ctx, id).exists()
         if (key.isBlank()) {
-            val msg = if (photos.isNotEmpty()) "照片辨識飲食需要 Gemini（免費）：請到設定填 Gemini 金鑰"
-                else "飲食記錄需要雲端 AI 估算熱量：請到設定啟用 Gemini（免費）"
+            val msg = if (photos.isNotEmpty()) "照片辨識飲食需要 Gemini（免費）：請到設定填 Gemini 金鑰".tr
+                else "飲食記錄需要雲端 AI 估算熱量：請到設定啟用 Gemini（免費）".tr
             MeetingStore.update(ctx, id) { it.copy(status = MeetingStatus.FAILED, error = msg) }
-            WatchNotifier.sendStatus(ctx, node, "請在手機啟用雲端 AI")
+            WatchNotifier.sendStatus(ctx, node, "請在手機啟用雲端 AI".tr)
             return Result.success()
         }
         return try {
@@ -426,9 +430,9 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
                 add("估算熱量")
             })
             stepTo(id, if (hasAudio) "上傳音檔" else "估算熱量", "Gemini")
-            WatchNotifier.sendStatus(ctx, node, "估算熱量中…")
+            WatchNotifier.sendStatus(ctx, node, "估算熱量中…".tr)
             val result = withContext(Dispatchers.IO) {
-                val compact = File(ctx.cacheDir, "gemini_$id.m4a")
+                val compact = File(ctx.cacheDir, "gemini_${id}.m4a")
                 try {
                     if (hasAudio) VoiceRecorderExporter.encodeM4a(MeetingStore.audioFile(ctx, id), compact, outRate = 16_000, bitRate = 32_000)
                     // 台语 / 客语：提示词加语言说明（跟录音报告一样）
@@ -447,7 +451,7 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
                 it.copy(status = MeetingStatus.DONE, title = result.report.title, nutrition = nutrition, aiModel = result.model)
             }
             finishSteps(id)
-            Log.d(TAG, "$id: food log ${nutrition?.kcal} kcal by ${result.model}")
+            Log.d(TAG, "${id}: food log ${nutrition?.kcal} kcal by ${result.model}")
             WatchNotifier.sendSummary(ctx, node, MeetingSummary(id, result.report.title, done.summary))
             WatchNotifier.broadcastFoodToday(ctx)
             ReadyNotification.showReport(ctx, id, result.report.title, done.summary)
@@ -456,10 +460,10 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
             throw e
         } catch (e: Exception) {
             if (isStopped) return Result.failure()   // 使用者按了「中断处理」
-            Log.e(TAG, "$id food log failed", e)
+            Log.e(TAG, "${id} food log failed", e)
             val msg = e.message ?: e.javaClass.simpleName
             MeetingStore.update(ctx, id) { it.copy(status = MeetingStatus.FAILED, error = msg) }
-            WatchNotifier.sendStatus(ctx, node, "處理失敗：$msg（可在手機上重試）")
+            WatchNotifier.sendStatus(ctx, node, "處理失敗：{0}（可在手機上重試）".trf(msg))
             Result.failure()
         }
     }
@@ -477,10 +481,10 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
         val pipelineOk = mode == cfg.MODE_PIPELINE && cfg.pipelineMissing(ctx) == null
         val geminiOk = Settings.geminiKey(ctx).isNotBlank()
         val fallback = when {
-            pipelineOk -> "組合式 AI"
+            pipelineOk -> "組合式 AI".tr
             geminiOk && (food || mode == cfg.MODE_GEMINI) -> "Gemini"
             // 录音：没有别的云端引擎时照旧交给三星录音机（Galaxy AI），之后可以按「重試」再给主机
-            !food -> "手機的錄音機（Galaxy AI）"
+            !food -> "手機的錄音機（Galaxy AI）".tr
             else -> null
         }
         val before = MeetingStore.get(ctx, id)?.steps.orEmpty()
@@ -490,36 +494,36 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
         val asciiAt = SimpleDateFormat("yyyy/MM/dd HH:mm", Locale.US).format(Date(meeting.createdAt))
         return try {
             MeetingStore.update(ctx, id) { it.copy(status = MeetingStatus.SUMMARIZING, error = null, engineNote = null) }
-            stepTo(id, STEP_HOST_UP, "大D的主機")
-            WatchNotifier.sendStatus(ctx, node, if (food) "大D的主機估算熱量中…" else "大D的主機整理報告中…")
+            stepTo(id, STEP_HOST_UP, "大D的主機".tr)
+            WatchNotifier.sendStatus(ctx, node, if (food) "大D的主機估算熱量中…".tr else "大D的主機整理報告中…".tr)
             // 长录音在主机上可能超过 10 分钟：升成前台工作，避免被系统中途停掉
             runCatching { setForeground(getForegroundInfo()) }
             val res = withContext(Dispatchers.IO) {
                 val h = host.health(ctx)   // 5 秒：连不到就马上改用别的引擎，不要卡在上传
                 val lang = SpeechLang.of(meeting.lang).code
-                if (lang !in h.langs) throw com.example.wristai.ai.AiException("大D的主機還不能辨識${SpeechLang.of(lang).label}")
+                if (lang !in h.langs) throw com.example.wristai.ai.AiException("大D的主機還不能辨識{0}".trf(SpeechLang.of(lang).label))
                 val dialect = if (SpeechLang.of(meeting.lang) == SpeechLang.HAK) HakkaDialect.of(meeting.dialect).code else null
                 val jobFile = hostJobFile(ctx, id)
                 if (!h.jobs && !jobFile.exists()) {
                     // 旧版主机：连着等结果
-                    val compact = File(ctx.cacheDir, "local_$id.m4a")
+                    val compact = File(ctx.cacheDir, "local_${id}.m4a")
                     try {
                         VoiceRecorderExporter.encodeM4a(MeetingStore.audioFile(ctx, id), compact, outRate = 16_000, bitRate = 32_000)
                         host.process(ctx, if (food) "food" else "meeting", asciiAt, meeting.durationSec, audio = compact,
-                            lang = lang, dialect = dialect, onUploaded = { stepTo(id, lastStep, "大D的主機") })
+                            lang = lang, dialect = dialect, onUploaded = { stepTo(id, lastStep, "大D的主機".tr) })
                             .also {
                                 // 旧主机处理完就把暂存的录音删掉；报告直接随回应传回、主机不留
-                                stepTo(id, STEP_HOST_PURGE, "主機上的錄音已刪除")
-                                stepTo(id, STEP_HOST_BACK, "已收到報告")
+                                stepTo(id, STEP_HOST_PURGE, "主機上的錄音已刪除".tr)
+                                stepTo(id, STEP_HOST_BACK, "已收到報告".tr)
                                 MeetingStore.update(ctx, id) { m -> m.copy(hostCleanup = CLEANUP_ALL) }
                             }
                     } finally {
                         compact.delete()
                     }
                 } else hostJob(id, node, food, lastStep, jobFile) {
-                    val compact = File(ctx.cacheDir, "local_$id.m4a")
+                    val compact = File(ctx.cacheDir, "local_${id}.m4a")
                     try {
-                        stepTo(id, STEP_HOST_UP, if (h.ahead > 0) host.queueText(h.ahead, h.waitSec) else "大D的主機")
+                        stepTo(id, STEP_HOST_UP, if (h.ahead > 0) host.queueText(h.ahead, h.waitSec) else "大D的主機".tr)
                         VoiceRecorderExporter.encodeM4a(MeetingStore.audioFile(ctx, id), compact, outRate = 16_000, bitRate = 32_000)
                         host.submit(ctx, if (food) "food" else "meeting", asciiAt, meeting.durationSec, audio = compact,
                             lang = lang, dialect = dialect)
@@ -551,26 +555,26 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
                 WatchNotifier.sendSummary(ctx, node, MeetingSummary(id, report.title, summary))
                 ReadyNotification.showReport(ctx, id, report.title, summary)
             }
-            Log.d(TAG, "$id: report by ${res.model}")
+            Log.d(TAG, "${id}: report by ${res.model}")
             Result.success()
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: Exception) {
             if (isStopped) return Result.failure()   // 使用者按了「中断处理」
             val why = e.message ?: e.javaClass.simpleName
-            Log.w(TAG, "$id: local host failed: $why")
+            Log.w(TAG, "${id}: local host failed: ${why}")
             // 改用别的引擎 / 标失败：主机上排着的那笔就不要了
             hostJobFile(ctx, id).takeIf { it.exists() }?.let { f ->
                 f.readText().trim().takeIf { it.isNotEmpty() }?.let { jid -> withContext(Dispatchers.IO) { host.deleteJob(ctx, jid) } }
                 f.delete()
             }
             if (fallback != null) {
-                MeetingStore.update(ctx, id) { it.copy(engineNote = why.trimEnd('。') + "。這次改用 $fallback。") }
+                MeetingStore.update(ctx, id) { it.copy(engineNote = why.trimEnd('。') + "。這次改用 {0}。".trf(fallback)) }
                 if (before.isNotEmpty() && !food) plan(id, before)
                 null
             } else {
                 MeetingStore.update(ctx, id) { it.copy(status = MeetingStatus.FAILED, error = why) }
-                WatchNotifier.sendStatus(ctx, node, "處理失敗：$why（可在手機上重試）")
+                WatchNotifier.sendStatus(ctx, node, "處理失敗：{0}（可在手機上重試）".trf(why))
                 Result.failure()
             }
         }
@@ -598,47 +602,47 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
                 host.job(ctx, jid).also { unreachableSince = 0L }
             } catch (e: LocalHost.JobGone) {
                 jobFile.delete()
-                if (resent) throw AiException("大D的主機找不到這筆工作")
+                if (resent) throw AiException("大D的主機找不到這筆工作".tr)
                 resent = true
                 jid = null
                 continue
             } catch (e: LocalHost.Unreachable) {
                 val now = System.currentTimeMillis()
                 if (unreachableSince == 0L) unreachableSince = now
-                if (now - unreachableSince > HOST_GONE_MS) throw AiException(e.message ?: "連不到大D的主機")
-                stepTo(id, lastStep, "暫時連不到大D的主機，等它回來…")
+                if (now - unreachableSince > HOST_GONE_MS) throw AiException(e.message ?: "連不到大D的主機".tr)
+                stepTo(id, lastStep, "暫時連不到大D的主機，等它回來…".tr)
                 delay(15_000)
                 continue
             }
             when (j.state) {
                 "done" -> {
                     // 显示给使用者看：主机上的录音已删、报告传回后主机上也删掉
-                    stepTo(id, STEP_HOST_PURGE, if (j.purged) "主機上的錄音已刪除，只留報告文字" else "主機會在 24 小時內刪除錄音")
+                    stepTo(id, STEP_HOST_PURGE, if (j.purged) "主機上的錄音已刪除，只留報告文字".tr else "主機會在 24 小時內刪除錄音".tr)
                     delay(600)
-                    stepTo(id, STEP_HOST_BACK, "下載報告中…")
+                    stepTo(id, STEP_HOST_BACK, "下載報告中…".tr)
                     val gone = host.deleteJob(ctx, jid)
-                    stepTo(id, STEP_HOST_BACK, if (gone) "已收到報告，主機上的報告也已刪除" else "已收到報告（主機會在 24 小時內刪除）")
+                    stepTo(id, STEP_HOST_BACK, if (gone) "已收到報告，主機上的報告也已刪除".tr else "已收到報告（主機會在 24 小時內刪除）".tr)
                     MeetingStore.update(ctx, id) { m -> m.copy(hostCleanup = cleanupText(j.purged, gone)) }
                     delay(600)
                     jobFile.delete()
-                    return LocalHost.Result(j.text ?: throw AiException("大D的主機沒有回傳報告"), j.model ?: host.DEFAULT_TAG)
+                    return LocalHost.Result(j.text ?: throw AiException("大D的主機沒有回傳報告".tr), j.model ?: host.DEFAULT_TAG)
                 }
                 "error" -> {
                     host.deleteJob(ctx, jid)
                     jobFile.delete()
-                    throw AiException(j.error ?: "大D的主機處理失敗")
+                    throw AiException(j.error ?: "大D的主機處理失敗".tr)
                 }
                 "queued" -> {
                     val say = host.queueText(j.ahead, j.waitSec)
                     stepTo(id, lastStep, say)
                     // 手表只在「前面还有几笔」变了才通知（不要每 5 秒震一次）
-                    val brief = if (j.ahead > 0) "大D的主機排隊中，前面還有 ${j.ahead} 筆" else ""
+                    val brief = if (j.ahead > 0) "大D的主機排隊中，前面還有 {0} 筆".trf(j.ahead) else ""
                     if (brief.isNotEmpty() && brief != lastSaid) WatchNotifier.sendStatus(ctx, node, brief)
                     lastSaid = brief
                 }
                 else -> {   // running
-                    stepTo(id, lastStep, "大D的主機" + if (j.waitSec > 60) "（約 ${(j.waitSec + 59) / 60} 分鐘）" else "")
-                    if (lastSaid != "running") WatchNotifier.sendStatus(ctx, node, if (food) "大D的主機估算熱量中…" else "大D的主機整理報告中…")
+                    stepTo(id, lastStep, "大D的主機".tr + if (j.waitSec > 60) "（約 {0} 分鐘）".trf((j.waitSec + 59) / 60) else "")
+                    if (lastSaid != "running") WatchNotifier.sendStatus(ctx, node, if (food) "大D的主機估算熱量中…".tr else "大D的主機整理報告中…".tr)
                     lastSaid = "running"
                 }
             }
@@ -677,11 +681,11 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
         val nm = ctx.getSystemService(NotificationManager::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             nm.createNotificationChannel(
-                NotificationChannel(CHANNEL_ID, "錄音處理", NotificationManager.IMPORTANCE_LOW)
+                NotificationChannel(CHANNEL_ID, "錄音處理".tr, NotificationManager.IMPORTANCE_LOW)
             )
         }
         val notification = NotificationCompat.Builder(ctx, CHANNEL_ID)
-            .setContentTitle("大D 正在處理錄音")
+            .setContentTitle("大D 正在處理錄音".tr)
             .setSmallIcon(android.R.drawable.ic_popup_sync)
             .setOngoing(true)
             .build()

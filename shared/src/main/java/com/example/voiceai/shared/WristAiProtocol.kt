@@ -30,6 +30,9 @@ object WristAiProtocol {
     const val CMD_STOP = "stop"
     const val CMD_QUERY = "query"
 
+    /** 手机 → 手表：介面语言，payload = "zh" / "en" / "ko"（手表跟着手机的介面语言）。 */
+    const val PATH_UI_LANG = "/wristai/ui_lang"
+
     /** 手机 → 手表：外观主题，payload = "ink"（水墨）/ "dark"。 */
     const val PATH_THEME = "/wristai/theme"
 

@@ -1,5 +1,8 @@
 package com.example.wristai.ui
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
@@ -62,17 +65,17 @@ fun AiEngineSection(gemini: String, onGemini: (String) -> Unit, claude: String, 
     val llm = AiConfig.llmKind(context)
     fun open(url: String) = runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
 
-    SectionLabel("AI 引擎")
+    SectionLabel("AI 引擎".tr)
     GlassCard {
-        Text("報告由誰產生", style = MaterialTheme.typography.titleMedium, color = Brand.Text)
+        Text("報告由誰產生".tr, style = MaterialTheme.typography.titleMedium, color = Brand.Text)
         Spacer(Modifier.height(10.dp))
-        ModeOption(mode == AiConfig.MODE_GEMINI, "Google Gemini（一站式）", "直接聆聽錄音，產生報告與分說話者逐字稿；免費方案可用") {
+        ModeOption(mode == AiConfig.MODE_GEMINI, "Google Gemini（一站式）".tr, "直接聆聽錄音，產生報告與分說話者逐字稿；免費方案可用".tr) {
             AiConfig.setMode(context, AiConfig.MODE_GEMINI); changed()
         }
-        ModeOption(mode == AiConfig.MODE_PIPELINE, "組合：語音辨識 ＋ 報告模型", "阿里百煉、科大訊飛、OpenAI、Meta、Claude 自由搭配") {
+        ModeOption(mode == AiConfig.MODE_PIPELINE, "組合：語音辨識 ＋ 報告模型".tr, "阿里百煉、科大訊飛、OpenAI、Meta、Claude 自由搭配".tr) {
             AiConfig.setMode(context, AiConfig.MODE_PIPELINE); changed()
         }
-        ModeOption(mode == AiConfig.MODE_DEVICE, "只用 Galaxy AI（裝置端）", "錄音不上傳，存入三星錄音機後在手機上轉錄 / 摘要") {
+        ModeOption(mode == AiConfig.MODE_DEVICE, "只用 Galaxy AI（裝置端）".tr, "錄音不上傳，存入三星錄音機後在手機上轉錄 / 摘要".tr) {
             AiConfig.setMode(context, AiConfig.MODE_DEVICE); changed()
         }
     }
@@ -82,21 +85,21 @@ fun AiEngineSection(gemini: String, onGemini: (String) -> Unit, claude: String, 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text("Google Gemini", style = MaterialTheme.typography.titleMedium, color = Brand.Text)
-                    Text("免費 · 直接聆聽錄音，產生報告與分說話者逐字稿", style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
+                    Text("免費 · 直接聆聽錄音，產生報告與分說話者逐字稿".tr, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
                 }
-                if (gemini.isNotBlank()) Icon(Icons.Filled.CheckCircle, "已設定", tint = Brand.Success)
+                if (gemini.isNotBlank()) Icon(Icons.Filled.CheckCircle, "已設定".tr, tint = Brand.Success)
             }
             Spacer(Modifier.height(12.dp))
             SecretField(gemini, onGemini, "Gemini API Key")
-            TextButton(onClick = { open("https://aistudio.google.com/apikey") }) { Text("免費取得金鑰（Google 帳號登入）→", color = Brand.Cyan) }
-            Hint("免費方案每日次數有限；錄音內容會被 Google 用於改進產品。機密內容建議使用 Galaxy AI（裝置端）。")
+            TextButton(onClick = { open("https://aistudio.google.com/apikey") }) { Text("免費取得金鑰（Google 帳號登入）→".tr, color = Brand.Cyan) }
+            Hint("免費方案每日次數有限；錄音內容會被 Google 用於改進產品。機密內容建議使用 Galaxy AI（裝置端）。".tr)
         }
 
         AiConfig.MODE_PIPELINE -> {
             // ---------- 语音辨识 ----------
             GlassCard(highlight = AiConfig.stt(context) != null) {
-                Text("① 語音辨識", style = MaterialTheme.typography.titleMedium, color = Brand.Text)
-                Text("把錄音轉成逐字稿，並分辨不同說話者", style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
+                Text("① 語音辨識".tr, style = MaterialTheme.typography.titleMedium, color = Brand.Text)
+                Text("把錄音轉成逐字稿，並分辨不同說話者".tr, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
                 Spacer(Modifier.height(10.dp))
                 Chips(SttKind.entries.map { it.label }, SttKind.entries.indexOf(stt)) { AiConfig.setSttKind(context, SttKind.entries[it]); changed() }
                 Spacer(Modifier.height(6.dp))
@@ -105,26 +108,26 @@ fun AiEngineSection(gemini: String, onGemini: (String) -> Unit, claude: String, 
                 when (stt) {
                     SttKind.FUNASR -> {
                         DashscopeFields { changed() }
-                        ModelField("funasr", "模型（預設 fun-asr，最新版 Fun-ASR）") { changed() }
+                        ModelField("funasr", "模型（預設 fun-asr，最新版 Fun-ASR）".tr) { changed() }
                     }
                     SttKind.IFLYTEK -> {
-                        PlainField("iflytek_appid", "訊飛 APPID", onChange = { changed() })
+                        PlainField("iflytek_appid", "訊飛 APPID".tr, onChange = { changed() })
                         Spacer(Modifier.height(8.dp))
-                        SecretPref("iflytek_secret", "錄音文件轉寫 SecretKey") { changed() }
-                        TextButton(onClick = { open("https://console.xfyun.cn/") }) { Text("訊飛開放平台 → 錄音文件轉寫", color = Brand.Cyan) }
+                        SecretPref("iflytek_secret", "錄音文件轉寫 SecretKey".tr) { changed() }
+                        TextButton(onClick = { open("https://console.xfyun.cn/") }) { Text("訊飛開放平台 → 錄音文件轉寫".tr, color = Brand.Cyan) }
                     }
                     SttKind.OPENAI -> {
                         SecretPref("openai_key", "OpenAI API Key") { changed() }
-                        ModelField("openai_stt", "模型（預設 gpt-4o-transcribe-diarize）") { changed() }
-                        TextButton(onClick = { open("https://platform.openai.com/api-keys") }) { Text("取得 OpenAI 金鑰 →", color = Brand.Cyan) }
+                        ModelField("openai_stt", "模型（預設 gpt-4o-transcribe-diarize）".tr) { changed() }
+                        TextButton(onClick = { open("https://platform.openai.com/api-keys") }) { Text("取得 OpenAI 金鑰 →".tr, color = Brand.Cyan) }
                     }
                 }
             }
 
             // ---------- 报告模型 ----------
             GlassCard(highlight = AiConfig.llm(context) != null) {
-                Text("② 報告模型", style = MaterialTheme.typography.titleMedium, color = Brand.Text)
-                Text("讀逐字稿，整理摘要、說話者、重點、待辦", style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
+                Text("② 報告模型".tr, style = MaterialTheme.typography.titleMedium, color = Brand.Text)
+                Text("讀逐字稿，整理摘要、說話者、重點、待辦".tr, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
                 Spacer(Modifier.height(10.dp))
                 Chips(LlmKind.entries.map { it.label }, LlmKind.entries.indexOf(llm)) { AiConfig.setLlmKind(context, LlmKind.entries[it]); changed() }
                 Spacer(Modifier.height(6.dp))
@@ -132,31 +135,31 @@ fun AiEngineSection(gemini: String, onGemini: (String) -> Unit, claude: String, 
                 Spacer(Modifier.height(10.dp))
                 when (llm) {
                     LlmKind.QWEN -> {
-                        if (stt == SttKind.FUNASR) Hint("跟語音辨識共用同一把百煉金鑰。")
+                        if (stt == SttKind.FUNASR) Hint("跟語音辨識共用同一把百煉金鑰。".tr)
                         else DashscopeFields { changed() }
-                        ModelField("qwen", "模型（預設 qwen-plus，可改 qwen-max 等）") { changed() }
+                        ModelField("qwen", "模型（預設 qwen-plus，可改 qwen-max 等）".tr) { changed() }
                     }
                     LlmKind.SPARK -> {
-                        SecretPref("spark_password", "星火 APIPassword（HTTP 服務）") { changed() }
-                        ModelField("spark", "模型（4.0Ultra / max-32k / pro-128k / lite…）") { changed() }
-                        TextButton(onClick = { open("https://console.xfyun.cn/") }) { Text("訊飛開放平台 → 星火大模型 →", color = Brand.Cyan) }
+                        SecretPref("spark_password", "星火 APIPassword（HTTP 服務）".tr) { changed() }
+                        ModelField("spark", "模型（4.0Ultra / max-32k / pro-128k / lite…）".tr) { changed() }
+                        TextButton(onClick = { open("https://console.xfyun.cn/") }) { Text("訊飛開放平台 → 星火大模型 →".tr, color = Brand.Cyan) }
                     }
                     LlmKind.LLAMA -> {
                         SecretPref("llama_key", "Llama API Key") { changed() }
-                        ModelField("llama", "模型（預設 Llama-4-Maverick-17B-128E-Instruct-FP8）") { changed() }
-                        PlainField("llama_base", "端點（留空用預設）", AiConfig.DEFAULT_LLAMA_BASE, onChange = { changed() })
-                        Hint("也可以填其他提供 Llama 的 OpenAI 相容服務端點。")
+                        ModelField("llama", "模型（預設 Llama-4-Maverick-17B-128E-Instruct-FP8）".tr) { changed() }
+                        PlainField("llama_base", "端點（留空用預設）".tr, AiConfig.DEFAULT_LLAMA_BASE, onChange = { changed() })
+                        Hint("也可以填其他提供 Llama 的 OpenAI 相容服務端點。".tr)
                         TextButton(onClick = { open("https://llama.developer.meta.com/") }) { Text("Meta Llama API →", color = Brand.Cyan) }
                     }
                     LlmKind.OPENAI -> {
-                        if (stt == SttKind.OPENAI) Hint("跟語音辨識共用同一把 OpenAI 金鑰。")
+                        if (stt == SttKind.OPENAI) Hint("跟語音辨識共用同一把 OpenAI 金鑰。".tr)
                         else SecretPref("openai_key", "OpenAI API Key") { changed() }
-                        ModelField("openai", "模型（預設 gpt-5-mini）") { changed() }
+                        ModelField("openai", "模型（預設 gpt-5-mini）".tr) { changed() }
                     }
                     LlmKind.CLAUDE -> {
                         SecretField(claude, onClaude, "Claude API Key")
-                        ModelField("claude", "模型（預設 ${AiConfig.DEFAULT_MODELS["claude"]}）") { changed() }
-                        TextButton(onClick = { open("https://console.anthropic.com/settings/keys") }) { Text("取得 Claude 金鑰 →", color = Brand.Cyan) }
+                        ModelField("claude", "模型（預設 {0}）".trf(AiConfig.DEFAULT_MODELS["claude"])) { changed() }
+                        TextButton(onClick = { open("https://console.anthropic.com/settings/keys") }) { Text("取得 Claude 金鑰 →".tr, color = Brand.Cyan) }
                     }
                 }
             }
@@ -165,15 +168,15 @@ fun AiEngineSection(gemini: String, onGemini: (String) -> Unit, claude: String, 
                 Icon(if (missing == null) Icons.Filled.CheckCircle else Icons.Filled.Warning, null, Modifier.size(16.dp),
                     tint = if (missing == null) Brand.Success else Brand.Warning)
                 Spacer(Modifier.width(6.dp))
-                Text(missing ?: "設定完成：${stt.label} ＋ ${llm.label}", style = MaterialTheme.typography.bodySmall,
+                Text(missing ?: "設定完成：{0} ＋ {1}".trf(stt.label, llm.label), style = MaterialTheme.typography.bodySmall,
                     color = if (missing == null) Brand.Success else Brand.Warning)
             }
-            Hint("錄音與逐字稿會上傳到你選的服務商處理，各家的資料政策不同。金鑰只存在這支手機。")
+            Hint("錄音與逐字稿會上傳到你選的服務商處理，各家的資料政策不同。金鑰只存在這支手機。".tr)
         }
 
         else -> GlassCard {
-            Text("Galaxy AI · 錄音不離開手機", style = MaterialTheme.typography.titleMedium, color = Brand.Text)
-            Text("錄音存入三星「錄音機」，在錄音機用 Galaxy AI 轉錄 / 摘要（可設為僅在裝置上處理）。大D 不會產生 AI 報告。",
+            Text("Galaxy AI · 錄音不離開手機".tr, style = MaterialTheme.typography.titleMedium, color = Brand.Text)
+            Text("錄音存入三星「錄音機」，在錄音機用 Galaxy AI 轉錄 / 摘要（可設為僅在裝置上處理）。大D 不會產生 AI 報告。".tr,
                 style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
         }
     }
@@ -184,19 +187,19 @@ fun AiEngineSection(gemini: String, onGemini: (String) -> Unit, claude: String, 
 private fun DashscopeFields(onChange: () -> Unit) {
     val context = LocalContext.current
     val region = AiConfig.dashscopeRegion(context)
-    Text("百煉區域（兩區金鑰不通用）", style = MaterialTheme.typography.labelMedium, color = Brand.TextMuted)
+    Text("百煉區域（兩區金鑰不通用）".tr, style = MaterialTheme.typography.labelMedium, color = Brand.TextMuted)
     Spacer(Modifier.height(6.dp))
-    Chips(listOf("國際（新加坡）", "中國大陸（北京）"), if (region == "cn") 1 else 0) {
+    Chips(listOf("國際（新加坡）".tr, "中國大陸（北京）".tr), if (region == "cn") 1 else 0) {
         AiConfig.set(context, "dashscope_region", if (it == 1) "cn" else "intl"); onChange()
     }
     Spacer(Modifier.height(8.dp))
-    SecretPref("dashscope_key", "阿里雲百煉 API Key") { onChange() }
+    SecretPref("dashscope_key", "阿里雲百煉 API Key".tr) { onChange() }
     TextButton(onClick = {
         runCatching {
             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(
                 if (region == "cn") "https://bailian.console.aliyun.com/" else "https://modelstudio.console.alibabacloud.com/")))
         }
-    }) { Text("阿里雲百煉控制台 → API Key", color = Brand.Cyan) }
+    }) { Text("阿里雲百煉控制台 → API Key".tr, color = Brand.Cyan) }
 }
 
 @Composable
@@ -289,7 +292,7 @@ private fun PlainField(key: String, label: String, placeholder: String? = null, 
 /** 模型名称（留空 = 预设值；新版本出来可以自己改）。[label] 只当说明，栏位标签一律「模型」。 */
 @Composable
 private fun ModelField(slot: String, @Suppress("UNUSED_PARAMETER") label: String, onChange: () -> Unit) =
-    PlainField("model_$slot", "模型（留空用預設）", AiConfig.DEFAULT_MODELS[slot], onChange)
+    PlainField("model_${slot}", "模型（留空用預設）".tr, AiConfig.DEFAULT_MODELS[slot], onChange)
 
 @Composable
 internal fun engineFieldColors() = OutlinedTextFieldDefaults.colors(

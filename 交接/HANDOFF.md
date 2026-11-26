@@ -456,3 +456,13 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
   - 大D的主機：送 `X-Report-Lang`（主機還沒實作，照舊中文）。
   - 測試：`ReportLangTest`。
 - **介面語言**（`AppLocale.kt`）：跟系統 / 繁體中文 / English / 한국어。13+ 用系統的個別 App 語言（`LocaleManager`，`res/xml/locales_config.xml`），12 以下存設定、`MainActivity.attachBaseContext` 套用。設定頁「介面」卡最上面兩個選擇。字串抽到 `strings.xml` 的工作接著做。
+
+## 介面多語言：繁中 / English / 한국어（2026-11-26）
+
+- **做法**：程式照舊寫中文，顯示前查表。`shared/.../I18n.kt`：`"中文".tr`、`"今天記了 {0} 筆".trf(n)`（{0}{1} 可換順序）；查不到 → 原文。對照表 `shared/src/main/assets/i18n/strings.json`（{"中文": {"en", "ko"}}，約 920 句），**iOS 直接用同一份**。
+- `I18n.lang` 在 `WristAiApp` / `WearApp` 啟動時依介面語言設好；介面語言換了 → `WristAiApp.restartIfLanguageChanged` 重啟 App（列舉、一開始就算好的字才會換；錄音中不重啟）。日期：`I18n.locale`、`I18n.weekdayShort`。
+- 手錶跟手機的介面語言：`PATH_UI_LANG`（跟主題一起推），手錶存成 override，畫面開著就重開。
+- **不翻的**：提示詞、存檔用的識別字（步驟名稱、餐別、`hostCleanup` 存中文原文、顯示時 `.tr`）、比對用的字（`== "…"`、`in setOf`、表格欄位名）。
+- 工具：`tools/i18n_wrap.py`（把顯示用中文包成 `.tr`/`.trf`，有排除規則）、`tools/i18n_keys.py --missing`（列出沒翻的句子）。新增文字：寫中文加 `.tr`，跑 `--missing`，把英文、韓文補進 strings.json。`I18nTest` 會檢查每句都有翻、參數一致。
+- 名稱：大D → Dylan；大D的主機 → Dylan Host / Dylan 호스트。
+- 模擬器英文、韓文、繁中逐頁看過（今天、資料庫、飲食、設定、詳情）；App 內切語言會重啟並生效。手錶畫面沒在模擬器看（只有編譯）。

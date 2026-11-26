@@ -1,5 +1,8 @@
 package com.example.wristai.ai
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import org.json.JSONObject
 import java.io.DataOutputStream
 import java.io.File
@@ -42,8 +45,8 @@ internal object Http {
     /** 送 JSON、收 JSON；非 2xx 就丢出带服务名称与错误讯息的 [AiException]。 */
     fun json(service: String, url: String, method: String, headers: Map<String, String>, body: JSONObject? = null): JSONObject {
         val r = request(url, method, headers, body?.toString()?.toByteArray(Charsets.UTF_8), if (body != null) "application/json" else null)
-        if (r.code !in 200..299) throw AiException("$service 錯誤（HTTP ${r.code}）：${errorText(r.body)}")
-        return runCatching { JSONObject(r.body) }.getOrElse { throw AiException("$service 回傳格式看不懂：${r.body.take(200)}") }
+        if (r.code !in 200..299) throw AiException("{0} 錯誤（HTTP {1}）：{2}".trf(service, r.code, errorText(r.body)))
+        return runCatching { JSONObject(r.body) }.getOrElse { throw AiException("{0} 回傳格式看不懂：{1}".trf(service, r.body.take(200))) }
     }
 
     /** multipart/form-data 上传（[file] 一定放在最后一栏，阿里 OSS 规定）。 */
@@ -59,18 +62,18 @@ internal object Http {
             doOutput = true
             setChunkedStreamingMode(64 * 1024)
             headers.forEach { (k, v) -> setRequestProperty(k, v) }
-            setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
+            setRequestProperty("Content-Type", "multipart/form-data; boundary=${boundary}")
         }
         try {
             DataOutputStream(conn.outputStream).use { out ->
                 for ((k, v) in fields) {
-                    out.write("--$boundary\r\nContent-Disposition: form-data; name=\"$k\"\r\n\r\n".toByteArray())
+                    out.write("--${boundary}\r\nContent-Disposition: form-data; name=\"${k}\"\r\n\r\n".toByteArray())
                     out.write(v.toByteArray(Charsets.UTF_8))
                     out.write("\r\n".toByteArray())
                 }
-                out.write("--$boundary\r\nContent-Disposition: form-data; name=\"$fileField\"; filename=\"$fileName\"\r\nContent-Type: $fileType\r\n\r\n".toByteArray())
+                out.write("--${boundary}\r\nContent-Disposition: form-data; name=\"${fileField}\"; filename=\"${fileName}\"\r\nContent-Type: ${fileType}\r\n\r\n".toByteArray())
                 file.inputStream().use { it.copyTo(out, 64 * 1024) }
-                out.write("\r\n--$boundary--\r\n".toByteArray())
+                out.write("\r\n--${boundary}--\r\n".toByteArray())
             }
             val code = conn.responseCode
             val text = (if (code in 200..299) conn.inputStream else conn.errorStream)

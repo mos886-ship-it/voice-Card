@@ -1,5 +1,8 @@
 package com.example.wristai.ui
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -120,7 +123,7 @@ fun DashboardScreen(
         item {
             Row(verticalAlignment = Alignment.Bottom) {
                 Column(Modifier.weight(1f)) {
-                    Text(SimpleDateFormat("M 月 d 日 EEEE", Locale.TAIWAN).format(Date()),
+                    Text(SimpleDateFormat("M 月 d 日 EEEE".tr, com.example.voiceai.shared.I18n.locale).format(Date()),
                         style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
                     // 有温度的问候（依时段、星期、今天记了什么）
                     val now = rememberNowMinute()
@@ -133,7 +136,7 @@ fun DashboardScreen(
                     Text(g.title, fontSize = 30.sp, fontWeight = FontWeight.Bold, color = Brand.Text)
                     Text(g.line, style = MaterialTheme.typography.bodyMedium, color = Brand.TextMuted)
                     // 科技模式：目前会用的 AI 引擎
-                    if (UiMode.tech) Text("AI：" + (if (engine.ready) engine.name else "還沒設定"),
+                    if (UiMode.tech) Text("AI：".tr + (if (engine.ready) engine.name else "還沒設定".tr),
                         style = MaterialTheme.typography.labelMedium, color = Brand.TextFaint,
                         maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
@@ -145,10 +148,10 @@ fun DashboardScreen(
         if (!engine.ready) {
             item {
                 GlassCard(highlight = true) {
-                    Text("還沒設定 AI", style = MaterialTheme.typography.titleMedium, color = Brand.Text)
+                    Text("還沒設定 AI".tr, style = MaterialTheme.typography.titleMedium, color = Brand.Text)
                     Text(engine.detail, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
                     Spacer(Modifier.height(12.dp))
-                    GradientButton("前往設定", onOpenSettings, Modifier.fillMaxWidth())
+                    GradientButton("前往設定".tr, onOpenSettings, Modifier.fillMaxWidth())
                 }
             }
         }
@@ -163,7 +166,7 @@ fun DashboardScreen(
                 call = {
                     if (CallRecordingWatcher.isEnabled(context)) {
                         CallRecordingWatcher.schedule(context)
-                        Toast.makeText(context, "通話錄音會自動整理，新的通話結束後幾分鐘內出現在資料庫", Toast.LENGTH_LONG).show()
+                        Toast.makeText(context, "通話錄音會自動整理，新的通話結束後幾分鐘內出現在資料庫".tr, Toast.LENGTH_LONG).show()
                     } else onOpenSettings()   // 到设定打开「自动整理通话录音」
                 },
                 importFile = { picker.launch(arrayOf("audio/*")) },
@@ -172,7 +175,7 @@ fun DashboardScreen(
 
         // ---------- 处理中 ----------
         if (busy.isNotEmpty()) {
-            item { SectionLabel("處理中") }
+            item { SectionLabel("處理中".tr) }
             items(busy, key = { "b_" + it.id }) { m ->
                 GlassCard(onClick = { onOpen(m.id) }, contentPadding = 14.dp) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -191,17 +194,17 @@ fun DashboardScreen(
 
         // ---------- 今天的记录 ----------
         item {
-            SectionLabel("今天的記錄") {
-                if (usesFood) Text("$todayKcal / $goal 大卡", style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted,
+            SectionLabel("今天的記錄".tr) {
+                if (usesFood) Text("{0} / {1} 大卡".trf(todayKcal, goal), style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted,
                     modifier = Modifier.clickable(onClick = onOpenFood))
             }
         }
         item {
             if (todays.isEmpty()) {
                 GlassCard {
-                    Text("今天還沒有記錄", style = MaterialTheme.typography.titleSmall, color = Brand.Text)
+                    Text("今天還沒有記錄".tr, style = MaterialTheme.typography.titleSmall, color = Brand.Text)
                     Spacer(Modifier.height(4.dp))
-                    Text("按「開始錄音」或手錶的錄音鍵，錄完會自動整理出重點、待辦與逐字稿。",
+                    Text("按「開始錄音」或手錶的錄音鍵，錄完會自動整理出重點、待辦與逐字稿。".tr,
                         style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
                 }
             } else {
@@ -215,7 +218,7 @@ fun DashboardScreen(
             }
         }
         item {
-            Text("所有記錄 →", style = MaterialTheme.typography.labelLarge, color = Brand.Cyan,
+            Text("所有記錄 →".tr, style = MaterialTheme.typography.labelLarge, color = Brand.Cyan,
                 modifier = Modifier.clickable(onClick = onOpenRecords).heightIn(min = 44.dp).padding(vertical = 12.dp))
         }
     }
@@ -226,7 +229,7 @@ private fun busyText(m: Meeting): String {
     val d = m.stepDetail
     if (d != null && (d.startsWith("排隊中") || d.startsWith("輪到你了"))) return d
     val cur = m.steps.getOrNull(m.step)
-    if (cur != null && cur.contains("大D的主機")) return "大D的主機整理中"
+    if (cur != null && cur.contains("大D的主機")) return "大D的主機整理中".tr
     return m.statusStyle().label
 }
 
@@ -241,7 +244,7 @@ private fun CaptureCard(error: String?, record: () -> Unit, food: () -> Unit, ca
     GlassCard {
         Row(
             Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable(onClick = record)
-                .semantics { contentDescription = "開始錄音" },
+                .semantics { contentDescription = "開始錄音".tr },
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(Modifier.size(56.dp).clip(CircleShape).background(Brand.Recording), contentAlignment = Alignment.Center) {
@@ -249,8 +252,8 @@ private fun CaptureCard(error: String?, record: () -> Unit, food: () -> Unit, ca
             }
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                Text("開始錄音", style = MaterialTheme.typography.titleMedium, color = Brand.Text)
-                Text("會議、課堂、訪談、靈感", style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
+                Text("開始錄音".tr, style = MaterialTheme.typography.titleMedium, color = Brand.Text)
+                Text("會議、課堂、訪談、靈感".tr, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
             }
         }
         error?.let {
@@ -261,9 +264,9 @@ private fun CaptureCard(error: String?, record: () -> Unit, food: () -> Unit, ca
         LangChooser()
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Mini("飲食", food) { BowlGlyph(Brand.Cyan) }
-            Mini("通話", call) { Icon(Icons.Filled.Call, null, tint = Brand.Cyan, modifier = Modifier.size(16.dp)) }
-            Mini("匯入", importFile) { Icon(Icons.Filled.Add, null, tint = Brand.Cyan, modifier = Modifier.size(18.dp)) }
+            Mini("飲食".tr, food) { BowlGlyph(Brand.Cyan) }
+            Mini("通話".tr, call) { Icon(Icons.Filled.Call, null, tint = Brand.Cyan, modifier = Modifier.size(16.dp)) }
+            Mini("匯入".tr, importFile) { Icon(Icons.Filled.Add, null, tint = Brand.Cyan, modifier = Modifier.size(18.dp)) }
         }
     }
 }
@@ -293,7 +296,7 @@ private fun TodayRow(m: Meeting, summary: String?, onClick: () -> Unit) {
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(if (food) "餐" else SpeechLang.of(m.lang).tag, fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
+                Text(if (food) "餐".tr else SpeechLang.of(m.lang).tag, fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
                     color = if (food) Brand.Success else Brand.TextMuted,
                     modifier = Modifier.clip(RoundedCornerShape(4.dp))
                         .background(if (food) Brand.Success.copy(alpha = 0.12f) else Brand.SurfaceHigh)
@@ -302,8 +305,8 @@ private fun TodayRow(m: Meeting, summary: String?, onClick: () -> Unit) {
                 Text(meetingTitle(m), style = MaterialTheme.typography.titleSmall, color = Brand.Text,
                     maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            val sub = m.nutrition?.takeIf { food }?.let { "${it.kcal} 大卡 · 蛋白質 ${it.protein} g · 碳水 ${it.carbs} g" }
-                ?: if (m.status == MeetingStatus.FAILED) "處理失敗，點開重試" else summary
+            val sub = m.nutrition?.takeIf { food }?.let { "{0} 大卡 · 蛋白質 {1} g · 碳水 {2} g".trf(it.kcal, it.protein, it.carbs) }
+                ?: if (m.status == MeetingStatus.FAILED) "處理失敗，點開重試".tr else summary
             if (!sub.isNullOrBlank()) {
                 Spacer(Modifier.height(3.dp))
                 Text(sub, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)

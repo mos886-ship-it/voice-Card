@@ -1,5 +1,8 @@
 package com.example.wristai
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import com.example.voiceai.shared.AudioLevel
 import android.Manifest
 import android.annotation.SuppressLint
@@ -134,22 +137,22 @@ class PhoneRecordingService : Service() {
             startInForeground()
         } catch (e: Exception) {
             // Android 14+：App 在后台时不能启动麦克风前台服务
-            fail("手機在背景，無法開始錄音：${e.message}")
+            fail("手機在背景，無法開始錄音：{0}".trf(e.message))
             return
         }
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            fail("沒有麥克風權限，請先打開 大D 允許麥克風")
+            fail("沒有麥克風權限，請先打開 大D 允許麥克風".tr)
             return
         }
         if (filesDir.usableSpace < MIN_FREE_TO_START) {
-            fail("手機空間不足（剩 ${filesDir.usableSpace / MB} MB）")
+            fail("手機空間不足（剩 {0} MB）".trf(filesDir.usableSpace / MB))
             return
         }
 
         // 编号带这台手机的装置代码：多台装置共用云端备份也不会撞（RecordingIds）
         val id = com.example.voiceai.shared.RecordingIds.newId(this, if (food) FoodLog.ID_PREFIX else "")
         val record = try { createAudioRecord() } catch (e: Exception) {
-            fail("無法啟動麥克風：${e.message}")
+            fail("無法啟動麥克風：{0}".trf(e.message))
             return
         }
         audioRecord = record
@@ -181,7 +184,7 @@ class PhoneRecordingService : Service() {
         recordJob = scope.launch {
             val buffer = ByteArray(4096)
             var seq = 0
-            var part = File(segDir, "$seq.part")
+            var part = File(segDir, "${seq}.part")
             var writer = AacWriter(part)
             var stopReason: String? = null
             FileOutputStream(wav).buffered(64 * 1024).use { out ->
@@ -199,14 +202,14 @@ class PhoneRecordingService : Service() {
                             out.flush()
                             finishSegment(writer, part, seq, id, wav)
                             seq++
-                            part = File(segDir, "$seq.part")
+                            part = File(segDir, "${seq}.part")
                             writer = AacWriter(part)
-                            if (filesDir.usableSpace < MIN_FREE_WHILE_RECORDING) { stopReason = "手機空間不足，已自動停止"; break }
+                            if (filesDir.usableSpace < MIN_FREE_WHILE_RECORDING) { stopReason = "手機空間不足，已自動停止".tr; break }
                         }
                     }
                 } catch (e: Exception) {
                     Log.e(TAG, "Recording error", e)
-                    stopReason = "錄音中斷：${e.message}"
+                    stopReason = "錄音中斷：{0}".trf(e.message)
                 }
             }
             if (writer.samples < AudioSpec.SAMPLE_RATE / 10) {
@@ -222,9 +225,9 @@ class PhoneRecordingService : Service() {
             val seconds = WavFile.durationSeconds(wav)
             if (seconds < MIN_RECORDING_SEC && stopReason == null && (!food || FoodPhotos.files(this@PhoneRecordingService, id).isEmpty())) {
                 MeetingStore.delete(this@PhoneRecordingService, id)
-                Log.d(TAG, "$id: stopped after ${"%.1f".format(seconds)}s, discarded")
-                PhoneRecorder.setError("錄音不到 1 秒，沒有送出辨識")
-                WatchNotifier.sendStatus(this@PhoneRecordingService, watchNode, "錄音不到 1 秒，已取消")
+                Log.d(TAG, "${id}: stopped after ${"%.1f".format(seconds)}s, discarded")
+                PhoneRecorder.setError("錄音不到 1 秒，沒有送出辨識".tr)
+                WatchNotifier.sendStatus(this@PhoneRecordingService, watchNode, "錄音不到 1 秒，已取消".tr)
                 return@launch
             }
             if (seconds < MIN_RECORDING_SEC) {
@@ -240,10 +243,10 @@ class PhoneRecordingService : Service() {
                 it.copy(status = MeetingStatus.RECEIVED, segmentsAppended = total, segmentsTotal = total,
                     durationSec = WavFile.durationSeconds(wav), error = null)
             }
-            Log.d(TAG, "$id: stopped, $total segments, ${"%.0f".format(WavFile.durationSeconds(wav))}s")
+            Log.d(TAG, "${id}: stopped, ${total} segments, ${"%.0f".format(WavFile.durationSeconds(wav))}s")
             ProcessMeetingWorker.enqueue(this@PhoneRecordingService, id)
             stopReason?.let { PhoneRecorder.setError(it) }
-            WatchNotifier.sendStatus(this@PhoneRecordingService, watchNode, stopReason ?: "手機錄音已結束，開始處理…")
+            WatchNotifier.sendStatus(this@PhoneRecordingService, watchNode, stopReason ?: "手機錄音已結束，開始處理…".tr)
             if (stopReason != null) scope.launch(Dispatchers.Main) { stopRecording() }
         }
     }
@@ -252,7 +255,7 @@ class PhoneRecordingService : Service() {
     private fun finishSegment(writer: AacWriter, part: File, seq: Int, id: String, wav: File) {
         writer.close()
         val target = File(part.parentFile, "%05d_%d.m4a".format(seq, writer.samples))
-        if (!part.renameTo(target)) error("無法儲存錄音分段")
+        if (!part.renameTo(target)) error("無法儲存錄音分段".tr)
         val seconds = (wav.length() - WavFile.HEADER_SIZE).coerceAtLeast(0) / AudioSpec.BYTES_PER_SECOND.toDouble()
         MeetingStore.update(this, id) { it.copy(segmentsAppended = seq + 1, durationSec = seconds) }
         if (Settings.geminiKey(this).isNotBlank()) ProcessMeetingWorker.enqueue(this, id)
@@ -266,7 +269,7 @@ class PhoneRecordingService : Service() {
             MediaRecorder.AudioSource.MIC, AudioSpec.SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO,
             AudioFormat.ENCODING_PCM_16BIT, maxOf(minBuf * 2, 8192),
         )
-        check(record.state == AudioRecord.STATE_INITIALIZED) { "AudioRecord 初始化失敗" }
+        check(record.state == AudioRecord.STATE_INITIALIZED) { "AudioRecord 初始化失敗".tr }
         return record
     }
 
@@ -307,17 +310,17 @@ class PhoneRecordingService : Service() {
     private fun buildNotification(startedAt: Long?) = run {
         val nm = getSystemService(NotificationManager::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            nm.createNotificationChannel(NotificationChannel(CHANNEL_ID, "手機錄音", NotificationManager.IMPORTANCE_LOW))
+            nm.createNotificationChannel(NotificationChannel(CHANNEL_ID, "手機錄音".tr, NotificationManager.IMPORTANCE_LOW))
         }
         val open = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
         NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("大D 手機錄音中")
-            .setContentText("錄完會自動產生重點報告")
+            .setContentTitle("大D 手機錄音中".tr)
+            .setContentText("錄完會自動產生重點報告".tr)
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
             .setOngoing(true)
             .setContentIntent(open)
             .apply { if (startedAt != null) setWhen(startedAt).setUsesChronometer(true).setShowWhen(true) }
-            .addAction(0, "停止錄音", stopIntent(this@PhoneRecordingService))
+            .addAction(0, "停止錄音".tr, stopIntent(this@PhoneRecordingService))
             .build()
     }
 

@@ -1,5 +1,8 @@
 package com.example.wristai.ui
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -50,15 +53,15 @@ fun LangPicker(value: SpeechLang, modifier: Modifier = Modifier, enabled: Boolea
     var open by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
     Box(modifier) {
         Segmented(
-            main.map { it.short } + ((if (value.other) value.label else "其他") + " ▾"),
+            main.map { it.short } + ((if (value.other) value.label else "其他".tr) + " ▾"),
             if (value.other) main.size else main.indexOf(value),
-            Modifier.semantics { contentDescription = "辨識語言" }, enabled, reclickable = main.size,
+            Modifier.semantics { contentDescription = "辨識語言".tr }, enabled, reclickable = main.size,
         ) { i -> if (i < main.size) onPick(main[i]) else open = true }
         Box(Modifier.align(Alignment.TopEnd)) {
             androidx.compose.material3.DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
                 for (l in others) {
                     androidx.compose.material3.DropdownMenuItem(
-                        text = { Text((if (l == value) "✓ " else "　") + l.label) },
+                        text = { Text((if (l == value) "✓ " else "　".tr) + l.label) },
                         onClick = { open = false; if (l != value) onPick(l) },
                     )
                 }
@@ -140,15 +143,15 @@ fun DialectMenu(value: com.example.wristai.HakkaDialect, enabled: Boolean = true
     val shape = RoundedCornerShape(50)
     Box {
         Text(
-            value.label + "腔 ▾", style = MaterialTheme.typography.labelLarge, color = if (enabled) Brand.Cyan else Brand.TextFaint,
+            value.label + "腔 ▾".tr, style = MaterialTheme.typography.labelLarge, color = if (enabled) Brand.Cyan else Brand.TextFaint,
             modifier = Modifier.clip(shape).background(Brand.SurfaceHigh).border(1.dp, Brand.Outline, shape)
                 .clickable(enabled = enabled) { open = true }.padding(horizontal = 12.dp, vertical = 6.dp)
-                .semantics { contentDescription = "客語腔調：" + value.label },
+                .semantics { contentDescription = "客語腔調：".tr + value.label },
         )
         androidx.compose.material3.DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             for (d in com.example.wristai.HakkaDialect.entries) {
                 androidx.compose.material3.DropdownMenuItem(
-                    text = { Text((if (d == value) "✓ " else "　") + d.label + "腔") },
+                    text = { Text((if (d == value) "✓ " else "　".tr) + d.label + "腔".tr) },
                     onClick = { open = false; if (d != value) onPick(d) },
                 )
             }

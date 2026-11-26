@@ -1,5 +1,8 @@
 package com.example.wristai
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -17,7 +20,7 @@ object ReadyNotification {
         val nm = context.getSystemService(NotificationManager::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             nm.createNotificationChannel(
-                NotificationChannel(CHANNEL_ID, "新錄音", NotificationManager.IMPORTANCE_DEFAULT)
+                NotificationChannel(CHANNEL_ID, "新錄音".tr, NotificationManager.IMPORTANCE_DEFAULT)
             )
         }
         val target = VoiceRecorderExporter.launchIntent(context)
@@ -29,8 +32,8 @@ object ReadyNotification {
         val s = durationSec.toInt()
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
-            .setContentTitle("手錶錄音已存入「錄音機」（%d:%02d）".format(s / 60, s % 60))
-            .setContentText("點此開啟錄音機 → 選最新的 Dylan_ 開頭錄音 → 轉錄 / 摘要")
+            .setContentTitle("手錶錄音已存入「錄音機」（%d:%02d）".tr.format(s / 60, s % 60))
+            .setContentText("點此開啟錄音機 → 選最新的 Dylan_ 開頭錄音 → 轉錄 / 摘要".tr)
             .setContentIntent(pending)
             .setAutoCancel(true)
             .build()
@@ -42,7 +45,7 @@ object ReadyNotification {
         val nm = context.getSystemService(NotificationManager::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             nm.createNotificationChannel(
-                NotificationChannel(CHANNEL_ID, "新錄音", NotificationManager.IMPORTANCE_DEFAULT)
+                NotificationChannel(CHANNEL_ID, "新錄音".tr, NotificationManager.IMPORTANCE_DEFAULT)
             )
         }
         val target = Intent(context, MainActivity::class.java)
@@ -53,7 +56,7 @@ object ReadyNotification {
         )
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_menu_agenda)
-            .setContentTitle("報告完成：$title")
+            .setContentTitle("報告完成：{0}".trf(title))
             .setContentText(summary)
             .setStyle(NotificationCompat.BigTextStyle().bigText(summary))
             .setContentIntent(pending)

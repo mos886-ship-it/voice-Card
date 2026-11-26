@@ -1,5 +1,8 @@
 package com.example.wristai.ui
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import androidx.compose.ui.draw.clip
 
 import androidx.compose.foundation.clickable
@@ -118,8 +121,8 @@ fun SettingsScreen(onBack: (() -> Unit)? = null) {
     }
 
     Column(Modifier.fillMaxSize()) {
-        if (onBack != null) TopBar("設定", onBack)
-        else Text("設定", style = MaterialTheme.typography.headlineSmall, color = Brand.Text,
+        if (onBack != null) TopBar("設定".tr, onBack)
+        else Text("設定".tr, style = MaterialTheme.typography.headlineSmall, color = Brand.Text,
             modifier = Modifier.padding(start = 20.dp, top = 12.dp, bottom = 8.dp))
         Column(
             Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp),
@@ -128,33 +131,33 @@ fun SettingsScreen(onBack: (() -> Unit)? = null) {
             SystemStatusCard()
 
             // ---------- 介面：一张卡放三个各自独立的选择——排布（版面）、資訊量（商用 / 科技）、配色 ----------
-            SectionLabel("介面")
+            SectionLabel("介面".tr)
             GlassCard {
                 // 语言：介面（个别 App 语言）与报告（AI 写报告用的语言）分开选
-                Text("介面語言", style = MaterialTheme.typography.titleSmall, color = Brand.Text)
+                Text("介面語言".tr, style = MaterialTheme.typography.titleSmall, color = Brand.Text)
                 Spacer(Modifier.height(8.dp))
                 val uiLang = remember { com.example.wristai.AppLocale.setting(context) }
                 val uiOpts = com.example.wristai.AppLocale.OPTIONS
-                Segmented(uiOpts.map { it.second ?: "跟系統" }, uiOpts.indexOfFirst { it.first == uiLang }.coerceAtLeast(0)) { i ->
+                Segmented(uiOpts.map { it.second ?: "跟系統".tr }, uiOpts.indexOfFirst { it.first == uiLang }.coerceAtLeast(0)) { i ->
                     (context as? android.app.Activity)?.let { com.example.wristai.AppLocale.set(it, uiOpts[i].first) }
                 }
                 InterfaceDivider()
-                Text("報告語言", style = MaterialTheme.typography.titleSmall, color = Brand.Text)
+                Text("報告語言".tr, style = MaterialTheme.typography.titleSmall, color = Brand.Text)
                 Spacer(Modifier.height(8.dp))
                 var reportLang by remember { mutableStateOf(com.example.wristai.ReportLang.setting(context)) }
-                val rOpts = listOf(com.example.wristai.ReportLang.AUTO to "跟介面") + com.example.wristai.ReportLang.entries.map { it.code to it.label }
+                val rOpts = listOf(com.example.wristai.ReportLang.AUTO to "跟介面".tr) + com.example.wristai.ReportLang.entries.map { it.code to it.label }
                 Segmented(rOpts.map { it.second }, rOpts.indexOfFirst { it.first == reportLang }.coerceAtLeast(0)) { i ->
                     reportLang = rOpts[i].first
                     com.example.wristai.ReportLang.set(context, reportLang)
                 }
                 Spacer(Modifier.height(6.dp))
-                Text("AI 的標題、摘要與報告用這個語言寫；逐字稿照錄音原本的語言。現在：" +
-                    com.example.wristai.ReportLang.current(context).label + "。已經做好的報告可以在詳情頁「重新產生」。",
+                Text("AI 的標題、摘要與報告用這個語言寫；逐字稿照錄音原本的語言。現在：".tr +
+                    com.example.wristai.ReportLang.current(context).label + "。已經做好的報告可以在詳情頁「重新產生」。".tr,
                     style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
 
                 InterfaceDivider()
                 // 排布：快錄 / 總覽（分页与主页的样子；之后会再加）
-                Text("排布", style = MaterialTheme.typography.titleSmall, color = Brand.Text)
+                Text("排布".tr, style = MaterialTheme.typography.titleSmall, color = Brand.Text)
                 Spacer(Modifier.height(8.dp))
                 Segmented(com.example.wristai.ui.theme.LayoutMode.entries.map { it.label },
                     com.example.wristai.ui.theme.LayoutMode.entries.indexOf(AppTheme.layout)) { i ->
@@ -167,19 +170,19 @@ fun SettingsScreen(onBack: (() -> Unit)? = null) {
 
                 // 資訊量：商用（简洁）/ 科技（细节），哪个排布都适用
                 InterfaceDivider()
-                Text("資訊量", style = MaterialTheme.typography.titleSmall, color = Brand.Text)
+                Text("資訊量".tr, style = MaterialTheme.typography.titleSmall, color = Brand.Text)
                 Spacer(Modifier.height(8.dp))
-                Segmented(listOf("商用", "科技"), if (UiMode.tech) 1 else 0) { i -> UiMode.set(context, i == 1) }
+                Segmented(listOf("商用".tr, "科技".tr), if (UiMode.tech) 1 else 0) { i -> UiMode.set(context, i == 1) }
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    if (UiMode.tech) "顯示 AI 模型、耗時、編號、引擎切換原因與主機模型選單"
-                    else "簡潔，只顯示結果與重點",
+                    if (UiMode.tech) "顯示 AI 模型、耗時、編號、引擎切換原因與主機模型選單".tr
+                    else "簡潔，只顯示結果與重點".tr,
                     style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted,
                 )
 
                 // 配色：清晰 / 暖和 / 深色 / 水墨
                 InterfaceDivider()
-                Text("配色", style = MaterialTheme.typography.titleSmall, color = Brand.Text)
+                Text("配色".tr, style = MaterialTheme.typography.titleSmall, color = Brand.Text)
                 Spacer(Modifier.height(8.dp))
                 ThemePicker(AppTheme.mode) { m ->
                     AppTheme.mode = m
@@ -192,7 +195,7 @@ fun SettingsScreen(onBack: (() -> Unit)? = null) {
                 // 台灣才有：背景画（島嶼電路 / 晶圓 / 夜城 / 無）
                 if (AppTheme.mode == com.example.wristai.ui.theme.ThemeMode.TAIWAN) {
                     InterfaceDivider()
-                    Text("背景畫", style = MaterialTheme.typography.titleSmall, color = Brand.Text)
+                    Text("背景畫".tr, style = MaterialTheme.typography.titleSmall, color = Brand.Text)
                     Spacer(Modifier.height(8.dp))
                     val tbs = com.example.wristai.ui.theme.TaiwanBackground.entries
                     Segmented(tbs.map { it.label }, tbs.indexOf(AppTheme.taiwanBg)) { i ->
@@ -201,17 +204,17 @@ fun SettingsScreen(onBack: (() -> Unit)? = null) {
                     }
                     Spacer(Modifier.height(6.dp))
                     Text(when (AppTheme.taiwanBg) {
-                        com.example.wristai.ui.theme.TaiwanBackground.ISLAND -> "島嶼電路：點陣組成的台灣、北回歸線與五座城市的連線。"
-                        com.example.wristai.ui.theme.TaiwanBackground.WAFER -> "晶圓：一片晶圓與往上延伸的電路，點綴梅花。"
-                        com.example.wristai.ui.theme.TaiwanBackground.CITY -> "夜城：夜晚的城市天際線、遠山與河面倒影。"
-                        com.example.wristai.ui.theme.TaiwanBackground.NONE -> "不放背景畫，只有夜藍底。"
+                        com.example.wristai.ui.theme.TaiwanBackground.ISLAND -> "島嶼電路：點陣組成的台灣、北回歸線與五座城市的連線。".tr
+                        com.example.wristai.ui.theme.TaiwanBackground.WAFER -> "晶圓：一片晶圓與往上延伸的電路，點綴梅花。".tr
+                        com.example.wristai.ui.theme.TaiwanBackground.CITY -> "夜城：夜晚的城市天際線、遠山與河面倒影。".tr
+                        com.example.wristai.ui.theme.TaiwanBackground.NONE -> "不放背景畫，只有夜藍底。".tr
                     }, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
                 }
 
                 // 浮世繪才有：背景画（藝伎武士 / 靈鶴 / 大阪城 / 無）
                 if (AppTheme.mode == com.example.wristai.ui.theme.ThemeMode.UKIYOE) {
                     InterfaceDivider()
-                    Text("背景畫", style = MaterialTheme.typography.titleSmall, color = Brand.Text)
+                    Text("背景畫".tr, style = MaterialTheme.typography.titleSmall, color = Brand.Text)
                     Spacer(Modifier.height(8.dp))
                     val ubs = com.example.wristai.ui.theme.UkiyoeBackground.entries
                     Segmented(ubs.map { it.label }, ubs.indexOf(AppTheme.ukiyoeBg)) { i ->
@@ -220,17 +223,17 @@ fun SettingsScreen(onBack: (() -> Unit)? = null) {
                     }
                     Spacer(Modifier.height(6.dp))
                     Text(when (AppTheme.ukiyoeBg) {
-                        com.example.wristai.ui.theme.UkiyoeBackground.GEISHA -> "藝伎武士：朱紅拱橋上，撐紙傘的藝伎與佩雙刀的武士。"
-                        com.example.wristai.ui.theme.UkiyoeBackground.CRANE -> "靈鶴：三隻丹頂鶴、朱紅的日與松枝。"
-                        com.example.wristai.ui.theme.UkiyoeBackground.CASTLE -> "大阪城：白牆、銅綠屋頂的天守，石垣、護城河與櫻花。"
-                        com.example.wristai.ui.theme.UkiyoeBackground.NONE -> "不放背景畫，只有和紙底。"
+                        com.example.wristai.ui.theme.UkiyoeBackground.GEISHA -> "藝伎武士：朱紅拱橋上，撐紙傘的藝伎與佩雙刀的武士。".tr
+                        com.example.wristai.ui.theme.UkiyoeBackground.CRANE -> "靈鶴：三隻丹頂鶴、朱紅的日與松枝。".tr
+                        com.example.wristai.ui.theme.UkiyoeBackground.CASTLE -> "大阪城：白牆、銅綠屋頂的天守，石垣、護城河與櫻花。".tr
+                        com.example.wristai.ui.theme.UkiyoeBackground.NONE -> "不放背景畫，只有和紙底。".tr
                     }, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
                 }
 
                 // 水墨才有：背景画（孤舟 / 荷塘 / 魚蝦 / 無）
                 if (AppTheme.mode == com.example.wristai.ui.theme.ThemeMode.INK) {
                     InterfaceDivider()
-                    Text("背景畫", style = MaterialTheme.typography.titleSmall, color = Brand.Text)
+                    Text("背景畫".tr, style = MaterialTheme.typography.titleSmall, color = Brand.Text)
                     Spacer(Modifier.height(8.dp))
                     val bgs = com.example.wristai.ui.theme.InkBackground.entries
                     Segmented(bgs.map { it.label }, bgs.indexOf(AppTheme.inkBg)) { i ->
@@ -239,23 +242,23 @@ fun SettingsScreen(onBack: (() -> Unit)? = null) {
                     }
                     Spacer(Modifier.height(6.dp))
                     Text(when (AppTheme.inkBg) {
-                        com.example.wristai.ui.theme.InkBackground.BOAT -> "孤舟寒江：淡月、遠岸、一葉小舟與蘆葦。"
-                        com.example.wristai.ui.theme.InkBackground.LOTUS -> "荷塘清趣：荷葉、淡荷花與三尾小魚。"
-                        com.example.wristai.ui.theme.InkBackground.SHRIMP -> "魚蝦戲水：荷葉一角、水草，小蝦與小魚。"
-                        com.example.wristai.ui.theme.InkBackground.NONE -> "不放背景畫，只有宣紙底。"
+                        com.example.wristai.ui.theme.InkBackground.BOAT -> "孤舟寒江：淡月、遠岸、一葉小舟與蘆葦。".tr
+                        com.example.wristai.ui.theme.InkBackground.LOTUS -> "荷塘清趣：荷葉、淡荷花與三尾小魚。".tr
+                        com.example.wristai.ui.theme.InkBackground.SHRIMP -> "魚蝦戲水：荷葉一角、水草，小蝦與小魚。".tr
+                        com.example.wristai.ui.theme.InkBackground.NONE -> "不放背景畫，只有宣紙底。".tr
                     }, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
                 }
             }
 
             // ---------- 三星录音机 ----------
-            SectionLabel("裝置端 AI（推薦）")
+            SectionLabel("裝置端 AI（推薦）".tr)
             GlassCard {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
-                        Text("Galaxy AI · 錄音不離開手機", style = MaterialTheme.typography.titleMedium, color = Brand.Text)
+                        Text("Galaxy AI · 錄音不離開手機".tr, style = MaterialTheme.typography.titleMedium, color = Brand.Text)
                         Text(
-                            if (hasRecorder) "每段錄音都存一份到「錄音機」，可用 Galaxy AI 轉錄 / 摘要"
-                            else "此手機沒有三星錄音機，此功能不會生效",
+                            if (hasRecorder) "每段錄音都存一份到「錄音機」，可用 Galaxy AI 轉錄 / 摘要".tr
+                            else "此手機沒有三星錄音機，此功能不會生效".tr,
                             style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted,
                         )
                     }
@@ -285,31 +288,31 @@ fun SettingsScreen(onBack: (() -> Unit)? = null) {
             )
 
             // ---------- 饮食记录 ----------
-            SectionLabel("飲食記錄")
+            SectionLabel("飲食記錄".tr)
             GlassCard {
-                Text("每日熱量目標", style = MaterialTheme.typography.titleMedium, color = Brand.Text)
-                Text("說出吃了什麼，AI 會估算熱量與蛋白質、碳水、脂肪（需要雲端 AI）",
+                Text("每日熱量目標".tr, style = MaterialTheme.typography.titleMedium, color = Brand.Text)
+                Text("說出吃了什麼，AI 會估算熱量與蛋白質、碳水、脂肪（需要雲端 AI）".tr,
                     style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
                 Spacer(Modifier.height(12.dp))
                 OutlinedTextField(
                     value = kcalGoal, onValueChange = { v -> kcalGoal = v.filter { it.isDigit() }.take(4); saved = false },
-                    label = { Text("大卡 / 天") }, singleLine = true, shape = RoundedCornerShape(14.dp), colors = fieldColors(),
+                    label = { Text("大卡 / 天".tr) }, singleLine = true, shape = RoundedCornerShape(14.dp), colors = fieldColors(),
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Note(Icons.Filled.Info, "熱量為 AI 依口述估算，僅供參考，不能取代營養師或醫療建議。")
+                Note(Icons.Filled.Info, "熱量為 AI 依口述估算，僅供參考，不能取代營養師或醫療建議。".tr)
             }
 
             // ---------- 健康同步：饮食写进 Health Connect（Google / Samsung Health）；Apple 健康在 iPhone 版 ----------
             HealthSection()
 
             // ---------- 通话录音 ----------
-            SectionLabel("通話錄音")
+            SectionLabel("通話錄音".tr)
             GlassCard(highlight = callOn) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
-                        Text("自動整理通話錄音", style = MaterialTheme.typography.titleMedium, color = Brand.Text)
-                        Text("電話 App 錄好的通話，自動產生通話報告（重點、待辦、逐字稿）",
+                        Text("自動整理通話錄音".tr, style = MaterialTheme.typography.titleMedium, color = Brand.Text)
+                        Text("電話 App 錄好的通話，自動產生通話報告（重點、待辦、逐字稿）".tr,
                             style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
                     }
                     Spacer(Modifier.width(12.dp))
@@ -326,12 +329,12 @@ fun SettingsScreen(onBack: (() -> Unit)? = null) {
                     )
                 }
                 Spacer(Modifier.height(10.dp))
-                Note(Icons.Filled.Info, "一般電話：請在三星「電話」App → 設定 →「錄製通話」開啟自動錄音，大D 會自動接手整理。")
+                Note(Icons.Filled.Info, "一般電話：請在三星「電話」App → 設定 →「錄製通話」開啟自動錄音，大D 會自動接手整理。".tr)
                 if (dialer != null) {
-                    TextButton(onClick = { context.startActivity(dialer) }) { Text("開啟電話 App →", color = Brand.Cyan) }
+                    TextButton(onClick = { context.startActivity(dialer) }) { Text("開啟電話 App →".tr, color = Brand.Cyan) }
                 }
-                Note(Icons.Filled.Warning, "LINE、WhatsApp、Telegram、WeChat 等網路通話：Android 不允許任何 App 錄製（通話中其他 App 的麥克風會被靜音）。請開擴音，改用手錶錄音。")
-                Note(Icons.Filled.Lock, "錄音前請告知對方。各地法規不同，請自行確認錄音的合法性。")
+                Note(Icons.Filled.Warning, "LINE、WhatsApp、Telegram、WeChat 等網路通話：Android 不允許任何 App 錄製（通話中其他 App 的麥克風會被靜音）。請開擴音，改用手錶錄音。".tr)
+                Note(Icons.Filled.Lock, "錄音前請告知對方。各地法規不同，請自行確認錄音的合法性。".tr)
             }
 
             // ---------- 录音地点（GPS 戳记） ----------
@@ -342,70 +345,70 @@ fun SettingsScreen(onBack: (() -> Unit)? = null) {
                         Text("用手機記錄錄音地點", style = MaterialTheme.typography.titleMedium, color = Brand.Text)
                         Text(
                             when {
-                                geoBg -> "已開啟：手錶或手機開始錄音時，用手機定位當 GPS 戳記"
-                                geoFg -> "只在使用 App 時：手機錄音會記錄；手錶錄音時手機多半在背景，會改用手錶 GPS"
-                                else -> "未開啟：手錶錄音改用手錶 GPS；手機錄音不記錄地點"
+                                geoBg -> "已開啟：手錶或手機開始錄音時，用手機定位當 GPS 戳記".tr
+                                geoFg -> "只在使用 App 時：手機錄音會記錄；手錶錄音時手機多半在背景，會改用手錶 GPS".tr
+                                else -> "未開啟：手錶錄音改用手錶 GPS；手機錄音不記錄地點".tr
                             },
                             style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted,
                         )
                     }
                     Spacer(Modifier.width(12.dp))
-                    if (geoBg) Icon(Icons.Filled.CheckCircle, "已開啟", tint = Brand.Success)
+                    if (geoBg) Icon(Icons.Filled.CheckCircle, "已開啟".tr, tint = Brand.Success)
                 }
                 if (!geoBg) {
                     Spacer(Modifier.height(10.dp))
                     GhostButton(
-                        if (!geoFg) "允許定位" else "改成「一律允許」",
+                        if (!geoFg) "允許定位".tr else "改成「一律允許」".tr,
                         {
                             if (!geoFg) geoFgLauncher.launch(arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION))
                             else if (android.os.Build.VERSION.SDK_INT >= 29) geoBgLauncher.launch(android.Manifest.permission.ACCESS_BACKGROUND_LOCATION)
                         },
                         Modifier.fillMaxWidth(),
                     )
-                    if (geoFg) Note(Icons.Filled.Info, "系統會開啟定位權限頁，請選「一律允許」。大D 只在開始錄音的那一刻定位一次，不會持續追蹤。")
+                    if (geoFg) Note(Icons.Filled.Info, "系統會開啟定位權限頁，請選「一律允許」。大D 只在開始錄音的那一刻定位一次，不會持續追蹤。".tr)
                 }
-                Note(Icons.Filled.Lock, "地點只存在你的手機，用來標示報告與搜尋；手機連不上時才用手錶的 GPS。")
+                Note(Icons.Filled.Lock, "地點只存在你的手機，用來標示報告與搜尋；手機連不上時才用手錶的 GPS。".tr)
             }
 
             // ---------- 手表遥控 ----------
-            SectionLabel("手錶遙控")
+            SectionLabel("手錶遙控".tr)
             GlassCard(highlight = remoteOk) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
-                        Text("手錶遠端啟動手機錄音", style = MaterialTheme.typography.titleMedium, color = Brand.Text)
+                        Text("手錶遠端啟動手機錄音".tr, style = MaterialTheme.typography.titleMedium, color = Brand.Text)
                         Text(
-                            if (remoteOk) "已開啟：在手錶點「用手機錄音」，手機鎖屏時也會直接開始"
-                            else "未開啟：從手錶啟動時，需要在手機點一下通知才會開始",
+                            if (remoteOk) "已開啟：在手錶點「用手機錄音」，手機鎖屏時也會直接開始".tr
+                            else "未開啟：從手錶啟動時，需要在手機點一下通知才會開始".tr,
                             style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted,
                         )
                     }
-                    if (remoteOk) Icon(Icons.Filled.CheckCircle, "已開啟", tint = Brand.Success)
+                    if (remoteOk) Icon(Icons.Filled.CheckCircle, "已開啟".tr, tint = Brand.Success)
                 }
                 if (!remoteOk) {
                     Spacer(Modifier.height(12.dp))
-                    GhostButton("前往開啟（允許「顯示在其他應用程式上層」）", {
+                    GhostButton("前往開啟（允許「顯示在其他應用程式上層」）".tr, {
                         context.startActivity(Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                             Uri.parse("package:${context.packageName}")))
                     }, Modifier.fillMaxWidth(), tint = Brand.Cyan)
-                    Note(Icons.Filled.Info, "Android 規定 App 在背景時不能直接開麥克風。開啟這個權限後，大D 只會在你從手錶按下錄音時，短暫開啟一個透明畫面來啟動錄音。")
+                    Note(Icons.Filled.Info, "Android 規定 App 在背景時不能直接開麥克風。開啟這個權限後，大D 只會在你從手錶按下錄音時，短暫開啟一個透明畫面來啟動錄音。".tr)
                 }
             }
 
             // ---------- 隐私 ----------
-            SectionLabel("隱私與安全")
+            SectionLabel("隱私與安全".tr)
             GlassCard {
-                Note(Icons.Filled.Lock, "金鑰只儲存在這支手機，只用來呼叫對應的 AI 服務。上傳給 Gemini 的錄音在產生報告後立即刪除；錄音與報告都保存在本機。")
+                Note(Icons.Filled.Lock, "金鑰只儲存在這支手機，只用來呼叫對應的 AI 服務。上傳給 Gemini 的錄音在產生報告後立即刪除；錄音與報告都保存在本機。".tr)
             }
-            GhostButton("關於與授權（開放原始碼、模型、條款）", { showAbout = true }, Modifier.fillMaxWidth())
+            GhostButton("關於與授權（開放原始碼、模型、條款）".tr, { showAbout = true }, Modifier.fillMaxWidth())
             // 版本号读 App 本身（build.gradle 自动编号，例如 1.1.63），不要写死
             val version = remember {
                 runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: ""
             }
-            Text("大D · Dylan $version", style = MaterialTheme.typography.labelSmall, color = Brand.TextFaint,
+            Text("大D · Dylan {0}".trf(version), style = MaterialTheme.typography.labelSmall, color = Brand.TextFaint,
                 modifier = Modifier.padding(vertical = 8.dp))
         }
         Box(Modifier.padding(20.dp)) {
-            GradientButton(if (saved) "已儲存 ✓" else "儲存設定", ::save, Modifier.fillMaxWidth())
+            GradientButton(if (saved) "已儲存 ✓".tr else "儲存設定".tr, ::save, Modifier.fillMaxWidth())
         }
     }
 }
@@ -413,7 +416,7 @@ fun SettingsScreen(onBack: (() -> Unit)? = null) {
 @Composable
 fun TopBar(title: String, onBack: () -> Unit, actions: @Composable () -> Unit = {}) {
     Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-        IconCircle(Icons.AutoMirrored.Filled.ArrowBack, "返回", onBack)
+        IconCircle(Icons.AutoMirrored.Filled.ArrowBack, "返回".tr, onBack)
         Spacer(Modifier.width(14.dp))
         Text(title, style = MaterialTheme.typography.titleLarge, color = Brand.Text, modifier = Modifier.weight(1f))
         actions()

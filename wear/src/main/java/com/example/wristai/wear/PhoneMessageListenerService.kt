@@ -1,5 +1,8 @@
 package com.example.wristai.wear
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -18,6 +21,15 @@ class PhoneMessageListenerService : WearableListenerService() {
         when (event.path) {
             WristAiProtocol.PATH_THEME -> {
                 com.example.wristai.wear.ui.theme.Brand.apply(this, event.data.toString(Charsets.UTF_8))
+            }
+
+            WristAiProtocol.PATH_UI_LANG -> {
+                val l = event.data.toString(Charsets.UTF_8)
+                if (l != com.example.voiceai.shared.I18n.lang) {
+                    com.example.voiceai.shared.I18n.setOverride(this, l)
+                    // 画面开着：重开一次（列举、一开始就算好的字也换成新语言）；没开着：下次打开就是新语言
+                    if (WearMain.visible) WearMain.restart(this) else Runtime.getRuntime().exit(0)
+                }
             }
 
             WristAiProtocol.PATH_GEO_ACK -> WatchState.setGeoAck(event.data.toString(Charsets.UTF_8))
@@ -50,7 +62,7 @@ class PhoneMessageListenerService : WearableListenerService() {
                     .onFailure { Log.e("PhoneMsgListener", "Bad summary payload", it) }
                     .getOrNull() ?: return
                 WatchState.saveSummary(this, summary)
-                WatchState.setPhoneStatus("摘要已送達")
+                WatchState.setPhoneStatus("摘要已送達".tr)
                 vibrate()
             }
         }
@@ -65,9 +77,9 @@ class PhoneMessageListenerService : WearableListenerService() {
         val sent = runBlocking { runCatching { PhoneLink.sendPending(this@PhoneMessageListenerService) }.getOrDefault(0) }
         WatchState.refreshPending(this)
         if (sent > 0 && WatchState.recorder.value !is RecorderStatus.Recording) {
-            WatchState.setPhoneStatus("已自動補傳 $sent 段錄音")
+            WatchState.setPhoneStatus("已自動補傳 {0} 段錄音".trf(sent))
         }
-        Log.d("PhoneMsgListener", "Phone reachable again, resent $sent/${pending.size}")
+        Log.d("PhoneMsgListener", "Phone reachable again, resent ${sent}/${pending.size}")
     }
 
     @Suppress("DEPRECATION")

@@ -1,5 +1,8 @@
 package com.example.wristai.ai
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import android.content.Context
 import com.example.wristai.ReportGenerator
 import com.example.wristai.Settings
@@ -22,18 +25,18 @@ object AiConfig {
 
     /** 语音辨识服务。 */
     enum class SttKind(val label: String, val detail: String) {
-        FUNASR("阿里百煉 Fun-ASR", "通義語音辨識大模型，中文、方言、30 種語言，可分辨說話者"),
-        IFLYTEK("科大訊飛 錄音轉寫", "中文與方言強，可分辨說話者（最長 5 小時）"),
-        OPENAI("OpenAI 轉錄", "gpt-4o-transcribe-diarize，多語言，可分辨說話者"),
+        FUNASR("阿里百煉 Fun-ASR".tr, "通義語音辨識大模型，中文、方言、30 種語言，可分辨說話者".tr),
+        IFLYTEK("科大訊飛 錄音轉寫".tr, "中文與方言強，可分辨說話者（最長 5 小時）".tr),
+        OPENAI("OpenAI 轉錄".tr, "gpt-4o-transcribe-diarize，多語言，可分辨說話者".tr),
     }
 
     /** 整理报告的大模型。 */
     enum class LlmKind(val label: String, val detail: String) {
-        QWEN("阿里百煉 通義千問", "Qwen 系列，中文報告品質好"),
-        SPARK("科大訊飛 星火", "星火大模型（4.0Ultra 等）"),
-        LLAMA("Meta Llama", "Llama 4 等開源模型（OpenAI 相容端點，可改）"),
-        OPENAI("OpenAI GPT", "GPT 系列"),
-        CLAUDE("Anthropic Claude", "Claude 系列，長篇整理與結構化強"),
+        QWEN("阿里百煉 通義千問".tr, "Qwen 系列，中文報告品質好".tr),
+        SPARK("科大訊飛 星火".tr, "星火大模型（4.0Ultra 等）".tr),
+        LLAMA("Meta Llama", "Llama 4 等開源模型（OpenAI 相容端點，可改）".tr),
+        OPENAI("OpenAI GPT", "GPT 系列".tr),
+        CLAUDE("Anthropic Claude", "Claude 系列，長篇整理與結構化強".tr),
     }
 
     /** 各个模型栏位的预设值（使用者可以在设定里改成新版本）。 */
@@ -61,10 +64,10 @@ object AiConfig {
     fun setLlmKind(c: Context, v: LlmKind) = p(c).edit().putString("ai_llm", v.name).apply()
 
     /** 金钥与其他值：dashscope_key、dashscope_region（intl / cn）、iflytek_appid、iflytek_secret、spark_password、openai_key、llama_key、llama_base。 */
-    fun get(c: Context, key: String): String = p(c).getString("ai_$key", "").orEmpty()
-    fun set(c: Context, key: String, v: String) = p(c).edit().putString("ai_$key", v.trim()).apply()
+    fun get(c: Context, key: String): String = p(c).getString("ai_${key}", "").orEmpty()
+    fun set(c: Context, key: String, v: String) = p(c).edit().putString("ai_${key}", v.trim()).apply()
 
-    fun model(c: Context, slot: String): String = get(c, "model_$slot").ifBlank { DEFAULT_MODELS[slot].orEmpty() }
+    fun model(c: Context, slot: String): String = get(c, "model_${slot}").ifBlank { DEFAULT_MODELS[slot].orEmpty() }
     fun dashscopeRegion(c: Context): String = get(c, "dashscope_region").ifBlank { "intl" }
 
     /** 建立目前选的语音辨识服务；金钥没填 → null。 */
@@ -80,11 +83,11 @@ object AiConfig {
     fun llm(c: Context): Llm? = when (llmKind(c)) {
         LlmKind.QWEN -> get(c, "dashscope_key").takeIf { it.isNotBlank() }?.let { key ->
             val host = if (dashscopeRegion(c) == "cn") "https://dashscope.aliyuncs.com" else "https://dashscope-intl.aliyuncs.com"
-            OpenAiCompatLlm("通義千問", "$host/compatible-mode/v1", key, model(c, "qwen"), maxChars = 90_000, maxTokens = 8192)
+            OpenAiCompatLlm("通義千問".tr, "${host}/compatible-mode/v1", key, model(c, "qwen"), maxChars = 90_000, maxTokens = 8192)
         }
         LlmKind.SPARK -> get(c, "spark_password").takeIf { it.isNotBlank() }?.let { key ->
             val m = model(c, "spark")
-            OpenAiCompatLlm("訊飛星火", "https://spark-api-open.xf-yun.com/v1", key, m,
+            OpenAiCompatLlm("訊飛星火".tr, "https://spark-api-open.xf-yun.com/v1", key, m,
                 maxChars = if (m == "lite") 6_000 else 20_000, maxTokens = if (m == "lite" || m == "generalv3" || m == "generalv3.5") 4096 else 8192)
         }
         LlmKind.LLAMA -> get(c, "llama_key").takeIf { it.isNotBlank() }?.let { key ->
@@ -99,8 +102,8 @@ object AiConfig {
 
     /** 组合式还缺什么（给设定页与错误讯息）；都好了 → null。 */
     fun pipelineMissing(c: Context): String? = when {
-        stt(c) == null -> "請填寫「${sttKind(c).label}」的金鑰"
-        llm(c) == null -> "請填寫「${llmKind(c).label}」的金鑰"
+        stt(c) == null -> "請填寫「{0}」的金鑰".trf(sttKind(c).label)
+        llm(c) == null -> "請填寫「{0}」的金鑰".trf(llmKind(c).label)
         else -> null
     }
 

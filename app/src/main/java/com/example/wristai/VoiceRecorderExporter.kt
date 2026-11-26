@@ -1,5 +1,8 @@
 package com.example.wristai
 
+import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
+
 import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
@@ -63,7 +66,7 @@ object VoiceRecorderExporter {
             val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
                 MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
             else MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-            val uri = resolver.insert(collection, values) ?: error("無法建立錄音檔")
+            val uri = resolver.insert(collection, values) ?: error("無法建立錄音檔".tr)
             try {
                 resolver.openOutputStream(uri)!!.use { out -> tmp.inputStream().use { it.copyTo(out) } }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -73,7 +76,7 @@ object VoiceRecorderExporter {
                 resolver.delete(uri, null, null)
                 throw e
             }
-            Log.d(TAG, "Exported ${wav.name} → $uri ($name)")
+            Log.d(TAG, "Exported ${wav.name} → ${uri} (${name})")
             return uri
         } finally {
             tmp.delete()
