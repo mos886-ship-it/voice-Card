@@ -668,3 +668,9 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 - 即時動態（Live Activity，Phone-Info.plist `NSSupportsLiveActivities`）：錄音中計時（鎖定畫面、動態島，停止鍵）；即時翻譯中顯示最新一句譯文＋原文（iOS 沒有懸浮視窗，這是最接近的）。
 - 模擬器驗過：小工具加到主畫面、數字正確（14 項待辦、最新報告）、按錄音鍵打開 App 開始錄音。真機的即時動態、藍牙麥克風、Siri 說法還沒驗。
 - iOS 不做：Android Auto 媒體服務、懸浮視窗、三星日常。
+
+## 遠距對話（兩地即時翻譯）
+- 主機 `local-ai/talk.py`（`talk_test.py` 6 項）：大D的主機只轉送文字、不翻譯、不存檔（只在記憶體）。配對過的裝置開房 `POST /v1/talk` → 房號＋邀請碼＋邀請連結 `dylan://talk?url=&lan=&room=&code=`；對方 `POST /v1/talk/join` 不用配對，拿到只限這間房的 token（`X-Talk-Token`）；`POST /v1/talk/<room>/msg`、`GET /v1/talk/<room>?after=&wait=25` 長輪詢、`DELETE` 離開（開房的人離開 = 結束）。限制：每房 6 人、30 間、一句 1000 字、每人每秒 8 則、留 300 則、3 小時沒說話關房、邀請碼錯 10 次作廢。setup.sh 會複製 talk.py。**主機要重新部署**。
+- Android `RemoteTalk` ＋ `ui/TalkScreen`（翻譯分頁右上「遠距對話」；dylan://talk 連結直接開）：自己說的話用 `LiveCaptions`（麥克風模式、停頓切句）每句送原文＋語言；對方的話用 ML Kit 翻成自己的語言（第一次自動下載模型），可朗讀、推手錶。邀請用分享選單傳（LINE 等）。
+- 模擬器＋fake_host（8767）驗過：連結開啟 → 加入 → 收到中文翻成英文；模擬器說英文 6 句（照停頓）→ 對方收到定稿與語言。
+- 注意：外面連主機是 http（固定 IP:48765），文字沒加密；對方要裝大D。iOS 還沒做。

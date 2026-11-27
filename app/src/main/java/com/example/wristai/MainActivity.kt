@@ -153,6 +153,14 @@ class MainActivity : ComponentActivity() {
             setIntent(Intent(this, MainActivity::class.java))
             return
         }
+        // 遠距對話的邀请 dylan://talk?…（对方用 LINE 等传来的连结）→ 翻译分页的遠距對話页，问要不要加入
+        if (intent?.action == Intent.ACTION_VIEW && intent.data?.scheme == "dylan" && intent.data?.host == "talk") {
+            RemoteTalk.pendingInvite.value = intent.data.toString()
+            com.example.wristai.ui.TalkPage.open = true
+            com.example.wristai.ui.TranslatePage.open()
+            setIntent(Intent(this, MainActivity::class.java))
+            return
+        }
         // 大D的主機配对连结 dylan://pair?…（相机扫 QR、配对页的连结）→ 设定页处理
         if (intent?.action == Intent.ACTION_VIEW && intent.data?.scheme == "dylan") {
             com.example.wristai.ui.PendingPair.link = intent.data.toString()

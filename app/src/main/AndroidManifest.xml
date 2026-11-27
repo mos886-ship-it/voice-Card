@@ -81,6 +81,13 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="dylan" android:host="pair" />
             </intent-filter>
+            <!-- 遠距對話的邀請：dylan://talk?url=…&lan=…&room=…&code=… -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="dylan" android:host="talk" />
+            </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />

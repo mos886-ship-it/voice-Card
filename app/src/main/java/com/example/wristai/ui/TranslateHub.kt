@@ -58,6 +58,8 @@ fun TranslateHub(onOpen: (String) -> Unit, onOpenSettings: () -> Unit) {
     LaunchedEffect(Unit) { TranslationStore.reload(context) }
     val sessions by TranslationStore.sessions.collectAsState()
     val live by LiveCaptions.state.collectAsState()
+    // 遠距對話（两地即时翻译）：整页
+    if (TalkPage.open) { TalkScreen { TalkPage.open = false }; return }
     HubScaffold(
         title = "即時翻譯".tr,
         subtitle = if (live.running) "翻譯中：{0} → {1}".trf(TranslateLangs.shortName(live.source), TranslateLangs.shortName(live.target, true))
@@ -65,6 +67,7 @@ fun TranslateHub(onOpen: (String) -> Unit, onOpenSettings: () -> Unit) {
         sections = listOf("翻譯".tr, "記錄".tr, "分析".tr, "設定".tr),
         selected = Hubs.translate,
         onSelect = { Hubs.translate = it },
+        actions = { GhostButton("遠距對話".tr, { TalkPage.open = true }, tint = Brand.Cyan) },
     ) { s ->
         when (s) {
             0 -> LiveTranslateScreen()

@@ -27,7 +27,7 @@ args = ap.parse_args()
 work = args.dir or tempfile.mkdtemp(prefix="dylan-fake-")
 os.makedirs(work, exist_ok=True)
 shutil.copy(os.path.join(HERE, "..", "shared", "src", "main", "assets", "report_domains.json"), work)   # 領域專家模式清單
-for f in ("server.py", "pairing.py", "jobs.py"):
+for f in ("server.py", "pairing.py", "jobs.py", "talk.py"):
     shutil.copy(os.path.join(HERE, f), work)
 cfg = os.path.join(work, "config.json")
 if not os.path.exists(cfg):

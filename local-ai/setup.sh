@@ -6,7 +6,7 @@ set -e
 SRC="$(cd "$(dirname "$0")" && pwd)"
 DEST="$HOME/dylan-local"
 mkdir -p "$DEST/samples"
-cp "$SRC/server.py" "$SRC/pairing.py" "$SRC/jobs.py" "$SRC/convert_whisper.py" "$SRC/asr_test.py" "$SRC/llm_test.py" "$DEST/"
+cp "$SRC/server.py" "$SRC/pairing.py" "$SRC/jobs.py" "$SRC/talk.py" "$SRC/convert_whisper.py" "$SRC/asr_test.py" "$SRC/llm_test.py" "$DEST/"
 cp "$SRC/../shared/src/main/assets/report_domains.json" "$DEST/"   # 領域專家模式清單（跟 App 共用）
 [ -d "$DEST/venv" ] || /usr/bin/python3 -m venv "$DEST/venv"
 "$DEST/venv/bin/pip" install -q --upgrade pip

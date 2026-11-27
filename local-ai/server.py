@@ -21,6 +21,12 @@ App 的報告解析、說話者名字、飲食 NUTRITION 解析都直接沿用�
   POST /v1/process  → （舊的，連著等結果；也是排進同一個佇列）body 是錄音檔（m4a / wav…）；標頭 X-Kind: meeting|food、X-Recorded-At、X-Duration（秒）
                        X-Input: text 時 body 是 UTF-8 文字（匯入的會議紀錄 / 逐字稿），跳過語音辨識直接寫報告
                        X-Report-Lang: zh | en | ko（報告語言；沒有 = 繁中）
+  遠距對話（talk.py；兩地即時翻譯，主機只轉送文字、不存檔）：
+    POST   /v1/talk           配對過的裝置開房 {name, lang} → {room, code, token, member, link}
+    POST   /v1/talk/join      對方用邀請碼加入（不用主機存取碼）{room, code, name, lang} → {token, member, members}
+    POST   /v1/talk/<room>/msg   X-Talk-Token；{line, text, lang, final}
+    GET    /v1/talk/<room>?after=N&wait=25   X-Talk-Token；→ {msgs, members, ended, me, seq}
+    DELETE /v1/talk/<room>    離開（開房的人離開 = 結束）
                        X-Food-Country: TW | US | JP | KR …（飲食：這一餐所在的國家，份量依當地；沒有 = TW）
                        X-Domain: auto | off | legal | medical …（領域專家模式，見 report_domains.json；沒有 = auto）
                        X-Lang: zh（國語 → FunASR）| nan（台語・國台語 → Breeze-ASR-26）| hak（客語 → 數位部 Taiwan Tongues；
@@ -802,6 +808,10 @@ def lan_url():
 # 防猜存取碼：同一個來源 IP 錯 10 次就封 1 小時（服務透過固定 IP 對外開放，誰都連得到）
 MAX_FAILS = 10
 BLOCK_SECONDS = 3600
+import talk  # noqa: E402  遠距對話（兩地即時翻譯）的中繼
+
+TALK = talk.Rooms()
+
 FAILS = {}   # ip → [錯幾次, 封到何時]
 FAILS_LOCK = threading.Lock()
 
@@ -926,7 +936,31 @@ class Handler(BaseHTTPRequestHandler):
             return False
         return ip.is_private or ip.is_loopback
 
+    # ---------- 遠距對話（talk.py）：房間存取碼放在 X-Talk-Token，不是主機的存取碼 ----------
+    def _talk_room(self):
+        parts = self.path.split("?")[0].strip("/").split("/")   # v1 talk <room> [msg]
+        return parts[2] if len(parts) >= 3 else ""
+
+    def _talk(self, fn):
+        try:
+            return self._json(200, fn())
+        except talk.TalkError as e:
+            return self._json(e.code, {"error": str(e)})
+        except (ValueError, TypeError):
+            return self._json(400, {"error": "格式不對"})
+
+    def _talk_link(self, res):
+        import urllib.parse
+        res["link"] = "dylan://talk?" + urllib.parse.urlencode({
+            "url": CFG.get("public_url") or lan_url(), "lan": lan_url(), "room": res["room"], "code": res["code"]})
+        return res
+
     def do_GET(self):
+        if self.path.startswith("/v1/talk/"):
+            import urllib.parse
+            q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            return self._talk(lambda: TALK.poll(self._talk_room(), self.headers.get("X-Talk-Token", ""),
+                                                int((q.get("after") or ["0"])[0]), float((q.get("wait") or ["0"])[0])))
         if self.path.split("?")[0] == "/pair":
             if not self._local_only():
                 return self._json(403, {"error": "配對頁只能在家裡的網路打開"})
@@ -1071,6 +1105,15 @@ class Handler(BaseHTTPRequestHandler):
             busy(-1)
 
     def do_POST(self):
+        if self.path == "/v1/talk":
+            if not self._authorized():
+                return
+            return self._talk(lambda: self._talk_link(self._talk_create()))
+        if self.path == "/v1/talk/join":
+            return self._talk(lambda: (lambda b: TALK.join(b.get("room"), b.get("code"), b.get("name"), b.get("lang")))(self._body()))
+        if self.path.startswith("/v1/talk/") and self.path.endswith("/msg"):
+            return self._talk(lambda: (lambda b: TALK.post(self._talk_room(), self.headers.get("X-Talk-Token", ""),
+                                                            b.get("line"), b.get("text"), b.get("lang"), b.get("final")))(self._body()))
         if self.path == "/v1/chat/completions":
             return self._chat() if self._authorized() else None
         if self.path == "/v1/pair":
@@ -1144,7 +1187,13 @@ class Handler(BaseHTTPRequestHandler):
         except OSError:
             log("  client gone before result was sent")
 
+    def _talk_create(self):
+        b = self._body()
+        return TALK.create(self._dev(), b.get("name"), b.get("lang"))
+
     def do_DELETE(self):
+        if self.path.startswith("/v1/talk/"):
+            return self._talk(lambda: TALK.leave(self._talk_room(), self.headers.get("X-Talk-Token", "")))
         if not self.path.startswith("/v1/jobs/"):
             return self._json(404, {"error": "not found"})
         if not self._authorized():
