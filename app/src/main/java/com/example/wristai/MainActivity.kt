@@ -33,9 +33,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.example.wristai.ui.DetailScreen
-import com.example.wristai.ui.HomeScreen
 import androidx.compose.foundation.layout.Column
-import com.example.wristai.ui.FoodScreen
 import com.example.wristai.ui.DashboardScreen
 import com.example.wristai.ui.BottomNav
 import com.example.wristai.ui.Tab
@@ -165,17 +163,32 @@ private fun App() {
     LaunchedEffect(com.example.wristai.ui.PendingPair.link) {
         if (com.example.wristai.ui.PendingPair.link != null) go(Tab.SETTINGS.route)
     }
-    // 即时翻译页（主页「翻譯」、录音中「即時翻譯」）
+    // 即时翻译（主页「翻譯」、录音中「即時翻譯」）→「翻譯」分页的第一个小分页
     LaunchedEffect(com.example.wristai.ui.TranslatePage.requested) {
-        if (com.example.wristai.ui.TranslatePage.requested) { com.example.wristai.ui.TranslatePage.requested = false; route = "translate" }
+        if (com.example.wristai.ui.TranslatePage.requested) {
+            com.example.wristai.ui.TranslatePage.requested = false
+            com.example.wristai.ui.Hubs.translate = 0
+            go(Tab.TRANSLATE.route)
+        }
     }
     val overview = com.example.wristai.ui.theme.AppTheme.layout == com.example.wristai.ui.theme.LayoutMode.OVERVIEW
-    // 快錄排布没有「檔案」分页：从總覽换过来时停在档案分页 → 回今天
-    if (!overview && route == Tab.FILES.route) route = Tab.HOME.route
+    // 旧版本存下来的路由（档案分页、单独的翻译页、档案管理）→ 现在都在主轴分页里
+    if (route == "tab:files" || route == "files") { com.example.wristai.ui.Hubs.records = 2; route = Tab.RECORDS.route }
+    if (route == "translate") route = Tab.TRANSLATE.route
     val tab = Tab.entries.firstOrNull { it.route == route }
     // 返回键：详情 → 原分页；其他分页 → 主页
-    if (route.startsWith("detail:") || route == "translate") BackHandler { route = lastTab }
+    if (route.startsWith("detail:")) BackHandler { route = lastTab }
     else if (tab != null && tab != Tab.HOME) BackHandler { go(Tab.HOME.route) }
+    /** 各主轴的「設定」小分页（从共用设定页的连结过去）。 */
+    fun openPillarSettings(t: Tab) {
+        when (t) {
+            Tab.RECORDS -> com.example.wristai.ui.Hubs.records = com.example.wristai.ui.Hubs.SETTINGS
+            Tab.FOOD -> com.example.wristai.ui.Hubs.food = com.example.wristai.ui.Hubs.SETTINGS
+            Tab.TRANSLATE -> com.example.wristai.ui.Hubs.translate = com.example.wristai.ui.Hubs.SETTINGS
+            else -> {}
+        }
+        go(t.route)
+    }
 
     Column(Modifier.fillMaxSize()) {
         AnimatedContent(route, transitionSpec = { fadeIn() togetherWith fadeOut() }, label = "route",
@@ -185,12 +198,11 @@ private fun App() {
                     Settings.setOnboarded(context)
                     go(if (cloud) Tab.SETTINGS.route else Tab.HOME.route)
                 }
-                r == Tab.SETTINGS.route -> SettingsScreen()
-                r == "translate" -> com.example.wristai.ui.LiveTranslateScreen(onBack = { route = lastTab })
-                // 档案管理：资料库右上的「管理」打开（不是分页）
-                r == "files" -> com.example.wristai.ui.FilesScreen(onBack = { route = lastTab }, onOpen = { route = "detail:${it}" }, onOpenSettings = { go(Tab.SETTINGS.route) })
-                // 總覽排布：档案是一个分页
-                r == Tab.FILES.route -> com.example.wristai.ui.FilesScreen(onBack = null, onOpen = { route = "detail:${it}" }, onOpenSettings = { go(Tab.SETTINGS.route) })
+                r == Tab.SETTINGS.route -> SettingsScreen(onOpenPillar = ::openPillarSettings)
+                r == Tab.TRANSLATE.route -> com.example.wristai.ui.TranslateHub(
+                    onOpen = { route = "detail:${it}" },
+                    onOpenSettings = { go(Tab.SETTINGS.route) },
+                )
                 r == Tab.HOME.route && overview -> com.example.wristai.ui.OverviewDashboardScreen(
                     onOpen = { route = "detail:${it}" },
                     onOpenRecords = { go(Tab.RECORDS.route) },
@@ -203,7 +215,7 @@ private fun App() {
                     onOpenFood = { go(Tab.FOOD.route) },
                     onOpenSettings = { go(Tab.SETTINGS.route) },
                 )
-                r == Tab.FOOD.route -> FoodScreen(
+                r == Tab.FOOD.route -> com.example.wristai.ui.FoodHub(
                     onOpen = { route = "detail:${it}" },
                     onOpenSettings = { go(Tab.SETTINGS.route) },
                 )
@@ -212,11 +224,10 @@ private fun App() {
                     onBack = { route = lastTab },
                     onOpenSettings = { go(Tab.SETTINGS.route) },
                 )
-                else -> HomeScreen(
+                else -> com.example.wristai.ui.RecordsHub(
                     onOpen = { route = "detail:${it}" },
                     onOpenSettings = { go(Tab.SETTINGS.route) },
                     onImport = { ctx, uri -> importAudio(ctx, uri) },
-                    onManage = { route = "files" },
                     overview = overview,
                 )
             }

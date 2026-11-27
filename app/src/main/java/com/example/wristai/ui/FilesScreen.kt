@@ -60,7 +60,7 @@ import java.util.Locale
  * 点了可以打开、分享录音档、只删录音档（保留报告）、整笔删除。
  */
 @Composable
-fun FilesScreen(onBack: (() -> Unit)? = null, onOpen: (String) -> Unit = {}, onOpenSettings: () -> Unit = {}) {
+fun FilesScreen(onBack: (() -> Unit)? = null, onOpen: (String) -> Unit = {}, onOpenSettings: () -> Unit = {}, embedded: Boolean = false) {
     if (onBack != null) BackHandler(onBack = onBack)
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -100,7 +100,7 @@ fun FilesScreen(onBack: (() -> Unit)? = null, onOpen: (String) -> Unit = {}, onO
 
     Column(Modifier.fillMaxSize()) {
         if (onBack != null) TopBar("檔案管理".tr, onBack)
-        else Text("檔案管理".tr, style = MaterialTheme.typography.headlineSmall, color = Brand.Text,
+        else if (!embedded) Text("檔案管理".tr, style = MaterialTheme.typography.headlineSmall, color = Brand.Text,
             modifier = Modifier.padding(start = 20.dp, top = 12.dp, bottom = 8.dp))
         LazyColumn(
             Modifier.weight(1f),

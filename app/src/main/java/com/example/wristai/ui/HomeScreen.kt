@@ -222,7 +222,7 @@ fun formatDuration(sec: Double): String {
  * 右上「管理」= 档案管理（原本的「檔案」分页）。
  */
 @Composable
-fun HomeScreen(onOpen: (String) -> Unit, onOpenSettings: () -> Unit, onImport: (Context, Uri) -> Unit, onManage: () -> Unit = {}, overview: Boolean = false) {
+fun HomeScreen(onOpen: (String) -> Unit, onOpenSettings: () -> Unit, onImport: (Context, Uri) -> Unit, onManage: () -> Unit = {}, overview: Boolean = false, embedded: Boolean = false) {
     val context = LocalContext.current
     val all by MeetingStore.meetings.collectAsState()
     val meetings = remember(all) { all.filter { it.origin() != Origin.FOOD } }
@@ -261,11 +261,11 @@ fun HomeScreen(onOpen: (String) -> Unit, onOpenSettings: () -> Unit, onImport: (
 
     LazyColumn(
         Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = if (embedded) 0.dp else 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         // ---------- 标题 ----------
-        item {
+        if (!embedded) item {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 4.dp)) {
                 Column(Modifier.weight(1f)) {
                     Text(if (overview) "錄音".tr else "資料庫".tr, style = MaterialTheme.typography.headlineSmall, color = Brand.Text)

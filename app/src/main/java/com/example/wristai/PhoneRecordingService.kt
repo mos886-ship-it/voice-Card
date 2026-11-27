@@ -289,6 +289,7 @@ class PhoneRecordingService : Service() {
             recordJob = null
             wakeLock?.let { if (it.isHeld) it.release() }
             wakeLock = null
+            LiveCaptions.lastMeetingId = PhoneRecorder.active.value?.meetingId   // 翻译记录连到这段录音
             PhoneRecorder.set(null)
             kotlinx.coroutines.withContext(Dispatchers.Main) { LiveCaptions.stop() }
             broadcastState(this@PhoneRecordingService)

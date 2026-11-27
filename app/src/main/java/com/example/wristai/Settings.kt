@@ -35,6 +35,22 @@ object Settings {
     fun setDailyKcalGoal(context: Context, value: Int) =
         prefs(context).edit().putInt("daily_kcal_goal", value.coerceIn(800, 6000)).apply()
 
+    /** 即时翻译：预设翻成什么（空 = 跟介面语言）、字幕大小 0 小 / 1 中 / 2 大、送到手表、自动存记录。 */
+    fun translateTarget(context: Context): String = prefs(context).getString("translate_target", "") ?: ""
+    fun setTranslateTarget(context: Context, v: String) = prefs(context).edit().putString("translate_target", v).apply()
+    fun captionSize(context: Context): Int = prefs(context).getInt("caption_size", 1)
+    fun setCaptionSize(context: Context, v: Int) = prefs(context).edit().putInt("caption_size", v).apply()
+    fun captionToWatch(context: Context): Boolean = prefs(context).getBoolean("caption_watch", true)
+    fun setCaptionToWatch(context: Context, v: Boolean) = prefs(context).edit().putBoolean("caption_watch", v).apply()
+    fun saveTranslations(context: Context): Boolean = prefs(context).getBoolean("translate_save", true)
+    fun setSaveTranslations(context: Context, v: Boolean) = prefs(context).edit().putBoolean("translate_save", v).apply()
+
+    /** 每日蛋白质 / 膳食纤维目标（克）。 */
+    fun proteinGoal(context: Context): Int = prefs(context).getInt("protein_goal", 60)
+    fun setProteinGoal(context: Context, value: Int) = prefs(context).edit().putInt("protein_goal", value.coerceIn(10, 400)).apply()
+    fun fiberGoal(context: Context): Int = prefs(context).getInt("fiber_goal", 25)
+    fun setFiberGoal(context: Context, value: Int) = prefs(context).edit().putInt("fiber_goal", value.coerceIn(5, 100)).apply()
+
     /** 外观主题：clear 清晰 / warm 暖和日常（[com.example.wristai.ui.theme.ThemeMode]；旧值 dark / light / ink / system 当清晰）。 */
     fun themeMode(context: Context): String = prefs(context).getString("theme_mode", "clear") ?: "clear"
     fun setThemeMode(context: Context, value: String) = prefs(context).edit().putString("theme_mode", value).apply()

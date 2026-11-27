@@ -61,15 +61,14 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 /**
- * 底部分页（依排布）。快錄：今天｜資料庫｜（中间录音键）｜飲食｜設定（跟 iOS 一样），档案管理在资料库右上的「管理」；
- * 總覽：主頁｜錄音｜飲食｜檔案｜設定。
+ * 底部分页（依排布）。三大主轴（錄音報告、飲食記錄、即時翻譯）各一个分页，档案管理在「錄音」的「管理」。
+ * 快錄：今天｜錄音｜（中间录音键）｜飲食｜翻譯（設定在「今天」右上的齿轮）；總覽：主頁｜錄音｜飲食｜翻譯｜設定。
  */
 enum class Tab(val route: String, private val quickLabel: String, private val overviewLabel: String) {
     HOME("tab:home", "今天".tr, "主頁".tr),
-    RECORDS("tab:records", "資料庫".tr, "錄音".tr),
+    RECORDS("tab:records", "錄音".tr, "錄音".tr),
     FOOD("tab:food", "飲食".tr, "飲食".tr),
-    /** 档案管理：總覽是一个分页；快錄在资料库的「管理」。 */
-    FILES("tab:files", "檔案".tr, "檔案".tr),
+    TRANSLATE("tab:translate", "翻譯".tr, "翻譯".tr),
     SETTINGS("tab:settings", "設定".tr, "設定".tr);
 
     val label get() = when (AppTheme.layout) {
@@ -93,7 +92,7 @@ fun BottomNav(current: Tab, onSelect: (Tab) -> Unit) {
             NavItem(Tab.RECORDS, current == Tab.RECORDS, Modifier.weight(1f)) { onSelect(Tab.RECORDS) }
             Box(Modifier.weight(1f), contentAlignment = Alignment.Center) { RecordKey { onSelect(Tab.HOME) } }
             NavItem(Tab.FOOD, current == Tab.FOOD, Modifier.weight(1f)) { onSelect(Tab.FOOD) }
-            NavItem(Tab.SETTINGS, current == Tab.SETTINGS, Modifier.weight(1f)) { onSelect(Tab.SETTINGS) }
+            NavItem(Tab.TRANSLATE, current == Tab.TRANSLATE, Modifier.weight(1f)) { onSelect(Tab.TRANSLATE) }
         }
     }
 }
@@ -157,7 +156,7 @@ private fun NavItem(tab: Tab, selected: Boolean, modifier: Modifier = Modifier, 
                 Tab.HOME -> SunGlyph(tint)
                 Tab.RECORDS -> ListGlyph(tint)
                 Tab.FOOD -> BowlGlyph(tint)
-                Tab.FILES -> FolderGlyph(tint)
+                Tab.TRANSLATE -> TranslateGlyph(tint)
                 Tab.SETTINGS -> Icon(Icons.Outlined.Settings, null, tint = tint, modifier = Modifier.size(20.dp))
             }
         }
@@ -193,7 +192,7 @@ private fun OverviewBottomNav(current: Tab, onSelect: (Tab) -> Unit) {
                             Tab.HOME -> Icon(Icons.Filled.Home, null, tint = tint, modifier = Modifier.size(20.dp))
                             Tab.RECORDS -> Waveform(Modifier.size(width = 20.dp, height = 16.dp), tint)
                             Tab.FOOD -> BowlGlyph(tint)
-                            Tab.FILES -> FolderGlyph(tint)
+                            Tab.TRANSLATE -> TranslateGlyph(tint)
                             Tab.SETTINGS -> Icon(Icons.Filled.Settings, null, tint = tint, modifier = Modifier.size(20.dp))
                         }
                     }
@@ -206,16 +205,12 @@ private fun OverviewBottomNav(current: Tab, onSelect: (Tab) -> Unit) {
     }
 }
 
-/** 档案：资料夹（上面的小签＋外框）。 */
+/** 翻译：「文A」两个字（中文→外文）。 */
 @Composable
-private fun FolderGlyph(color: Color) {
-    Canvas(Modifier.size(20.dp)) {
-        val w = size.width
-        val h = size.height
-        val s = 2.dp.toPx()
-        val r = CornerRadius(2.dp.toPx())
-        drawRoundRect(color, Offset(w * 0.06f, h * 0.14f), Size(w * 0.38f, h * 0.22f), r)
-        drawRoundRect(color, Offset(w * 0.06f, h * 0.26f), Size(w * 0.88f, h * 0.60f), r, style = Stroke(s))
+internal fun TranslateGlyph(color: Color) {
+    Row(verticalAlignment = Alignment.Bottom) {
+        Text("文", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = color)
+        Text("A", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = color)
     }
 }
 

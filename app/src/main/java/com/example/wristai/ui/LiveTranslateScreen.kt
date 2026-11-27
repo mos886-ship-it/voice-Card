@@ -50,28 +50,38 @@ object TranslatePage {
  * 录音照常存成一笔记录、录完照常产生完整报告；离开这页字幕继续跑，回来还看得到。
  */
 @Composable
-fun LiveTranslateScreen(onBack: () -> Unit) {
+fun LiveTranslateScreen(onBack: (() -> Unit)? = null) {
     val context = LocalContext.current
     val s by LiveCaptions.state.collectAsState()
     val active by PhoneRecorder.active.collectAsState()
     val recording = active != null && !com.example.wristai.FoodLog.isFood(active!!.meetingId)
     val source = SpeechLang.current
-    var target by remember { mutableStateOf(if (s.running) s.target else LiveCaptions.defaultTarget(source, I18n.lang)) }
+    var target by remember {
+        mutableStateOf(if (s.running) s.target
+            else LiveCaptions.Target.of(com.example.wristai.Settings.translateTarget(context))?.takeIf { LiveCaptions.mlkitSource(source) != it.mlkit }
+                ?: LiveCaptions.defaultTarget(source, I18n.lang))
+    }
+    val captionStyle = when (com.example.wristai.Settings.captionSize(context)) {
+        0 -> MaterialTheme.typography.bodyLarge
+        2 -> MaterialTheme.typography.headlineSmall
+        else -> MaterialTheme.typography.titleMedium
+    }
     val starter = rememberRecordStarter()
     val supported = LiveCaptions.supported(source)
 
     fun startCaptions() = LiveCaptions.start(context, source, target)
 
     Column(Modifier.fillMaxSize()) {
-        TopBar("即時翻譯".tr, onBack)
+        if (onBack != null) TopBar("即時翻譯".tr, onBack)
         Column(Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             // 说的语言（跟录音的辨识语言同一个设定）
             Text("說的語言".tr, style = MaterialTheme.typography.titleSmall, color = Brand.Text)
             LangPicker(source, enabled = !s.running) { SpeechLang.set(context, it) }
             Text("翻譯成".tr, style = MaterialTheme.typography.titleSmall, color = Brand.Text)
             val targets = LiveCaptions.Target.entries
-            Segmented(targets.map { it.label }, targets.indexOf(target)) { i ->
+            ChoiceGrid(targets.map { it.label }, targets.indexOf(target)) { i ->
                 target = targets[i]
+                com.example.wristai.Settings.setTranslateTarget(context, target.code)
                 if (s.running) LiveCaptions.start(context, source, target)   // 换语言：重新开始
             }
             when {
@@ -117,7 +127,7 @@ fun LiveTranslateScreen(onBack: () -> Unit) {
                             Row(verticalAlignment = Alignment.Top) {
                                 Box(Modifier.padding(top = 8.dp).size(5.dp).clip(RoundedCornerShape(3.dp)).background(Brand.Cyan))
                                 Spacer(Modifier.width(8.dp))
-                                Text(l.translated ?: "…", style = MaterialTheme.typography.titleMedium,
+                                Text(l.translated ?: "…", style = captionStyle,
                                     color = if (l.translated == null) Brand.TextFaint else Brand.Text)
                             }
                         }

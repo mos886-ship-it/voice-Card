@@ -54,6 +54,9 @@ object LiveCaptions {
         val error: String? = null,
         val source: SpeechLang = SpeechLang.ZH,
         val target: Target = Target.EN,
+        /** 这次翻译的编号＝开始时间（存记录用）；同时录的那段录音。 */
+        val sessionId: Long = 0,
+        val meetingId: String? = null,
     )
 
     /** 翻译成：显示名称用该语言自己的写法。 */
@@ -89,6 +92,9 @@ object LiveCaptions {
         val same = mlkitSource(source) == ui.mlkit
         return if (!same) ui else if (ui == Target.ZH) Target.EN else Target.ZH
     }
+
+    /** 录音刚停止时那段录音的编号（录音停止会一起停字幕，那时 [PhoneRecorder.active] 已经清掉）。 */
+    @Volatile var lastMeetingId: String? = null
 
     private val _state = MutableStateFlow(State())
     val state: StateFlow<State> = _state.asStateFlow()
@@ -144,8 +150,10 @@ object LiveCaptions {
             return
         }
         online = source.code in offlineMissing
+        lastMeetingId = null
         engine = 0; heard = false; errorsInRow = 0
         _state.value = State(running = true, source = source, target = target,
+            sessionId = System.currentTimeMillis(), meetingId = PhoneRecorder.active.value?.meetingId,
             status = if (online) "手機的離線語音沒有{0}，這次改用線上辨識（聲音會傳到 Google 辨識）".trf(source.label) else "準備翻譯模型…".tr)
         // 翻译模型：第一次要下载（约 30 MB）
         translator?.close()
@@ -178,7 +186,23 @@ object LiveCaptions {
         runCatching { readEnd?.close() }; readEnd = null
         // 还在说的那句留下来当成一句
         update { s -> s.copy(lines = s.lines.map { if (it.partial) it.copy(partial = false) else it }) }
-        WatchNotifier.sendCaption(appContext ?: return, "")
+        val c = appContext ?: return
+        WatchNotifier.sendCaption(c, "")
+        // 存成一笔记录；最后几句的翻译可能还没回来，3 秒后再存一次（同一笔）
+        val id = _state.value.sessionId
+        if (id != 0L && Settings.saveTranslations(c)) {
+            saveSession(c, _state.value)
+            scope.launch { kotlinx.coroutines.delay(3_000); if (_state.value.sessionId == id) saveSession(c, _state.value) }
+        }
+    }
+
+    private fun saveSession(c: Context, s: State) {
+        val lines = s.lines.filter { it.original.isNotBlank() }.map { TranslationStore.Line(it.original, it.translated) }
+        if (lines.isEmpty()) return
+        runCatching {
+            TranslationStore.save(c, TranslationStore.Session(s.sessionId, s.sessionId, System.currentTimeMillis(),
+                s.source.code, s.target.code, s.meetingId ?: PhoneRecorder.active.value?.meetingId ?: lastMeetingId, lines))
+        }.onFailure { Log.w(TAG, "save session failed", it) }
     }
 
     /** 测试用（只有 debug 版会呼叫）：把一个 16 kHz 单声道 WAV 照实际速度送进字幕，不用真的对麦克风说话。 */
@@ -336,7 +360,7 @@ object LiveCaptions {
             val out = runCatching { t.translate(text).await() }.getOrNull() ?: return@launch
             val shown = if (_state.value.target == Target.ZH) TraditionalChinese.convert(out) else out
             update { s -> s.copy(lines = s.lines.map { if (it.id == id) it.copy(translated = shown) else it }) }
-            appContext?.let { WatchNotifier.sendCaption(it, shown) }
+            appContext?.takeIf { Settings.captionToWatch(it) }?.let { WatchNotifier.sendCaption(it, shown) }
         }
     }
 }

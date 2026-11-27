@@ -35,6 +35,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
@@ -68,57 +69,13 @@ import com.example.wristai.ui.theme.ThemeMode
 
 @Composable
 /** [onBack] = null 时是底部分页（没有返回键）。 */
-fun SettingsScreen(onBack: (() -> Unit)? = null) {
+fun SettingsScreen(onBack: (() -> Unit)? = null, onOpenPillar: (Tab) -> Unit = {}) {
     val context = LocalContext.current
     var gemini by remember { mutableStateOf(Settings.geminiKey(context)) }
     var claude by remember { mutableStateOf(Settings.apiKey(context)) }
-    var lang by remember { mutableStateOf(Settings.language(context)) }
-    var export by remember { mutableStateOf(Settings.exportToVoiceRecorder(context)) }
-    var saved by remember { mutableStateOf(false) }
-    var kcalGoal by remember { mutableStateOf(Settings.dailyKcalGoal(context).toString()) }
-    val hasRecorder = remember { VoiceRecorderExporter.launchIntent(context) != null }
-    var callOn by remember { mutableStateOf(CallRecordingWatcher.isEnabled(context) && CallRecordingWatcher.hasPermission(context)) }
-    val callPermLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
-        if (ok) { CallRecordingWatcher.setEnabled(context, true); callOn = true }
-    }
-    val dialer = remember {
-        context.packageManager.getLaunchIntentForPackage("com.samsung.android.dialer")
-            ?: context.packageManager.getLaunchIntentForPackage("com.google.android.dialer")
-    }
-    // 从系统设定回来时要更新，所以定时检查
-    var remoteOk by remember { mutableStateOf(RemoteRecordActivity.canStartFromBackground(context)) }
-    // 录音地点：定位权限（使用时 / 一律允许），从系统设定回来会自动更新
-    var geoFg by remember { mutableStateOf(com.example.voiceai.shared.GeoFix.hasPermission(context)) }
-    var geoBg by remember { mutableStateOf(com.example.voiceai.shared.GeoFix.hasBackgroundPermission(context)) }
-    val geoFgLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
-        geoFg = com.example.voiceai.shared.GeoFix.hasPermission(context)
-    }
-    val geoBgLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
-        geoBg = com.example.voiceai.shared.GeoFix.hasBackgroundPermission(context)
-    }
-    LaunchedEffect(Unit) {
-        while (true) {
-            geoFg = com.example.voiceai.shared.GeoFix.hasPermission(context)
-            geoBg = com.example.voiceai.shared.GeoFix.hasBackgroundPermission(context)
-            kotlinx.coroutines.delay(1_000)
-        }
-    }
-    LaunchedEffect(Unit) {
-        while (true) { remoteOk = RemoteRecordActivity.canStartFromBackground(context); kotlinx.coroutines.delay(1_000) }
-    }
-
     // 「关于与授权」页（设定里的子页面）
     var showAbout by remember { mutableStateOf(false) }
     if (showAbout) { AboutScreen { showAbout = false }; return }
-
-    fun save() {
-        Settings.setGeminiKey(context, gemini)
-        Settings.setApiKey(context, claude)
-        Settings.setLanguage(context, lang)
-        Settings.setExportToVoiceRecorder(context, export)
-        kcalGoal.toIntOrNull()?.let { Settings.setDailyKcalGoal(context, it) }
-        saved = true
-    }
 
     Column(Modifier.fillMaxSize()) {
         if (onBack != null) TopBar("設定".tr, onBack)
@@ -129,6 +86,16 @@ fun SettingsScreen(onBack: (() -> Unit)? = null) {
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             SystemStatusCard()
+
+            // ---------- 三大主轴各自的设定（在各分页的「設定」） ----------
+            SectionLabel("功能設定".tr)
+            GlassCard {
+                PillarLink("錄音報告".tr, "錄音語言、報告語言、通話、地點、手錶遙控、Galaxy AI".tr) { onOpenPillar(Tab.RECORDS) }
+                Divider(Modifier.padding(vertical = 10.dp))
+                PillarLink("飲食記錄".tr, "每日目標、健康同步".tr) { onOpenPillar(Tab.FOOD) }
+                Divider(Modifier.padding(vertical = 10.dp))
+                PillarLink("即時翻譯".tr, "預設語言、字幕大小、手錶字幕、離線翻譯模型".tr) { onOpenPillar(Tab.TRANSLATE) }
+            }
 
             // ---------- 介面：一张卡放三个各自独立的选择——排布（版面）、資訊量（商用 / 科技）、配色 ----------
             SectionLabel("介面".tr)
@@ -250,29 +217,6 @@ fun SettingsScreen(onBack: (() -> Unit)? = null) {
                 }
             }
 
-            // ---------- 三星录音机 ----------
-            SectionLabel("裝置端 AI（推薦）".tr)
-            GlassCard {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text("Galaxy AI · 錄音不離開手機".tr, style = MaterialTheme.typography.titleMedium, color = Brand.Text)
-                        Text(
-                            if (hasRecorder) "每段錄音都存一份到「錄音機」，可用 Galaxy AI 轉錄 / 摘要".tr
-                            else "此手機沒有三星錄音機，此功能不會生效".tr,
-                            style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted,
-                        )
-                    }
-                    Spacer(Modifier.width(12.dp))
-                    Switch(
-                        checked = export, onCheckedChange = { export = it; saved = false },
-                        colors = SwitchDefaults.colors(
-                            checkedTrackColor = Brand.Cyan, checkedThumbColor = Brand.Bg,
-                            uncheckedTrackColor = Brand.SurfaceHigher, uncheckedBorderColor = Brand.Outline,
-                        ),
-                    )
-                }
-            }
-
             // ---------- 大D的主機（使用者自己的电脑跑 AI） ----------
             LocalHostSection()
 
@@ -287,113 +231,6 @@ fun SettingsScreen(onBack: (() -> Unit)? = null) {
                 claude = claude, onClaude = { claude = it; Settings.setApiKey(context, it) },
             )
 
-            // ---------- 饮食记录 ----------
-            SectionLabel("飲食記錄".tr)
-            GlassCard {
-                Text("每日熱量目標".tr, style = MaterialTheme.typography.titleMedium, color = Brand.Text)
-                Text("說出吃了什麼，AI 會估算熱量與蛋白質、碳水、脂肪（需要雲端 AI）".tr,
-                    style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
-                Spacer(Modifier.height(12.dp))
-                OutlinedTextField(
-                    value = kcalGoal, onValueChange = { v -> kcalGoal = v.filter { it.isDigit() }.take(4); saved = false },
-                    label = { Text("大卡 / 天".tr) }, singleLine = true, shape = RoundedCornerShape(14.dp), colors = fieldColors(),
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Note(Icons.Filled.Info, "熱量為 AI 依口述估算，僅供參考，不能取代營養師或醫療建議。".tr)
-            }
-
-            // ---------- 健康同步：饮食写进 Health Connect（Google / Samsung Health）；Apple 健康在 iPhone 版 ----------
-            HealthSection()
-
-            // ---------- 通话录音 ----------
-            SectionLabel("通話錄音".tr)
-            GlassCard(highlight = callOn) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text("自動整理通話錄音".tr, style = MaterialTheme.typography.titleMedium, color = Brand.Text)
-                        Text("電話 App 錄好的通話，自動產生通話報告（重點、待辦、逐字稿）".tr,
-                            style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
-                    }
-                    Spacer(Modifier.width(12.dp))
-                    Switch(
-                        checked = callOn,
-                        onCheckedChange = { on ->
-                            if (on && !CallRecordingWatcher.hasPermission(context)) callPermLauncher.launch(CallRecordingWatcher.audioPermission())
-                            else { CallRecordingWatcher.setEnabled(context, on); callOn = on }
-                        },
-                        colors = SwitchDefaults.colors(
-                            checkedTrackColor = Brand.Cyan, checkedThumbColor = Brand.Bg,
-                            uncheckedTrackColor = Brand.SurfaceHigher, uncheckedBorderColor = Brand.Outline,
-                        ),
-                    )
-                }
-                Spacer(Modifier.height(10.dp))
-                Note(Icons.Filled.Info, "一般電話：請在三星「電話」App → 設定 →「錄製通話」開啟自動錄音，大D 會自動接手整理。".tr)
-                if (dialer != null) {
-                    TextButton(onClick = { context.startActivity(dialer) }) { Text("開啟電話 App →".tr, color = Brand.Cyan) }
-                }
-                Note(Icons.Filled.Warning, "LINE、WhatsApp、Telegram、WeChat 等網路通話：Android 不允許任何 App 錄製（通話中其他 App 的麥克風會被靜音）。請開擴音，改用手錶錄音。".tr)
-                Note(Icons.Filled.Lock, "錄音前請告知對方。各地法規不同，請自行確認錄音的合法性。".tr)
-            }
-
-            // ---------- 录音地点（GPS 戳记） ----------
-            SectionLabel("錄音地點")
-            GlassCard(highlight = geoBg) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text("用手機記錄錄音地點", style = MaterialTheme.typography.titleMedium, color = Brand.Text)
-                        Text(
-                            when {
-                                geoBg -> "已開啟：手錶或手機開始錄音時，用手機定位當 GPS 戳記".tr
-                                geoFg -> "只在使用 App 時：手機錄音會記錄；手錶錄音時手機多半在背景，會改用手錶 GPS".tr
-                                else -> "未開啟：手錶錄音改用手錶 GPS；手機錄音不記錄地點".tr
-                            },
-                            style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted,
-                        )
-                    }
-                    Spacer(Modifier.width(12.dp))
-                    if (geoBg) Icon(Icons.Filled.CheckCircle, "已開啟".tr, tint = Brand.Success)
-                }
-                if (!geoBg) {
-                    Spacer(Modifier.height(10.dp))
-                    GhostButton(
-                        if (!geoFg) "允許定位".tr else "改成「一律允許」".tr,
-                        {
-                            if (!geoFg) geoFgLauncher.launch(arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION))
-                            else if (android.os.Build.VERSION.SDK_INT >= 29) geoBgLauncher.launch(android.Manifest.permission.ACCESS_BACKGROUND_LOCATION)
-                        },
-                        Modifier.fillMaxWidth(),
-                    )
-                    if (geoFg) Note(Icons.Filled.Info, "系統會開啟定位權限頁，請選「一律允許」。大D 只在開始錄音的那一刻定位一次，不會持續追蹤。".tr)
-                }
-                Note(Icons.Filled.Lock, "地點只存在你的手機，用來標示報告與搜尋；手機連不上時才用手錶的 GPS。".tr)
-            }
-
-            // ---------- 手表遥控 ----------
-            SectionLabel("手錶遙控".tr)
-            GlassCard(highlight = remoteOk) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text("手錶遠端啟動手機錄音".tr, style = MaterialTheme.typography.titleMedium, color = Brand.Text)
-                        Text(
-                            if (remoteOk) "已開啟：在手錶點「用手機錄音」，手機鎖屏時也會直接開始".tr
-                            else "未開啟：從手錶啟動時，需要在手機點一下通知才會開始".tr,
-                            style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted,
-                        )
-                    }
-                    if (remoteOk) Icon(Icons.Filled.CheckCircle, "已開啟".tr, tint = Brand.Success)
-                }
-                if (!remoteOk) {
-                    Spacer(Modifier.height(12.dp))
-                    GhostButton("前往開啟（允許「顯示在其他應用程式上層」）".tr, {
-                        context.startActivity(Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                            Uri.parse("package:${context.packageName}")))
-                    }, Modifier.fillMaxWidth(), tint = Brand.Cyan)
-                    Note(Icons.Filled.Info, "Android 規定 App 在背景時不能直接開麥克風。開啟這個權限後，大D 只會在你從手錶按下錄音時，短暫開啟一個透明畫面來啟動錄音。".tr)
-                }
-            }
-
             // ---------- 隐私 ----------
             SectionLabel("隱私與安全".tr)
             GlassCard {
@@ -407,9 +244,17 @@ fun SettingsScreen(onBack: (() -> Unit)? = null) {
             Text("大D · Dylan {0}".trf(version), style = MaterialTheme.typography.labelSmall, color = Brand.TextFaint,
                 modifier = Modifier.padding(vertical = 8.dp))
         }
-        Box(Modifier.padding(20.dp)) {
-            GradientButton(if (saved) "已儲存 ✓".tr else "儲存設定".tr, ::save, Modifier.fillMaxWidth())
+    }
+}
+
+@Composable
+private fun PillarLink(title: String, detail: String, onClick: () -> Unit) {
+    Row(Modifier.fillMaxWidth().clickable(onClick = onClick), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.titleMedium, color = Brand.Text)
+            Text(detail, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
         }
+        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = Brand.TextFaint)
     }
 }
 

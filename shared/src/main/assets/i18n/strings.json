@@ -4762,5 +4762,369 @@
  "纖維 {0}g": {
   "en": "Fiber {0}g",
   "ko": "식이섬유 {0}g"
+ },
+ "記錄": {
+  "en": "History",
+  "ko": "기록"
+ },
+ "分析": {
+  "en": "Insights",
+  "ko": "분석"
+ },
+ "拍照地點": {
+  "en": "Photo location",
+  "ko": "사진 위치"
+ },
+ "今天吃的": {
+  "en": "Eaten today",
+  "ko": "오늘 먹은 것"
+ },
+ "共 {0} 筆 · {1} 天": {
+  "en": "{0} entries · {1} days",
+  "ko": "{0}건 · {1}일"
+ },
+ "匯出 CSV": {
+  "en": "Export CSV",
+  "ko": "CSV 내보내기"
+ },
+ "近 7 天": {
+  "en": "Last 7 days",
+  "ko": "최근 7일"
+ },
+ "近 30 天": {
+  "en": "Last 30 days",
+  "ko": "최근 30일"
+ },
+ "這段期間沒有飲食記錄。": {
+  "en": "No meals logged in this period.",
+  "ko": "이 기간에 식사 기록이 없습니다."
+ },
+ "平均大卡 / 天": {
+  "en": "Avg kcal / day",
+  "ko": "하루 평균 kcal"
+ },
+ "未超標天數": {
+  "en": "Days within goal",
+  "ko": "목표 이내 일수"
+ },
+ "有記錄的天": {
+  "en": "Days logged",
+  "ko": "기록한 날"
+ },
+ "每天熱量（虛線 = 目標 {0}）": {
+  "en": "Daily calories (dashed = goal {0})",
+  "ko": "일일 칼로리 (점선 = 목표 {0})"
+ },
+ "每天平均營養": {
+  "en": "Average daily nutrition",
+  "ko": "하루 평균 영양"
+ },
+ "{0}g / 目標 {1}g": {
+  "en": "{0}g / goal {1}g",
+  "ko": "{0}g / 목표 {1}g"
+ },
+ "{0}g": {
+  "en": "{0}g",
+  "ko": "{0}g"
+ },
+ "熱量來源": {
+  "en": "Where calories come from",
+  "ko": "칼로리 구성"
+ },
+ "一般建議：蛋白質 10–35%、碳水 45–65%、脂肪 20–35%": {
+  "en": "Typical guidance: protein 10–35%, carbs 45–65%, fat 20–35%",
+  "ko": "일반 권장: 단백질 10–35%, 탄수화물 45–65%, 지방 20–35%"
+ },
+ "餐別": {
+  "en": "Meals",
+  "ko": "식사별"
+ },
+ "{0} 次 · 平均 {1} 大卡": {
+  "en": "{0} times · avg {1} kcal",
+  "ko": "{0}회 · 평균 {1} kcal"
+ },
+ "熱量(kcal)": {
+  "en": "Calories (kcal)",
+  "ko": "칼로리(kcal)"
+ },
+ "蛋白質(g)": {
+  "en": "Protein (g)",
+  "ko": "단백질(g)"
+ },
+ "碳水(g)": {
+  "en": "Carbs (g)",
+  "ko": "탄수화물(g)"
+ },
+ "脂肪(g)": {
+  "en": "Fat (g)",
+  "ko": "지방(g)"
+ },
+ "纖維(g)": {
+  "en": "Fiber (g)",
+  "ko": "식이섬유(g)"
+ },
+ "匯出飲食記錄": {
+  "en": "Export food log",
+  "ko": "식사 기록 내보내기"
+ },
+ "匯入錄音檔": {
+  "en": "Import audio file",
+  "ko": "오디오 파일 가져오기"
+ },
+ "全部設定（介面、AI 引擎、大D的主機、備份）→": {
+  "en": "All settings (interface, AI engine, Dylan Host, backup) →",
+  "ko": "전체 설정 (인터페이스, AI 엔진, Dylan 호스트, 백업) →"
+ },
+ "自動整理": {
+  "en": "Automatic reports",
+  "ko": "자동 정리"
+ },
+ "地點與手錶": {
+  "en": "Location & watch",
+  "ko": "위치 및 워치"
+ },
+ "這段期間沒有錄音。": {
+  "en": "No recordings in this period.",
+  "ko": "이 기간에 녹음이 없습니다."
+ },
+ "總長度": {
+  "en": "Total length",
+  "ko": "총 길이"
+ },
+ "平均": {
+  "en": "Average",
+  "ko": "평균"
+ },
+ "每天錄音（分鐘）": {
+  "en": "Recording per day (min)",
+  "ko": "일별 녹음 (분)"
+ },
+ "待辦事項": {
+  "en": "Action items",
+  "ko": "할 일"
+ },
+ "未完成 {0} / {1}": {
+  "en": "Open {0} / {1}",
+  "ko": "미완료 {0} / {1}"
+ },
+ "報告裡沒有待辦事項。": {
+  "en": "No action items in reports.",
+  "ko": "보고서에 할 일이 없습니다."
+ },
+ "{0} 段 · {1}": {
+  "en": "{0} recordings · {1}",
+  "ko": "{0}개 · {1}"
+ },
+ "常出現的人": {
+  "en": "Frequent people",
+  "ko": "자주 등장한 사람"
+ },
+ "{0} 段": {
+  "en": "{0} recordings",
+  "ko": "{0}개"
+ },
+ "需要處理（{0}）": {
+  "en": "Needs attention ({0})",
+  "ko": "처리 필요 ({0})"
+ },
+ "打開重試 →": {
+  "en": "Open to retry →",
+  "ko": "열어서 재시도 →"
+ },
+ "整理報告的 AI": {
+  "en": "AI writing reports",
+  "ko": "보고서 작성 AI"
+ },
+ "錄音語言": {
+  "en": "Recording language",
+  "ko": "녹음 언어"
+ },
+ "變更 AI 引擎、大D的主機 →": {
+  "en": "Change AI engine, Dylan Host →",
+  "ko": "AI 엔진, Dylan 호스트 변경 →"
+ },
+ "用手機記錄地點": {
+  "en": "Record location with phone",
+  "ko": "휴대폰으로 위치 기록"
+ },
+ "每日目標": {
+  "en": "Daily goals",
+  "ko": "일일 목표"
+ },
+ "今天的進度、分析頁的達標天數都依這裡計算": {
+  "en": "Today's progress and goal days in Insights use these",
+  "ko": "오늘 진행률과 분석의 목표 달성일이 이 값을 기준으로 합니다"
+ },
+ "蛋白質 g": {
+  "en": "Protein g",
+  "ko": "단백질 g"
+ },
+ "纖維 g": {
+  "en": "Fiber g",
+  "ko": "식이섬유 g"
+ },
+ "功能設定": {
+  "en": "Feature settings",
+  "ko": "기능 설정"
+ },
+ "錄音語言、報告語言、通話、地點、手錶遙控、Galaxy AI": {
+  "en": "Recording & report language, calls, location, watch remote, Galaxy AI",
+  "ko": "녹음·보고서 언어, 통화, 위치, 워치 원격, Galaxy AI"
+ },
+ "每日目標、健康同步": {
+  "en": "Daily goals, health sync",
+  "ko": "일일 목표, 건강 동기화"
+ },
+ "預設語言、字幕大小、手錶字幕、離線翻譯模型": {
+  "en": "Default language, caption size, watch captions, offline models",
+  "ko": "기본 언어, 자막 크기, 워치 자막, 오프라인 모델"
+ },
+ "翻譯中：{0} → {1}": {
+  "en": "Translating: {0} → {1}",
+  "ko": "번역 중: {0} → {1}"
+ },
+ "邊錄邊翻譯，在手機上完成、不上傳": {
+  "en": "Translate while recording, on the phone, nothing uploaded",
+  "ko": "녹음하며 번역, 휴대폰에서 처리, 업로드 없음"
+ },
+ "還沒有翻譯記錄。每次「開始翻譯」到「停止」會自動存成一筆（可以在「設定」關掉）。": {
+  "en": "No translations yet. Each session from Start to Stop is saved automatically (you can turn this off in Settings).",
+  "ko": "아직 번역 기록이 없습니다. 시작부터 중지까지 한 번의 번역이 자동 저장됩니다(설정에서 끌 수 있음)."
+ },
+ "{0} → {1}": {
+  "en": "{0} → {1}",
+  "ko": "{0} → {1}"
+ },
+ "{0} 句 · {1}": {
+  "en": "{0} lines · {1}",
+  "ko": "{0}문장 · {1}"
+ },
+ "分享翻譯": {
+  "en": "Share translation",
+  "ko": "번역 공유"
+ },
+ "← 返回記錄": {
+  "en": "← Back to history",
+  "ko": "← 기록으로"
+ },
+ "打開錄音報告": {
+  "en": "Open recording report",
+  "ko": "녹음 보고서 열기"
+ },
+ "刪除這筆翻譯記錄？": {
+  "en": "Delete this translation?",
+  "ko": "이 번역 기록을 삭제할까요?"
+ },
+ "錄音與報告不受影響。": {
+  "en": "The recording and report are not affected.",
+  "ko": "녹음과 보고서는 영향을 받지 않습니다."
+ },
+ "這段期間沒有翻譯記錄。": {
+  "en": "No translations in this period.",
+  "ko": "이 기간에 번역 기록이 없습니다."
+ },
+ "次翻譯": {
+  "en": "Sessions",
+  "ko": "번역 횟수"
+ },
+ "總時間": {
+  "en": "Total time",
+  "ko": "총 시간"
+ },
+ "句": {
+  "en": "Lines",
+  "ko": "문장"
+ },
+ "每天翻譯（分鐘）": {
+  "en": "Translation per day (min)",
+  "ko": "일별 번역 (분)"
+ },
+ "語言組合": {
+  "en": "Language pairs",
+  "ko": "언어 조합"
+ },
+ "{0} 次 · {1} 句": {
+  "en": "{0} sessions · {1} lines",
+  "ko": "{0}회 · {1}문장"
+ },
+ "翻譯完成率": {
+  "en": "Translation coverage",
+  "ko": "번역 완료율"
+ },
+ "已翻譯 / 辨識到的句子": {
+  "en": "Translated / recognized lines",
+  "ko": "번역됨 / 인식된 문장"
+ },
+ "沒翻到的多半是翻譯模型還在下載，或句子太短。": {
+  "en": "Missing ones are usually from a model still downloading, or very short lines.",
+  "ko": "누락은 대개 모델 다운로드 중이거나 문장이 너무 짧은 경우입니다."
+ },
+ "預設翻譯成": {
+  "en": "Translate into by default",
+  "ko": "기본 번역 언어"
+ },
+ "說的語言跟錄音的辨識語言是同一個設定（在「翻譯」頁或「錄音」的設定選）。": {
+  "en": "The spoken language is the same setting as the recording language (choose it on the Translate page or in Recordings settings).",
+  "ko": "말하는 언어는 녹음 언어와 같은 설정입니다(번역 페이지나 녹음 설정에서 선택)."
+ },
+ "字幕大小": {
+  "en": "Caption size",
+  "ko": "자막 크기"
+ },
+ "小": {
+  "en": "Small",
+  "ko": "작게"
+ },
+ "中": {
+  "en": "Medium",
+  "ko": "보통"
+ },
+ "大": {
+  "en": "Large",
+  "ko": "크게"
+ },
+ "手錶顯示字幕": {
+  "en": "Captions on watch",
+  "ko": "워치에 자막 표시"
+ },
+ "每翻好一句，手錶顯示最新的一句": {
+  "en": "The watch shows the latest translated line",
+  "ko": "워치에 최신 번역 문장을 표시합니다"
+ },
+ "自動存翻譯記錄": {
+  "en": "Save translations automatically",
+  "ko": "번역 자동 저장"
+ },
+ "每次翻譯的原文與譯文存在手機（「記錄」可以查看、分享、刪除）": {
+  "en": "Original and translated lines are kept on the phone (view, share or delete in History)",
+  "ko": "원문과 번역문을 휴대폰에 저장합니다(기록에서 보기·공유·삭제)"
+ },
+ "離線翻譯模型": {
+  "en": "Offline translation models",
+  "ko": "오프라인 번역 모델"
+ },
+ "翻譯在手機上做，每個語言第一次用要下載（約 30 MB）。出門前先下載，沒網路也能翻。": {
+  "en": "Translation runs on the phone; each language downloads once (about 30 MB). Download before you go and it works offline.",
+  "ko": "번역은 휴대폰에서 처리되며 언어마다 처음 한 번 다운로드합니다(약 30MB). 미리 받아 두면 오프라인에서도 됩니다."
+ },
+ "內建": {
+  "en": "Built in",
+  "ko": "내장"
+ },
+ "已下載 · 刪除": {
+  "en": "Downloaded · Delete",
+  "ko": "다운로드됨 · 삭제"
+ },
+ "下載": {
+  "en": "Download",
+  "ko": "다운로드"
+ },
+ "失敗：{0}": {
+  "en": "Failed: {0}",
+  "ko": "실패: {0}"
+ },
+ "語音辨識：手機沒有那個語言的離線語音時會改用 Google 線上辨識；可以在系統「語音輸入 → 離線語音辨識」下載。": {
+  "en": "Speech recognition: without the phone's offline speech for that language, Google online recognition is used; download it in system Voice input → Offline speech recognition.",
+  "ko": "음성 인식: 해당 언어의 오프라인 음성이 없으면 Google 온라인 인식을 사용합니다. 시스템 음성 입력 → 오프라인 음성 인식에서 받을 수 있습니다."
  }
 }

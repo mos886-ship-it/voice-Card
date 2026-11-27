@@ -28,6 +28,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material3.Icon
@@ -142,6 +143,9 @@ fun DashboardScreen(
                 }
                 // 商用模式：手表只在有连线时显示
                 if (watch != null || UiMode.tech) WatchPill(watch, onOpenSettings)
+                // 快錄的分页列没有「設定」（三大主轴各占一格）：放在这里
+                Spacer(Modifier.width(8.dp))
+                IconCircle(Icons.Outlined.Settings, "設定".tr, onOpenSettings)
             }
         }
 
