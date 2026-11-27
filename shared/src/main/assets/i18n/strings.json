@@ -5518,5 +5518,33 @@
  "工程項目與範圍；規格、材料與數量；圖說與法規；工期、進度與驗收；變更設計與追加費用；安全與品質問題": {
   "en": "work items and scope; specs, materials and quantities; drawings and regulations; schedule, progress and inspection; design changes and extra costs; safety and quality issues",
   "ko": "공사 항목과 범위, 사양·자재·수량, 도면과 법규, 공기·진척·검수, 설계 변경과 추가 비용, 안전과 품질 문제"
+ },
+ "翻譯記錄是空的": {
+  "en": "The translation record is empty",
+  "ko": "번역 기록이 비어 있습니다"
+ },
+ "。這次改用其他 AI。": {
+  "en": ". Used another AI this time.",
+  "ko": ". 이번에는 다른 AI를 사용했습니다."
+ },
+ "翻譯記錄做報告需要 AI 引擎：大D的主機、Gemini、組合式或 Claude（設定 → AI 引擎）": {
+  "en": "A report from a translation needs an AI engine: Dylan Host, Gemini, a combined setup or Claude (Settings → AI engine)",
+  "ko": "번역 기록으로 보고서를 만들려면 AI 엔진이 필요합니다: 大D 호스트, Gemini, 조합형 또는 Claude (설정 → AI 엔진)"
+ },
+ "打開報告": {
+  "en": "Open report",
+  "ko": "보고서 열기"
+ },
+ "接收記錄": {
+  "en": "Record received",
+  "ko": "기록 받음"
+ },
+ "翻譯 ": {
+  "en": "Translation ",
+  "ko": "번역 "
+ },
+ "譯": {
+  "en": "Tr",
+  "ko": "번"
  }
 }

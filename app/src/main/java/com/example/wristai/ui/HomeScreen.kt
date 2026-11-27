@@ -135,7 +135,7 @@ fun rememberWatchName(): String? {
     return state.value
 }
 
-fun meetingTitle(m: Meeting): String = m.title ?: (when { com.example.wristai.FoodLog.isFood(m.id) -> "飲食 ".tr; m.source == "call" -> "通話 ".tr; else -> "錄音 ".tr }) + SimpleDateFormat("M/d HH:mm", Locale.TAIWAN).format(Date(m.createdAt))
+fun meetingTitle(m: Meeting): String = m.title ?: (when { com.example.wristai.FoodLog.isFood(m.id) -> "飲食 ".tr; m.source == "call" -> "通話 ".tr; m.source == com.example.wristai.TranslationReport.SOURCE -> "翻譯 ".tr; else -> "錄音 ".tr }) + SimpleDateFormat("M/d HH:mm", Locale.TAIWAN).format(Date(m.createdAt))
 /** 清单用的短日期：今年 → 11/21 19:03；其他年 → 2025/11/21 19:03。 */
 fun shortWhen(ms: Long): String {
     val sameYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR) ==
@@ -410,11 +410,12 @@ private fun EmptyState() {
 }
 
 /** 会议来源（首页筛选、列表标示用）。 */
-enum class Origin(val label: String) { WATCH("手錶".tr), PHONE("手機".tr), CALL("通話".tr), FOOD("飲食".tr), IMPORT("匯入".tr) }
+enum class Origin(val label: String) { WATCH("手錶".tr), PHONE("手機".tr), CALL("通話".tr), FOOD("飲食".tr), IMPORT("匯入".tr), TRANSLATE("翻譯".tr) }
 
 fun Meeting.origin(): Origin = when {
     com.example.wristai.FoodLog.isFood(id) -> Origin.FOOD
     source == "call" -> Origin.CALL
+    source == com.example.wristai.TranslationReport.SOURCE -> Origin.TRANSLATE
     source == "phone" -> Origin.PHONE
     id.startsWith("imp_") -> Origin.IMPORT
     else -> Origin.WATCH

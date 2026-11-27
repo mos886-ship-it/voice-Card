@@ -26,6 +26,7 @@ args = ap.parse_args()
 
 work = args.dir or tempfile.mkdtemp(prefix="dylan-fake-")
 os.makedirs(work, exist_ok=True)
+shutil.copy(os.path.join(HERE, "..", "shared", "src", "main", "assets", "report_domains.json"), work)   # 領域專家模式清單
 for f in ("server.py", "pairing.py", "jobs.py"):
     shutil.copy(os.path.join(HERE, f), work)
 cfg = os.path.join(work, "config.json")
@@ -49,12 +50,19 @@ COUNT = {"n": 0}
 LOCK = threading.Lock()
 
 
-def fake_process(path, kind, recorded_at, duration, text_input=False, asr=None, dialect=None):
+def fake_process(path, kind, recorded_at, duration, text_input=False, asr=None, dialect=None, rlang="zh", lang=None,
+                 domain="auto", *_rest, **_kw):
     with LOCK:
         COUNT["n"] += 1
         n = COUNT["n"]
     time.sleep(args.seconds)
     size = os.path.getsize(path)
+    if text_input:   # 匯入的文字 / 翻譯記錄：回報收到什麼、領域專家模式有沒有載入
+        with open(path, encoding="utf-8", errors="replace") as f:
+            first = f.read().strip().splitlines()[0][:40]
+        rules = S.with_domain(S.REPORT_SYSTEM, domain)[len(S.REPORT_SYSTEM):].strip()
+        return (f"TITLE: 假主機文字第 {n} 筆\nSUMMARY: 收到文字記錄（領域設定 {domain}）。\n## 摘要\n開頭：{first}\n"
+                f"## 重點\n- 領域規則：{rules[:60] or '（無）'}\n## 專業重點\n領域：測試\n")
     if kind == "food":
         return (f"TITLE: 午餐：假餐點 {n}\nSUMMARY: 午餐約 600 大卡，蛋白質 30g\n"
                 f"NUTRITION: meal=午餐; kcal=600; protein=30; carbs=70; fat=20\n## 飲食內容\n假資料\n\n"

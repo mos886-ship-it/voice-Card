@@ -153,7 +153,7 @@ fun DetailScreen(id: String, onBack: () -> Unit, onOpenSettings: () -> Unit) {
             }
 
             // ---------- 辨识语言：可以换语言重新产生，方便对照（饮食记录也一样；只有照片的没有语言） ----------
-            if (meeting.source != com.example.wristai.FoodPhotos.SOURCE) run {
+            if (meeting.source != com.example.wristai.FoodPhotos.SOURCE && !com.example.wristai.TranslationReport.isTranslation(meeting)) run {
                 val lang = com.example.wristai.SpeechLang.of(meeting.lang)
                 val canChange = !style.busy && meeting.status != MeetingStatus.RECORDING
                 val hasReport = report != null || meeting.status == MeetingStatus.DONE
@@ -284,7 +284,7 @@ fun DetailScreen(id: String, onBack: () -> Unit, onOpenSettings: () -> Unit) {
                             // 每段前标辨识语言（國／台／客）；汇入的文字（input.txt）不是辨识出来的，不标
                             langTag = remember(meeting.id) {
                                 java.io.File(MeetingStore.transcriptFile(context, meeting.id).parentFile, "input.txt").exists()
-                            }.let { isText -> if (isText) null else com.example.wristai.SpeechLang.of(meeting.lang) },
+                            }.let { isText -> if (isText || com.example.wristai.TranslationReport.isTranslation(meeting)) null else com.example.wristai.SpeechLang.of(meeting.lang) },
                             dialect = meeting.dialect,
                         ) else Empty("尚無逐字稿".tr)
                     }

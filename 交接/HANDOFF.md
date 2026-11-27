@@ -593,3 +593,6 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 - 報告多一節「## 專業重點」：第一行「領域：○○」＋該領域要注意的事項；法律、醫療、財務加「不構成專業意見」一行。
 - 大D的主機：讀 `X-Domain` 標頭（沒有 = auto），`with_domain(REPORT_SYSTEM, domain)`；`report_domains.json` 由 setup.sh 複製到服務目錄（找不到時讀 repo 路徑）。**主機要重新部署才生效**；舊主機會忽略標頭。
 - 設定在「錄音 → 設定 → 領域專家模式」。iOS 還沒做（等使用者說再通知 Mac）。
+- 翻譯記錄做報告：翻譯 → 記錄 → 點一筆 →「產生報告」（沒連到錄音的才有）。`TranslationReport.create` 建一筆 `tr_` 報告（source = translation，沒有音檔），transcript.txt 放說明＋原文/→譯文；`ProcessMeetingWorker.processText`：大D的主機（X-Input: text）→ 組合式報告模型 → Gemini（`completeText`）→ Claude，都沒有就失敗。報告語言、領域專家模式照樣套用。詳情頁不顯示辨識語言，列表標「譯」，來源「翻譯」。
+- `ReportLang.localize` / `ReportDomain.applyTo` 可以重複呼叫（已換過、已加過就不再加）。
+- 模擬器用 fake_host（--dir 沿用已配對的資料夾）驗過：文字送到主機、X-Domain=auto 收到、領域規則有載入、報告回來顯示。fake_host 的 fake_process 補上新參數（之前就少 lang），文字輸入會回報收到的開頭與領域規則。

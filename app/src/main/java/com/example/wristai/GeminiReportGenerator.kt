@@ -199,6 +199,9 @@ class GeminiReportGenerator(
     @Volatile var lastModel: String? = null
         private set
 
+    /** 只有文字（例如翻译记录）：[system] 是还没换报告语言的中文提示词（这里会换）。回传模型原文。 */
+    fun completeText(system: String, user: String): String = withModels("text") { model -> generateContent(model, null, user, system) }
+
     private fun withModels(what: String, call: (String) -> String): String {
         var last: GeminiException? = null
         for (model in MODELS) {

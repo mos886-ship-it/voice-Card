@@ -64,6 +64,6 @@ object ReportDomain {
 
     /** 报告提示词（有「待辦事項」章节的那种）才加；饮食、分段笔记不加。 */
     fun applyTo(prompt: String, rules: String = activeRules): String =
-        if (rules.isBlank() || !prompt.contains("## 待辦事項") || prompt.contains("NUTRITION")) prompt
+        if (rules.isBlank() || !prompt.contains("## 待辦事項") || prompt.contains("NUTRITION") || prompt.contains("【領域專家模式")) prompt
         else prompt.trimEnd() + "\n\n" + rules
 }

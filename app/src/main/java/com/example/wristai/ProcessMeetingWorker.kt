@@ -111,6 +111,9 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
             (if (meeting.source == AudioImporter.SOURCE_CALL) "（這是一通電話的通話錄音，通常是兩位說話者：本人與對方${meeting.title?.let { "，檔名：$it" } ?: ""}）" else "") +
             (MeetingStore.geo(ctx, id)?.place?.let { (if (meeting.source == FoodPhotos.SOURCE) "，拍攝地點：" else "，錄音地點：") + it } ?: "")
 
+        // ---------- 即时翻译记录做成的报告：只有文字，没有录音 ----------
+        if (TranslationReport.isTranslation(meeting)) return processText(id, meeting, recordedAt)
+
         // ---------- 手表还在录（长会议边录边传）：先把已经录满的 Gemini 段处理掉 ----------
         val mode = com.example.wristai.ai.AiConfig.mode(ctx)
         if (meeting.status == MeetingStatus.RECORDING) {
@@ -407,6 +410,93 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
             val msg = e.message ?: e.javaClass.simpleName
             MeetingStore.update(ctx, id) { it.copy(status = MeetingStatus.FAILED, error = msg) }
             WatchNotifier.sendStatus(ctx, node, "處理失敗：{0}（可在手機上重試）".trf(msg))
+            Result.failure()
+        }
+    }
+
+    /**
+     * 只有文字的报告（即时翻译记录）：逐字稿已经在 transcript.txt。
+     * 引擎顺序跟录音一样：大D的主机（有设定）→ 组合式的报告模型 → Gemini → Claude；都没有就标失败。
+     */
+    private suspend fun processText(id: String, meeting: Meeting, recordedAt: String): Result {
+        val node = meeting.watchNodeId
+        val cfg = com.example.wristai.ai.AiConfig
+        val host = com.example.wristai.ai.LocalHost
+        val text = MeetingStore.transcriptFile(ctx, id).takeIf { it.exists() }?.readText().orEmpty()
+        if (text.isBlank()) {
+            MeetingStore.update(ctx, id) { it.copy(status = MeetingStatus.FAILED, error = "翻譯記錄是空的".tr) }
+            return Result.success()
+        }
+        val mode = cfg.mode(ctx)
+        val llm = if (mode == cfg.MODE_PIPELINE) cfg.llm(ctx) else null
+        val gemini = Settings.geminiKey(ctx).takeIf { it.isNotBlank() }
+        val claude = Settings.apiKey(ctx).takeIf { it.isNotBlank() }
+        val useHost = host.configured(ctx)
+        plan(id, listOf("接收記錄") + (if (useHost) listOf(STEP_HOST_UP, STEP_HOST_AI, STEP_HOST_PURGE, STEP_HOST_BACK) else listOf("報告整理")))
+        MeetingStore.update(ctx, id) { it.copy(status = MeetingStatus.SUMMARIZING, error = null, engineNote = null) }
+
+        fun finish(raw: String, model: String) {
+            val report = ReportGenerator.parseReport(raw.substringBefore(GeminiReportGenerator.TRANSCRIPT_MARKER).trim())
+            MeetingStore.reportFile(ctx, id).writeText(report.markdown)
+            val names = Speakers.namesFromReport(report.markdown)
+            MeetingStore.update(ctx, id) { it.copy(status = MeetingStatus.DONE, title = report.title, speakerNames = names, aiModel = model) }
+            finishSteps(id)
+            ReadyNotification.showReport(ctx, id, report.title, Speakers.apply(report.shortSummary, names))
+        }
+
+        return try {
+            // 1. 大D的主机：文字直接送（X-Input: text），失败再换别的
+            if (useHost) {
+                val ok = try {
+                    stepTo(id, STEP_HOST_UP, "大D的主機".tr)
+                    val asciiAt = SimpleDateFormat("yyyy/MM/dd HH:mm", Locale.US).format(Date(meeting.createdAt))
+                    val res = withContext(Dispatchers.IO) {
+                        hostJob(id, node, false, STEP_HOST_AI, hostJobFile(ctx, id)) {
+                            host.submit(ctx, "meeting", asciiAt, meeting.durationSec, text = text)
+                        }
+                    }
+                    finish(res.text, res.model); true
+                } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) {
+                    if (isStopped) return Result.failure()
+                    val why = e.message ?: e.javaClass.simpleName
+                    Log.w(TAG, "${id}: host failed for text: $why")
+                    hostJobFile(ctx, id).delete()
+                    if (llm == null && gemini == null && claude == null) throw e
+                    MeetingStore.update(ctx, id) { it.copy(engineNote = why.trimEnd('。') + "。這次改用其他 AI。".tr) }
+                    plan(id, listOf("接收記錄", "報告整理"))
+                    false
+                }
+                if (ok) return Result.success()
+            }
+            // 2. 其他引擎
+            val (raw, model) = withContext(Dispatchers.IO) {
+                when {
+                    llm != null -> {
+                        stepTo(id, "報告整理", llm.name)
+                        com.example.wristai.ai.Pipeline.report(llm, text, meeting.durationSec, recordedAt, GeminiReportGenerator.TEXT_REPORT_PROMPT) to "text|${llm.modelId}"
+                    }
+                    gemini != null -> {
+                        stepTo(id, "報告整理", "Gemini")
+                        val g = GeminiReportGenerator(gemini)
+                        g.completeText(GeminiReportGenerator.TEXT_REPORT_PROMPT, "記錄時間：$recordedAt。請依格式整理以下文字記錄：\n<transcript>\n$text\n</transcript>") to
+                            "text|${g.lastModel ?: "gemini"}"
+                    }
+                    claude != null -> {
+                        stepTo(id, "報告整理", "Claude")
+                        val r = ReportGenerator(claude).generate(text, meeting.durationSec, recordedAt)
+                        ("TITLE: ${r.title}\nSUMMARY: ${r.shortSummary}\n${r.markdown}") to "text|${ReportGenerator.MODEL}"
+                    }
+                    else -> throw com.example.wristai.ai.AiException("翻譯記錄做報告需要 AI 引擎：大D的主機、Gemini、組合式或 Claude（設定 → AI 引擎）".tr)
+                }
+            }
+            finish(raw, model)
+            Result.success()
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            if (isStopped) return Result.failure()
+            Log.e(TAG, "${id} text report failed", e)
+            MeetingStore.update(ctx, id) { it.copy(status = MeetingStatus.FAILED, error = e.message ?: e.javaClass.simpleName) }
             Result.failure()
         }
     }

@@ -301,7 +301,7 @@ private fun TodayRow(m: Meeting, summary: String?, onClick: () -> Unit) {
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(if (food) "餐".tr else SpeechLang.of(m.lang).tag, fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
+                Text(if (food) "餐".tr else if (com.example.wristai.TranslationReport.isTranslation(m)) "譯".tr else SpeechLang.of(m.lang).tag, fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
                     color = if (food) Brand.Success else Brand.TextMuted,
                     modifier = Modifier.clip(RoundedCornerShape(4.dp))
                         .background(if (food) Brand.Success.copy(alpha = 0.12f) else Brand.SurfaceHigh)

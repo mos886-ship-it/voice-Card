@@ -142,7 +142,10 @@ private fun SessionDetail(s: TranslationStore.Session, onBack: () -> Unit, onOpe
         }
         Row(Modifier.padding(horizontal = 20.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             GhostButton("← 返回記錄".tr, onBack)
-            if (meeting != null) GhostButton("打開錄音報告".tr, { onOpen(meeting.id) }, tint = Brand.Cyan)
+            if (meeting != null) GhostButton(if (com.example.wristai.TranslationReport.isTranslation(meeting)) "打開報告".tr else "打開錄音報告".tr,
+                { onOpen(meeting.id) }, tint = Brand.Cyan)
+            // 没有连到报告（只翻译、没同时录音）：用原文＋译文做一份报告（跟录音同一套 AI、报告语言、领域专家模式）
+            else GhostButton("產生報告".tr, { onOpen(com.example.wristai.TranslationReport.create(context, s)) }, tint = Brand.Cyan)
         }
         LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             items(s.lines) { l ->
