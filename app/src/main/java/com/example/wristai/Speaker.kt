@@ -40,6 +40,10 @@ object Speaker {
         val locale = if (lang == "zh") Locale.TAIWAN else Locale.forLanguageTag(lang)
         if (t.isLanguageAvailable(locale) < TextToSpeech.LANG_AVAILABLE) return false
         t.language = locale
+        // 翻译中媒体声音静音了（不要辨识的「叮」）：朗读改走闹钟声道才听得到
+        t.setAudioAttributes(android.media.AudioAttributes.Builder()
+            .setUsage(if (QuietMode.active(c)) android.media.AudioAttributes.USAGE_ALARM else android.media.AudioAttributes.USAGE_MEDIA)
+            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SPEECH).build())
         t.setSpeechRate(Settings.speakRate(c))
         t.speak(text, TextToSpeech.QUEUE_ADD, null, "cap-${System.nanoTime()}")
         return true

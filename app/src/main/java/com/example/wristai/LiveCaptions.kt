@@ -132,6 +132,7 @@ object LiveCaptions {
         }
         online = source in offlineMissing
         lastMeetingId = null
+        if (Settings.quietTranslate(c)) QuietMode.on(c)
         engine = 0; heard = false; errorsInRow = 0
         Settings.addRecentTranslateLang(c, source)
         Settings.addRecentTranslateLang(c, target)
@@ -185,6 +186,7 @@ object LiveCaptions {
         writer?.interrupt(); writer = null
         queue.clear()
         runCatching { readEnd?.close() }; readEnd = null
+        appContext?.let { QuietMode.off(it) }
         // 还在说的那句留下来当成一句
         update { s -> s.copy(lines = s.lines.map { if (it.partial) it.copy(partial = false) else it }) }
         val c = appContext ?: return

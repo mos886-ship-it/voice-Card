@@ -270,6 +270,11 @@ private fun TranslateSettings(onOpenSettings: () -> Unit) {
             SettingSwitch("顯示原文".tr, "譯文上面小字顯示說的原文".tr, orig) { orig = it; Settings.setShowOriginal(context, it) }
             var screen by remember { mutableStateOf(Settings.keepScreenOn(context)) }
             SettingSwitch("翻譯時螢幕保持亮著".tr, "不會翻到一半螢幕關掉".tr, screen) { screen = it; Settings.setKeepScreenOn(context, it) }
+            var quiet by remember { mutableStateOf(Settings.quietTranslate(context)) }
+            SettingSwitch("不要提示聲".tr, "手機語音辨識每次開始聽會「叮」一聲；翻譯中暫時把媒體、系統、通知聲音靜音，停止就恢復（朗讀照樣聽得到）。".tr, quiet) {
+                quiet = it; Settings.setQuietTranslate(context, it)
+                if (com.example.wristai.LiveCaptions.state.value.running) { if (it) com.example.wristai.QuietMode.on(context) else com.example.wristai.QuietMode.off(context) }
+            }
             var watch by remember { mutableStateOf(Settings.captionToWatch(context)) }
             SettingSwitch("手錶顯示字幕".tr, "每翻好一句，手錶顯示最新的一句".tr, watch) { watch = it; Settings.setCaptionToWatch(context, it) }
         }

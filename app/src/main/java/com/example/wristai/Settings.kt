@@ -72,6 +72,9 @@ object Settings {
     fun setShowOriginal(context: Context, v: Boolean) = prefs(context).edit().putBoolean("translate_original", v).apply()
     fun keepScreenOn(context: Context): Boolean = prefs(context).getBoolean("translate_screen", true)
     fun setKeepScreenOn(context: Context, v: Boolean) = prefs(context).edit().putBoolean("translate_screen", v).apply()
+    /** 翻译时不要辨识的提示声（暂时静音媒体、系统、通知声音）。 */
+    fun quietTranslate(context: Context): Boolean = prefs(context).getBoolean("translate_quiet", true)
+    fun setQuietTranslate(context: Context, v: Boolean) = prefs(context).edit().putBoolean("translate_quiet", v).apply()
     fun translateWithRecording(context: Context): Boolean = prefs(context).getBoolean("translate_record", false)
     fun setTranslateWithRecording(context: Context, v: Boolean) = prefs(context).edit().putBoolean("translate_record", v).apply()
 
