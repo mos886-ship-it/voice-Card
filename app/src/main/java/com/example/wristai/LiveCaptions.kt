@@ -178,6 +178,7 @@ object LiveCaptions {
     }
 
     fun stop() {
+        pauseJob?.cancel()
         update { it.copy(running = false, status = null) }
         sink = null
         runCatching { recognizer?.cancel() }
@@ -249,7 +250,7 @@ object LiveCaptions {
     /** 开一段新的辨识（录音模式：pipe 的读端交给辨识器，写端给 [feed]；麦克风模式：辨识器自己听）。 */
     private fun startRecognizer(c: Context) {
         val s = _state.value
-        cut = ""
+        cut = ""; pauseJob?.cancel()
         if (!startLineOf.containsKey(s.sessionId)) startLineOf[s.sessionId] = nextId
         val source = s.source
         var pipeRead: ParcelFileDescriptor? = null
@@ -290,6 +291,17 @@ object LiveCaptions {
                     rest = after
                 }
                 if (rest.isEmpty()) return
+                lastPartial = t
+                // 停顿：文字一段时间没再变（说话的人换气、讲完一个意思）就把这段定下来翻，不等辨识器判断整句结束
+                pauseJob?.cancel()
+                pauseJob = scope.launch {
+                    kotlinx.coroutines.delay(PAUSE_MS)
+                    val last = _state.value.lines.lastOrNull()
+                    if (_state.value.running && last != null && last.partial && lastPartial == t) {
+                        commitPiece(last.original)
+                        cut = t.trimEnd()
+                    }
+                }
                 update { st ->
                     val last = st.lines.lastOrNull()
                     val lines = if (last != null && last.partial) st.lines.dropLast(1) + last.copy(original = rest)
@@ -375,6 +387,11 @@ object LiveCaptions {
 
     /** 这段话（辨识器的一次结果）里已经切出去翻好的前段；辨识器给最终结果时清掉。 */
     private var cut = ""
+    /** 最近一次的暂时结果（整段原文）；停顿计时器比对用。 */
+    private var lastPartial = ""
+    private var pauseJob: kotlinx.coroutines.Job? = null
+    /** 文字多久没变算「停顿」：一般对话换气、讲完一个意思大约 0.5～1 秒。 */
+    private const val PAUSE_MS = 700L
 
     /** 还在说就先切出去的一句：当成说完的一句翻译（推手表、朗读），后面接着的再开新的一行。 */
     private fun commitPiece(piece: String) {
@@ -413,6 +430,7 @@ object LiveCaptions {
 
     /** 一句说完：定下原文、开始翻译。朗读中听到的（自己的朗读）不算。 */
     private fun finishLine(t0: String) {
+        pauseJob?.cancel()
         val t = if (Speaker.speaking) "" else Chunker.remainder(t0, cut)
         cut = ""
         update { s ->
@@ -443,8 +461,8 @@ object LiveCaptions {
 }
 
 /**
- * 边说边切句：辨识器常常要等人停很久才给一句，一口气说很长就要等很久才翻。
- * 还在说的文字里出现句号、问号…就把前面切成一句；没有标点但太长（中日韩约 28 字、其他约 14 个字）
+ * 边说边切句：辨识器常常要等人停很久才给一句，一口气说很长就要等很久才翻。主要靠停顿切（[LiveCaptions] 文字约 0.7 秒没变）；这里是标点与太长的备用切法。
+ * 还在说的文字里出现句号、问号…就把前面切成一句；没有标点但太长（中日韩约 40 字、其他约 20 个字，只在一直没停顿时才会用到）
  * 就在逗号或空白处切，最后几个字留着（辨识器还可能改）。
  */
 object Chunker {
@@ -485,14 +503,14 @@ object Chunker {
         val asian = cjk(rest)
         val letters = rest.count { it.isLetterOrDigit() }
         if (asian) {
-            if (letters < 28) return null
+            if (letters < 40) return null
             val limit = rest.length - 6
             val soft = (limit - 1 downTo 8).firstOrNull { rest[it] in SOFT }
             val cutAt = soft?.plus(1) ?: limit
             return rest.substring(0, cutAt).trim() to rest.substring(cutAt).trimStart()
         } else {
             val words = rest.trim().split(Regex("\\s+"))
-            if (words.size < 14) return null
+            if (words.size < 20) return null
             // 留最后 3 个字；前面有逗号就在逗号切
             val keepFrom = words.size - 3
             val commaWord = (keepFrom - 1 downTo 4).firstOrNull { words[it].lastOrNull()?.let { c -> c in SOFT } == true }

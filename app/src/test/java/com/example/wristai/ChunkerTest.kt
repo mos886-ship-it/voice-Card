@@ -16,12 +16,12 @@ class ChunkerTest {
     }
 
     @Test fun splitsLongTextWithoutPunctuation() {
-        val zh = "我們今天要討論的是下個月的產品發表會，還有行銷預算要怎麼分配給各個部門比較好"
+        val zh = "我們今天要討論的是下個月的產品發表會，還有行銷預算要怎麼分配給各個部門比較好然後我們再來看一下時程表"
         val (head, tail) = Chunker.split(zh)!!
         assertEquals("我們今天要討論的是下個月的產品發表會，", head)
         assertEquals(zh, head + tail)
         assertNull(Chunker.split("短短的一句話"))
-        val en = "so what we really need to figure out is how many people are coming to the event next week"
+        val en = "so what we really need to figure out is how many people are coming to the event next week and where they will park"
         val (h, t) = Chunker.split(en)!!
         assertEquals(3, t.split(" ").size)
         assertEquals(en, "$h $t")
