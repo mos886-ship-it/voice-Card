@@ -7,4 +7,5 @@
     <string name="sc_read_todos">오늘 할 일 읽기</string>
     <string name="widget_desc">녹음, 오늘의 숫자와 바로가기</string>
     <string name="w_translate">번역</string>
+    <string name="w_float">플로팅 번역</string>
 </resources>

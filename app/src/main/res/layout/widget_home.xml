@@ -27,14 +27,17 @@
         android:layout_marginTop="6dp" android:layout_marginBottom="8dp" android:textColor="#FF2BC8D6" android:textSize="13sp"
         android:maxLines="1" android:ellipsize="end" />
 
-    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:baselineAligned="false">
         <TextView android:id="@+id/w_food" android:text="@string/sc_food" android:layout_width="0dp" android:layout_height="34dp" android:layout_weight="1"
-            android:background="@drawable/widget_chip" android:gravity="center" android:textColor="#FFEAF2F7" android:textSize="13sp" android:maxLines="1" />
+            android:background="@drawable/widget_chip" android:gravity="center" android:textColor="#FFEAF2F7" android:textSize="12sp" android:maxLines="1" />
         <TextView android:id="@+id/w_translate" android:text="@string/w_translate" android:layout_width="0dp" android:layout_height="34dp" android:layout_weight="1"
             android:layout_marginStart="6dp" android:background="@drawable/widget_chip" android:gravity="center"
-            android:textColor="#FFEAF2F7" android:textSize="13sp" android:maxLines="1" />
+            android:textColor="#FFEAF2F7" android:textSize="12sp" android:maxLines="1" />
+        <TextView android:id="@+id/w_float" android:text="@string/w_float" android:layout_width="0dp" android:layout_height="34dp" android:layout_weight="1.2"
+            android:layout_marginStart="6dp" android:background="@drawable/widget_chip" android:gravity="center"
+            android:textColor="#FF2BC8D6" android:textSize="12sp" android:maxLines="1" />
         <TextView android:id="@+id/w_todos" android:text="@string/sc_read_todos" android:layout_width="0dp" android:layout_height="34dp" android:layout_weight="1"
             android:layout_marginStart="6dp" android:background="@drawable/widget_chip" android:gravity="center"
-            android:textColor="#FFEAF2F7" android:textSize="13sp" android:maxLines="1" />
+            android:textColor="#FFEAF2F7" android:textSize="12sp" android:maxLines="1" />
     </LinearLayout>
 </LinearLayout>

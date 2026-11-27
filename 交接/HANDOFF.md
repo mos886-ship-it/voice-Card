@@ -616,3 +616,4 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 - 按鈕都開 MainActivity 走 `CarShortcuts`（TOGGLE、FOOD、TRANSLATE、READ_TODOS、OPEN_LATEST）：麥克風前台服務要 App 在前景才能開。
 - 更新：`PhoneRecordingService.broadcastState`（錄音開始 / 停止）、`MeetingStore.update` 狀態或營養變了、`ActionItems.setDone`；系統每 30 分鐘。
 - 模擬器驗過：加到桌面、數字正確、按錄音 → 計時 → 再按停止。
+- 懸浮翻譯（`FloatingCaptionService`）：小工具「懸浮翻譯」→ 浮在其他 App 上的字幕框（可拖曳；⇄ 對調、⏸/▶、✕ 關閉），顯示最新一句譯文（邊說邊翻的暫時譯文較淡）＋原文。麥克風前景服務，App 退到背景也繼續聽；用 `LiveCaptions`（同一套設定、記錄、不要提示聲）。沒有「顯示在其他應用程式上層」權限時帶使用者去設定（使用者自己允許）。小工具按鈕會變「關閉懸浮」。模擬器驗過：開啟、字幕即時更新、✕ 關閉。

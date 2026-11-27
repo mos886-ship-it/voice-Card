@@ -80,14 +80,16 @@ class HomeWidget : AppWidgetProvider() {
                 v.setImageViewResource(R.id.w_rec_icon, R.drawable.widget_rec_dot)
             }
             v.setTextViewText(R.id.w_stats, "今天 {0} 段錄音 · {1} / {2} 大卡 · {3} 項待辦".trf(recordings, kcal, Settings.dailyKcalGoal(c), todos))
-            v.setTextViewText(R.id.w_food, "記錄飲食".tr)
+            v.setTextViewText(R.id.w_food, "飲食".tr)
             v.setTextViewText(R.id.w_translate, "翻譯".tr)
             v.setTextViewText(R.id.w_todos, "唸待辦".tr)
+            v.setTextViewText(R.id.w_float, if (FloatingCaptionService.running) "關閉懸浮".tr else "懸浮翻譯".tr)
 
             v.setOnClickPendingIntent(R.id.w_rec, action(c, CarShortcuts.TOGGLE, 701))
             v.setOnClickPendingIntent(R.id.w_food, action(c, CarShortcuts.FOOD, 702))
             v.setOnClickPendingIntent(R.id.w_translate, action(c, CarShortcuts.TRANSLATE, 703))
             v.setOnClickPendingIntent(R.id.w_todos, action(c, CarShortcuts.READ_TODOS, 704))
+            v.setOnClickPendingIntent(R.id.w_float, action(c, CarShortcuts.FLOAT, 707))
             // 点标题 / 空白处：打开 App（有最新报告就打开那份）
             v.setOnClickPendingIntent(R.id.w_title, action(c, CarShortcuts.OPEN_LATEST, 705))
             v.setOnClickPendingIntent(R.id.w_stats, action(c, Intent.ACTION_MAIN, 706))

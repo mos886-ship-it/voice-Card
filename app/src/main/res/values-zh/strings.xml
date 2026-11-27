@@ -8,4 +8,5 @@
     <string name="sc_read_todos">唸今天待辦</string>
     <string name="widget_desc">錄音、今天的數字與捷徑</string>
     <string name="w_translate">翻譯</string>
+    <string name="w_float">懸浮翻譯</string>
 </resources>

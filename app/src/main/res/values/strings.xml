@@ -7,4 +7,5 @@
     <string name="sc_read_todos">Read today\'s to-dos</string>
     <string name="widget_desc">Record, today\'s numbers and shortcuts</string>
     <string name="w_translate">Translate</string>
+    <string name="w_float">Float</string>
 </resources>

@@ -130,6 +130,11 @@
         </receiver>
 
         <!-- 手機麥克風錄音 -->
+        <!-- 懸浮即時翻譯（浮在其他 App 上的字幕框；麥克風前景服務） -->
+        <service
+            android:name=".FloatingCaptionService"
+            android:exported="false"
+            android:foregroundServiceType="microphone" />
         <service
             android:name=".PhoneRecordingService"
             android:exported="false"

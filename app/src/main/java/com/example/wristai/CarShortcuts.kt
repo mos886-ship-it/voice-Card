@@ -21,6 +21,8 @@ object CarShortcuts {
     const val TOGGLE = PREFIX + "TOGGLE"
     const val TRANSLATE = PREFIX + "TRANSLATE"
     const val OPEN_LATEST = PREFIX + "OPEN_LATEST"
+    /** 悬浮即时翻译（开了就把 App 退到后面，留字幕框在其他 App 上）。 */
+    const val FLOAT = PREFIX + "FLOAT"
 
     fun handle(c: Context, action: String) {
         when (action) {
@@ -31,6 +33,11 @@ object CarShortcuts {
             READ_TODOS -> toast(c, CarMode.readTodos(c))
             TOGGLE -> if (PhoneRecorder.active.value == null) PhoneRecordingService.start(c) else PhoneRecordingService.stop(c)
             TRANSLATE -> com.example.wristai.ui.TranslatePage.open()
+            FLOAT -> if (FloatingCaptionService.running) FloatingCaptionService.stop(c)
+                else if (FloatingCaptionService.start(c) && c is android.app.Activity) {
+                    // 字幕框开好再把 App 退到后面（回到刚刚的画面 / 桌面）
+                    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({ c.moveTaskToBack(true) }, 600)
+                }
             OPEN_LATEST -> MeetingStore.meetings.value.filter { it.status == MeetingStatus.DONE && !FoodLog.isFood(it.id) }
                 .maxByOrNull { it.createdAt }?.let { PendingOpen.meetingId = it.id }
         }

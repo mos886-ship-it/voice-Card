@@ -5730,5 +5730,33 @@
  "唸待辦": {
   "en": "Read to-dos",
   "ko": "할 일 읽기"
+ },
+ "請允許「顯示在其他應用程式上層」，再按一次懸浮翻譯": {
+  "en": "Allow \"Display over other apps\", then tap Float again",
+  "ko": "'다른 앱 위에 표시'를 허용한 뒤 플로팅 번역을 다시 누르세요"
+ },
+ "懸浮翻譯": {
+  "en": "Floating translation",
+  "ko": "플로팅 번역"
+ },
+ "懸浮翻譯中": {
+  "en": "Floating translation on",
+  "ko": "플로팅 번역 중"
+ },
+ "字幕框可以拖到任何位置；按 ✕ 關閉": {
+  "en": "Drag the caption box anywhere; tap ✕ to close",
+  "ko": "자막 상자를 원하는 곳으로 끌 수 있습니다. ✕를 눌러 닫기"
+ },
+ "請說話…": {
+  "en": "Speak…",
+  "ko": "말씀하세요…"
+ },
+ "已暫停": {
+  "en": "Paused",
+  "ko": "일시 중지됨"
+ },
+ "關閉懸浮": {
+  "en": "Close float",
+  "ko": "플로팅 닫기"
  }
 }
