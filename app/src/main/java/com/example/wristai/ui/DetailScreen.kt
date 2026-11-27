@@ -344,6 +344,20 @@ fun DetailScreen(id: String, onBack: () -> Unit, onOpenSettings: () -> Unit) {
                             focusedBorderColor = Brand.Cyan, unfocusedBorderColor = Brand.Outline, cursorColor = Brand.Cyan,
                         ),
                     )
+                    // 常用的名字：點一下就填好
+                    val frequent = remember { com.example.wristai.Vocab.frequentNames(context, 8) }.filter { it !in names.values }
+                    if (frequent.isNotEmpty()) {
+                        Spacer(Modifier.height(10.dp))
+                        Text("常用的名字".tr, style = MaterialTheme.typography.labelSmall, color = Brand.TextFaint)
+                        Spacer(Modifier.height(4.dp))
+                        androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            items(frequent.size) { i ->
+                                Text(frequent[i], style = MaterialTheme.typography.labelLarge, color = Brand.Text,
+                                    modifier = Modifier.clip(RoundedCornerShape(50)).background(Brand.SurfaceHigher)
+                                        .clickable { save(frequent[i]) }.padding(horizontal = 12.dp, vertical = 6.dp))
+                            }
+                        }
+                    }
                 }
             },
             confirmButton = { TextButton(onClick = { save(value) }) { Text("儲存".tr, color = Brand.Cyan) } },

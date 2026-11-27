@@ -98,6 +98,33 @@ fun DashboardScreen(
     val goal = Settings.dailyKcalGoal(context)
     val usesFood = all.any { FoodLog.isFood(it.id) }
     val busy = all.filter { it.statusStyle().busy && it.status != MeetingStatus.RECORDING }
+    // 时间轴：今天的即时翻译、远距对话也排进来
+    LaunchedEffect(Unit) { com.example.wristai.TranslationStore.reload(context); com.example.wristai.TalkStore.load(context) }
+    val sessions by com.example.wristai.TranslationStore.sessions.collectAsState()
+    val talks by com.example.wristai.TalkStore.talks.collectAsState()
+    val extras = remember(sessions, talks, todayStart) {
+        sessions.filter { it.startedAt >= todayStart && it.meetingId == null }.map { t ->
+            TimelineExtra(t.startedAt, "譯".tr, com.example.wristai.TranslateLangs.shortName(com.example.wristai.TranslateLangs.mlkitOf(t.source) ?: t.source) + " → " +
+                com.example.wristai.TranslateLangs.shortName(t.target, true), "{0} 句".trf(t.lines.size)) {
+                Hubs.translate = 1; TranslatePage.open()
+            }
+        } + talks.filter { it.startedAt >= todayStart }.map { t ->
+            TimelineExtra(t.startedAt, "話".tr, "遠距對話".tr + "：" + t.partners.joinToString("、"), "{0} 句".trf(t.lines.size)) {
+                TalkPage.open = true; TranslatePage.open()
+            }
+        }
+    }
+    // 今日回顧：晚上 9 点后（到清晨 4 点）
+    val nowHour = rememberNowMinute().get(Calendar.HOUR_OF_DAY)
+    var recap by remember { mutableStateOf<DayRecap?>(null) }
+    LaunchedEffect(nowHour >= 21 || nowHour < 4, todays.size) {
+        recap = if (nowHour >= 21 || nowHour < 4) withContext(Dispatchers.IO) {
+            val food = todayFood(all)
+            DayRecap(todays.count { !FoodLog.isFood(it.id) }, sessions.count { it.startedAt >= todayStart },
+                food.sumOf { it.nutrition?.kcal ?: 0 }, goal, food.sumOf { it.nutrition?.protein ?: 0 }, Settings.proteinGoal(context),
+                usesFood, runCatching { com.example.wristai.CarMode.todayTodos(context) }.getOrDefault(emptyList()))
+        } else null
+    }
 
     // 今天每笔的一行摘要（报告的「摘要」段）
     var summaries by remember { mutableStateOf<Map<String, String?>>(emptyMap()) }
@@ -148,6 +175,8 @@ fun DashboardScreen(
                 IconCircle(Icons.Outlined.Settings, "設定".tr, onOpenSettings)
             }
         }
+
+        recap?.let { r -> item { DayRecapCard(r, onOpenRecords, onOpenFood) } }
 
         if (!engine.ready) {
             item {
@@ -204,7 +233,7 @@ fun DashboardScreen(
             }
         }
         item {
-            if (todays.isEmpty()) {
+            if (todays.isEmpty() && extras.isEmpty()) {
                 GlassCard {
                     Text("今天還沒有記錄".tr, style = MaterialTheme.typography.titleSmall, color = Brand.Text)
                     Spacer(Modifier.height(4.dp))
@@ -214,9 +243,14 @@ fun DashboardScreen(
             } else {
                 val shape = RoundedCornerShape(Brand.CardRadius)
                 Column(Modifier.fillMaxWidth().clip(shape).background(Brand.Surface).border(1.dp, Brand.Outline, shape)) {
-                    todays.forEachIndexed { i, m ->
-                        TodayRow(m, summaries[m.id]) { onOpen(m.id) }
-                        if (i < todays.size - 1) Box(Modifier.padding(start = 72.dp).fillMaxWidth().height(1.dp).background(Brand.Outline))
+                    // 录音、饮食、翻译、远距对话照时间排（新的在上）
+                    val rows: List<Pair<Long, @Composable () -> Unit>> =
+                        todays.map { m -> m.createdAt to @Composable { TodayRow(m, summaries[m.id]) { onOpen(m.id) } } } +
+                            extras.map { e -> e.at to @Composable { TimelineExtraRow(e) } }
+                    val sorted = rows.sortedByDescending { it.first }
+                    sorted.forEachIndexed { i, (_, row) ->
+                        row()
+                        if (i < sorted.size - 1) Box(Modifier.padding(start = 72.dp).fillMaxWidth().height(1.dp).background(Brand.Outline))
                     }
                 }
             }

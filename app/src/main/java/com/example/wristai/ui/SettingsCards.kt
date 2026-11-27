@@ -134,6 +134,27 @@ fun RecordingLanguageCard() {
     }
 }
 
+/** 个人词库：公司、产品、缩写、人名；AI 辨识与整理时优先用这些写法（[com.example.wristai.Vocab]）。 */
+@Composable
+fun VocabCard() {
+    val context = LocalContext.current
+    var text by remember { mutableStateOf(com.example.wristai.Vocab.raw(context)) }
+    val names = remember { com.example.wristai.Vocab.frequentNames(context, 10) }
+    GlassCard {
+        Text("個人詞庫".tr, style = MaterialTheme.typography.titleSmall, color = Brand.Text)
+        Text("公司名稱、產品、產業縮寫（BOM、NDA、ESG）、常見人名，一行一個或用逗號分開。AI 聽到同音的詞會優先用這裡的寫法。".tr,
+            style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
+        Spacer(Modifier.height(8.dp))
+        androidx.compose.material3.OutlinedTextField(text, { text = it; com.example.wristai.Vocab.setRaw(context, it) },
+            Modifier.fillMaxWidth().height(140.dp), placeholder = { Text("例如：大D科技、BOM、王經理".tr, color = Brand.TextFaint) },
+            shape = RoundedCornerShape(14.dp), colors = brandFieldColors())
+        if (names.isNotEmpty()) {
+            Spacer(Modifier.height(6.dp))
+            Text("也會自動加上你替說話者取過的名字：".tr + names.joinToString("、"), style = MaterialTheme.typography.bodySmall, color = Brand.TextFaint)
+        }
+    }
+}
+
 /** 领域专家模式：报告用哪个专业领域的角度整理（自动判断 / 关闭 / 法律、医疗…）。 */
 @Composable
 fun ReportDomainCard() {
@@ -349,15 +370,33 @@ fun FoodCountryCard() {
 fun FoodGoalsCard() {
     val context = LocalContext.current
     GlassCard {
+        // 健康目標：選了就換一組每日目標，AI 的營養小提醒也照目標講重點
+        Text("健康目標".tr, style = MaterialTheme.typography.titleMedium, color = Brand.Text)
+        Spacer(Modifier.height(8.dp))
+        var mode by remember { mutableStateOf(com.example.wristai.FoodGoals.mode(context)) }
+        val modes = com.example.wristai.FoodGoals.ALL
+        ChoiceGrid(modes.map { com.example.wristai.FoodGoals.label(it) }, modes.indexOf(mode).coerceAtLeast(0), perRow = 2) { i ->
+            mode = modes[i]; com.example.wristai.FoodGoals.setMode(context, mode)
+        }
+        Spacer(Modifier.height(6.dp))
+        Text(when (mode) {
+            com.example.wristai.FoodGoals.LOSE -> "熱量目標較低，提醒份量、油脂與含糖飲料。".tr
+            com.example.wristai.FoodGoals.MUSCLE -> "蛋白質目標較高，提醒下一餐補哪些蛋白質。".tr
+            com.example.wristai.FoodGoals.SUGAR -> "每天碳水上限 180 g，特別標出精緻澱粉與含糖飲料（適合銀髮族與三高）。".tr
+            else -> "一般的均衡飲食建議。".tr
+        }, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
+        Spacer(Modifier.height(14.dp))
         Text("每日目標".tr, style = MaterialTheme.typography.titleMedium, color = Brand.Text)
         Text("今天的進度、分析頁的達標天數都依這裡計算".tr, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
         Spacer(Modifier.height(12.dp))
-        NumberField(Settings.dailyKcalGoal(context), "大卡 / 天".tr, 800, 6000, Modifier.fillMaxWidth()) { Settings.setDailyKcalGoal(context, it) }
-        Spacer(Modifier.height(8.dp))
-        Row {
-            NumberField(Settings.proteinGoal(context), "蛋白質 g".tr, 10, 400, Modifier.weight(1f)) { Settings.setProteinGoal(context, it) }
-            Spacer(Modifier.width(8.dp))
-            NumberField(Settings.fiberGoal(context), "纖維 g".tr, 5, 100, Modifier.weight(1f)) { Settings.setFiberGoal(context, it) }
+        androidx.compose.runtime.key(mode) {
+            NumberField(Settings.dailyKcalGoal(context), "大卡 / 天".tr, 800, 6000, Modifier.fillMaxWidth()) { Settings.setDailyKcalGoal(context, it) }
+            Spacer(Modifier.height(8.dp))
+            Row {
+                NumberField(Settings.proteinGoal(context), "蛋白質 g".tr, 10, 400, Modifier.weight(1f)) { Settings.setProteinGoal(context, it) }
+                Spacer(Modifier.width(8.dp))
+                NumberField(Settings.fiberGoal(context), "纖維 g".tr, 5, 100, Modifier.weight(1f)) { Settings.setFiberGoal(context, it) }
+            }
         }
         Spacer(Modifier.height(8.dp))
         SettingNote(Icons.Filled.Info, "熱量為 AI 依口述估算，僅供參考，不能取代營養師或醫療建議。".tr)

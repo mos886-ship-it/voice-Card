@@ -367,8 +367,11 @@ object LocalHost {
             setRequestProperty("X-Report-Lang", com.example.wristai.ReportLang.active.code)
             // 领域专家模式：auto / off / legal / medical …（旧主机不认得就照旧）
             setRequestProperty("X-Domain", com.example.wristai.ReportDomain.active)
+            // 个人词库＋常用人名（base64，UTF-8）
+            com.example.wristai.Vocab.header()?.let { setRequestProperty("X-Vocab", it) }
             // 饮食：这一餐所在的国家（主机照当地份量估算；旧主机不认得就照旧台湾）
             if (kind == "food") setRequestProperty("X-Food-Country", com.example.wristai.FoodRegion.active)
+            if (kind == "food") setRequestProperty("X-Food-Goal", com.example.wristai.FoodGoals.active)
             if (bytes != null) {
                 setRequestProperty("X-Input", "text")
                 setRequestProperty("Content-Type", "text/plain; charset=utf-8")

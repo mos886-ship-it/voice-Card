@@ -67,7 +67,7 @@ object FoodLog {
         接著每樣食物一行：$ITEM_PREFIX 食物=<名稱>; 份量=<口語份量，例如一碗、半盒>; 克=<整數>; 對照=<清單名稱或 無>; kcal=<整數>; protein=<整數>; carbs=<整數>; fat=<整數>; fiber=<整數>
         之後是 Markdown（不要寫食物表格與合計，App 會自己產生），依序包含：
         ## 營養小提醒
-        （1～3 點，針對這一餐的簡短、實際建議）
+        （1～3 點，針對這一餐的簡短、實際建議；${FoodGoals.adviceRule()}）
         ## 假設與待確認
     """.trimIndent() +
         (if (withTranscript) "\n\n之後單獨一行輸出 ${GeminiReportGenerator.TRANSCRIPT_MARKER}\n之後是逐字稿，每段一行：[mm:ss] 內容" else "") +
@@ -241,7 +241,7 @@ object FoodLog {
         ## 合計
         （一行：約 X 大卡；蛋白質 Xg、碳水 Xg（纖維 Xg）、脂肪 Xg）
         ## 營養小提醒
-        （1～3 點，針對這一餐的簡短、實際建議）
+        （1～3 點，針對這一餐的簡短、實際建議；${FoodGoals.adviceRule()}）
         ## 假設與待確認
 
         之後單獨一行輸出 ${GeminiReportGenerator.TRANSCRIPT_MARKER}

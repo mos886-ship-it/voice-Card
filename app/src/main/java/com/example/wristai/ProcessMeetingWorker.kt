@@ -104,6 +104,7 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
         if (meeting.status == MeetingStatus.DONE) return Result.success()
         ReportLang.active = ReportLang.current(ctx)   // 报告用的语言（提示词、说话者代号、饮食表格）
         ReportDomain.prepare(ctx)                     // 领域专家模式（法律、医疗…；自动判断）
+        Vocab.prepare(ctx)                            // 个人词库＋常用人名
         val node = meeting.watchNodeId
         val startedAt = System.currentTimeMillis()
 
@@ -161,6 +162,7 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
         if (FoodLog.isFood(id)) {
             // 这一餐在哪个国家 → 用当地的营养资料库（台湾食藥署、美国 USDA、日本成分表、韩国食药处）与当地份量
             FoodRegion.active = FoodRegion.of(ctx, id)
+            FoodGoals.active = FoodGoals.mode(ctx)   // 健康目標：營養小提醒照目標講重點
             FoodDb.use(ctx, FoodRegion.active)
             // 有照片：只有 Gemini 看得懂图片（免费额度就够），主机 / 组合式先不走
             val photos = FoodPhotos.files(ctx, id)

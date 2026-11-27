@@ -6510,5 +6510,117 @@
  "文字和雙方的原聲都會從這支手機刪除。": {
   "en": "The text and both people's voices will be deleted from this phone.",
   "ko": "텍스트와 양쪽의 음성이 이 휴대폰에서 삭제됩니다."
+ },
+ "減脂控卡": {
+  "en": "Lose fat",
+  "ko": "체지방 감량"
+ },
+ "增肌高蛋白": {
+  "en": "Build muscle",
+  "ko": "근육 증가"
+ },
+ "控糖穩血糖": {
+  "en": "Blood sugar control",
+  "ko": "혈당 관리"
+ },
+ "均衡": {
+  "en": "Balanced",
+  "ko": "균형"
+ },
+ "話": {
+  "en": "Talk",
+  "ko": "대화"
+ },
+ "常用的名字": {
+  "en": "Names you use often",
+  "ko": "자주 쓰는 이름"
+ },
+ "今天碳水 {0} / {1} g": {
+  "en": "Carbs today {0} / {1} g",
+  "ko": "오늘 탄수화물 {0} / {1} g"
+ },
+ "常吃的（點一下再記一次）": {
+  "en": "Usual meals (tap to log again)",
+  "ko": "자주 먹는 음식 (눌러서 다시 기록)"
+ },
+ "已記錄：{0}（{1} 大卡）": {
+  "en": "Logged: {0} ({1} kcal)",
+  "ko": "기록됨: {0} ({1} kcal)"
+ },
+ "{0} 大卡 · 記過 {1} 次": {
+  "en": "{0} kcal · logged {1} times",
+  "ko": "{0} kcal · {1}회 기록"
+ },
+ "個人詞庫": {
+  "en": "Personal vocabulary",
+  "ko": "개인 용어집"
+ },
+ "公司名稱、產品、產業縮寫（BOM、NDA、ESG）、常見人名，一行一個或用逗號分開。AI 聽到同音的詞會優先用這裡的寫法。": {
+  "en": "Company names, products, industry abbreviations (BOM, NDA, ESG) and people's names, one per line or separated by commas. When the AI hears something that sounds alike, it uses these spellings.",
+  "ko": "회사명, 제품, 업계 약어(BOM, NDA, ESG), 자주 나오는 이름을 한 줄에 하나씩 또는 쉼표로 구분해 입력하세요. AI가 비슷하게 들리는 말을 이 표기로 우선 씁니다."
+ },
+ "例如：大D科技、BOM、王經理": {
+  "en": "e.g. Dylan Tech, BOM, Manager Wang",
+  "ko": "예: 大D테크, BOM, 왕 매니저"
+ },
+ "也會自動加上你替說話者取過的名字：": {
+  "en": "Names you gave speakers are added too: ",
+  "ko": "화자에게 붙인 이름도 자동으로 추가됩니다: "
+ },
+ "健康目標": {
+  "en": "Health goal",
+  "ko": "건강 목표"
+ },
+ "熱量目標較低，提醒份量、油脂與含糖飲料。": {
+  "en": "Lower calorie goal; tips focus on portions, fat and sugary drinks.",
+  "ko": "열량 목표가 낮고, 분량·지방·당 음료를 알려 줍니다."
+ },
+ "蛋白質目標較高，提醒下一餐補哪些蛋白質。": {
+  "en": "Higher protein goal; tips suggest protein for the next meal.",
+  "ko": "단백질 목표가 높고, 다음 식사에 보충할 단백질을 알려 줍니다."
+ },
+ "每天碳水上限 180 g，特別標出精緻澱粉與含糖飲料（適合銀髮族與三高）。": {
+  "en": "Carbs capped at 180 g a day; refined starch and sugary drinks are flagged (good for seniors and high blood sugar).",
+  "ko": "하루 탄수화물 180 g 상한, 정제 탄수화물과 당 음료를 표시합니다(노년층·만성질환에 적합)."
+ },
+ "一般的均衡飲食建議。": {
+  "en": "General balanced-diet tips.",
+  "ko": "일반적인 균형 식단 조언."
+ },
+ "今日回顧": {
+  "en": "Today's recap",
+  "ko": "오늘의 정리"
+ },
+ "{0} 場": {
+  "en": "{0}",
+  "ko": "{0}건"
+ },
+ "錄音整理": {
+  "en": "recordings",
+  "ko": "녹음 정리"
+ },
+ "熱量 {0} / {1}": {
+  "en": "kcal {0} / {1}",
+  "ko": "열량 {0} / {1}"
+ },
+ "蛋白質 {0} / {1} g": {
+  "en": "protein {0} / {1} g",
+  "ko": "단백질 {0} / {1} g"
+ },
+ "{0} 次": {
+  "en": "{0}",
+  "ko": "{0}회"
+ },
+ "今天的待辦都處理完了，早點休息。": {
+  "en": "All of today's to-dos are done. Get some rest.",
+  "ko": "오늘 할 일을 모두 마쳤어요. 일찍 쉬세요."
+ },
+ "明天記得：": {
+  "en": "Remember tomorrow:",
+  "ko": "내일 기억할 것:"
+ },
+ "還有 {0} 項": {
+  "en": "{0} more",
+  "ko": "{0}개 더"
  }
 }

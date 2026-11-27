@@ -51,7 +51,7 @@ LOCK = threading.Lock()
 
 
 def fake_process(path, kind, recorded_at, duration, text_input=False, asr=None, dialect=None, rlang="zh", lang=None,
-                 domain="auto", country=None, *_rest, **_kw):
+                 domain="auto", country=None, goal=None, vocab=None, *_rest, **_kw):
     with LOCK:
         COUNT["n"] += 1
         n = COUNT["n"]

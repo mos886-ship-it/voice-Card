@@ -72,6 +72,7 @@ fun RecordsHub(
             else -> HubPage {
                 RecordingLanguageCard()
                 ReportDomainCard()
+                VocabCard()
                 EngineSummaryCard(onOpenSettings)
                 SectionLabel("自動整理".tr)
                 CallRecordingCard()

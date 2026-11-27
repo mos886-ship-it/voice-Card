@@ -87,7 +87,7 @@ enum class ReportLang(val code: String, val label: String, val speaker: String, 
         /** 把中文提示词换成 [l] 的报告格式（[ZH] 原样回传）。 */
         fun localize(prompt0: String, l: ReportLang = active): String {
             // 领域专家模式的规则先加进去（报告类提示词才加），再一起换成报告语言
-            val prompt = ReportDomain.applyTo(prompt0)
+            val prompt = Vocab.applyTo(ReportDomain.applyTo(prompt0))
             if (l == ZH || prompt.contains("【報告語言")) return prompt   // 已经换过（例如组合式先换、Gemini 又换一次）
             var p = prompt
             for (h in HEADINGS) p = p.replace(Regex("(?m)^(\\s*)## " + Regex.escape(h.first) + "\\s*$"), "$1## " + pick(h, l))

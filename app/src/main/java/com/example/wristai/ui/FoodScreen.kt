@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -101,6 +102,34 @@ private fun FoodToday(all: List<Meeting>, food: List<Meeting>, onOpen: (String) 
                 modifier = Modifier.fillMaxWidth())
         }
         item { TodayFoodCard(all, goal, alwaysShow = true) {} }
+        // 控糖：今天的碳水 / 上限
+        val cap = com.example.wristai.FoodGoals.carbCap(context)
+        if (cap > 0) item {
+            val carbs = today.sumOf { it.nutrition?.carbs ?: 0 }
+            Text("今天碳水 {0} / {1} g".trf(carbs, cap), style = MaterialTheme.typography.bodyMedium,
+                color = if (carbs > cap) Brand.Warning else Brand.TextMuted)
+        }
+        // 常吃的：一鍵再記一次（不用再問 AI）
+        val favs = com.example.wristai.FoodRepeat.favorites(food)
+        if (favs.isNotEmpty()) {
+            item { SectionLabel("常吃的（點一下再記一次）".tr) }
+            item {
+                androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(favs, key = { "f" + it.first.id }) { (m, n) ->
+                        GlassCard(onClick = {
+                            com.example.wristai.FoodRepeat.repeat(context, m)
+                            android.widget.Toast.makeText(context, "已記錄：{0}（{1} 大卡）".trf(com.example.wristai.FoodRepeat.mealNow().tr + "：" +
+                                com.example.wristai.FoodRepeat.dish(m.title), m.nutrition?.kcal ?: 0), android.widget.Toast.LENGTH_SHORT).show()
+                        }, contentPadding = 12.dp) {
+                            Text("＋ " + com.example.wristai.FoodRepeat.dish(m.title), style = MaterialTheme.typography.titleSmall, color = Brand.Text,
+                                maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                modifier = Modifier.widthIn(max = 200.dp))
+                            Text("{0} 大卡 · 記過 {1} 次".trf(m.nutrition?.kcal ?: 0, n), style = MaterialTheme.typography.labelSmall, color = Brand.TextMuted)
+                        }
+                    }
+                }
+            }
+        }
         if (food.isEmpty()) item {
             GlassCard {
                 Text("還沒有飲食記錄".tr, style = MaterialTheme.typography.titleMedium, color = Brand.Text)

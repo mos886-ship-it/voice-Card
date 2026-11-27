@@ -331,7 +331,7 @@ FOOD_SYSTEM = """你是營養記錄助理。使用者會給你一段口述的逐
 ## 合計
 （一行：約 X 大卡；蛋白質 Xg、碳水 Xg（纖維 Xg）、脂肪 Xg）
 ## 營養小提醒
-（1～3 點）
+（1～3 點；%ADVICE%）
 ## 假設與待確認"""
 
 TRANSCRIPT_MARKER = "===TRANSCRIPT==="
@@ -661,10 +661,40 @@ FOOD_PORTIONS = {
 }
 
 
-def food_system(country):
+# 健康目標（App 送 X-Food-Goal：balanced / lose / muscle / sugar）：營養小提醒照目標講重點。跟 App 的 FoodGoals.adviceRule 一樣。
+FOOD_ADVICE = {
+    "lose": "使用者的目標是減脂控卡：營養小提醒以熱量、份量、油脂與含糖飲料為重點，提出下一餐可以怎麼少一點熱量但吃得飽。",
+    "muscle": "使用者的目標是增肌高蛋白：營養小提醒以這餐蛋白質夠不夠為重點，建議下一餐補什麼蛋白質來源（豆漿、蛋、雞胸、魚、豆腐等）。",
+    "sugar": "使用者的目標是控糖穩血糖（適合銀髮族與三高）：營養小提醒特別標出精緻澱粉、含糖飲料與甜點的份量，建議穩定血糖的吃法（先吃菜和蛋白質、換成全穀、無糖）。",
+}
+
+
+def food_system(country, goal=None):
     cc = (country or "TW").upper()[:2]
     rule = FOOD_PORTIONS.get(cc, f"這一餐在國家代碼 {cc} 的地方：依當地常見的份量與做法估算。")
-    return FOOD_SYSTEM.replace("%PORTION%", rule)
+    advice = FOOD_ADVICE.get(goal or "", "給均衡飲食的簡短建議")
+    return FOOD_SYSTEM.replace("%PORTION%", rule).replace("%ADVICE%", advice)
+
+
+def vocab_rule(b64):
+    """App 送 X-Vocab（base64、UTF-8、一行一個）：使用者的專有名詞與常見人名。跟 App 的 Vocab.rule 一樣。"""
+    if not b64:
+        return ""
+    try:
+        import base64
+        words = [w.strip() for w in base64.b64decode(b64).decode("utf-8").split("\n") if w.strip()][:200]
+    except Exception:  # noqa: BLE001
+        return ""
+    if not words:
+        return ""
+    return "【使用者的專有名詞與常見人名】辨識和整理時，聽到同音或相近的詞，優先用這些寫法：" + "、".join(words) + "。沒出現的不要硬套。"
+
+
+def with_vocab(prompt, b64):
+    rule = vocab_rule(b64)
+    if not rule or "## 待辦事項" not in prompt:
+        return prompt
+    return prompt.rstrip() + "\n\n" + rule
 
 
 def with_domain(prompt, setting):
@@ -703,7 +733,7 @@ def localize(prompt, lang):
 
 
 def process(audio_path, kind, recorded_at, duration, text_input=False, asr=None, dialect=None, rlang="zh", lang=None, domain="auto",
-            country=None):
+            country=None, goal=None, vocab=None):
     t0 = time.time()
     if text_input:
         with open(audio_path, encoding="utf-8", errors="replace") as f:
@@ -728,9 +758,9 @@ def process(audio_path, kind, recorded_at, duration, text_input=False, asr=None,
     if not transcript.strip():
         report = "TITLE: 沒有聽到內容\nSUMMARY: 這段錄音沒有辨識到說話內容。\n## 摘要\n這段錄音沒有辨識到說話內容。"
     elif kind == "food":
-        report = chat(localize(food_system(country), rlang), f"{header}\n\n逐字稿：\n{transcript}", max_tokens=1500)
+        report = chat(localize(food_system(country, goal), rlang), f"{header}\n\n逐字稿：\n{transcript}", max_tokens=1500)
     elif len(transcript) <= chunk_chars():
-        report = chat(localize(with_domain(REPORT_SYSTEM, domain), rlang), f"{header}\n\n<transcript>\n{transcript}\n</transcript>")
+        report = chat(localize(with_vocab(with_domain(REPORT_SYSTEM, domain), vocab), rlang), f"{header}\n\n<transcript>\n{transcript}\n</transcript>")
     else:
         # 長錄音：分段做筆記再合併（照 Android LongMeeting 的做法）
         parts = chunks(transcript, chunk_chars())
@@ -738,7 +768,7 @@ def process(audio_path, kind, recorded_at, duration, text_input=False, asr=None,
         for i, p in enumerate(parts):
             log(f"  notes {i + 1}/{len(parts)}")
             notes.append(f"【第 {i + 1} 部分】\n" + chat(localize(NOTES_SYSTEM, rlang), p, max_tokens=1200))
-        report = chat(localize(with_domain(REPORT_SYSTEM, domain), rlang), f"{header}\n以下是長錄音各部分整理好的筆記（不是逐字稿），請整合成一份報告：\n\n" + "\n\n".join(notes))
+        report = chat(localize(with_vocab(with_domain(REPORT_SYSTEM, domain), vocab), rlang), f"{header}\n以下是長錄音各部分整理好的筆記（不是逐字稿），請整合成一份報告：\n\n" + "\n\n".join(notes))
     t2 = time.time()
     log(f"  asr {t1 - t0:.1f}s, llm {t2 - t1:.1f}s, transcript {len(transcript)} chars")
     return f"{report}\n\n{TRANSCRIPT_MARKER}\n{transcript}"
@@ -790,7 +820,7 @@ def run_job(j, path):
                 f"{float(j.get('duration') or 0):.0f}s, asr={asr or CUR['asr']}")
             text = process(path, j["kind"], j.get("recorded_at", ""), float(j.get("duration") or 0),
                            bool(j.get("text_input")), asr, j.get("dialect"), j.get("report_lang") or "zh", j.get("lang"),
-                           j.get("domain") or "auto", j.get("country"))
+                           j.get("domain") or "auto", j.get("country"), j.get("goal"), j.get("vocab"))
         return {"text": text, "model": tag}
     except Exception as e:  # noqa: BLE001
         log(f"  failed: {e}")
@@ -902,7 +932,9 @@ class Handler(BaseHTTPRequestHandler):
                 "report_lang": report_lang(self.headers.get("X-Report-Lang", "")),
                 "lang": (self.headers.get("X-Lang", "") or "")[:8] or None,
                 "domain": (self.headers.get("X-Domain", "") or "auto")[:24],
-                "country": (self.headers.get("X-Food-Country", "") or "")[:2].upper() or None}, None
+                "country": (self.headers.get("X-Food-Country", "") or "")[:2].upper() or None,
+                "goal": (self.headers.get("X-Food-Goal", "") or "")[:12] or None,
+                "vocab": (self.headers.get("X-Vocab", "") or "")[:6000] or None}, None
 
     def _receive(self, params):
         """把上傳的內容寫進佇列（JOBS.submit）。"""
