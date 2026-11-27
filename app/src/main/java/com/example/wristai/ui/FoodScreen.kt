@@ -63,6 +63,7 @@ fun FoodHub(onOpen: (String) -> Unit, onOpenSettings: () -> Unit) {
             2 -> FoodAnalysis(food)
             else -> HubPage {
                 FoodGoalsCard()
+                FoodCountryCard()
                 HealthSection()
                 SectionLabel("拍照地點".tr)
                 RecordLocationCard()

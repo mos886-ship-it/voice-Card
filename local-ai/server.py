@@ -21,6 +21,7 @@ App 的報告解析、說話者名字、飲食 NUTRITION 解析都直接沿用�
   POST /v1/process  → （舊的，連著等結果；也是排進同一個佇列）body 是錄音檔（m4a / wav…）；標頭 X-Kind: meeting|food、X-Recorded-At、X-Duration（秒）
                        X-Input: text 時 body 是 UTF-8 文字（匯入的會議紀錄 / 逐字稿），跳過語音辨識直接寫報告
                        X-Report-Lang: zh | en | ko（報告語言；沒有 = 繁中）
+                       X-Food-Country: TW | US | JP | KR …（飲食：這一餐所在的國家，份量依當地；沒有 = TW）
                        X-Domain: auto | off | legal | medical …（領域專家模式，見 report_domains.json；沒有 = auto）
                        X-Lang: zh（國語 → FunASR）| nan（台語・國台語 → Breeze-ASR-26）| hak（客語 → 數位部 Taiwan Tongues；
                        X-Dialect: sixian|hailu|dapu|raoping|zhaoan|nansixian 寫進報告提示，有裝陽明交大客語模型時也當模型提示）；
@@ -299,7 +300,7 @@ NOTES_SYSTEM = f"""你是語音記錄助理。使用者會給你一段長錄音�
 {TYPE_RULES}"""
 
 FOOD_SYSTEM = """你是營養記錄助理。使用者會給你一段口述的逐字稿（語音辨識，可能有同音錯字），描述剛吃（或喝）了什麼，請整理成飲食記錄，並估算熱量與三大營養素。
-- 依台灣常見的份量與做法估算（便當、小吃、麵店、手搖飲、便利商店等）。
+- %PORTION%
 - 使用者明確說出的份量、杯型、甜度、冰塊、加料一定照用，不可以改成別的（例如說「大杯半糖」就是大杯、半糖），只有沒說的部分才用預設。
 - 沒說清楚的地方用常見預設，並在「假設與待確認」寫出來。
 - 數字一律取整數；熱量單位大卡（kcal），營養素單位公克（g）。
@@ -640,6 +641,21 @@ def domain_rules(setting):
     return out
 
 
+# 飲食：這一餐在哪個國家（App 送 X-Food-Country：TW / US / JP / KR …；沒有 = TW），份量依當地習慣估算。跟 App 的 FoodRegion.portionRule 一樣。
+FOOD_PORTIONS = {
+    "TW": "依台灣常見的份量與做法估算（便當、小吃、麵店、手搖飲、便利商店等）。",
+    "US": "這一餐在美國：依美國常見的份量與做法估算（餐廳份量通常較大；漢堡、三明治、沙拉、披薩、咖啡店飲料的 tall/grande/venti、汽水杯型等），單位換算成克（1 cup 約 240 ml、1 oz 約 28 g）。",
+    "JP": "這一餐在日本：依日本常見的份量與做法估算（定食、丼飯、拉麵、便利商店便當與飯糰、居酒屋小菜等），食物名稱可以用日文原名並附中文。",
+    "KR": "這一餐在韓國：依韓國常見的份量與做法估算（白飯一碗約 210 克、湯鍋、拌飯、韓式烤肉、小菜（반찬）、便利商店餐點等），食物名稱可以用韓文原名並附中文。",
+}
+
+
+def food_system(country):
+    cc = (country or "TW").upper()[:2]
+    rule = FOOD_PORTIONS.get(cc, f"這一餐在國家代碼 {cc} 的地方：依當地常見的份量與做法估算。")
+    return FOOD_SYSTEM.replace("%PORTION%", rule)
+
+
 def with_domain(prompt, setting):
     """報告提示詞（有「待辦事項」章節）才加；飲食、分段筆記不加。"""
     rules = domain_rules(setting)
@@ -675,7 +691,8 @@ def localize(prompt, lang):
             f"飲食的 NUTRITION 與 ITEM 行維持原本的欄位格式（欄位名稱與餐別用中文），只有標題、摘要與報告文字用 {name}。")
 
 
-def process(audio_path, kind, recorded_at, duration, text_input=False, asr=None, dialect=None, rlang="zh", lang=None, domain="auto"):
+def process(audio_path, kind, recorded_at, duration, text_input=False, asr=None, dialect=None, rlang="zh", lang=None, domain="auto",
+            country=None):
     t0 = time.time()
     if text_input:
         with open(audio_path, encoding="utf-8", errors="replace") as f:
@@ -700,7 +717,7 @@ def process(audio_path, kind, recorded_at, duration, text_input=False, asr=None,
     if not transcript.strip():
         report = "TITLE: 沒有聽到內容\nSUMMARY: 這段錄音沒有辨識到說話內容。\n## 摘要\n這段錄音沒有辨識到說話內容。"
     elif kind == "food":
-        report = chat(localize(FOOD_SYSTEM, rlang), f"{header}\n\n逐字稿：\n{transcript}", max_tokens=1500)
+        report = chat(localize(food_system(country), rlang), f"{header}\n\n逐字稿：\n{transcript}", max_tokens=1500)
     elif len(transcript) <= chunk_chars():
         report = chat(localize(with_domain(REPORT_SYSTEM, domain), rlang), f"{header}\n\n<transcript>\n{transcript}\n</transcript>")
     else:
@@ -762,7 +779,7 @@ def run_job(j, path):
                 f"{float(j.get('duration') or 0):.0f}s, asr={asr or CUR['asr']}")
             text = process(path, j["kind"], j.get("recorded_at", ""), float(j.get("duration") or 0),
                            bool(j.get("text_input")), asr, j.get("dialect"), j.get("report_lang") or "zh", j.get("lang"),
-                           j.get("domain") or "auto")
+                           j.get("domain") or "auto", j.get("country"))
         return {"text": text, "model": tag}
     except Exception as e:  # noqa: BLE001
         log(f"  failed: {e}")
@@ -869,7 +886,8 @@ class Handler(BaseHTTPRequestHandler):
                 "asr": asr, "dialect": dialect if dialect in HAKKA_DIALECTS else None,
                 "report_lang": report_lang(self.headers.get("X-Report-Lang", "")),
                 "lang": (self.headers.get("X-Lang", "") or "")[:8] or None,
-                "domain": (self.headers.get("X-Domain", "") or "auto")[:24]}, None
+                "domain": (self.headers.get("X-Domain", "") or "auto")[:24],
+                "country": (self.headers.get("X-Food-Country", "") or "")[:2].upper() or None}, None
 
     def _receive(self, params):
         """把上傳的內容寫進佇列（JOBS.submit）。"""

@@ -146,6 +146,16 @@ fun AboutScreen(onBack: () -> Unit) {
                 LinkRow("食品營養成分資料集（政府資料開放平臺）".tr) { open("https://data.gov.tw/dataset/8543") }
                 LinkRow("政府資料開放授權條款－第1版".tr) { open("https://data.gov.tw/license") }
             }
+            // 美国、日本的营养资料（这一餐在当地时用；见 FoodRegion）
+            GlassCard {
+                Text("在美國的餐點使用美國農業部 U.S. Department of Agriculture, Agricultural Research Service「FoodData Central」（SR Legacy，公共領域 CC0），名稱截短、只取熱量與營養素。".tr,
+                    style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
+                LinkRow("FoodData Central（USDA）".tr) { open("https://fdc.nal.usda.gov/") }
+                Spacer(Modifier.height(8.dp))
+                Text("在日本的餐點使用「日本食品標準成分表（八訂）増補2023年」（文部科学省）を加工して作成（公共データ利用規約 第1.0版，相容 CC BY 4.0）。".tr,
+                    style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
+                LinkRow("日本食品標準成分表（文部科学省）".tr) { open("https://www.mext.go.jp/a_menu/syokuhinseibun/") }
+            }
 
             // ---------- 云端 AI ----------
             SectionLabel("雲端 AI 服務".tr)

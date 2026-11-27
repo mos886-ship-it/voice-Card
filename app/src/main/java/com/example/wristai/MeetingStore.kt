@@ -177,15 +177,19 @@ object MeetingStore {
     fun saveGeo(context: Context, id: String, fix: com.example.voiceai.shared.GeoFix) {
         // 手机（联动的主要来源）的位置优先：已经有手机定位，就不让手表的盖掉
         if (fix.source == "watch" && geo(context, id)?.source == "phone") return
+        var country = fix.country
         val place = fix.place ?: runCatching {
             if (!android.location.Geocoder.isPresent()) null
             else @Suppress("DEPRECATION") android.location.Geocoder(context, java.util.Locale.TAIWAN)
                 .getFromLocation(fix.lat, fix.lon, 1)?.firstOrNull()?.let { a ->
+                    country = country ?: a.countryCode?.uppercase()
                     placeName(listOfNotNull(a.adminArea, a.subAdminArea, a.locality, a.subLocality, a.thoroughfare))
                         .ifBlank { a.getAddressLine(0) }
                 }
         }.getOrNull()
-        geoFile(context, id).writeText(fix.copy(place = place).toJson())
+        // 查不到（没网路）就用座标粗略判断（饮食营养资料库用）
+        if (country == null) country = FoodRegion.countryAt(fix.lat, fix.lon)
+        geoFile(context, id).writeText(fix.copy(place = place, country = country).toJson())
         reload(context)
     }
 

@@ -320,6 +320,30 @@ fun WatchRemoteCard() {
 
 // ---------------- 飲食記錄 ----------------
 
+/** 营养资料库：自动（依这一餐所在的国家）或指定国家（[com.example.wristai.FoodRegion]）。 */
+@Composable
+fun FoodCountryCard() {
+    val context = LocalContext.current
+    val region = com.example.wristai.FoodRegion
+    var sel by remember { mutableStateOf(region.setting(context)) }
+    val opts = listOf(region.AUTO to "自動".tr) + region.SUPPORTED.map { it to region.name(it) }
+    val here = remember { region.current(context) }
+    GlassCard {
+        Text("營養資料庫".tr, style = MaterialTheme.typography.titleSmall, color = Brand.Text)
+        Spacer(Modifier.height(8.dp))
+        ChoiceGrid(opts.map { it.second }, opts.indexOfFirst { it.first == sel }.coerceAtLeast(0), perRow = 5) { i ->
+            sel = opts[i].first; region.set(context, sel)
+        }
+        Spacer(Modifier.height(6.dp))
+        val used = if (sel == region.AUTO) here else sel
+        val has = remember(used) { com.example.wristai.FoodDb.has(context, used) }
+        Text((if (sel == region.AUTO) "依這一餐的所在地自動選（GPS，沒有就用電信網路的國家）。現在在：{0}。".trf(region.name(here)) else "") +
+            (if (has) "用{0}的官方食品成分資料計算熱量與營養素，份量依當地習慣估算。".trf(region.name(used))
+             else "{0}還沒有內建資料庫：熱量由 AI 估算，份量依當地習慣。".trf(region.name(used))),
+            style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
+    }
+}
+
 /** 每日目标：热量、蛋白质、膳食纤维。 */
 @Composable
 fun FoodGoalsCard() {

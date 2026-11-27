@@ -28,11 +28,14 @@ data class GeoFix(
     val place: String? = null,
     /** 定位来源："phone"（联动的手机，主要来源）/ "watch"（手表自己的 GPS，手机连不上时备援）。 */
     val source: String? = null,
+    /** 国家代码（ISO，例如 TW、JP；Geocoder 反查，查不到 null）：饮食用当地的营养资料库。 */
+    val country: String? = null,
 ) {
     fun toJson(): String = JSONObject()
         .put("lat", lat).put("lon", lon).put("accuracy", accuracy.toDouble()).put("at", at)
         .put("place", place)
         .put("source", source)
+        .put("country", country)
         .toString()
 
     /** 地图连结（分享报告用）。 */
@@ -43,7 +46,8 @@ data class GeoFix(
             val j = JSONObject(text ?: return null)
             GeoFix(j.getDouble("lat"), j.getDouble("lon"), j.optDouble("accuracy", 0.0).toFloat(), j.optLong("at"),
                 if (j.isNull("place")) null else j.optString("place").takeIf { it.isNotBlank() },
-                if (j.isNull("source")) null else j.optString("source").takeIf { it.isNotBlank() })
+                if (j.isNull("source")) null else j.optString("source").takeIf { it.isNotBlank() },
+                if (j.isNull("country")) null else j.optString("country").takeIf { it.isNotBlank() })
         }.getOrNull()
 
         /** 手机在背景也能定位（「一律允許」）：手表录音时由手机提供位置需要这个。 */

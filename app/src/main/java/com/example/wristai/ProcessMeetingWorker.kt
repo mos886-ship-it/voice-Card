@@ -159,7 +159,9 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
 
         // ---------- 饮食记录：估算热量与营养素（需要云端 AI） ----------
         if (FoodLog.isFood(id)) {
-            FoodDb.init(ctx)   // 食藥署资料：提示词清单＋重算热量
+            // 这一餐在哪个国家 → 用当地的营养资料库（台湾食藥署、美国 USDA、日本成分表、韩国食药处）与当地份量
+            FoodRegion.active = FoodRegion.of(ctx, id)
+            FoodDb.use(ctx, FoodRegion.active)
             // 有照片：只有 Gemini 看得懂图片（免费额度就够），主机 / 组合式先不走
             val photos = FoodPhotos.files(ctx, id)
             if (photos.isNotEmpty()) return processFood(id, meeting, recordedAt, photos)

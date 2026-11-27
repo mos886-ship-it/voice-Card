@@ -98,3 +98,37 @@ class FoodDbTest {
         assertFalse(FoodLog.PROMPT.lines().any { it.startsWith("        ") })   // trimIndent 有作用
     }
 }
+
+/** 美国、日本的内建资料：档案载得进来、常见食物找得到、数字合理。 */
+class ForeignFoodDbTest {
+    private fun load(file: String, cc: String, label: String) {
+        val f = listOf("src/main/assets/nutrition/$file", "app/src/main/assets/nutrition/$file").map(::File).first { it.exists() }
+        FoodDb.loadForTest(f.readText(), cc, label)
+    }
+
+    @Test fun usda() {
+        load("us.json", "US", "USDA")
+        val rice = FoodDb.find("Rice, white, cooked")
+        assertNotNull(rice)
+        assertTrue(rice!!.kcal in 90.0..140.0)
+        assertNotNull(FoodDb.find("Egg, whole, raw"))
+        assertTrue(FoodDb.promptList.length < 120_000)
+        assertEquals("USDA", FoodDb.label)
+    }
+
+    @Test fun mext() {
+        load("jp.json", "JP", "日本食品成分表")
+        val rice = FoodDb.find("こめ ［水稲めし］ 精白米 うるち米")
+        assertNotNull(rice)
+        assertEquals(156.0, rice!!.kcal, 0.5)
+        assertTrue(FoodDb.promptList.length < 120_000)
+    }
+
+    @Test fun regionBoxes() {
+        assertEquals("TW", FoodRegion.countryAt(25.03, 121.56))
+        assertEquals("JP", FoodRegion.countryAt(35.68, 139.69))
+        assertEquals("KR", FoodRegion.countryAt(37.57, 126.98))
+        assertEquals("US", FoodRegion.countryAt(40.71, -74.0))
+        assertEquals(null, FoodRegion.countryAt(48.85, 2.35))
+    }
+}

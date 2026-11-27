@@ -45,11 +45,11 @@ object FoodLog {
 
     private fun dbPrompt(withTranscript: Boolean): String = """
         你是營養記錄助理。使用者會用口語描述剛吃（或喝）了什麼，請整理成飲食記錄，並估算熱量與三大營養素。
-        - 依台灣常見的份量與做法估算（便當、小吃、麵店、手搖飲、便利商店等）。
+        - ${FoodRegion.portionRule(FoodRegion.active)}
         - 使用者明確說出的份量、杯型、甜度、冰塊、加料一定照用，不可以改成別的（例如說「大杯半糖」就是大杯、半糖），只有沒說的部分才用預設。
         - 沒說清楚的地方（份量、甜度、加料、烹調方式）用常見預設，並在「假設與待確認」寫出來。
         - 把這一餐拆成食材或單品，每樣一行 ITEM，估算重量（克，可食部分）。煎炒炸用的油、勾芡、糖、醬料要另外列一行（例如「調合植物油」）。
-        - 「對照」：從下面的【食藥署食品營養成分資料】清單挑一個「完全相同」的名稱（不要寫「·生」「·熟」）；清單裡沒有相近的就填「無」，不要硬湊。
+        - 「對照」：從下面的【${FoodDb.label}食品營養成分資料】清單挑一個「完全相同」的名稱（照清單原文，不要翻譯，不要寫「·生」「·熟」）；清單裡沒有相近的就填「無」，不要硬湊。
           清單標「·生」的是生重：克數要填烹調前的生重。整道小吃（例如牛肉麵）清單沒有就拆成麵、肉、湯、青菜各自對照，拆不了就填「無」。
         - 若附有照片：依照片辨識食物與份量（參考碗盤、餐具、杯子、包裝的大小估克數）；照片與口述不一致時以口述為準；看不清楚或被擋住的寫進「假設與待確認」。
         - 照片裡看得到包裝的「營養標示」：照標示的熱量、營養素與份量（每份 / 每 100 克）換算吃下的量，「對照」填「營養標示」。
@@ -71,7 +71,7 @@ object FoodLog {
         ## 假設與待確認
     """.trimIndent() +
         (if (withTranscript) "\n\n之後單獨一行輸出 ${GeminiReportGenerator.TRANSCRIPT_MARKER}\n之後是逐字稿，每段一行：[mm:ss] 內容" else "") +
-        "\n\n【食藥署食品營養成分資料】（每 100 克；只能從這裡挑「對照」名稱）\n" + FoodDb.promptList
+        "\n\n【${FoodDb.label}食品營養成分資料】（每 100 克；只能從這裡挑「對照」名稱）\n" + FoodDb.promptList
 
     /** 飲食内容表格的一列。[db] = 对到的食藥署资料（null = 用 AI 估的）。 */
     data class Item(
@@ -222,7 +222,7 @@ object FoodLog {
 
     private val LEGACY_PROMPT = """
         你是營養記錄助理。使用者會用口語描述剛吃（或喝）了什麼，請整理成飲食記錄，並估算熱量與三大營養素。
-        - 依台灣常見的份量與做法估算（便當、小吃、麵店、手搖飲、便利商店等）。
+        - ${FoodRegion.portionRule(FoodRegion.active)}
         - 使用者明確說出的份量、杯型、甜度、冰塊、加料一定照用，不可以改成別的（例如說「大杯半糖」就是大杯、半糖），只有沒說的部分才用預設。
         - 沒說清楚的地方（份量、甜度、加料、烹調方式）用常見預設，並在「假設與待確認」寫出來。
         - 數字一律取整數；熱量單位大卡（kcal），營養素單位公克（g）。
@@ -342,10 +342,10 @@ internal class FoodWords(
         fun of(l: ReportLang): FoodWords = when (l) {
             ReportLang.ZH -> FoodWords(
                 "飲食內容", listOf("食物", "份量", "熱量(kcal)", "蛋白質(g)", "碳水(g)", "脂肪(g)", "纖維(g)", "來源"), "合計",
-                "食藥署：", "營養標示", "AI 估算", { "約 ${it}g" },
+                FoodDbNames.tag(ReportLang.ZH), "營養標示", "AI 估算", { "約 ${it}g" },
                 { n, size, db, lab ->
                     val sources = listOfNotNull(
-                        if (db > 0) "$db 樣依食藥署「食品營養成分資料集」計算" else null,
+                        if (db > 0) "$db 樣依" + FoodDbNames.full(ReportLang.ZH) + "計算" else null,
                         if (lab > 0) "$lab 樣依包裝營養標示" else null,
                     )
                     "約 ${n.kcal} 大卡；蛋白質 ${n.protein}g、碳水 ${n.carbs}g（纖維 ${n.fiber}g）、脂肪 ${n.fat}g" +
@@ -355,10 +355,10 @@ internal class FoodWords(
             )
             ReportLang.EN -> FoodWords(
                 "What you ate", listOf("Food", "Portion", "Calories (kcal)", "Protein (g)", "Carbs (g)", "Fat (g)", "Fiber (g)", "Source"), "Total",
-                "Taiwan FDA: ", "Nutrition label", "AI estimate", { "about ${it}g" },
+                FoodDbNames.tag(ReportLang.EN), "Nutrition label", "AI estimate", { "about ${it}g" },
                 { n, size, db, lab ->
                     val sources = listOfNotNull(
-                        if (db > 0) "$db from the Taiwan FDA food composition database" else null,
+                        if (db > 0) "$db from " + FoodDbNames.full(ReportLang.EN) else null,
                         if (lab > 0) "$lab from the package nutrition label" else null,
                     )
                     "About ${n.kcal} kcal; protein ${n.protein}g, carbs ${n.carbs}g (fiber ${n.fiber}g), fat ${n.fat}g" +
@@ -368,10 +368,10 @@ internal class FoodWords(
             )
             ReportLang.KO -> FoodWords(
                 "먹은 음식", listOf("음식", "분량", "열량(kcal)", "단백질(g)", "탄수화물(g)", "지방(g)", "식이섬유(g)", "출처"), "합계",
-                "대만 식약청: ", "영양성분표", "AI 추정", { "약 ${it}g" },
+                FoodDbNames.tag(ReportLang.KO), "영양성분표", "AI 추정", { "약 ${it}g" },
                 { n, size, db, lab ->
                     val sources = listOfNotNull(
-                        if (db > 0) "${db}개는 대만 식약청 식품영양성분 데이터 기준" else null,
+                        if (db > 0) "${db}개는 " + FoodDbNames.full(ReportLang.KO) + " 기준" else null,
                         if (lab > 0) "${lab}개는 포장 영양성분표 기준" else null,
                     )
                     "약 ${n.kcal}kcal; 단백질 ${n.protein}g, 탄수화물 ${n.carbs}g(식이섬유 ${n.fiber}g), 지방 ${n.fat}g" +
@@ -381,4 +381,26 @@ internal class FoodWords(
             )
         }
     }
+}
+
+/** 报告里资料库的名称（依这一餐用的资料库 [FoodDb.active] 与报告语言）。 */
+object FoodDbNames {
+    private val country get() = FoodDb.active?.country ?: "TW"
+
+    /** 表格「来源」栏的前缀，例如「食藥署：」。 */
+    fun tag(l: ReportLang): String = when (l) {
+        ReportLang.ZH -> mapOf("TW" to "食藥署：", "US" to "USDA：", "JP" to "日本成分表：", "KR" to "韓國食藥處：")
+        ReportLang.EN -> mapOf("TW" to "Taiwan FDA: ", "US" to "USDA: ", "JP" to "MEXT: ", "KR" to "MFDS: ")
+        ReportLang.KO -> mapOf("TW" to "대만 식약청: ", "US" to "USDA: ", "JP" to "일본 성분표: ", "KR" to "식약처: ")
+    }[country] ?: "食藥署："
+
+    /** 合计那行的完整名称。 */
+    fun full(l: ReportLang): String = when (l) {
+        ReportLang.ZH -> mapOf("TW" to "食藥署「食品營養成分資料集」", "US" to "美國農業部 USDA 食品成分資料",
+            "JP" to "日本文部科學省「日本食品標準成分表」", "KR" to "韓國食藥處「食品營養成分資料庫」")
+        ReportLang.EN -> mapOf("TW" to "the Taiwan FDA food composition database", "US" to "the USDA FoodData Central database",
+            "JP" to "Japan's Standard Tables of Food Composition (MEXT)", "KR" to "the Korea MFDS food composition database")
+        ReportLang.KO -> mapOf("TW" to "대만 식약청 식품영양성분 데이터", "US" to "미국 농무부(USDA) 식품성분 데이터",
+            "JP" to "일본 식품표준성분표(문부과학성)", "KR" to "식약처 식품영양성분 데이터베이스")
+    }[country] ?: "食藥署「食品營養成分資料集」"
 }

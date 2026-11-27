@@ -5838,5 +5838,53 @@
  "去允許": {
   "en": "Allow",
   "ko": "허용하기"
+ },
+ "美國": {
+  "en": "United States",
+  "ko": "미국"
+ },
+ "日本": {
+  "en": "Japan",
+  "ko": "일본"
+ },
+ "韓國": {
+  "en": "Korea",
+  "ko": "한국"
+ },
+ "自動": {
+  "en": "Auto",
+  "ko": "자동"
+ },
+ "營養資料庫": {
+  "en": "Nutrition database",
+  "ko": "영양 데이터베이스"
+ },
+ "依這一餐的所在地自動選（GPS，沒有就用電信網路的國家）。現在在：{0}。": {
+  "en": "Chosen automatically from where the meal is (GPS, otherwise the mobile network's country). Now in: {0}. ",
+  "ko": "식사한 위치에 따라 자동 선택(GPS, 없으면 통신망 국가). 현재 위치: {0}. "
+ },
+ "用{0}的官方食品成分資料計算熱量與營養素，份量依當地習慣估算。": {
+  "en": "Calories and nutrients come from {0}'s official food composition data; portions follow local habits.",
+  "ko": "{0}의 공식 식품성분 데이터로 열량과 영양소를 계산하고, 분량은 현지 기준으로 추정합니다."
+ },
+ "{0}還沒有內建資料庫：熱量由 AI 估算，份量依當地習慣。": {
+  "en": "{0} has no built-in database yet: calories are AI estimates, portions follow local habits.",
+  "ko": "{0}은(는) 아직 내장 데이터베이스가 없습니다: 열량은 AI가 추정하고 분량은 현지 기준입니다."
+ },
+ "在美國的餐點使用美國農業部 U.S. Department of Agriculture, Agricultural Research Service「FoodData Central」（SR Legacy，公共領域 CC0），名稱截短、只取熱量與營養素。": {
+  "en": "Meals in the US use U.S. Department of Agriculture, Agricultural Research Service, FoodData Central (SR Legacy, public domain CC0); names shortened, calories and nutrients only.",
+  "ko": "미국에서의 식사는 U.S. Department of Agriculture, Agricultural Research Service의 FoodData Central(SR Legacy, 퍼블릭 도메인 CC0)을 사용합니다. 이름은 줄였고 열량과 영양소만 사용합니다."
+ },
+ "FoodData Central（USDA）": {
+  "en": "FoodData Central (USDA)",
+  "ko": "FoodData Central (USDA)"
+ },
+ "在日本的餐點使用「日本食品標準成分表（八訂）増補2023年」（文部科学省）を加工して作成（公共データ利用規約 第1.0版，相容 CC BY 4.0）。": {
+  "en": "Meals in Japan use 「日本食品標準成分表（八訂）増補2023年」（文部科学省）を加工して作成 (Public Data License 1.0, CC BY 4.0 compatible).",
+  "ko": "일본에서의 식사는 「日本食品標準成分表（八訂）増補2023年」（文部科学省）を加工して作成 (공공데이터 이용규약 1.0, CC BY 4.0 호환)을 사용합니다."
+ },
+ "日本食品標準成分表（文部科学省）": {
+  "en": "Standard Tables of Food Composition in Japan (MEXT)",
+  "ko": "일본 식품표준성분표 (문부과학성)"
  }
 }

@@ -624,3 +624,12 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 - 錄音：App 在背景時 Android 不准開麥克風前景服務（模擬器實測被擋）→ 改走 `RemoteRecordActivity.requestFromWatch(…, null, food)`：有「顯示在其他應用程式上層」就把錄音畫面叫到前面一下再開始（模擬器實測成功）；沒有就跳全螢幕通知。
 - 側載要在 Android Auto 開發人員模式 → 不明來源；設定 → 車用 有步驟與「去允許」懸浮權限按鈕。
 - 測試：debug 版 intent `--es debug_car_play <mediaId|delay:mediaId>` 模擬 Android Auto 瀏覽與播放，結果在 logcat「CarTest」。真車／DHU 尚未測。
+
+## 飲食：依所在國家選營養資料庫
+- `FoodRegion`：這一餐的國家 = 設定指定（飲食 → 設定 → 營養資料庫：自動／台灣／美國／日本／韓國）→ 這一餐 GPS（`GeoFix.country`，Geocoder 反查；沒網路用座標框粗判 TW/KR/JP/US）→ 電信網路 → SIM → 手機地區。`portionRule` 依國家改提示詞的份量規則（不再寫死台灣）。
+- `FoodDb`：每國一份（assets/nutrition/tfnd.json TW、us.json US、jp.json JP；kr.json 還沒有），`use(country)` 設 `active`；`label` 給提示詞與報告。`FoodDbNames` 依資料庫與報告語言寫表格來源與合計那行。沒有內建資料的國家 → AI 估算＋當地份量。
+- 資料：
+  - US：`tools/gen_usda.py <SR Legacy 資料夾>`（FDC SR Legacy 2018-04，CC0）。名稱取前兩段＋raw/cooked/dried，2,892 項、名稱約 7.4 萬字。Foundation 2026-10 版的 zip 沒有 food.csv，先沒用。
+  - JP：`tools/gen_mext.py <本表 xlsx>`（八訂増補2023、2026-03-27 修正版；公共データ利用規約 1.0，要寫「…を加工して作成」）。2,481 項、約 3.8 萬字。
+  - KR：食藥處 DB 要填使用表單才能下載，部分資料「禁止商用」，商用授權待向食藥處確認 → 先不放。
+- 大D的主機：`X-Food-Country` → `food_system(country)` 依國家換份量規則（要重新部署）。關於頁加 USDA、文部科學省出處。
