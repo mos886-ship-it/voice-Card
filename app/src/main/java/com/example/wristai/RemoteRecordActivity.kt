@@ -32,13 +32,14 @@ class RemoteRecordActivity : ComponentActivity() {
 
     companion object {
         private const val EXTRA_NODE = "watch_node"
+        private const val EXTRA_FOOD = "food"
         private const val CHANNEL_ID = "remote_record"
         private const val NOTIFICATION_ID = 4
 
-        fun intent(context: Context, watchNode: String?) =
+        fun intent(context: Context, watchNode: String?, food: Boolean = false) =
             Intent(context, RemoteRecordActivity::class.java)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
-                .putExtra(EXTRA_NODE, watchNode)
+                .putExtra(EXTRA_NODE, watchNode).putExtra(EXTRA_FOOD, food)
 
         /** 能不能不经使用者操作，直接从手表启动手机录音（锁屏时靠全萤幕通知，萤幕开着时靠「显示在其他 App 上层」）。 */
         fun canStartFromBackground(context: Context) =
@@ -47,15 +48,15 @@ class RemoteRecordActivity : ComponentActivity() {
         fun canUseFullScreen(context: Context) =
             Build.VERSION.SDK_INT < 34 || context.getSystemService(NotificationManager::class.java).canUseFullScreenIntent()
 
-        /** 手表要求开始手机录音。 */
-        fun requestFromWatch(context: Context, watchNode: String?) {
+        /** 手表（或车机画面，[watchNode] = null）要求开始手机录音。[food] = 记录饮食。 */
+        fun requestFromWatch(context: Context, watchNode: String?, food: Boolean = false) {
             if (PhoneRecorder.active.value != null) { PhoneRecordingService.broadcastState(context); return }
             if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
                 WatchNotifier.sendStatus(context, watchNode, "請先在手機打開 大D 允許麥克風".tr)
                 return
             }
             if (android.provider.Settings.canDrawOverlays(context) || MainActivity.isVisible) {
-                runCatching { context.startActivity(intent(context, watchNode)) }
+                runCatching { context.startActivity(intent(context, watchNode, food)) }
                     .onSuccess { return }
             }
             // 退回：全萤幕通知（锁屏 / 熄屏时系统会像来电一样直接打开录音画面）；不能用时就是普通通知，点一下开始
@@ -63,11 +64,11 @@ class RemoteRecordActivity : ComponentActivity() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 nm.createNotificationChannel(NotificationChannel(CHANNEL_ID, "手錶遙控錄音".tr, NotificationManager.IMPORTANCE_HIGH))
             }
-            val pi = PendingIntent.getActivity(context, 2, intent(context, watchNode),
+            val pi = PendingIntent.getActivity(context, 2, intent(context, watchNode, food),
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
             nm.notify(NOTIFICATION_ID, NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.ic_btn_speak_now)
-                .setContentTitle("手錶要求開始手機錄音".tr)
+                .setContentTitle(if (watchNode == null) "車機要求開始錄音".tr else "手錶要求開始手機錄音".tr)
                 .setContentText("點一下開始錄音（到設定開啟「手錶遠端啟動」就不用點）".tr)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setCategory(NotificationCompat.CATEGORY_CALL)
@@ -86,7 +87,7 @@ class RemoteRecordActivity : ComponentActivity() {
             setTurnScreenOn(true)
         }
         getSystemService(NotificationManager::class.java).cancel(NOTIFICATION_ID)
-        PhoneRecordingService.start(this, intent.getStringExtra(EXTRA_NODE))
+        PhoneRecordingService.start(this, intent.getStringExtra(EXTRA_NODE), food = intent.getBooleanExtra(EXTRA_FOOD, false))
         // 等录音真的开始（麦克风要在 App 前台时打开）才关掉这个画面
         lifecycleScope.launch {
             withTimeoutOrNull(5_000) { PhoneRecorder.active.first { it != null } }

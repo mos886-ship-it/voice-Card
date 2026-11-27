@@ -106,6 +106,7 @@ class PhoneRecordingService : Service() {
         /** 把手机录音状态告诉所有连着的手表。 */
         fun broadcastState(context: Context) {
             HomeWidget.refresh(context)   // 桌面小工具：录音键、计时
+            CarMediaService.recordingChanged()   // 车机画面：录音 / 停止
             val payload = (PhoneRecorder.active.value?.startedAt ?: 0L).toString().toByteArray()
             CoroutineScope(Dispatchers.IO).launch {
                 runCatching {

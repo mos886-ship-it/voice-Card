@@ -122,6 +122,31 @@ class MainActivity : ComponentActivity() {
             LiveCaptions.debugFeedWav(java.io.File(path))
             return
         }
+        // 测试版才有：模拟 Android Auto 浏览车机画面、播放一项（模拟器没有 Android Auto），结果写进 logcat「CarTest」
+        if ((applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0) intent?.getStringExtra("debug_car_play")?.let { play ->
+            var browser: android.support.v4.media.MediaBrowserCompat? = null
+            browser = android.support.v4.media.MediaBrowserCompat(this, android.content.ComponentName(this, CarMediaService::class.java),
+                object : android.support.v4.media.MediaBrowserCompat.ConnectionCallback() {
+                    override fun onConnected() {
+                        val b = browser ?: return
+                        for (parent in listOf(b.root, "today", "reports")) b.subscribe(parent, object : android.support.v4.media.MediaBrowserCompat.SubscriptionCallback() {
+                            override fun onChildrenLoaded(p: String, items: MutableList<android.support.v4.media.MediaBrowserCompat.MediaItem>) {
+                                android.util.Log.i("CarTest", "$p -> " + items.joinToString(" | ") { "${it.mediaId}: ${it.description.title} / ${it.description.subtitle}" })
+                            }
+                        })
+                        val ctl = android.support.v4.media.session.MediaControllerCompat(this@MainActivity, b.sessionToken)
+                        // 「delay:xxx」：5 秒后才播（先按 Home，测 App 在背景时车机按钮能不能用）
+                        val delay = if (play.startsWith("delay:")) 5000L else 0L
+                        val id = play.removePrefix("delay:")
+                        if (id.isNotBlank()) android.os.Handler(mainLooper).postDelayed({ ctl.transportControls.playFromMediaId(id, null) }, delay)
+                        android.os.Handler(mainLooper).postDelayed({
+                            android.util.Log.i("CarTest", "state=${ctl.playbackState?.state} title=${ctl.metadata?.description?.title} err=${ctl.playbackState?.errorMessage}")
+                        }, 2500 + delay)
+                    }
+                }, null)
+            browser.connect()
+            return
+        }
         // 捷径（长按图示、三星「模式與日常」、语音助理）：开始 / 停止录音、记录饮食、念最新报告、念今天待办（车用）
         if (intent?.action?.startsWith(CarShortcuts.PREFIX) == true) {
             CarShortcuts.handle(this, intent.action!!)

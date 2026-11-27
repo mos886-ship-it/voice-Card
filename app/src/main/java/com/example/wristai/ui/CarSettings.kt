@@ -79,6 +79,29 @@ fun CarSettingsScreen(onBack: () -> Unit) {
                 Text("聲音從媒體音量出來；連著車子時會從車上喇叭播放。".tr, style = MaterialTheme.typography.bodySmall, color = Brand.TextFaint)
             }
 
+            SectionLabel("車機畫面（Android Auto）".tr)
+            GlassCard {
+                Text("車上螢幕會出現「大D」：今天（唸待辦、唸最新報告、開始／停止錄音、記錄飲食）和最近的報告（點了唸摘要）。也可以說「Hey Google，播放大D」。".tr,
+                    style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
+                Spacer(Modifier.height(8.dp))
+                Text("第一次要做（大D不是從 Play 商店裝的）：".tr, style = MaterialTheme.typography.labelLarge, color = Brand.TextMuted)
+                Text("1. 手機「設定 → 已連結的裝置 → Android Auto」→ 最下面「版本」連點 10 下，開啟開發人員模式。".tr, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
+                Text("2. 右上角 ⋮ →「開發人員設定」→ 勾「不明來源」。".tr, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
+                Text("3. Android Auto「自訂啟動器」把大D打勾，車機上就看得到。".tr, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
+                Spacer(Modifier.height(8.dp))
+                val overlay = remember { android.provider.Settings.canDrawOverlays(context) }
+                Text(if (overlay) "已允許「顯示在其他應用程式上層」：車機上可以直接開始錄音。".tr
+                    else "要在車機上直接開始錄音，需要允許「顯示在其他應用程式上層」（不然會跳通知，要在手機上點一下）。".tr,
+                    style = MaterialTheme.typography.bodySmall, color = if (overlay) Brand.Success else Brand.Warning)
+                if (!overlay) {
+                    Spacer(Modifier.height(8.dp))
+                    GhostButton("去允許".tr, {
+                        context.startActivity(android.content.Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                            android.net.Uri.parse("package:${context.packageName}")))
+                    }, Modifier.fillMaxWidth(), tint = Brand.Cyan)
+                }
+            }
+
             SectionLabel("捷徑與例行程序".tr)
             GlassCard {
                 Text("不用打開 App 就能做的事".tr, style = MaterialTheme.typography.titleSmall, color = Brand.Text)

@@ -5758,5 +5758,85 @@
  "關閉懸浮": {
   "en": "Close float",
   "ko": "플로팅 닫기"
+ },
+ "用設定的麥克風錄（設定 → 車用）": {
+  "en": "Uses the mic chosen in Settings → Car",
+  "ko": "설정 → 차량에서 고른 마이크로 녹음"
+ },
+ "今天沒有待辦事項": {
+  "en": "No to-dos today",
+  "ko": "오늘은 할 일이 없습니다"
+ },
+ "{0} 項": {
+  "en": "{0} items",
+  "ko": "{0}개"
+ },
+ "說出吃了什麼，再按一次停止": {
+  "en": "Say what you ate, then tap again to stop",
+  "ko": "먹은 것을 말한 뒤 다시 눌러 중지"
+ },
+ "車機上沒辦法直接開始錄音（Android 的背景限制）。請用手錶、捷徑或例行程序開始。": {
+  "en": "Recording can't start from the car screen (Android background limits). Start it from the watch, a shortcut or a routine.",
+  "ko": "차량 화면에서는 녹음을 바로 시작할 수 없습니다(Android 백그라운드 제한). 워치, 바로가기 또는 루틴으로 시작하세요."
+ },
+ "今天的待辦": {
+  "en": "Today's to-dos",
+  "ko": "오늘 할 일"
+ },
+ "最新報告：": {
+  "en": "Latest report: ",
+  "ko": "최신 보고서: "
+ },
+ "沒有開始錄音：{0}": {
+  "en": "Recording didn't start: {0}",
+  "ko": "녹음이 시작되지 않음: {0}"
+ },
+ "請看手機": {
+  "en": "check the phone",
+  "ko": "휴대폰을 확인하세요"
+ },
+ "請在手機點通知開始錄音。到 設定 → 車用 允許「顯示在其他應用程式上層」，之後在車機上就能直接開始。": {
+  "en": "Tap the notification on the phone to start. Allow \"Display over other apps\" in Settings → Car to start straight from the car screen.",
+  "ko": "휴대폰 알림을 눌러 녹음을 시작하세요. 설정 → 차량에서 '다른 앱 위에 표시'를 허용하면 차량 화면에서 바로 시작됩니다."
+ },
+ "車機要求開始錄音": {
+  "en": "Car screen wants to start recording",
+  "ko": "차량 화면에서 녹음 시작 요청"
+ },
+ "車機畫面（Android Auto）": {
+  "en": "Car screen (Android Auto)",
+  "ko": "차량 화면 (Android Auto)"
+ },
+ "車上螢幕會出現「大D」：今天（唸待辦、唸最新報告、開始／停止錄音、記錄飲食）和最近的報告（點了唸摘要）。也可以說「Hey Google，播放大D」。": {
+  "en": "\"Dylan\" appears on the car screen: Today (read to-dos, read latest report, start/stop recording, log a meal) and recent reports (tap to hear the summary). You can also say \"Hey Google, play Dylan\".",
+  "ko": "차량 화면에 '大D'가 나타납니다: 오늘(할 일 읽기, 최신 보고서 읽기, 녹음 시작/중지, 식사 기록)과 최근 보고서(누르면 요약을 읽어 줌). 'Hey Google, 大D 재생'이라고 말해도 됩니다."
+ },
+ "第一次要做（大D不是從 Play 商店裝的）：": {
+  "en": "First time (the app isn't from the Play Store):",
+  "ko": "처음 한 번 (Play 스토어에서 설치한 앱이 아니므로):"
+ },
+ "1. 手機「設定 → 已連結的裝置 → Android Auto」→ 最下面「版本」連點 10 下，開啟開發人員模式。": {
+  "en": "1. Phone Settings → Connected devices → Android Auto → tap \"Version\" at the bottom 10 times to turn on developer mode.",
+  "ko": "1. 휴대폰 설정 → 연결된 기기 → Android Auto → 맨 아래 '버전'을 10번 눌러 개발자 모드를 켭니다."
+ },
+ "2. 右上角 ⋮ →「開發人員設定」→ 勾「不明來源」。": {
+  "en": "2. Top-right ⋮ → Developer settings → tick \"Unknown sources\".",
+  "ko": "2. 오른쪽 위 ⋮ → 개발자 설정 → '알 수 없는 소스'를 체크합니다."
+ },
+ "3. Android Auto「自訂啟動器」把大D打勾，車機上就看得到。": {
+  "en": "3. In Android Auto's \"Customize launcher\", tick Dylan so it shows on the car screen.",
+  "ko": "3. Android Auto '런처 맞춤설정'에서 大D를 체크하면 차량 화면에 보입니다."
+ },
+ "已允許「顯示在其他應用程式上層」：車機上可以直接開始錄音。": {
+  "en": "\"Display over other apps\" is allowed: recording can start straight from the car screen.",
+  "ko": "'다른 앱 위에 표시'가 허용됨: 차량 화면에서 바로 녹음을 시작할 수 있습니다."
+ },
+ "要在車機上直接開始錄音，需要允許「顯示在其他應用程式上層」（不然會跳通知，要在手機上點一下）。": {
+  "en": "To start recording straight from the car screen, allow \"Display over other apps\" (otherwise a notification appears and you tap it on the phone).",
+  "ko": "차량 화면에서 바로 녹음하려면 '다른 앱 위에 표시'를 허용하세요(아니면 알림이 뜨고 휴대폰에서 눌러야 합니다)."
+ },
+ "去允許": {
+  "en": "Allow",
+  "ko": "허용하기"
  }
 }

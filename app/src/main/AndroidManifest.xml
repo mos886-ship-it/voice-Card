@@ -130,6 +130,15 @@
         </receiver>
 
         <!-- 手機麥克風錄音 -->
+        <!-- 車機畫面（Android Auto 媒體類）：今天（念待辦、念最新報告、錄音）、報告清單；只讓 Android Auto 與系統瀏覽 -->
+        <service
+            android:name=".CarMediaService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.media.browse.MediaBrowserService" />
+            </intent-filter>
+        </service>
+        <meta-data android:name="com.google.android.gms.car.application" android:resource="@xml/automotive_app_desc" />
         <!-- 懸浮即時翻譯（浮在其他 App 上的字幕框；麥克風前景服務） -->
         <service
             android:name=".FloatingCaptionService"

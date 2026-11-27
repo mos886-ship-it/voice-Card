@@ -617,3 +617,10 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 - 更新：`PhoneRecordingService.broadcastState`（錄音開始 / 停止）、`MeetingStore.update` 狀態或營養變了、`ActionItems.setDone`；系統每 30 分鐘。
 - 模擬器驗過：加到桌面、數字正確、按錄音 → 計時 → 再按停止。
 - 懸浮翻譯（`FloatingCaptionService`）：小工具「懸浮翻譯」→ 浮在其他 App 上的字幕框（可拖曳；⇄ 對調、⏸/▶、✕ 關閉），顯示最新一句譯文（邊說邊翻的暫時譯文較淡）＋原文。麥克風前景服務，App 退到背景也繼續聽；用 `LiveCaptions`（同一套設定、記錄、不要提示聲）。沒有「顯示在其他應用程式上層」權限時帶使用者去設定（使用者自己允許）。小工具按鈕會變「關閉懸浮」。模擬器驗過：開啟、字幕即時更新、✕ 關閉。
+
+## 車機畫面（Android Auto，媒體類）
+- `CarMediaService`（MediaBrowserServiceCompat＋MediaSessionCompat，androidx.media 1.7.0）：分頁「今天」（開始／停止錄音、唸今天待辦、唸最新報告、記錄飲食）、「報告」（最近 15 份，點了唸標題＋摘要＋待辦）；播放器上有「錄音／停止」自訂動作；「Hey Google，播放大D」→ onPlayFromSearch 唸待辦＋最新報告。朗讀走 `Speaker`（`onIdle` 回呼更新播放狀態）。
+- 只讓 Android Auto（gearhead 等）、系統、自己瀏覽（報告是私人資料）。res/xml/automotive_app_desc.xml `<uses name="media"/>`。
+- 錄音：App 在背景時 Android 不准開麥克風前景服務（模擬器實測被擋）→ 改走 `RemoteRecordActivity.requestFromWatch(…, null, food)`：有「顯示在其他應用程式上層」就把錄音畫面叫到前面一下再開始（模擬器實測成功）；沒有就跳全螢幕通知。
+- 側載要在 Android Auto 開發人員模式 → 不明來源；設定 → 車用 有步驟與「去允許」懸浮權限按鈕。
+- 測試：debug 版 intent `--es debug_car_play <mediaId|delay:mediaId>` 模擬 Android Auto 瀏覽與播放，結果在 logcat「CarTest」。真車／DHU 尚未測。

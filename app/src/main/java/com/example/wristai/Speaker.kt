@@ -12,6 +12,8 @@ import java.util.Locale
 object Speaker {
     @Volatile var speaking = false
         private set
+    /** 念完（没有排着的句子了）时呼叫；车机播放状态用（[CarMediaService]）。 */
+    @Volatile var onIdle: (() -> Unit)? = null
     private var tts: TextToSpeech? = null
     private var ready = false
     private val pending = mutableListOf<Triple<String, String, Float?>>()
@@ -23,8 +25,8 @@ object Speaker {
             if (ready) {
                 tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                     override fun onStart(id: String?) { speaking = true }
-                    override fun onDone(id: String?) { speaking = tts?.isSpeaking == true }
-                    @Deprecated("old API") override fun onError(id: String?) { speaking = false }
+                    override fun onDone(id: String?) { speaking = tts?.isSpeaking == true; if (!speaking) onIdle?.invoke() }
+                    @Deprecated("old API") override fun onError(id: String?) { speaking = false; onIdle?.invoke() }
                 })
                 val copy = pending.toList(); pending.clear()
                 for ((t, l, r) in copy) speak(c, t, l, r)

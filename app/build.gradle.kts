@@ -78,6 +78,8 @@ dependencies {
     implementation("androidx.health.connect:connect-client:1.1.0")
     // 即时翻译：装置端翻译（免费、离线，每种语言第一次用时下载约 30 MB）
     implementation("com.google.mlkit:translate:17.0.3")
+    // 車機（Android Auto）：媒體瀏覽服務＋媒體工作階段（CarMediaService）
+    implementation("androidx.media:media:1.7.0")
     testImplementation(libs.junit)
     // 单元测试用真正的 org.json（Android 的版本在 JVM 测试里是空壳）
     testImplementation("org.json:json:20240303")
