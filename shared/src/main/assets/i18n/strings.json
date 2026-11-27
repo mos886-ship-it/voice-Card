@@ -5598,5 +5598,117 @@
  "。每份報告的「基本資料」會寫這次用哪支麥克風，方便比較辨識率。": {
   "en": ". Each report's details note which mic was used, so recognition can be compared.",
   "ko": ". 각 보고서의 기본 정보에 사용한 마이크가 표시되어 인식률을 비교할 수 있습니다."
+ },
+ "今天沒有待辦事項。": {
+  "en": "No to-dos today.",
+  "ko": "오늘은 할 일이 없습니다."
+ },
+ "今天有 {0} 項待辦：": {
+  "en": "You have {0} to-dos today: ",
+  "ko": "오늘 할 일이 {0}개 있습니다: "
+ },
+ "還沒有做好的報告。": {
+  "en": "No finished reports yet.",
+  "ko": "아직 완성된 보고서가 없습니다."
+ },
+ "報告好了：{0}。": {
+  "en": "Report ready: {0}. ",
+  "ko": "보고서 완료: {0}. "
+ },
+ "待辦：": {
+  "en": " To-dos: ",
+  "ko": " 할 일: "
+ },
+ "已經在錄音": {
+  "en": "Already recording",
+  "ko": "이미 녹음 중"
+ },
+ "沒有在錄音": {
+  "en": "Not recording",
+  "ko": "녹음 중이 아님"
+ },
+ "車用": {
+  "en": "Car",
+  "ko": "차량"
+ },
+ "開車時不看螢幕：用捷徑、例行程序或手錶開始錄音，報告好了直接唸給你聽。": {
+  "en": "No screen while driving: start recording with a shortcut, a routine or the watch, and hear the report read out when it's ready.",
+  "ko": "운전 중에는 화면을 보지 않아도 됩니다: 바로가기·루틴·워치로 녹음을 시작하고, 보고서가 완성되면 읽어 줍니다."
+ },
+ "報告做好時唸出來": {
+  "en": "Read reports aloud when ready",
+  "ko": "보고서가 완성되면 읽어 주기"
+ },
+ "關": {
+  "en": "Off",
+  "ko": "끄기"
+ },
+ "連著藍牙時": {
+  "en": "On Bluetooth",
+  "ko": "블루투스 연결 시"
+ },
+ "一律": {
+  "en": "Always",
+  "ko": "항상"
+ },
+ "「連著藍牙時」：連著車子或耳機的藍牙麥克風才唸，平常不會突然出聲。唸的是標題和摘要，用報告語言。": {
+  "en": "\"On Bluetooth\": only reads when a car or headset Bluetooth mic is connected, so it won't speak up unexpectedly. It reads the title and summary in the report language.",
+  "ko": "'블루투스 연결 시': 차량이나 이어폰의 블루투스 마이크가 연결되어 있을 때만 읽어서 갑자기 소리가 나지 않습니다. 제목과 요약을 보고서 언어로 읽습니다."
+ },
+ "連待辦一起唸": {
+  "en": "Read to-dos too",
+  "ko": "할 일도 함께 읽기"
+ },
+ "報告好了時，也唸這份報告的待辦事項。": {
+  "en": "When a report is ready, also read its to-dos.",
+  "ko": "보고서가 완성되면 그 보고서의 할 일도 읽습니다."
+ },
+ "現在試試": {
+  "en": "Try it now",
+  "ko": "지금 해 보기"
+ },
+ "唸最新報告": {
+  "en": "Read latest report",
+  "ko": "최신 보고서 읽기"
+ },
+ "唸今天待辦": {
+  "en": "Read today's to-dos",
+  "ko": "오늘 할 일 읽기"
+ },
+ "聲音從媒體音量出來；連著車子時會從車上喇叭播放。": {
+  "en": "Uses media volume; plays through the car speakers when connected.",
+  "ko": "미디어 볼륨으로 재생되며, 차량에 연결되면 차량 스피커로 나옵니다."
+ },
+ "捷徑與例行程序": {
+  "en": "Shortcuts and routines",
+  "ko": "바로가기와 루틴"
+ },
+ "不用打開 App 就能做的事": {
+  "en": "Things you can do without opening the app",
+  "ko": "앱을 열지 않고 할 수 있는 것"
+ },
+ "用法：": {
+  "en": "How:",
+  "ko": "사용 방법:"
+ },
+ "1. 長按大D的 App 圖示就有這些捷徑，也可以拖到桌面。": {
+  "en": "1. Long-press the app icon to see these shortcuts; you can drag them to the home screen.",
+  "ko": "1. 앱 아이콘을 길게 누르면 바로가기가 나오며, 홈 화면으로 끌어 놓을 수 있습니다."
+ },
+ "2. 三星「模式與日常」→ 例行程序：條件選「連上藍牙裝置（你的車）」，動作選「開啟 App 捷徑 → 大D 開始錄音」，上車就自動開始錄；下車（中斷藍牙）再加一條「停止錄音」。": {
+  "en": "2. Samsung Modes and Routines → Routines: if \"Bluetooth device connected (your car)\", then \"Open app shortcut → Dylan Start recording\" to record automatically when you get in; add another for \"Stop recording\" when Bluetooth disconnects.",
+  "ko": "2. 삼성 모드 및 루틴 → 루틴: 조건 '블루투스 기기 연결(내 차)', 동작 '앱 바로가기 열기 → 大D 녹음 시작'으로 하면 타자마자 녹음됩니다. 블루투스가 끊기면 '녹음 중지'하는 루틴도 추가하세요."
+ },
+ "3. 手錶上的「用手機錄音」也可以在車上開始、停止錄音。": {
+  "en": "3. \"Record on phone\" on the watch also starts and stops recording in the car.",
+  "ko": "3. 워치의 '휴대폰으로 녹음'으로도 차에서 녹음을 시작·중지할 수 있습니다."
+ },
+ "語音助理：可以說「Hey Google，開啟大D」。直接說「用大D開始錄音」要 App 從 Play 商店上架後才能用，現在先用捷徑或例行程序。": {
+  "en": "Voice assistant: you can say \"Hey Google, open Dylan\". Saying \"start recording with Dylan\" directly only works once the app is on the Play Store; for now use shortcuts or routines.",
+  "ko": "음성 비서: 'Hey Google, 大D 열어 줘'라고 말할 수 있습니다. '大D로 녹음 시작'처럼 바로 말하는 기능은 앱이 Play 스토어에 출시된 후에 가능하므로, 지금은 바로가기나 루틴을 사용하세요."
+ },
+ "車上麥克風、報告朗讀、捷徑與例行程序": {
+  "en": "Car mic, report read-aloud, shortcuts and routines",
+  "ko": "차량 마이크, 보고서 읽기, 바로가기와 루틴"
  }
 }

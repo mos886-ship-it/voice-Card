@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">Dylan</string>
+    <string name="sc_record">Start recording</string>
+    <string name="sc_stop">Stop recording</string>
+    <string name="sc_food">Log a meal</string>
+    <string name="sc_read_latest">Read latest report</string>
+    <string name="sc_read_todos">Read today\'s to-dos</string>
 </resources>

@@ -122,6 +122,12 @@ class MainActivity : ComponentActivity() {
             LiveCaptions.debugFeedWav(java.io.File(path))
             return
         }
+        // 捷径（长按图示、三星「模式與日常」、语音助理）：开始 / 停止录音、记录饮食、念最新报告、念今天待办（车用）
+        if (intent?.action?.startsWith(CarShortcuts.PREFIX) == true) {
+            CarShortcuts.handle(this, intent.action!!)
+            setIntent(Intent(this, MainActivity::class.java))
+            return
+        }
         // 大D的主機配对连结 dylan://pair?…（相机扫 QR、配对页的连结）→ 设定页处理
         if (intent?.action == Intent.ACTION_VIEW && intent.data?.scheme == "dylan") {
             com.example.wristai.ui.PendingPair.link = intent.data.toString()

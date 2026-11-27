@@ -14,7 +14,7 @@ object Speaker {
         private set
     private var tts: TextToSpeech? = null
     private var ready = false
-    private val pending = mutableListOf<Pair<String, String>>()
+    private val pending = mutableListOf<Triple<String, String, Float?>>()
 
     private fun ensure(c: Context) {
         if (tts != null) return
@@ -27,16 +27,16 @@ object Speaker {
                     @Deprecated("old API") override fun onError(id: String?) { speaking = false }
                 })
                 val copy = pending.toList(); pending.clear()
-                for ((t, l) in copy) speak(c, t, l)
+                for ((t, l, r) in copy) speak(c, t, l, r)
             }
         }
     }
 
-    /** 念一句（[lang] = ML Kit 代码，例如 en、ja）。手机没有那个语言的语音就不念，回 false。 */
-    fun speak(c: Context, text: String, lang: String): Boolean {
+    /** 念一句（[lang] = ML Kit 代码，例如 en、ja；[rate] 没给就用翻译设定的速度）。手机没有那个语言的语音就不念，回 false。 */
+    fun speak(c: Context, text: String, lang: String, rate: Float? = null): Boolean {
         ensure(c)
         val t = tts ?: return false
-        if (!ready) { pending += text to lang; return true }
+        if (!ready) { pending += Triple(text, lang, rate); return true }
         val locale = if (lang == "zh") Locale.TAIWAN else Locale.forLanguageTag(lang)
         if (t.isLanguageAvailable(locale) < TextToSpeech.LANG_AVAILABLE) return false
         t.language = locale
@@ -44,7 +44,7 @@ object Speaker {
         t.setAudioAttributes(android.media.AudioAttributes.Builder()
             .setUsage(if (QuietMode.active(c)) android.media.AudioAttributes.USAGE_ALARM else android.media.AudioAttributes.USAGE_MEDIA)
             .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SPEECH).build())
-        t.setSpeechRate(Settings.speakRate(c))
+        t.setSpeechRate(rate ?: Settings.speakRate(c))
         t.speak(text, TextToSpeech.QUEUE_ADD, null, "cap-${System.nanoTime()}")
         return true
     }

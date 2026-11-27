@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">大D</string>
+    <string name="sc_record">開始錄音</string>
+    <string name="sc_stop">停止錄音</string>
+    <string name="sc_food">記錄飲食</string>
+    <string name="sc_read_latest">唸最新報告</string>
+    <string name="sc_read_todos">唸今天待辦</string>
 </resources>

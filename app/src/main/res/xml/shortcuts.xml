@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- App 捷徑（長按圖示、三星「模式與日常」、語音助理）：車上一鍵 / 一句話。處理在 CarShortcuts。 -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut android:shortcutId="record" android:enabled="true" android:icon="@drawable/ic_sc_record"
+        android:shortcutShortLabel="@string/sc_record" android:shortcutLongLabel="@string/sc_record">
+        <intent android:action="com.example.wristai.shortcut.RECORD" android:targetPackage="com.example.wristai" android:targetClass="com.example.wristai.MainActivity" />
+    </shortcut>
+    <shortcut android:shortcutId="stop" android:enabled="true" android:icon="@drawable/ic_sc_stop"
+        android:shortcutShortLabel="@string/sc_stop" android:shortcutLongLabel="@string/sc_stop">
+        <intent android:action="com.example.wristai.shortcut.STOP" android:targetPackage="com.example.wristai" android:targetClass="com.example.wristai.MainActivity" />
+    </shortcut>
+    <shortcut android:shortcutId="food" android:enabled="true" android:icon="@drawable/ic_sc_food"
+        android:shortcutShortLabel="@string/sc_food" android:shortcutLongLabel="@string/sc_food">
+        <intent android:action="com.example.wristai.shortcut.FOOD" android:targetPackage="com.example.wristai" android:targetClass="com.example.wristai.MainActivity" />
+    </shortcut>
+    <shortcut android:shortcutId="read_latest" android:enabled="true" android:icon="@drawable/ic_sc_speak"
+        android:shortcutShortLabel="@string/sc_read_latest" android:shortcutLongLabel="@string/sc_read_latest">
+        <intent android:action="com.example.wristai.shortcut.READ_LATEST" android:targetPackage="com.example.wristai" android:targetClass="com.example.wristai.MainActivity" />
+    </shortcut>
+    <shortcut android:shortcutId="read_todos" android:enabled="true" android:icon="@drawable/ic_sc_todo"
+        android:shortcutShortLabel="@string/sc_read_todos" android:shortcutLongLabel="@string/sc_read_todos">
+        <intent android:action="com.example.wristai.shortcut.READ_TODOS" android:targetPackage="com.example.wristai" android:targetClass="com.example.wristai.MainActivity" />
+    </shortcut>
+</shortcuts>

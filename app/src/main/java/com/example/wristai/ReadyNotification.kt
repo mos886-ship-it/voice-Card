@@ -42,6 +42,8 @@ object ReadyNotification {
 
     /** 「报告完成」通知：点一下打开 WristAI 看报告。 */
     fun showReport(context: Context, meetingId: String, title: String, summary: String) {
+        // 车用：设定要念就念出来（开车不用看萤幕）
+        runCatching { CarMode.onReportReady(context, meetingId, title, summary) }
         val nm = context.getSystemService(NotificationManager::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             nm.createNotificationChannel(

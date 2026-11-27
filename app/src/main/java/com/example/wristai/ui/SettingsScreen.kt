@@ -76,6 +76,9 @@ fun SettingsScreen(onBack: (() -> Unit)? = null, onOpenPillar: (Tab) -> Unit = {
     // 「关于与授权」页（设定里的子页面）
     var showAbout by remember { mutableStateOf(false) }
     if (showAbout) { AboutScreen { showAbout = false }; return }
+    // 「車用」页（设定里的子页面）
+    var showCar by remember { mutableStateOf(false) }
+    if (showCar) { CarSettingsScreen { showCar = false }; return }
 
     Column(Modifier.fillMaxSize()) {
         if (onBack != null) TopBar("設定".tr, onBack)
@@ -95,6 +98,8 @@ fun SettingsScreen(onBack: (() -> Unit)? = null, onOpenPillar: (Tab) -> Unit = {
                 PillarLink("飲食記錄".tr, "每日目標、健康同步".tr) { onOpenPillar(Tab.FOOD) }
                 Divider(Modifier.padding(vertical = 10.dp))
                 PillarLink("即時翻譯".tr, "預設語言、字幕大小、手錶字幕、離線翻譯模型".tr) { onOpenPillar(Tab.TRANSLATE) }
+                Divider(Modifier.padding(vertical = 10.dp))
+                PillarLink("車用".tr, "車上麥克風、報告朗讀、捷徑與例行程序".tr) { showCar = true }
             }
 
             // ---------- 介面：一张卡放三个各自独立的选择——排布（版面）、資訊量（商用 / 科技）、配色 ----------

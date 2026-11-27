@@ -602,3 +602,11 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 - 每筆錄音存 `Meeting.mic`（phone / phone:fallback / car:裝置名:取樣率），報告「基本資料」顯示「麥克風」，8 kHz 標「電話音質」。手錶、匯入、翻譯報告沒有這欄。
 - 模擬器驗過：沒藍牙時選車上 → phone:fallback。真車（藍牙 / 有線 Android Auto）還沒測；有線 Android Auto 的車上麥克風不是 SCO，這版不會用到它。
 - 還沒做：偵測 8 kHz 時主機改用電話音質模型。
+
+## 車用（設定 → 車用）
+- `CarMode`：報告做好時朗讀（關／連著藍牙時（預設）／一律）、連待辦一起唸、朗讀速度；`readLatest`（最新報告標題＋摘要）、`readTodos`（今天沒打勾的待辦）。從 `ReadyNotification.showReport` 觸發。`Speaker.speak` 多了 rate 參數。
+- App 捷徑（res/xml/shortcuts.xml → `CarShortcuts`）：開始錄音、停止錄音、記錄飲食、唸最新報告、唸今天待辦。長按圖示、三星「模式與日常」（連上車子藍牙 → 開始錄音）都能用。模擬器驗過：5 個捷徑都註冊、開始→停止錄音、朗讀有啟動 TTS。
+- 研究結論（2026/11）：
+  - Android Auto 沒有「錄音／語音助理」類別（只有媒體、通訊、導航、POI、IoT、天氣，停車時遊戲等）；做成媒體類＋錄音按鈕技術上可行，但上架審查可能不過。側載：Android Auto 開發者模式 → 未知來源，只適用媒體 / 訊息通知類，Car App Library 的 App 在真車要走 Play 內部測試。`CarAudioRecord`（Car API 5）可錄車上麥克風但只適合短語音。
+  - CarPlay：iOS 26.4 起有「voice-based conversational apps」類別（entitlement com.apple.developer.carplay-voice-based-conversation，Apple 逐案核准）。
+  - 語音助理：側載 App 的 App Actions 不會被 Google 註冊（要上傳 Play Console）；「Hey Google，開啟大D」可以。

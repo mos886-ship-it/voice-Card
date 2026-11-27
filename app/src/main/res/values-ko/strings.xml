@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sc_record">녹음 시작</string>
+    <string name="sc_stop">녹음 중지</string>
+    <string name="sc_food">식사 기록</string>
+    <string name="sc_read_latest">최신 보고서 읽기</string>
+    <string name="sc_read_todos">오늘 할 일 읽기</string>
+</resources>
