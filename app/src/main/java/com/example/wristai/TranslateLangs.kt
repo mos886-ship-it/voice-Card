@@ -15,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.Locale
@@ -154,7 +155,51 @@ object TranslateLangs {
             }
             if (!ok) null else Support(installed, downloadable, online.ifEmpty { DEFAULT_TAGS.toSet() }, queried = true)
         }
-        if (out != null) _support.value = out
+        if (out != null) {
+            _support.value = out
+            // 刚下载好离线语音：即时翻译不要再记着「这个语言没有离线」
+            withContext(Dispatchers.Main) { LiveCaptions.offlineInstalled(out) }
+        }
+    }
+
+    /** 下载离线语音跟页面无关（离开页面还会继续查）。 */
+    private val bg = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + Dispatchers.Main)
+
+    /** 正在下载的离线语音：辨识代码 → 进度 0～100（-1 = 下载中、手机没给进度）。 */
+    private val _downloading = MutableStateFlow<Map<String, Int>>(emptyMap())
+    val downloading: StateFlow<Map<String, Int>> = _downloading.asStateFlow()
+
+    /**
+     * 下载离线语音（手机系统会问要不要下载）。Android 14+ 有进度、下载好马上更新标签；
+     * Android 13 没有进度，每 5 秒查一次，最多 3 分钟。
+     */
+    fun downloadOffline(c: Context, tag: String) {
+        if (Build.VERSION.SDK_INT < 33 || tag in _downloading.value) return
+        val app = c.applicationContext
+        val r = runCatching { SpeechRecognizer.createOnDeviceSpeechRecognizer(app) }.getOrNull() ?: return
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).putExtra(RecognizerIntent.EXTRA_LANGUAGE, tag)
+        fun set(p: Int?) { _downloading.value = if (p == null) _downloading.value - tag else _downloading.value + (tag to p) }
+        set(-1)
+        if (Build.VERSION.SDK_INT >= 34) {
+            val ok = runCatching {
+                r.triggerModelDownload(intent, app.mainExecutor, object : android.speech.ModelDownloadListener {
+                    override fun onProgress(completedPercent: Int) = set(completedPercent)
+                    override fun onSuccess() { set(null); r.destroy(); bg.launch { refresh(app) } }
+                    override fun onScheduled() { set(null); r.destroy(); bg.launch { refresh(app) } }
+                    override fun onError(error: Int) { set(null); r.destroy(); bg.launch { refresh(app) } }
+                })
+            }.isSuccess
+            if (ok) return
+        }
+        runCatching { r.triggerModelDownload(intent) }.onFailure { set(null); r.destroy(); return }
+        bg.launch {
+            for (i in 0 until 36) {
+                kotlinx.coroutines.delay(5_000)
+                refresh(app)
+                if (_support.value.status(tag) == Status.OFFLINE) break
+            }
+            set(null); runCatching { r.destroy() }
+        }
     }
 
     /** 手机上的辨识服务（Google 的排前面）。 */

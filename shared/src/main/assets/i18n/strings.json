@@ -5398,5 +5398,13 @@
  "手機語音辨識每次開始聽會「叮」一聲；翻譯中暫時把媒體、系統、通知聲音靜音，停止就恢復（朗讀照樣聽得到）。": {
   "en": "The phone's speech recognizer beeps each time it starts listening. While translating, media, system and notification sounds are muted and restored when you stop (read-aloud stays audible).",
   "ko": "휴대폰 음성 인식은 듣기를 시작할 때마다 알림음이 납니다. 번역 중에는 미디어·시스템·알림 소리를 잠시 음소거하고 중지하면 복원합니다(읽어 주기는 들립니다)."
+ },
+ "下載離線語音中… {0}%": {
+  "en": "Downloading offline speech… {0}%",
+  "ko": "오프라인 음성 다운로드 중… {0}%"
+ },
+ "下載離線語音中…（下載好標籤會變成「離線」）": {
+  "en": "Downloading offline speech… (the label changes to \"Offline\" when done)",
+  "ko": "오프라인 음성 다운로드 중… (완료되면 표시가 '오프라인'으로 바뀝니다)"
  }
 }

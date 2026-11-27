@@ -47,6 +47,7 @@ import com.example.wristai.Settings
 import com.example.wristai.TranslateLangs
 import com.example.wristai.TranslateModels
 import com.example.wristai.ui.theme.Brand
+import kotlinx.coroutines.launch
 
 /** 辨识状态的小标签：离线（绿）/ 可下载离线（青）/ 只有线上（灰）。 */
 @Composable
@@ -171,4 +172,20 @@ private fun Chip(text: String, on: Boolean, onClick: () -> Unit) {
         modifier = Modifier.clip(shape).background(if (on) Brand.SurfaceHigher else Brand.SurfaceHigh)
             .border(1.dp, if (on) Brand.Cyan else Brand.Outline, shape).clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 8.dp))
+}
+
+/** 页面回到前景（例如从系统的「下载离线语音」回来）就重新查辨识清单与翻译模型，标签才会跟着变。 */
+@Suppress("DEPRECATION")
+@Composable
+fun RefreshLangsOnResume() {
+    val context = LocalContext.current
+    val owner = androidx.compose.ui.platform.LocalLifecycleOwner.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    androidx.compose.runtime.DisposableEffect(owner) {
+        val obs = androidx.lifecycle.LifecycleEventObserver { _, e ->
+            if (e == androidx.lifecycle.Lifecycle.Event.ON_RESUME) scope.launch { TranslateLangs.refresh(context); TranslateModels.refresh() }
+        }
+        owner.lifecycle.addObserver(obs)
+        onDispose { owner.lifecycle.removeObserver(obs) }
+    }
 }

@@ -86,7 +86,7 @@ fun LiveTranslateScreen(onBack: (() -> Unit)? = null) {
     val s by LiveCaptions.state.collectAsState()
     val active by PhoneRecorder.active.collectAsState()
     val recording = active != null && !com.example.wristai.FoodLog.isFood(active!!.meetingId)
-    LaunchedEffect(Unit) { TranslateLangs.refresh(context); com.example.wristai.TranslateModels.refresh() }
+    RefreshLangsOnResume()
     val support by TranslateLangs.support.collectAsState()
 
     var source by remember { mutableStateOf(if (s.running) s.source else Settings.translateSource(context)) }

@@ -98,6 +98,11 @@ object LiveCaptions {
     /** 这次开 App 已经知道离线没有的语言（不要每次都跳「下载离线语音」）。 */
     private val offlineMissing = mutableSetOf<String>()
 
+    /** 辨识清单更新了（例如刚下载好离线语音）：已经装好的语言不再当成「没有离线」，下次开始就用离线。 */
+    fun offlineInstalled(s: TranslateLangs.Support) {
+        offlineMissing.removeAll { s.status(it) == TranslateLangs.Status.OFFLINE }
+    }
+
     /**
      * 辨识服务的候选顺序：离线（有、而且这个语言没确认缺）→ Google 的线上服务 → 手机上其他服务。
      * 设定关掉「允许线上辨识」就只用离线。

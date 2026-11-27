@@ -205,7 +205,7 @@ private fun TranslateAnalysis(sessions: List<TranslationStore.Session>) {
 private fun TranslateSettings(onOpenSettings: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    LaunchedEffect(Unit) { TranslateLangs.refresh(context); TranslateModels.refresh() }
+    RefreshLangsOnResume()
     val support by TranslateLangs.support.collectAsState()
     var source by remember { mutableStateOf(Settings.translateSource(context)) }
     var target by remember { mutableStateOf(Settings.translateTarget(context).ifEmpty { LiveCaptions.defaultTarget(source, com.example.voiceai.shared.I18n.lang) }) }
@@ -239,16 +239,16 @@ private fun TranslateSettings(onOpenSettings: () -> Unit) {
                 TranslateLangs.Status.ONLINE -> "只有線上辨識：聲音會傳到 Google 辨識，要有網路。".tr
                 null -> if (support.queried) "手機的辨識服務沒有列出這個口音，會試著用線上辨識。".tr else "這支手機查不到辨識清單（Android 13 以下），會用 Google 語音服務。".tr
             }, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
-            if (srcStatus == TranslateLangs.Status.DOWNLOADABLE && android.os.Build.VERSION.SDK_INT >= 33) {
+            val downloading by TranslateLangs.downloading.collectAsState()
+            val progress = downloading[source]
+            if (progress != null) {
                 Spacer(Modifier.height(8.dp))
-                GhostButton("下載離線語音".tr, {
-                    runCatching {
-                        val r = android.speech.SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
-                        r.triggerModelDownload(android.content.Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
-                            .putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE, source))
-                        scope.launch { kotlinx.coroutines.delay(5_000); r.destroy(); TranslateLangs.refresh(context) }
-                    }
-                }, Modifier.fillMaxWidth(), tint = Brand.Cyan)
+                Text((if (progress >= 0) "下載離線語音中… {0}%".trf(progress) else "下載離線語音中…（下載好標籤會變成「離線」）".tr),
+                    style = MaterialTheme.typography.bodySmall, color = Brand.Cyan)
+            } else if (srcStatus == TranslateLangs.Status.DOWNLOADABLE && android.os.Build.VERSION.SDK_INT >= 33) {
+                Spacer(Modifier.height(8.dp))
+                GhostButton("下載離線語音".tr, { TranslateLangs.downloadOffline(context, source) },
+                    Modifier.fillMaxWidth(), tint = Brand.Cyan)
             }
             Spacer(Modifier.height(10.dp))
             Text("離線已裝 {0} 種、可下載 {1} 種、線上 {2} 種".trf(support.installed.size, support.downloadable.size, support.online.size),
