@@ -124,6 +124,14 @@ class ForeignFoodDbTest {
         assertTrue(FoodDb.promptList.length < 120_000)
     }
 
+    @Test fun mfds() {
+        load("kr.json", "KR", "韓國食藥處")
+        val bibim = FoodDb.find("비빔밥")
+        assertNotNull(bibim)
+        assertTrue(bibim!!.kcal in 120.0..220.0)
+        assertTrue(FoodDb.promptList.length < 120_000)
+    }
+
     @Test fun regionBoxes() {
         assertEquals("TW", FoodRegion.countryAt(25.03, 121.56))
         assertEquals("JP", FoodRegion.countryAt(35.68, 139.69))

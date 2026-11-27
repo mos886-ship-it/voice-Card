@@ -155,6 +155,10 @@ fun AboutScreen(onBack: () -> Unit) {
                 Text("在日本的餐點使用「日本食品標準成分表（八訂）増補2023年」（文部科学省）を加工して作成（公共データ利用規約 第1.0版，相容 CC BY 4.0）。".tr,
                     style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
                 LinkRow("日本食品標準成分表（文部科学省）".tr) { open("https://www.mext.go.jp/a_menu/syokuhinseibun/") }
+                Spacer(Modifier.height(8.dp))
+                Text("在韓國的餐點使用 식품의약품안전처「식품영양성분 데이터베이스」（전국통합식품영양성분정보 음식 표준데이터，公共資料入口網站），只取一般菜色。".tr,
+                    style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
+                LinkRow("식품영양성분 데이터베이스（공공데이터포털）".tr) { open("https://www.data.go.kr/data/15100070/standard.do") }
             }
 
             // ---------- 云端 AI ----------

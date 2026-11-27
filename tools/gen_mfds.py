@@ -6,7 +6,7 @@
 授權：公共資料入口網站的標準資料；食藥處著作權政策允許標示出處使用。商用前要向食藥處確認（見 交接/HANDOFF.md）。
 
 讀欄位：식품명、식품대분류명、영양성분함량기준량、에너지(kcal)、단백질(g)、지방(g)、탄수화물(g)、식이섬유(g)。
-只留基準量是 100g／100ml 的列（其他基準量不換算，避免算錯）；名稱重複的留第一筆。
+只留一般菜色（去掉連鎖品牌商品、農村振興廳來源）、基準量是 100g／100ml 的列；名稱重複的留第一筆。
 """
 import csv
 import io
@@ -51,6 +51,10 @@ def main():
     out, seen = [], set()
     for r in rows(sys.argv[1]):
         r = {str(k).strip(): v for k, v in r.items()}
+        # 只留一般菜色（外食、學校／團膳、家常）：連鎖品牌的個別商品太多（1.5 萬筆）、提示詞放不下；
+        # 農村振興廳（國家標準食品成分表）來源是公共누리 2 型（不可商用），不放
+        if "프랜차이즈" in str(r.get("식품기원명", "")) or "농촌진흥청" in str(r.get("출처명", "")):
+            continue
         base = str(r.get(COLS["base"], "")).replace(" ", "").lower()
         if base and base not in ("100g", "100ml"):
             continue
