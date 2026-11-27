@@ -249,6 +249,7 @@ object LiveCaptions {
     /** 开一段新的辨识（录音模式：pipe 的读端交给辨识器，写端给 [feed]；麦克风模式：辨识器自己听）。 */
     private fun startRecognizer(c: Context) {
         val s = _state.value
+        cut = ""
         if (!startLineOf.containsKey(s.sessionId)) startLineOf[s.sessionId] = nextId
         val source = s.source
         var pipeRead: ParcelFileDescriptor? = null
@@ -281,12 +282,21 @@ object LiveCaptions {
             override fun onPartialResults(b: Bundle?) {
                 val t = text(b); if (t.isEmpty() || Speaker.speaking) return
                 heard = true; errorsInRow = 0
+                // 已经切出去的前段拿掉；还在说的这段太长就先切一句出去翻
+                var rest = Chunker.remainder(t, cut)
+                Chunker.split(rest)?.let { (piece, after) ->
+                    commitPiece(piece)
+                    cut = Chunker.newCut(t, cut, piece, after)
+                    rest = after
+                }
+                if (rest.isEmpty()) return
                 update { st ->
                     val last = st.lines.lastOrNull()
-                    val lines = if (last != null && last.partial) st.lines.dropLast(1) + last.copy(original = t)
-                    else st.lines + Line(nextId++, t, null, partial = true)
+                    val lines = if (last != null && last.partial) st.lines.dropLast(1) + last.copy(original = rest)
+                    else st.lines + Line(nextId++, rest, null, partial = true)
                     st.copy(lines = lines.takeLast(MAX_LINES))
                 }
+                draft()
             }
 
             override fun onSegmentResults(b: Bundle) { val t = text(b); if (t.isNotEmpty()) { heard = true; errorsInRow = 0 }; finishLine(t) }
@@ -355,16 +365,56 @@ object LiveCaptions {
                 putExtra(RecognizerIntent.EXTRA_AUDIO_SOURCE_SAMPLING_RATE, AudioSpec.SAMPLE_RATE)
                 putExtra(RecognizerIntent.EXTRA_SEGMENTED_SESSION, RecognizerIntent.EXTRA_AUDIO_SOURCE)
             } else {
-                // 麦克风：说完停 1.5 秒算一句
-                putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 1500L)
+                // 麦克风：说完停约 1 秒算一句（有的辨识服务不理这个，所以还会边说边切、边说边翻）
+                putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 1000L)
+                putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 700L)
             }
         }
         r.startListening(intent)
     }
 
+    /** 这段话（辨识器的一次结果）里已经切出去翻好的前段；辨识器给最终结果时清掉。 */
+    private var cut = ""
+
+    /** 还在说就先切出去的一句：当成说完的一句翻译（推手表、朗读），后面接着的再开新的一行。 */
+    private fun commitPiece(piece: String) {
+        update { s ->
+            val last = s.lines.lastOrNull()
+            val lines = if (last != null && last.partial) s.lines.dropLast(1) + last.copy(original = piece, partial = false)
+            else s.lines + Line(nextId++, piece, null)
+            s.copy(lines = lines.takeLast(MAX_LINES))
+        }
+        val line = _state.value.lines.lastOrNull { !it.partial && it.original == piece } ?: return
+        translate(line.id, piece)
+    }
+
+    @Volatile private var drafting = false
+
+    /** 还在说的那行边说边翻（暂时的译文，说完再翻一次定下来）；同时只翻一个，翻完看文字变了再翻。 */
+    private fun draft() {
+        if (drafting || translator == null) return
+        drafting = true
+        scope.launch {
+            var done: String? = null
+            try {
+                while (true) {
+                    val line = _state.value.lines.lastOrNull()?.takeIf { it.partial } ?: break
+                    if (line.original == done) break
+                    done = line.original
+                    val t = translator ?: break
+                    val out = runCatching { t.translate(line.original).await() }.getOrNull() ?: break
+                    val shown = if (_state.value.target == "zh") TraditionalChinese.convert(out) else out
+                    update { s -> s.copy(lines = s.lines.map { if (it.id == line.id && it.partial) it.copy(translated = shown) else it }) }
+                    kotlinx.coroutines.delay(250)
+                }
+            } finally { drafting = false }
+        }
+    }
+
     /** 一句说完：定下原文、开始翻译。朗读中听到的（自己的朗读）不算。 */
     private fun finishLine(t0: String) {
-        val t = if (Speaker.speaking) "" else t0
+        val t = if (Speaker.speaking) "" else Chunker.remainder(t0, cut)
+        cut = ""
         update { s ->
             val last = s.lines.lastOrNull()
             when {
@@ -388,6 +438,69 @@ object LiveCaptions {
             val c = appContext ?: return@launch
             if (Settings.captionToWatch(c)) WatchNotifier.sendCaption(c, shown)
             if (Settings.autoSpeak(c) && _state.value.running) Speaker.speak(c, shown, target)
+        }
+    }
+}
+
+/**
+ * 边说边切句：辨识器常常要等人停很久才给一句，一口气说很长就要等很久才翻。
+ * 还在说的文字里出现句号、问号…就把前面切成一句；没有标点但太长（中日韩约 28 字、其他约 14 个字）
+ * 就在逗号或空白处切，最后几个字留着（辨识器还可能改）。
+ */
+object Chunker {
+    private const val ENDS = "。！？!?；;…"
+    private const val SOFT = "，、,："
+
+    private fun isCjk(ch: Char) = ch in '぀'..'ヿ' || ch in '㐀'..'鿿' || ch in '가'..'힯' || ch in '豈'..'﫿'
+    private fun cjk(s: String) = s.count { isCjk(it) } * 2 > s.count { it.isLetterOrDigit() }
+
+    /** 已经切出去的前段 [cut] 拿掉，回传剩下的；辨识器改了前面的字（开头对不上）就照字数略过。 */
+    fun remainder(t: String, cut: String): String {
+        if (cut.isEmpty()) return t.trim()
+        if (t.startsWith(cut)) return t.substring(cut.length).trimStart(' ', *SOFT.toCharArray(), *ENDS.toCharArray()).trim()
+        var k = cut.count { it.isLetterOrDigit() }
+        var i = 0
+        while (i < t.length && k > 0) { if (t[i].isLetterOrDigit()) k--; i++ }
+        return t.substring(i).trimStart(' ', *SOFT.toCharArray(), *ENDS.toCharArray()).trim()
+    }
+
+    /** 切完以后的「已切前段」：尽量是辨识结果 [t] 的开头原文（下次比对用）。 */
+    fun newCut(t: String, cut: String, piece: String, after: String): String {
+        val tt = t.trimEnd()
+        return if (after.isNotEmpty() && tt.endsWith(after)) tt.substring(0, tt.length - after.length) else cut + piece
+    }
+
+    /** 要切的话回传 (切出去的一句, 剩下还在说的)；不用切回 null。[rest] 是原文的尾段（切点前后都照原文）。 */
+    fun split(rest: String): Pair<String, String>? {
+        // 1) 句尾标点：后面还有字（标点后面的字表示这句真的说完了），前段至少 4 个字
+        var at = -1
+        for (i in rest.indices) {
+            val c = rest[i]
+            val end = c in ENDS || (c == '.' && i + 1 < rest.length && rest[i + 1] == ' ')
+            if (end && i + 1 < rest.length && rest.substring(i + 1).any { it.isLetterOrDigit() } &&
+                rest.substring(0, i).count { it.isLetterOrDigit() } >= 4) at = i
+        }
+        if (at >= 0) return rest.substring(0, at + 1).trim() to rest.substring(at + 1).trimStart()
+        // 2) 太长：在逗号 / 空白处切，最后几个字留着
+        val asian = cjk(rest)
+        val letters = rest.count { it.isLetterOrDigit() }
+        if (asian) {
+            if (letters < 28) return null
+            val limit = rest.length - 6
+            val soft = (limit - 1 downTo 8).firstOrNull { rest[it] in SOFT }
+            val cutAt = soft?.plus(1) ?: limit
+            return rest.substring(0, cutAt).trim() to rest.substring(cutAt).trimStart()
+        } else {
+            val words = rest.trim().split(Regex("\\s+"))
+            if (words.size < 14) return null
+            // 留最后 3 个字；前面有逗号就在逗号切
+            val keepFrom = words.size - 3
+            val commaWord = (keepFrom - 1 downTo 4).firstOrNull { words[it].lastOrNull()?.let { c -> c in SOFT } == true }
+            val n = (commaWord?.plus(1)) ?: keepFrom
+            val head = words.take(n).joinToString(" ")
+            val idx = rest.indexOf(head).takeIf { it >= 0 } ?: return null
+            val end = idx + head.length
+            return rest.substring(0, end).trim() to rest.substring(end).trimStart()
         }
     }
 }

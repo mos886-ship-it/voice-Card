@@ -199,6 +199,8 @@ fun LiveTranslateScreen(onBack: (() -> Unit)? = null) {
                     })) {
                         if (original || l.partial || l.translated == null) Text(l.original, style = MaterialTheme.typography.bodySmall,
                             color = Brand.TextMuted, fontStyle = if (l.partial) FontStyle.Italic else FontStyle.Normal)
+                        // 还在说的那行：边说边翻的暂时译文（斜体、淡色），说完会再翻一次定下来
+                        if (l.partial) l.translated?.let { Text(it, style = tStyle, color = Brand.TextMuted, fontStyle = FontStyle.Italic) }
                         if (!l.partial) Row(verticalAlignment = Alignment.Top) {
                             Text(l.translated ?: "…", style = tStyle, color = if (l.translated == null) Brand.TextFaint else Brand.Text,
                                 modifier = Modifier.weight(1f))
@@ -245,7 +247,7 @@ private fun BigCaption(onClose: () -> Unit) {
             Column(Modifier.fillMaxSize().padding(24.dp).rotate(if (flip) 180f else 0f), verticalArrangement = Arrangement.Center) {
                 Text(TranslateLangs.shortName(s.target, true), style = MaterialTheme.typography.labelLarge, color = Brand.Cyan)
                 Spacer(Modifier.height(12.dp))
-                Text(last?.translated ?: last?.original ?: "…", fontSize = 40.sp, lineHeight = 52.sp, fontWeight = FontWeight.SemiBold,
+                Text(partial?.translated ?: last?.translated ?: last?.original ?: "…", fontSize = 40.sp, lineHeight = 52.sp, fontWeight = FontWeight.SemiBold,
                     color = Brand.Text)
                 Spacer(Modifier.height(20.dp))
                 Text((partial ?: last)?.original.orEmpty(), style = MaterialTheme.typography.titleMedium, color = Brand.TextMuted,
