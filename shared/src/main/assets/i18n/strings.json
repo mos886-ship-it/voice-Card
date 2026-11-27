@@ -5710,5 +5710,25 @@
  "車上麥克風、報告朗讀、捷徑與例行程序": {
   "en": "Car mic, report read-aloud, shortcuts and routines",
   "ko": "차량 마이크, 보고서 읽기, 바로가기와 루틴"
+ },
+ "記錄飲食中…": {
+  "en": "Logging a meal…",
+  "ko": "식사 기록 중…"
+ },
+ "錄音中，點右邊停止": {
+  "en": "Recording — tap the right button to stop",
+  "ko": "녹음 중 — 오른쪽을 눌러 중지"
+ },
+ "按右邊開始錄音": {
+  "en": "Tap the right button to record",
+  "ko": "오른쪽을 눌러 녹음 시작"
+ },
+ "今天 {0} 段錄音 · {1} / {2} 大卡 · {3} 項待辦": {
+  "en": "Today: {0} recordings · {1} / {2} kcal · {3} to-dos",
+  "ko": "오늘 녹음 {0}개 · {1} / {2} kcal · 할 일 {3}개"
+ },
+ "唸待辦": {
+  "en": "Read to-dos",
+  "ko": "할 일 읽기"
  }
 }

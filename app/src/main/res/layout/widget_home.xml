@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 桌面小工具（HomeWidget）：上排日期＋最新報告 / 錄音中計時，右邊錄音鍵；中間今天的數字；下排三個捷徑。 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/w_root" android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:background="@drawable/widget_bg" android:padding="14dp">
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
+        android:orientation="horizontal" android:gravity="center_vertical">
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+            android:orientation="vertical">
+            <TextView android:id="@+id/w_date" android:text="@string/app_name" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:textColor="#FF8FA3B3" android:textSize="12sp" android:maxLines="1" />
+            <Chronometer android:id="@+id/w_timer" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:textColor="#FFE84C5B" android:textSize="22sp" android:textStyle="bold" android:visibility="gone" />
+            <TextView android:id="@+id/w_title" android:text="@string/sc_record" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:textColor="#FFEAF2F7" android:textSize="16sp" android:textStyle="bold" android:maxLines="2"
+                android:ellipsize="end" />
+        </LinearLayout>
+        <FrameLayout android:id="@+id/w_rec" android:layout_width="56dp" android:layout_height="56dp"
+            android:layout_marginStart="10dp" android:background="@drawable/widget_rec">
+            <ImageView android:id="@+id/w_rec_icon" android:layout_width="26dp" android:layout_height="26dp"
+                android:layout_gravity="center" android:src="@drawable/widget_rec_dot" android:contentDescription="@string/sc_record" />
+        </FrameLayout>
+    </LinearLayout>
+
+    <TextView android:id="@+id/w_stats" android:text="@string/widget_desc" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="6dp" android:layout_marginBottom="8dp" android:textColor="#FF2BC8D6" android:textSize="13sp"
+        android:maxLines="1" android:ellipsize="end" />
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+        <TextView android:id="@+id/w_food" android:text="@string/sc_food" android:layout_width="0dp" android:layout_height="34dp" android:layout_weight="1"
+            android:background="@drawable/widget_chip" android:gravity="center" android:textColor="#FFEAF2F7" android:textSize="13sp" android:maxLines="1" />
+        <TextView android:id="@+id/w_translate" android:text="@string/w_translate" android:layout_width="0dp" android:layout_height="34dp" android:layout_weight="1"
+            android:layout_marginStart="6dp" android:background="@drawable/widget_chip" android:gravity="center"
+            android:textColor="#FFEAF2F7" android:textSize="13sp" android:maxLines="1" />
+        <TextView android:id="@+id/w_todos" android:text="@string/sc_read_todos" android:layout_width="0dp" android:layout_height="34dp" android:layout_weight="1"
+            android:layout_marginStart="6dp" android:background="@drawable/widget_chip" android:gravity="center"
+            android:textColor="#FFEAF2F7" android:textSize="13sp" android:maxLines="1" />
+    </LinearLayout>
+</LinearLayout>

@@ -49,5 +49,6 @@ object ActionItems {
         val s = done(c).toMutableSet()
         if (on) s += item.key else s -= item.key
         prefs(c).edit().putStringSet("done", s).apply()
+        HomeWidget.refresh(c)   // 小工具的待办数
     }
 }

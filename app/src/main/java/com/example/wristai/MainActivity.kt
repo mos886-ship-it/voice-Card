@@ -177,6 +177,10 @@ private fun App() {
             go(Tab.TRANSLATE.route)
         }
     }
+    // 小工具点最新报告 → 打开那份报告
+    LaunchedEffect(PendingOpen.meetingId) {
+        PendingOpen.meetingId?.let { id -> PendingOpen.meetingId = null; route = "detail:$id" }
+    }
     val overview = com.example.wristai.ui.theme.AppTheme.layout == com.example.wristai.ui.theme.LayoutMode.OVERVIEW
     // 旧版本存下来的路由（档案分页、单独的翻译页、档案管理）→ 现在都在主轴分页里
     if (route == "tab:files" || route == "files") { com.example.wristai.ui.Hubs.records = 2; route = Tab.RECORDS.route }

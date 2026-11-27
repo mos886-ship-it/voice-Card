@@ -207,6 +207,8 @@ object MeetingStore {
         val current = get(context, id) ?: return null
         val updated = change(current)
         save(context, updated)
+        // 状态变了（做完、失败）或营养数字变了 → 桌面小工具更新（最新报告、今天的数字）
+        if (current.status != updated.status || current.nutrition != updated.nutrition) HomeWidget.refresh(context)
         // 报告刚做完 → 自动备份到 Google 云端硬碟（有连结、有开自动备份才会排）
         if (current.status != MeetingStatus.DONE && updated.status == MeetingStatus.DONE)
             runCatching { com.example.wristai.backup.BackupWorker.scheduleAuto(context) }

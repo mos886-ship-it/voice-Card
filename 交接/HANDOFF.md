@@ -610,3 +610,9 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
   - Android Auto 沒有「錄音／語音助理」類別（只有媒體、通訊、導航、POI、IoT、天氣，停車時遊戲等）；做成媒體類＋錄音按鈕技術上可行，但上架審查可能不過。側載：Android Auto 開發者模式 → 未知來源，只適用媒體 / 訊息通知類，Car App Library 的 App 在真車要走 Play 內部測試。`CarAudioRecord`（Car API 5）可錄車上麥克風但只適合短語音。
   - CarPlay：iOS 26.4 起有「voice-based conversational apps」類別（entitlement com.apple.developer.carplay-voice-based-conversation，Apple 逐案核准）。
   - 語音助理：側載 App 的 App Actions 不會被 Google 註冊（要上傳 Play Console）；「Hey Google，開啟大D」可以。
+
+## 桌面小工具（HomeWidget）
+- 4×2，RemoteViews（沒加新套件）：日期＋最新報告標題（錄音中改紅色計時 Chronometer）、右邊錄音／停止鍵；今天幾段錄音、大卡 / 目標、幾項待辦；下排記錄飲食、翻譯、唸待辦。點標題開最新報告。
+- 按鈕都開 MainActivity 走 `CarShortcuts`（TOGGLE、FOOD、TRANSLATE、READ_TODOS、OPEN_LATEST）：麥克風前台服務要 App 在前景才能開。
+- 更新：`PhoneRecordingService.broadcastState`（錄音開始 / 停止）、`MeetingStore.update` 狀態或營養變了、`ActionItems.setDone`；系統每 30 分鐘。
+- 模擬器驗過：加到桌面、數字正確、按錄音 → 計時 → 再按停止。
