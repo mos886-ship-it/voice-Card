@@ -102,7 +102,8 @@ final class GeminiJobs: NSObject, URLSessionDataDelegate, URLSessionDownloadDele
         let text = MeetingStore.isText(meetingId)
         let queue = LocalAI.hasJobs
         guard let r = LocalAI.processRequest(kind: kind, recordedAt: recordedAt, durationSec: durationSec, text: text,
-                                             lang: lang, dialect: dialect, queue: queue) else {
+                                             lang: lang, dialect: dialect, queue: queue,
+                                             country: kind == "food" ? FoodRegion.of(meetingId) : nil) else {
             throw GeminiClient.Failure(message: "大D的主機 的位址格式不對".tr)
         }
         let task = localSession.uploadTask(with: r, fromFile: text ? MeetingStore.textURL(meetingId) : MeetingStore.audioURL(meetingId))
@@ -152,7 +153,7 @@ final class GeminiJobs: NSObject, URLSessionDataDelegate, URLSessionDownloadDele
         // 背景上傳任務只能從檔案上傳 → 請求內容先寫成暫存檔
         let body = FileManager.default.temporaryDirectory.appendingPathComponent("gemini-\(job.meetingId)-\(job.model).json")
         try GeminiClient.generateBody(fileURI: job.fileURI, prompt: prompt,
-                                      system: job.food == true ? GeminiClient.foodPrompt : GeminiClient.systemPrompt,
+                                      system: job.food == true ? GeminiClient.foodPrompt(country: FoodRegion.of(job.meetingId)) : GeminiClient.systemPrompt,
                                       images: photos).write(to: body)
         var r = client.request("\(GeminiClient.base)/v1beta/models/\(model):generateContent", "POST", timeout: 600)
         r.setValue("application/json", forHTTPHeaderField: "Content-Type")

@@ -10,6 +10,8 @@ struct SettingsView: View {
     @AppStorage(LayoutMode.key) private var layout: LayoutMode = .quick
     @AppStorage(I18n.key) private var uiLang = I18n.auto
     @AppStorage(ReportLang.key) private var reportLang = ReportLang.auto
+    @AppStorage(ReportDomain.key) private var reportDomain = ReportDomain.auto
+    @AppStorage(FoodRegion.key) private var foodCountry = FoodRegion.auto
     /// 報告語言「跟介面」時看的是設定裡選的介面語言（還沒重開 App 也算）
     private var reportLangNow: ReportLang {
         reportLang == ReportLang.auto ? ReportLang.fromLanguage(I18n.langOf(uiLang)) : (ReportLang(rawValue: reportLang) ?? .zh)
@@ -76,6 +78,18 @@ struct SettingsView: View {
                         .font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 8)
 
                     DividerLine().padding(.vertical, 14)
+                    HStack {
+                        rowLabel("領域專家模式".tr)
+                        Spacer()
+                        Picker("領域專家模式".tr, selection: $reportDomain) {
+                            ForEach(ReportDomain.options, id: \.id) { Text($0.name).tag($0.id) }
+                        }
+                        .pickerStyle(.menu).tint(Brand.blue)
+                    }
+                    Text("法律、醫療、財務等專業內容，報告多一節「專業重點」，術語與重點照該領域整理。自動判斷：一般對話不加。".tr)
+                        .font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 4)
+
+                    DividerLine().padding(.vertical, 14)
                     rowLabel("排布".tr)
                     HStack(spacing: 8) {
                         ForEach(LayoutMode.allCases) { l in
@@ -127,6 +141,22 @@ struct SettingsView: View {
                         .pickerStyle(.segmented).padding(.top, 8)
                         Text(theme.ukiyoeBg.note).font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 8)
                     }
+                }
+
+                SectionLabel(text: "飲食".tr)
+                GlassCard {
+                    HStack {
+                        rowLabel("用餐的國家".tr)
+                        Spacer()
+                        Picker("用餐的國家".tr, selection: $foodCountry) {
+                            Text("自動".tr).tag(FoodRegion.auto)
+                            ForEach(FoodRegion.supported, id: \.self) { Text(FoodRegion.name($0)).tag($0) }
+                        }
+                        .pickerStyle(.menu).tint(Brand.blue)
+                    }
+                    Text("份量依當地習慣估算。自動：照這一餐的地點，沒有地點就照手機地區（現在：".tr
+                         + FoodRegion.name(FoodRegion.of()) + "）。台灣的餐用食藥署資料計算，其他國家為 AI 估算。".tr)
+                        .font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 4)
                 }
 
                 SectionLabel(text: "健康同步".tr)

@@ -5894,5 +5894,21 @@
  "식품영양성분 데이터베이스（공공데이터포털）": {
   "en": "식품영양성분 데이터베이스 (Public Data Portal)",
   "ko": "식품영양성분 데이터베이스 (공공데이터포털)"
+ },
+ "法律、醫療、財務等專業內容，報告多一節「專業重點」，術語與重點照該領域整理。自動判斷：一般對話不加。": {
+  "en": "For legal, medical, finance and other professional content, the report adds an \"Expert notes\" section and uses that field's terms. Auto: nothing is added for everyday conversations.",
+  "ko": "법률·의료·재무 등 전문 내용이면 보고서에 '전문가 관점' 섹션이 추가되고 해당 분야의 용어로 정리됩니다. 자동: 일상 대화에는 추가하지 않습니다."
+ },
+ "用餐的國家": {
+  "en": "Meal country",
+  "ko": "식사 국가"
+ },
+ "份量依當地習慣估算。自動：照這一餐的地點，沒有地點就照手機地區（現在：": {
+  "en": "Portions are estimated by local habits. Auto: uses the meal's location, or the phone's region if there is none (now: ",
+  "ko": "분량은 현지 기준으로 추정합니다. 자동: 식사 위치, 위치가 없으면 휴대폰 지역 기준(현재: "
+ },
+ "）。台灣的餐用食藥署資料計算，其他國家為 AI 估算。": {
+  "en": "). Meals in Taiwan use Taiwan FDA data; other countries are AI estimates.",
+  "ko": "). 대만 식사는 대만 식약청 데이터로 계산하고, 다른 국가는 AI 추정입니다."
  }
 }

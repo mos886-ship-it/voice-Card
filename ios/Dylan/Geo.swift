@@ -11,6 +11,8 @@ struct GeoFix: Codable, Equatable {
     var at: Int64
     var place: String?
     var source: String?
+    /// 國家（ISO，例如 TW；反查到才有）：飲食用當地份量（FoodRegion）
+    var country: String?
 
     /// 地圖連結（Apple 地圖）
     var mapURL: URL? { URL(string: String(format: "https://maps.apple.com/?ll=%.6f,%.6f&q=%.6f,%.6f", lat, lon, lat, lon)) }
@@ -39,6 +41,7 @@ enum GeoStore {
             let name = placeName([p.administrativeArea, p.subAdministrativeArea, p.locality, p.subLocality, p.thoroughfare]
                 .compactMap { $0 })
             fix.place = name.isEmpty ? p.name : name
+            fix.country = p.isoCountryCode
         }
         try? FileManager.default.createDirectory(at: MeetingStore.dir(id), withIntermediateDirectories: true)
         if let d = try? JSONEncoder().encode(fix) { try? d.write(to: file(id), options: .atomic) }

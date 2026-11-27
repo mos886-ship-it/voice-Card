@@ -257,13 +257,16 @@ enum LocalAI {
     /// 背景上傳用的請求（GeminiJobs 交給系統做，App 暗了也會完成）。
     /// [queue]：新主機送到工作佇列（/v1/jobs，馬上回工作編號）；舊主機 /v1/process（連著等結果）。
     static func processRequest(kind: String, recordedAt: String, durationSec: Double, text: Bool = false,
-                               lang: SpeechLang = .zh, dialect: HakkaDialect = .sixian, queue: Bool = false) -> URLRequest? {
+                               lang: SpeechLang = .zh, dialect: HakkaDialect = .sixian, queue: Bool = false,
+                               country: String? = nil) -> URLRequest? {
         guard let u = URL(string: url + (queue ? "/v1/jobs" : "/v1/process")) else { return nil }
         var r = URLRequest(url: u, timeoutInterval: 1800)   // 長錄音在 Mac 上可能要好幾分鐘
         r.httpMethod = "POST"
         r.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         r.setValue(kind, forHTTPHeaderField: "X-Kind")
         r.setValue(ReportLang.current.rawValue, forHTTPHeaderField: "X-Report-Lang")   // 新主機照這個寫報告；舊的照舊中文
+        r.setValue(ReportDomain.setting, forHTTPHeaderField: "X-Domain")   // 領域專家模式（舊主機忽略）
+        if let country { r.setValue(country, forHTTPHeaderField: "X-Food-Country") }   // 飲食：這一餐的國家（份量依當地）
         // 標頭只能放 ASCII：錄音時間用數字格式
         r.setValue(recordedAt, forHTTPHeaderField: "X-Recorded-At")
         r.setValue(String(Int(durationSec)), forHTTPHeaderField: "X-Duration")

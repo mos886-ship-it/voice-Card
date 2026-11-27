@@ -54,6 +54,7 @@ enum ReportLang: String, CaseIterable {
         ("決議事項", "Decisions", "결정 사항"),
         ("營養小提醒", "Nutrition tips", "영양 팁"),
         ("假設與待確認", "Assumptions to check", "가정 및 확인 필요"),
+        ("專業重點", "Expert notes", "전문가 관점"),
     ]
     private static let phrases: [(String, String, String)] = [
         ("說話者 | 名字 | 角色 | 主要觀點", "Speaker | Name | Role | Main points", "화자 | 이름 | 역할 | 주요 의견"),
@@ -64,6 +65,10 @@ enum ReportLang: String, CaseIterable {
         ("「本人」", "「Me」", "「본인」"),
         ("「（聽不清）」", "「(inaudible)」", "「(잘 안 들림)」"),
         ("「（待確認）」", "「(to confirm)」", "「(확인 필요)」"),
+        // 領域專家模式（ReportDomain）
+        ("「## 專業重點」", "「## Expert notes」", "「## 전문가 관점」"),
+        ("「領域：○○」", "「Domain: …」", "「분야: …」"),
+        ("「（建議諮詢專業人員）」", "「(consult a professional)」", "「(전문가 상담 권장)」"),
     ]
 
     private func pick(_ t: (String, String, String)) -> String {
@@ -71,8 +76,10 @@ enum ReportLang: String, CaseIterable {
     }
 
     /// 把中文提示詞換成這個語言的報告格式（繁中原樣回傳）。
-    func localize(_ prompt: String) -> String {
-        guard self != .zh else { return prompt }
+    func localize(_ prompt0: String) -> String {
+        // 領域專家模式的規則先加進去（報告類提示詞才加），再一起換成報告語言
+        let prompt = ReportDomain.applyTo(prompt0)
+        guard self != .zh, !prompt.contains("【報告語言") else { return prompt }
         var p = prompt
         for h in Self.headings {
             let re = try! NSRegularExpression(pattern: "(?m)^(\\s*)## " + NSRegularExpression.escapedPattern(for: h.0) + "\\s*$")

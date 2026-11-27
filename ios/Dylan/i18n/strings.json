@@ -4762,5 +4762,1153 @@
  "纖維 {0}g": {
   "en": "Fiber {0}g",
   "ko": "식이섬유 {0}g"
+ },
+ "記錄": {
+  "en": "History",
+  "ko": "기록"
+ },
+ "分析": {
+  "en": "Insights",
+  "ko": "분석"
+ },
+ "拍照地點": {
+  "en": "Photo location",
+  "ko": "사진 위치"
+ },
+ "今天吃的": {
+  "en": "Eaten today",
+  "ko": "오늘 먹은 것"
+ },
+ "共 {0} 筆 · {1} 天": {
+  "en": "{0} entries · {1} days",
+  "ko": "{0}건 · {1}일"
+ },
+ "匯出 CSV": {
+  "en": "Export CSV",
+  "ko": "CSV 내보내기"
+ },
+ "近 7 天": {
+  "en": "Last 7 days",
+  "ko": "최근 7일"
+ },
+ "近 30 天": {
+  "en": "Last 30 days",
+  "ko": "최근 30일"
+ },
+ "這段期間沒有飲食記錄。": {
+  "en": "No meals logged in this period.",
+  "ko": "이 기간에 식사 기록이 없습니다."
+ },
+ "平均大卡 / 天": {
+  "en": "Avg kcal / day",
+  "ko": "하루 평균 kcal"
+ },
+ "未超標天數": {
+  "en": "Days within goal",
+  "ko": "목표 이내 일수"
+ },
+ "有記錄的天": {
+  "en": "Days logged",
+  "ko": "기록한 날"
+ },
+ "每天熱量（虛線 = 目標 {0}）": {
+  "en": "Daily calories (dashed = goal {0})",
+  "ko": "일일 칼로리 (점선 = 목표 {0})"
+ },
+ "每天平均營養": {
+  "en": "Average daily nutrition",
+  "ko": "하루 평균 영양"
+ },
+ "{0}g / 目標 {1}g": {
+  "en": "{0}g / goal {1}g",
+  "ko": "{0}g / 목표 {1}g"
+ },
+ "{0}g": {
+  "en": "{0}g",
+  "ko": "{0}g"
+ },
+ "熱量來源": {
+  "en": "Where calories come from",
+  "ko": "칼로리 구성"
+ },
+ "一般建議：蛋白質 10–35%、碳水 45–65%、脂肪 20–35%": {
+  "en": "Typical guidance: protein 10–35%, carbs 45–65%, fat 20–35%",
+  "ko": "일반 권장: 단백질 10–35%, 탄수화물 45–65%, 지방 20–35%"
+ },
+ "餐別": {
+  "en": "Meals",
+  "ko": "식사별"
+ },
+ "{0} 次 · 平均 {1} 大卡": {
+  "en": "{0} times · avg {1} kcal",
+  "ko": "{0}회 · 평균 {1} kcal"
+ },
+ "熱量(kcal)": {
+  "en": "Calories (kcal)",
+  "ko": "칼로리(kcal)"
+ },
+ "蛋白質(g)": {
+  "en": "Protein (g)",
+  "ko": "단백질(g)"
+ },
+ "碳水(g)": {
+  "en": "Carbs (g)",
+  "ko": "탄수화물(g)"
+ },
+ "脂肪(g)": {
+  "en": "Fat (g)",
+  "ko": "지방(g)"
+ },
+ "纖維(g)": {
+  "en": "Fiber (g)",
+  "ko": "식이섬유(g)"
+ },
+ "匯出飲食記錄": {
+  "en": "Export food log",
+  "ko": "식사 기록 내보내기"
+ },
+ "匯入錄音檔": {
+  "en": "Import audio file",
+  "ko": "오디오 파일 가져오기"
+ },
+ "全部設定（介面、AI 引擎、大D的主機、備份）→": {
+  "en": "All settings (interface, AI engine, Dylan Host, backup) →",
+  "ko": "전체 설정 (인터페이스, AI 엔진, Dylan 호스트, 백업) →"
+ },
+ "自動整理": {
+  "en": "Automatic reports",
+  "ko": "자동 정리"
+ },
+ "地點與手錶": {
+  "en": "Location & watch",
+  "ko": "위치 및 워치"
+ },
+ "這段期間沒有錄音。": {
+  "en": "No recordings in this period.",
+  "ko": "이 기간에 녹음이 없습니다."
+ },
+ "總長度": {
+  "en": "Total length",
+  "ko": "총 길이"
+ },
+ "平均": {
+  "en": "Average",
+  "ko": "평균"
+ },
+ "每天錄音（分鐘）": {
+  "en": "Recording per day (min)",
+  "ko": "일별 녹음 (분)"
+ },
+ "待辦事項": {
+  "en": "Action items",
+  "ko": "할 일"
+ },
+ "未完成 {0} / {1}": {
+  "en": "Open {0} / {1}",
+  "ko": "미완료 {0} / {1}"
+ },
+ "報告裡沒有待辦事項。": {
+  "en": "No action items in reports.",
+  "ko": "보고서에 할 일이 없습니다."
+ },
+ "{0} 段 · {1}": {
+  "en": "{0} recordings · {1}",
+  "ko": "{0}개 · {1}"
+ },
+ "常出現的人": {
+  "en": "Frequent people",
+  "ko": "자주 등장한 사람"
+ },
+ "{0} 段": {
+  "en": "{0} recordings",
+  "ko": "{0}개"
+ },
+ "需要處理（{0}）": {
+  "en": "Needs attention ({0})",
+  "ko": "처리 필요 ({0})"
+ },
+ "打開重試 →": {
+  "en": "Open to retry →",
+  "ko": "열어서 재시도 →"
+ },
+ "整理報告的 AI": {
+  "en": "AI writing reports",
+  "ko": "보고서 작성 AI"
+ },
+ "錄音語言": {
+  "en": "Recording language",
+  "ko": "녹음 언어"
+ },
+ "變更 AI 引擎、大D的主機 →": {
+  "en": "Change AI engine, Dylan Host →",
+  "ko": "AI 엔진, Dylan 호스트 변경 →"
+ },
+ "用手機記錄地點": {
+  "en": "Record location with phone",
+  "ko": "휴대폰으로 위치 기록"
+ },
+ "每日目標": {
+  "en": "Daily goals",
+  "ko": "일일 목표"
+ },
+ "今天的進度、分析頁的達標天數都依這裡計算": {
+  "en": "Today's progress and goal days in Insights use these",
+  "ko": "오늘 진행률과 분석의 목표 달성일이 이 값을 기준으로 합니다"
+ },
+ "蛋白質 g": {
+  "en": "Protein g",
+  "ko": "단백질 g"
+ },
+ "纖維 g": {
+  "en": "Fiber g",
+  "ko": "식이섬유 g"
+ },
+ "功能設定": {
+  "en": "Feature settings",
+  "ko": "기능 설정"
+ },
+ "錄音語言、報告語言、通話、地點、手錶遙控、Galaxy AI": {
+  "en": "Recording & report language, calls, location, watch remote, Galaxy AI",
+  "ko": "녹음·보고서 언어, 통화, 위치, 워치 원격, Galaxy AI"
+ },
+ "每日目標、健康同步": {
+  "en": "Daily goals, health sync",
+  "ko": "일일 목표, 건강 동기화"
+ },
+ "預設語言、字幕大小、手錶字幕、離線翻譯模型": {
+  "en": "Default language, caption size, watch captions, offline models",
+  "ko": "기본 언어, 자막 크기, 워치 자막, 오프라인 모델"
+ },
+ "翻譯中：{0} → {1}": {
+  "en": "Translating: {0} → {1}",
+  "ko": "번역 중: {0} → {1}"
+ },
+ "邊錄邊翻譯，在手機上完成、不上傳": {
+  "en": "Translate while recording, on the phone, nothing uploaded",
+  "ko": "녹음하며 번역, 휴대폰에서 처리, 업로드 없음"
+ },
+ "還沒有翻譯記錄。每次「開始翻譯」到「停止」會自動存成一筆（可以在「設定」關掉）。": {
+  "en": "No translations yet. Each session from Start to Stop is saved automatically (you can turn this off in Settings).",
+  "ko": "아직 번역 기록이 없습니다. 시작부터 중지까지 한 번의 번역이 자동 저장됩니다(설정에서 끌 수 있음)."
+ },
+ "{0} → {1}": {
+  "en": "{0} → {1}",
+  "ko": "{0} → {1}"
+ },
+ "{0} 句 · {1}": {
+  "en": "{0} lines · {1}",
+  "ko": "{0}문장 · {1}"
+ },
+ "分享翻譯": {
+  "en": "Share translation",
+  "ko": "번역 공유"
+ },
+ "← 返回記錄": {
+  "en": "← Back to history",
+  "ko": "← 기록으로"
+ },
+ "打開錄音報告": {
+  "en": "Open recording report",
+  "ko": "녹음 보고서 열기"
+ },
+ "刪除這筆翻譯記錄？": {
+  "en": "Delete this translation?",
+  "ko": "이 번역 기록을 삭제할까요?"
+ },
+ "錄音與報告不受影響。": {
+  "en": "The recording and report are not affected.",
+  "ko": "녹음과 보고서는 영향을 받지 않습니다."
+ },
+ "這段期間沒有翻譯記錄。": {
+  "en": "No translations in this period.",
+  "ko": "이 기간에 번역 기록이 없습니다."
+ },
+ "次翻譯": {
+  "en": "Sessions",
+  "ko": "번역 횟수"
+ },
+ "總時間": {
+  "en": "Total time",
+  "ko": "총 시간"
+ },
+ "句": {
+  "en": "Lines",
+  "ko": "문장"
+ },
+ "每天翻譯（分鐘）": {
+  "en": "Translation per day (min)",
+  "ko": "일별 번역 (분)"
+ },
+ "語言組合": {
+  "en": "Language pairs",
+  "ko": "언어 조합"
+ },
+ "{0} 次 · {1} 句": {
+  "en": "{0} sessions · {1} lines",
+  "ko": "{0}회 · {1}문장"
+ },
+ "翻譯完成率": {
+  "en": "Translation coverage",
+  "ko": "번역 완료율"
+ },
+ "已翻譯 / 辨識到的句子": {
+  "en": "Translated / recognized lines",
+  "ko": "번역됨 / 인식된 문장"
+ },
+ "沒翻到的多半是翻譯模型還在下載，或句子太短。": {
+  "en": "Missing ones are usually from a model still downloading, or very short lines.",
+  "ko": "누락은 대개 모델 다운로드 중이거나 문장이 너무 짧은 경우입니다."
+ },
+ "預設翻譯成": {
+  "en": "Translate into by default",
+  "ko": "기본 번역 언어"
+ },
+ "說的語言跟錄音的辨識語言是同一個設定（在「翻譯」頁或「錄音」的設定選）。": {
+  "en": "The spoken language is the same setting as the recording language (choose it on the Translate page or in Recordings settings).",
+  "ko": "말하는 언어는 녹음 언어와 같은 설정입니다(번역 페이지나 녹음 설정에서 선택)."
+ },
+ "字幕大小": {
+  "en": "Caption size",
+  "ko": "자막 크기"
+ },
+ "小": {
+  "en": "Small",
+  "ko": "작게"
+ },
+ "中": {
+  "en": "Medium",
+  "ko": "보통"
+ },
+ "大": {
+  "en": "Large",
+  "ko": "크게"
+ },
+ "手錶顯示字幕": {
+  "en": "Captions on watch",
+  "ko": "워치에 자막 표시"
+ },
+ "每翻好一句，手錶顯示最新的一句": {
+  "en": "The watch shows the latest translated line",
+  "ko": "워치에 최신 번역 문장을 표시합니다"
+ },
+ "自動存翻譯記錄": {
+  "en": "Save translations automatically",
+  "ko": "번역 자동 저장"
+ },
+ "每次翻譯的原文與譯文存在手機（「記錄」可以查看、分享、刪除）": {
+  "en": "Original and translated lines are kept on the phone (view, share or delete in History)",
+  "ko": "원문과 번역문을 휴대폰에 저장합니다(기록에서 보기·공유·삭제)"
+ },
+ "離線翻譯模型": {
+  "en": "Offline translation models",
+  "ko": "오프라인 번역 모델"
+ },
+ "翻譯在手機上做，每個語言第一次用要下載（約 30 MB）。出門前先下載，沒網路也能翻。": {
+  "en": "Translation runs on the phone; each language downloads once (about 30 MB). Download before you go and it works offline.",
+  "ko": "번역은 휴대폰에서 처리되며 언어마다 처음 한 번 다운로드합니다(약 30MB). 미리 받아 두면 오프라인에서도 됩니다."
+ },
+ "內建": {
+  "en": "Built in",
+  "ko": "내장"
+ },
+ "已下載 · 刪除": {
+  "en": "Downloaded · Delete",
+  "ko": "다운로드됨 · 삭제"
+ },
+ "下載": {
+  "en": "Download",
+  "ko": "다운로드"
+ },
+ "失敗：{0}": {
+  "en": "Failed: {0}",
+  "ko": "실패: {0}"
+ },
+ "語音辨識：手機沒有那個語言的離線語音時會改用 Google 線上辨識；可以在系統「語音輸入 → 離線語音辨識」下載。": {
+  "en": "Speech recognition: without the phone's offline speech for that language, Google online recognition is used; download it in system Voice input → Offline speech recognition.",
+  "ko": "음성 인식: 해당 언어의 오프라인 음성이 없으면 Google 온라인 인식을 사용합니다. 시스템 음성 입력 → 오프라인 음성 인식에서 받을 수 있습니다."
+ },
+ "手機的翻譯不支援{0}": {
+  "en": "The phone's translator doesn't support {0}",
+  "ko": "휴대폰 번역이 {0}을(를) 지원하지 않습니다"
+ },
+ "說的語言和翻成的語言一樣": {
+  "en": "The spoken and target languages are the same",
+  "ko": "말하는 언어와 번역 언어가 같습니다"
+ },
+ "這支手機（Android 13 以下）錄音中不能同時翻譯；請先停止錄音，改用只翻譯": {
+  "en": "This phone (below Android 13) can't translate while recording; stop recording and use translate only",
+  "ko": "이 휴대폰(Android 13 미만)은 녹음 중 번역할 수 없습니다. 녹음을 멈추고 번역만 사용하세요"
+ },
+ "翻譯模型還沒下載（設定為只用 Wi-Fi 下載），先只顯示原文": {
+  "en": "Translation model not downloaded yet (Wi-Fi only is on); showing the original only",
+  "ko": "번역 모델이 아직 없습니다(Wi-Fi에서만 다운로드). 원문만 표시합니다"
+ },
+ "{0}沒有離線語音辨識，而且線上辨識已關閉（翻譯 → 設定）": {
+  "en": "{0} has no offline speech recognition and online recognition is off (Translate → Settings)",
+  "ko": "{0}은(는) 오프라인 음성 인식이 없고 온라인 인식이 꺼져 있습니다(번역 → 설정)"
+ },
+ "手機的語音辨識不能用（錯誤 {0}）": {
+  "en": "The phone's speech recognition isn't working (error {0})",
+  "ko": "휴대폰 음성 인식을 사용할 수 없습니다(오류 {0})"
+ },
+ "繁體中文": {
+  "en": "Traditional Chinese",
+  "ko": "중국어(번체)"
+ },
+ "說的": {
+  "en": "Spoken",
+  "ko": "말하는 언어"
+ },
+ "翻成": {
+  "en": "Into",
+  "ko": "번역 언어"
+ },
+ "翻譯目前的錄音": {
+  "en": "Translate this recording",
+  "ko": "현재 녹음 번역"
+ },
+ "錄音並翻譯": {
+  "en": "Record and translate",
+  "ko": "녹음하며 번역"
+ },
+ "開始翻譯": {
+  "en": "Start translating",
+  "ko": "번역 시작"
+ },
+ "同時錄音": {
+  "en": "Also record",
+  "ko": "함께 녹음"
+ },
+ "原文": {
+  "en": "Original",
+  "ko": "원문"
+ },
+ "朗讀": {
+  "en": "Read aloud",
+  "ko": "읽어 주기"
+ },
+ "放大": {
+  "en": "Enlarge",
+  "ko": "크게 보기"
+ },
+ "點上面的語言可以換成手機支援的任何語言；⇄ 對調方向（跟對方輪流說）。辨識與翻譯在手機上做，沒有離線語音的語言會用 Google 線上辨識。": {
+  "en": "Tap a language above to pick any language your phone supports; ⇄ swaps direction (take turns with the other person). Recognition and translation run on the phone; languages without offline speech use Google online recognition.",
+  "ko": "위의 언어를 눌러 휴대폰이 지원하는 어떤 언어로든 바꿀 수 있습니다. ⇄ 로 방향을 바꿉니다(상대와 번갈아 말하기). 인식과 번역은 휴대폰에서 하며, 오프라인 음성이 없는 언어는 Google 온라인 인식을 사용합니다."
+ },
+ "已複製": {
+  "en": "Copied",
+  "ko": "복사됨"
+ },
+ "手機沒有{0}的語音，可以在系統「文字轉語音」下載": {
+  "en": "No {0} voice on the phone; download it in system Text-to-speech",
+  "ko": "휴대폰에 {0} 음성이 없습니다. 시스템 텍스트 음성 변환에서 다운로드하세요"
+ },
+ "長按一句可以複製。手機內建辨識＋裝置端翻譯，僅供參考。": {
+  "en": "Long-press a line to copy. Built-in recognition + on-device translation, for reference only.",
+  "ko": "문장을 길게 눌러 복사. 내장 인식 + 기기 내 번역으로 참고용입니다."
+ },
+ "翻轉": {
+  "en": "Flip",
+  "ko": "뒤집기"
+ },
+ "對調": {
+  "en": "Swap",
+  "ko": "바꾸기"
+ },
+ "語言": {
+  "en": "Languages",
+  "ko": "언어"
+ },
+ "能選的語言直接問手機：說的 = 手機語音辨識支援、而且能翻譯的（{0} 種）；翻成 = 手機裝置端翻譯支援的（{1} 種）。翻譯頁的 ⇄ 可以對調，跟對方輪流說。": {
+  "en": "Languages come straight from the phone: spoken = supported by speech recognition and translatable ({0}); into = supported by on-device translation ({1}). ⇄ on the Translate page swaps direction for back-and-forth conversations.",
+  "ko": "언어 목록은 휴대폰에서 가져옵니다. 말하는 언어 = 음성 인식 지원 및 번역 가능({0}개), 번역 언어 = 기기 내 번역 지원({1}개). 번역 화면의 ⇄ 로 방향을 바꿔 번갈아 대화할 수 있습니다."
+ },
+ "手機已有離線語音：辨識在手機上做，不用網路。": {
+  "en": "Offline speech installed: recognition runs on the phone, no network needed.",
+  "ko": "오프라인 음성 설치됨: 휴대폰에서 인식하며 네트워크가 필요 없습니다."
+ },
+ "可以下載離線語音（下載後不用網路、聲音不出手機）。": {
+  "en": "Offline speech can be downloaded (then no network needed and audio stays on the phone).",
+  "ko": "오프라인 음성을 다운로드할 수 있습니다(이후 네트워크 불필요, 음성이 휴대폰 밖으로 나가지 않음)."
+ },
+ "只有線上辨識：聲音會傳到 Google 辨識，要有網路。": {
+  "en": "Online only: audio is sent to Google for recognition and needs a network.",
+  "ko": "온라인 전용: 음성이 Google로 전송되며 네트워크가 필요합니다."
+ },
+ "手機的辨識服務沒有列出這個口音，會試著用線上辨識。": {
+  "en": "The phone's recognizer doesn't list this accent; online recognition will be tried.",
+  "ko": "휴대폰 인식 서비스에 이 억양이 없어 온라인 인식을 시도합니다."
+ },
+ "這支手機查不到辨識清單（Android 13 以下），會用 Google 語音服務。": {
+  "en": "This phone can't report its recognition languages (below Android 13); Google speech services will be used.",
+  "ko": "이 휴대폰은 인식 언어 목록을 알 수 없어(Android 13 미만) Google 음성 서비스를 사용합니다."
+ },
+ "下載離線語音": {
+  "en": "Download offline speech",
+  "ko": "오프라인 음성 다운로드"
+ },
+ "離線已裝 {0} 種、可下載 {1} 種、線上 {2} 種": {
+  "en": "Offline installed {0} · downloadable {1} · online {2}",
+  "ko": "오프라인 설치 {0}개 · 다운로드 가능 {1}개 · 온라인 {2}개"
+ },
+ "允許線上辨識": {
+  "en": "Allow online recognition",
+  "ko": "온라인 인식 허용"
+ },
+ "沒有離線語音的語言改用 Google 線上辨識（聲音會傳出手機）。關掉就只用離線，沒有離線語音的語言不能翻。": {
+  "en": "Languages without offline speech use Google online recognition (audio leaves the phone). Turn off to use offline only; languages without offline speech then can't be translated.",
+  "ko": "오프라인 음성이 없는 언어는 Google 온라인 인식을 사용합니다(음성이 휴대폰 밖으로 전송). 끄면 오프라인만 사용하며 오프라인 음성이 없는 언어는 번역할 수 없습니다."
+ },
+ "顯示": {
+  "en": "Display",
+  "ko": "표시"
+ },
+ "特大": {
+  "en": "Extra large",
+  "ko": "아주 크게"
+ },
+ "顯示原文": {
+  "en": "Show original",
+  "ko": "원문 표시"
+ },
+ "譯文上面小字顯示說的原文": {
+  "en": "Show the spoken original in small text above the translation",
+  "ko": "번역 위에 원문을 작게 표시"
+ },
+ "翻譯時螢幕保持亮著": {
+  "en": "Keep screen on while translating",
+  "ko": "번역 중 화면 켜 두기"
+ },
+ "不會翻到一半螢幕關掉": {
+  "en": "The screen won't turn off mid-conversation",
+  "ko": "대화 중 화면이 꺼지지 않습니다"
+ },
+ "翻好自動朗讀": {
+  "en": "Read translations aloud automatically",
+  "ko": "번역 자동 읽기"
+ },
+ "用手機的文字轉語音念譯文，讓對方聽。朗讀時聽到的聲音不會被當成新的一句；建議戴耳機或把音量調小。": {
+  "en": "Uses the phone's text-to-speech so the other person can hear. What's heard while reading isn't taken as a new line; earphones or lower volume recommended.",
+  "ko": "휴대폰 TTS로 번역을 읽어 상대가 들을 수 있게 합니다. 읽는 동안 들린 소리는 새 문장으로 처리하지 않습니다. 이어폰이나 낮은 볼륨을 권장합니다."
+ },
+ "朗讀速度": {
+  "en": "Reading speed",
+  "ko": "읽기 속도"
+ },
+ "慢": {
+  "en": "Slow",
+  "ko": "느리게"
+ },
+ "正常": {
+  "en": "Normal",
+  "ko": "보통"
+ },
+ "快": {
+  "en": "Fast",
+  "ko": "빠르게"
+ },
+ "手機可以念{0}。": {
+  "en": "The phone can read {0}.",
+  "ko": "휴대폰이 {0}을(를) 읽을 수 있습니다."
+ },
+ "手機沒有{0}的語音，可以在系統「文字轉語音」下載。": {
+  "en": "No {0} voice on the phone; download it in system Text-to-speech.",
+  "ko": "휴대폰에 {0} 음성이 없습니다. 시스템 텍스트 음성 변환에서 다운로드하세요."
+ },
+ "手機的文字轉語音準備中…": {
+  "en": "Preparing text-to-speech…",
+  "ko": "텍스트 음성 변환 준비 중…"
+ },
+ "試聽": {
+  "en": "Preview",
+  "ko": "미리 듣기"
+ },
+ "錄音與記錄": {
+  "en": "Recording & history",
+  "ko": "녹음 및 기록"
+ },
+ "開始翻譯時同時錄音": {
+  "en": "Record while translating",
+  "ko": "번역할 때 함께 녹음"
+ },
+ "錄下來，翻完照常產生完整報告；關掉就只翻譯、不錄音（比較省電）。": {
+  "en": "Records and produces the full report afterwards; off = translate only, no recording (saves battery).",
+  "ko": "녹음 후 전체 보고서를 만듭니다. 끄면 번역만 하고 녹음하지 않습니다(배터리 절약)."
+ },
+ "這支手機（Android 13 以下）不能邊錄邊翻譯，只能只翻譯。": {
+  "en": "This phone (below Android 13) can't record and translate at once; translate only.",
+  "ko": "이 휴대폰(Android 13 미만)은 녹음과 번역을 동시에 할 수 없어 번역만 가능합니다."
+ },
+ "更改 ›": {
+  "en": "Change ›",
+  "ko": "변경 ›"
+ },
+ "目前使用": {
+  "en": "In use",
+  "ko": "사용 중"
+ },
+ "下載其他語言…": {
+  "en": "Download another language…",
+  "ko": "다른 언어 다운로드…"
+ },
+ "只用 Wi-Fi 下載": {
+  "en": "Download on Wi-Fi only",
+  "ko": "Wi-Fi에서만 다운로드"
+ },
+ "用行動網路時不下載翻譯模型（先只顯示原文）": {
+  "en": "Don't download translation models on mobile data (show the original meanwhile)",
+  "ko": "모바일 데이터에서는 번역 모델을 받지 않습니다(그동안 원문 표시)"
+ },
+ "手機語音辨識支援、而且能翻譯的語言：{0} 種": {
+  "en": "Languages your phone can recognize and translate: {0}",
+  "ko": "휴대폰이 인식하고 번역할 수 있는 언어: {0}개"
+ },
+ "常見語言（這支手機查不到辨識清單）：{0} 種": {
+  "en": "Common languages (this phone can't report its list): {0}",
+  "ko": "주요 언어(이 휴대폰은 목록을 알 수 없음): {0}개"
+ },
+ "手機裝置端翻譯支援 {0} 種；第一次用要下載模型（約 30 MB）": {
+  "en": "On-device translation supports {0}; each needs a one-time model download (about 30 MB)",
+  "ko": "기기 내 번역 {0}개 지원, 처음 사용 시 모델 다운로드(약 30MB)"
+ },
+ "搜尋語言（中文、English、日本語…）": {
+  "en": "Search languages (中文, English, 日本語…)",
+  "ko": "언어 검색 (中文, English, 日本語…)"
+ },
+ "最近使用": {
+  "en": "Recent",
+  "ko": "최근 사용"
+ },
+ "  {0} 種口音 ▾": {
+  "en": "  {0} accents ▾",
+  "ko": "  억양 {0}개 ▾"
+ },
+ "已下載": {
+  "en": "Downloaded",
+  "ko": "다운로드됨"
+ },
+ "可下載離線": {
+  "en": "Offline available",
+  "ko": "오프라인 다운로드 가능"
+ },
+ "不要提示聲": {
+  "en": "No beeps",
+  "ko": "알림음 끄기"
+ },
+ "手機語音辨識每次開始聽會「叮」一聲；翻譯中暫時把媒體、系統、通知聲音靜音，停止就恢復（朗讀照樣聽得到）。": {
+  "en": "The phone's speech recognizer beeps each time it starts listening. While translating, media, system and notification sounds are muted and restored when you stop (read-aloud stays audible).",
+  "ko": "휴대폰 음성 인식은 듣기를 시작할 때마다 알림음이 납니다. 번역 중에는 미디어·시스템·알림 소리를 잠시 음소거하고 중지하면 복원합니다(읽어 주기는 들립니다)."
+ },
+ "下載離線語音中… {0}%": {
+  "en": "Downloading offline speech… {0}%",
+  "ko": "오프라인 음성 다운로드 중… {0}%"
+ },
+ "下載離線語音中…（下載好標籤會變成「離線」）": {
+  "en": "Downloading offline speech… (the label changes to \"Offline\" when done)",
+  "ko": "오프라인 음성 다운로드 중… (완료되면 표시가 '오프라인'으로 바뀝니다)"
+ },
+ "自動判斷": {
+  "en": "Auto-detect",
+  "ko": "자동 판단"
+ },
+ "領域專家模式": {
+  "en": "Domain expert mode",
+  "ko": "분야 전문가 모드"
+ },
+ "AI 先判斷內容屬於哪個專業領域，是的話用該領域專家的角度整理、術語寫正確，報告多一節「專業重點」；一般對話照常整理。": {
+  "en": "The AI first works out whether the content belongs to a professional field. If it does, it writes the report from that field's expert view with correct terminology and adds an \"Expert notes\" section; everyday conversations are summarized as usual.",
+  "ko": "AI가 먼저 내용이 어떤 전문 분야인지 판단합니다. 해당되면 그 분야 전문가의 관점으로 정확한 용어를 써서 정리하고 '전문가 관점' 섹션을 추가합니다. 일상 대화는 평소처럼 정리합니다."
+ },
+ "照一般方式整理，不加專業角度。": {
+  "en": "Reports are written the usual way, without a professional angle.",
+  "ko": "전문 관점 없이 평소처럼 정리합니다."
+ },
+ "每份報告都用{0}專家的角度整理，報告多一節「專業重點」：": {
+  "en": "Every report is written from a {0} expert's view, with an \"Expert notes\" section: ",
+  "ko": "모든 보고서를 {0} 전문가의 관점으로 정리하고 '전문가 관점' 섹션을 추가합니다: "
+ },
+ "。": {
+  "en": ".",
+  "ko": "."
+ },
+ "法律、醫療、財務的報告會註明僅供參考，不構成專業意見。": {
+  "en": " Legal, medical and finance reports note that they are for reference only and are not professional advice.",
+  "ko": " 법률·의료·재무 보고서에는 참고용이며 전문적 조언이 아니라는 문구가 들어갑니다."
+ },
+ "套用到之後的報告；已經做好的可以在詳情頁「重新產生」。": {
+  "en": "Applies to new reports; for finished ones use \"Regenerate\" on the detail page.",
+  "ko": "이후 보고서에 적용됩니다. 이미 만든 보고서는 상세 화면에서 '다시 생성'하세요."
+ },
+ "法律": {
+  "en": "Legal",
+  "ko": "법률"
+ },
+ "醫療": {
+  "en": "Medical",
+  "ko": "의료"
+ },
+ "財務金融": {
+  "en": "Finance",
+  "ko": "재무·금융"
+ },
+ "商務業務": {
+  "en": "Business & sales",
+  "ko": "비즈니스·영업"
+ },
+ "科技工程": {
+  "en": "Tech & engineering",
+  "ko": "기술·엔지니어링"
+ },
+ "學術教育": {
+  "en": "Academic & education",
+  "ko": "학술·교육"
+ },
+ "不動產": {
+  "en": "Real estate",
+  "ko": "부동산"
+ },
+ "保險": {
+  "en": "Insurance",
+  "ko": "보험"
+ },
+ "人資勞動": {
+  "en": "HR & labor",
+  "ko": "인사·노무"
+ },
+ "建築營造": {
+  "en": "Construction",
+  "ko": "건축·시공"
+ },
+ "當事人與各自立場；爭點；各方主張與提到的事實、證據；提到的法條、契約條款、判決或文件；日期、期限與時效；風險與需要確認的事項": {
+  "en": "the parties and their positions; the issues in dispute; each side's claims, facts and evidence; laws, contract clauses, rulings or documents mentioned; dates, deadlines and limitation periods; risks and points to confirm",
+  "ko": "당사자와 각자의 입장, 쟁점, 각 측의 주장과 사실·증거, 언급된 법조문·계약 조항·판결·문서, 날짜·기한·시효, 위험과 확인할 사항"
+ },
+ "主訴；症狀、部位、開始時間與變化；過去病史與過敏；檢查、檢驗項目與數值（照原話，含單位）；診斷或疑似診斷；藥物名稱、劑量、頻次、療程；醫囑、回診時間；要注意的警示症狀": {
+  "en": "chief complaint; symptoms, location, onset and changes; history and allergies; tests and values (as said, with units); diagnosis or suspected diagnosis; drug names, doses, frequency and course; doctor's instructions and follow-up; warning signs",
+  "ko": "주호소, 증상·부위·시작 시점과 변화, 병력과 알레르기, 검사 항목과 수치(말한 그대로, 단위 포함), 진단 또는 의심 진단, 약 이름·용량·횟수·기간, 의사 지시와 재진, 주의할 경고 증상"
+ },
+ "金額、幣別、比率、期間（照原話，不要自行計算或推估）；標的或帳戶；收支、成本與預算；投資或融資決策與條件；風險；時程與負責人": {
+  "en": "amounts, currencies, rates and periods (as said, no own calculations); assets or accounts; income, costs and budgets; investment or financing decisions and terms; risks; timeline and owners",
+  "ko": "금액·통화·비율·기간(말한 그대로, 임의 계산 금지), 대상 자산 또는 계좌, 수입·비용·예산, 투자·자금 조달 결정과 조건, 위험, 일정과 담당자"
+ },
+ "客戶或對方的需求與痛點；報價、條件與折扣；決策者與流程；競爭對手；承諾與下一步；成交可能與時程": {
+  "en": "the client's needs and pain points; quotes, terms and discounts; decision makers and process; competitors; commitments and next steps; chances and timing of closing",
+  "ko": "고객의 요구와 문제점, 견적·조건·할인, 의사결정자와 절차, 경쟁사, 약속과 다음 단계, 성사 가능성과 일정"
+ },
+ "系統、架構與元件；問題現象、根因與重現方式；技術決策與取捨；版本、規格與數據；待修項目、風險與時程": {
+  "en": "systems, architecture and components; symptoms, root cause and how to reproduce; technical decisions and trade-offs; versions, specs and figures; items to fix, risks and timeline",
+  "ko": "시스템·아키텍처·구성 요소, 문제 현상·근본 원인·재현 방법, 기술적 결정과 트레이드오프, 버전·사양·수치, 수정할 항목·위험·일정"
+ },
+ "主要概念與定義；公式、推導或例子；引用的理論、學者或出處；考試、作業重點；要複習或延伸閱讀的地方": {
+  "en": "key concepts and definitions; formulas, derivations or examples; theories, scholars or sources cited; exam and homework points; what to review or read further",
+  "ko": "주요 개념과 정의, 공식·유도·예시, 인용된 이론·학자·출처, 시험·과제 포인트, 복습하거나 더 읽을 부분"
+ },
+ "物件條件（區域、坪數、格局、屋齡、樓層、車位）；價格、貸款與稅費；合約條件與交屋時程；屋況與要再查的事項（產權、使用分區、瑕疵）": {
+  "en": "property details (area, size, layout, age, floor, parking); price, loans and taxes; contract terms and handover; condition and things to check (title, zoning, defects)",
+  "ko": "매물 조건(지역·평수·구조·연식·층·주차), 가격·대출·세금, 계약 조건과 인도 일정, 상태와 추가 확인 사항(권리·용도지역·하자)"
+ },
+ "險種與保單；保障內容與額度；保費與繳費期間；除外責任與等待期；理賠條件、文件與期限；要再確認的條款": {
+  "en": "policy type; coverage and limits; premiums and payment period; exclusions and waiting periods; claim conditions, documents and deadlines; clauses to confirm",
+  "ko": "보험 종류와 증권, 보장 내용과 한도, 보험료와 납입 기간, 면책 사항과 대기 기간, 보험금 청구 조건·서류·기한, 확인할 약관"
+ },
+ "職位與工作內容；薪資、獎金與福利；工時、休假與勞動條件；考核、獎懲或爭議；勞基法等相關規定；後續流程與期限": {
+  "en": "position and duties; pay, bonuses and benefits; hours, leave and working conditions; reviews, rewards, discipline or disputes; labor law and related rules; next steps and deadlines",
+  "ko": "직무와 업무 내용, 급여·상여·복리후생, 근무시간·휴가·근로조건, 평가·상벌 또는 분쟁, 노동법 등 관련 규정, 후속 절차와 기한"
+ },
+ "工程項目與範圍；規格、材料與數量；圖說與法規；工期、進度與驗收；變更設計與追加費用；安全與品質問題": {
+  "en": "work items and scope; specs, materials and quantities; drawings and regulations; schedule, progress and inspection; design changes and extra costs; safety and quality issues",
+  "ko": "공사 항목과 범위, 사양·자재·수량, 도면과 법규, 공기·진척·검수, 설계 변경과 추가 비용, 안전과 품질 문제"
+ },
+ "翻譯記錄是空的": {
+  "en": "The translation record is empty",
+  "ko": "번역 기록이 비어 있습니다"
+ },
+ "。這次改用其他 AI。": {
+  "en": ". Used another AI this time.",
+  "ko": ". 이번에는 다른 AI를 사용했습니다."
+ },
+ "翻譯記錄做報告需要 AI 引擎：大D的主機、Gemini、組合式或 Claude（設定 → AI 引擎）": {
+  "en": "A report from a translation needs an AI engine: Dylan Host, Gemini, a combined setup or Claude (Settings → AI engine)",
+  "ko": "번역 기록으로 보고서를 만들려면 AI 엔진이 필요합니다: 大D 호스트, Gemini, 조합형 또는 Claude (설정 → AI 엔진)"
+ },
+ "打開報告": {
+  "en": "Open report",
+  "ko": "보고서 열기"
+ },
+ "接收記錄": {
+  "en": "Record received",
+  "ko": "기록 받음"
+ },
+ "翻譯 ": {
+  "en": "Translation ",
+  "ko": "번역 "
+ },
+ "譯": {
+  "en": "Tr",
+  "ko": "번"
+ },
+ "手機（選了車上，但沒有連著藍牙麥克風）": {
+  "en": "Phone (car was chosen, but no Bluetooth mic was connected)",
+  "ko": "휴대폰 (차량을 선택했지만 블루투스 마이크가 연결되지 않음)"
+ },
+ "藍牙": {
+  "en": "Bluetooth",
+  "ko": "블루투스"
+ },
+ "車上／藍牙：{0}": {
+  "en": "Car / Bluetooth: {0}",
+  "ko": "차량/블루투스: {0}"
+ },
+ "（8 kHz 電話音質）": {
+  "en": " (8 kHz, phone-call quality)",
+  "ko": " (8 kHz 통화 음질)"
+ },
+ "（{0} kHz）": {
+  "en": " ({0} kHz)",
+  "ko": " ({0} kHz)"
+ },
+ "錄音麥克風": {
+  "en": "Recording microphone",
+  "ko": "녹음 마이크"
+ },
+ "車上／藍牙": {
+  "en": "Car / Bluetooth",
+  "ko": "차량/블루투스"
+ },
+ "對準駕駛、降噪強，一個人開車記事好用；但可能只有 8 kHz 電話音質、乘客聲音會被壓低，錄音時車上音樂會暫停。沒連著藍牙麥克風時自動改用手機。": {
+  "en": "Aimed at the driver with strong noise reduction — good for notes while driving alone. It may be only 8 kHz phone-call quality, passengers are turned down, and the car's music pauses while recording. Falls back to the phone mic when no Bluetooth mic is connected.",
+  "ko": "운전자 쪽을 향하고 소음 제거가 강해 혼자 운전하며 메모할 때 좋습니다. 다만 8 kHz 통화 음질일 수 있고 동승자 목소리는 작아지며, 녹음 중에는 차량 음악이 멈춥니다. 블루투스 마이크가 없으면 휴대폰 마이크를 사용합니다."
+ },
+ "收整間 / 整車的人聲，音質完整、分說話者比較準。車上多人對話時建議用這個，手機放中間、遠離冷氣出風口。": {
+  "en": "Picks up everyone in the room or car with full quality, so speakers are told apart better. Use this for conversations with passengers; put the phone in the middle, away from the air vents.",
+  "ko": "방이나 차 안의 모든 목소리를 온전한 음질로 담아 화자 구분이 더 정확합니다. 동승자와 대화할 때 권장하며, 휴대폰은 가운데에 두고 에어컨 송풍구에서 멀리 두세요."
+ },
+ "現在連著：{0}": {
+  "en": "Connected now: {0}",
+  "ko": "현재 연결됨: {0}"
+ },
+ "藍牙麥克風": {
+  "en": "Bluetooth mic",
+  "ko": "블루투스 마이크"
+ },
+ "現在沒有連著藍牙麥克風": {
+  "en": "No Bluetooth mic connected now",
+  "ko": "현재 연결된 블루투스 마이크 없음"
+ },
+ "。每份報告的「基本資料」會寫這次用哪支麥克風，方便比較辨識率。": {
+  "en": ". Each report's details note which mic was used, so recognition can be compared.",
+  "ko": ". 각 보고서의 기본 정보에 사용한 마이크가 표시되어 인식률을 비교할 수 있습니다."
+ },
+ "今天沒有待辦事項。": {
+  "en": "No to-dos today.",
+  "ko": "오늘은 할 일이 없습니다."
+ },
+ "今天有 {0} 項待辦：": {
+  "en": "You have {0} to-dos today: ",
+  "ko": "오늘 할 일이 {0}개 있습니다: "
+ },
+ "還沒有做好的報告。": {
+  "en": "No finished reports yet.",
+  "ko": "아직 완성된 보고서가 없습니다."
+ },
+ "報告好了：{0}。": {
+  "en": "Report ready: {0}. ",
+  "ko": "보고서 완료: {0}. "
+ },
+ "待辦：": {
+  "en": " To-dos: ",
+  "ko": " 할 일: "
+ },
+ "已經在錄音": {
+  "en": "Already recording",
+  "ko": "이미 녹음 중"
+ },
+ "沒有在錄音": {
+  "en": "Not recording",
+  "ko": "녹음 중이 아님"
+ },
+ "車用": {
+  "en": "Car",
+  "ko": "차량"
+ },
+ "開車時不看螢幕：用捷徑、例行程序或手錶開始錄音，報告好了直接唸給你聽。": {
+  "en": "No screen while driving: start recording with a shortcut, a routine or the watch, and hear the report read out when it's ready.",
+  "ko": "운전 중에는 화면을 보지 않아도 됩니다: 바로가기·루틴·워치로 녹음을 시작하고, 보고서가 완성되면 읽어 줍니다."
+ },
+ "報告做好時唸出來": {
+  "en": "Read reports aloud when ready",
+  "ko": "보고서가 완성되면 읽어 주기"
+ },
+ "關": {
+  "en": "Off",
+  "ko": "끄기"
+ },
+ "連著藍牙時": {
+  "en": "On Bluetooth",
+  "ko": "블루투스 연결 시"
+ },
+ "一律": {
+  "en": "Always",
+  "ko": "항상"
+ },
+ "「連著藍牙時」：連著車子或耳機的藍牙麥克風才唸，平常不會突然出聲。唸的是標題和摘要，用報告語言。": {
+  "en": "\"On Bluetooth\": only reads when a car or headset Bluetooth mic is connected, so it won't speak up unexpectedly. It reads the title and summary in the report language.",
+  "ko": "'블루투스 연결 시': 차량이나 이어폰의 블루투스 마이크가 연결되어 있을 때만 읽어서 갑자기 소리가 나지 않습니다. 제목과 요약을 보고서 언어로 읽습니다."
+ },
+ "連待辦一起唸": {
+  "en": "Read to-dos too",
+  "ko": "할 일도 함께 읽기"
+ },
+ "報告好了時，也唸這份報告的待辦事項。": {
+  "en": "When a report is ready, also read its to-dos.",
+  "ko": "보고서가 완성되면 그 보고서의 할 일도 읽습니다."
+ },
+ "現在試試": {
+  "en": "Try it now",
+  "ko": "지금 해 보기"
+ },
+ "唸最新報告": {
+  "en": "Read latest report",
+  "ko": "최신 보고서 읽기"
+ },
+ "唸今天待辦": {
+  "en": "Read today's to-dos",
+  "ko": "오늘 할 일 읽기"
+ },
+ "聲音從媒體音量出來；連著車子時會從車上喇叭播放。": {
+  "en": "Uses media volume; plays through the car speakers when connected.",
+  "ko": "미디어 볼륨으로 재생되며, 차량에 연결되면 차량 스피커로 나옵니다."
+ },
+ "捷徑與例行程序": {
+  "en": "Shortcuts and routines",
+  "ko": "바로가기와 루틴"
+ },
+ "不用打開 App 就能做的事": {
+  "en": "Things you can do without opening the app",
+  "ko": "앱을 열지 않고 할 수 있는 것"
+ },
+ "用法：": {
+  "en": "How:",
+  "ko": "사용 방법:"
+ },
+ "1. 長按大D的 App 圖示就有這些捷徑，也可以拖到桌面。": {
+  "en": "1. Long-press the app icon to see these shortcuts; you can drag them to the home screen.",
+  "ko": "1. 앱 아이콘을 길게 누르면 바로가기가 나오며, 홈 화면으로 끌어 놓을 수 있습니다."
+ },
+ "2. 三星「模式與日常」→ 例行程序：條件選「連上藍牙裝置（你的車）」，動作選「開啟 App 捷徑 → 大D 開始錄音」，上車就自動開始錄；下車（中斷藍牙）再加一條「停止錄音」。": {
+  "en": "2. Samsung Modes and Routines → Routines: if \"Bluetooth device connected (your car)\", then \"Open app shortcut → Dylan Start recording\" to record automatically when you get in; add another for \"Stop recording\" when Bluetooth disconnects.",
+  "ko": "2. 삼성 모드 및 루틴 → 루틴: 조건 '블루투스 기기 연결(내 차)', 동작 '앱 바로가기 열기 → 大D 녹음 시작'으로 하면 타자마자 녹음됩니다. 블루투스가 끊기면 '녹음 중지'하는 루틴도 추가하세요."
+ },
+ "3. 手錶上的「用手機錄音」也可以在車上開始、停止錄音。": {
+  "en": "3. \"Record on phone\" on the watch also starts and stops recording in the car.",
+  "ko": "3. 워치의 '휴대폰으로 녹음'으로도 차에서 녹음을 시작·중지할 수 있습니다."
+ },
+ "語音助理：可以說「Hey Google，開啟大D」。直接說「用大D開始錄音」要 App 從 Play 商店上架後才能用，現在先用捷徑或例行程序。": {
+  "en": "Voice assistant: you can say \"Hey Google, open Dylan\". Saying \"start recording with Dylan\" directly only works once the app is on the Play Store; for now use shortcuts or routines.",
+  "ko": "음성 비서: 'Hey Google, 大D 열어 줘'라고 말할 수 있습니다. '大D로 녹음 시작'처럼 바로 말하는 기능은 앱이 Play 스토어에 출시된 후에 가능하므로, 지금은 바로가기나 루틴을 사용하세요."
+ },
+ "車上麥克風、報告朗讀、捷徑與例行程序": {
+  "en": "Car mic, report read-aloud, shortcuts and routines",
+  "ko": "차량 마이크, 보고서 읽기, 바로가기와 루틴"
+ },
+ "記錄飲食中…": {
+  "en": "Logging a meal…",
+  "ko": "식사 기록 중…"
+ },
+ "錄音中，點右邊停止": {
+  "en": "Recording — tap the right button to stop",
+  "ko": "녹음 중 — 오른쪽을 눌러 중지"
+ },
+ "按右邊開始錄音": {
+  "en": "Tap the right button to record",
+  "ko": "오른쪽을 눌러 녹음 시작"
+ },
+ "今天 {0} 段錄音 · {1} / {2} 大卡 · {3} 項待辦": {
+  "en": "Today: {0} recordings · {1} / {2} kcal · {3} to-dos",
+  "ko": "오늘 녹음 {0}개 · {1} / {2} kcal · 할 일 {3}개"
+ },
+ "唸待辦": {
+  "en": "Read to-dos",
+  "ko": "할 일 읽기"
+ },
+ "請允許「顯示在其他應用程式上層」，再按一次懸浮翻譯": {
+  "en": "Allow \"Display over other apps\", then tap Float again",
+  "ko": "'다른 앱 위에 표시'를 허용한 뒤 플로팅 번역을 다시 누르세요"
+ },
+ "懸浮翻譯": {
+  "en": "Floating translation",
+  "ko": "플로팅 번역"
+ },
+ "懸浮翻譯中": {
+  "en": "Floating translation on",
+  "ko": "플로팅 번역 중"
+ },
+ "字幕框可以拖到任何位置；按 ✕ 關閉": {
+  "en": "Drag the caption box anywhere; tap ✕ to close",
+  "ko": "자막 상자를 원하는 곳으로 끌 수 있습니다. ✕를 눌러 닫기"
+ },
+ "請說話…": {
+  "en": "Speak…",
+  "ko": "말씀하세요…"
+ },
+ "已暫停": {
+  "en": "Paused",
+  "ko": "일시 중지됨"
+ },
+ "關閉懸浮": {
+  "en": "Close float",
+  "ko": "플로팅 닫기"
+ },
+ "用設定的麥克風錄（設定 → 車用）": {
+  "en": "Uses the mic chosen in Settings → Car",
+  "ko": "설정 → 차량에서 고른 마이크로 녹음"
+ },
+ "今天沒有待辦事項": {
+  "en": "No to-dos today",
+  "ko": "오늘은 할 일이 없습니다"
+ },
+ "{0} 項": {
+  "en": "{0} items",
+  "ko": "{0}개"
+ },
+ "說出吃了什麼，再按一次停止": {
+  "en": "Say what you ate, then tap again to stop",
+  "ko": "먹은 것을 말한 뒤 다시 눌러 중지"
+ },
+ "車機上沒辦法直接開始錄音（Android 的背景限制）。請用手錶、捷徑或例行程序開始。": {
+  "en": "Recording can't start from the car screen (Android background limits). Start it from the watch, a shortcut or a routine.",
+  "ko": "차량 화면에서는 녹음을 바로 시작할 수 없습니다(Android 백그라운드 제한). 워치, 바로가기 또는 루틴으로 시작하세요."
+ },
+ "今天的待辦": {
+  "en": "Today's to-dos",
+  "ko": "오늘 할 일"
+ },
+ "最新報告：": {
+  "en": "Latest report: ",
+  "ko": "최신 보고서: "
+ },
+ "沒有開始錄音：{0}": {
+  "en": "Recording didn't start: {0}",
+  "ko": "녹음이 시작되지 않음: {0}"
+ },
+ "請看手機": {
+  "en": "check the phone",
+  "ko": "휴대폰을 확인하세요"
+ },
+ "請在手機點通知開始錄音。到 設定 → 車用 允許「顯示在其他應用程式上層」，之後在車機上就能直接開始。": {
+  "en": "Tap the notification on the phone to start. Allow \"Display over other apps\" in Settings → Car to start straight from the car screen.",
+  "ko": "휴대폰 알림을 눌러 녹음을 시작하세요. 설정 → 차량에서 '다른 앱 위에 표시'를 허용하면 차량 화면에서 바로 시작됩니다."
+ },
+ "車機要求開始錄音": {
+  "en": "Car screen wants to start recording",
+  "ko": "차량 화면에서 녹음 시작 요청"
+ },
+ "車機畫面（Android Auto）": {
+  "en": "Car screen (Android Auto)",
+  "ko": "차량 화면 (Android Auto)"
+ },
+ "車上螢幕會出現「大D」：今天（唸待辦、唸最新報告、開始／停止錄音、記錄飲食）和最近的報告（點了唸摘要）。也可以說「Hey Google，播放大D」。": {
+  "en": "\"Dylan\" appears on the car screen: Today (read to-dos, read latest report, start/stop recording, log a meal) and recent reports (tap to hear the summary). You can also say \"Hey Google, play Dylan\".",
+  "ko": "차량 화면에 '大D'가 나타납니다: 오늘(할 일 읽기, 최신 보고서 읽기, 녹음 시작/중지, 식사 기록)과 최근 보고서(누르면 요약을 읽어 줌). 'Hey Google, 大D 재생'이라고 말해도 됩니다."
+ },
+ "第一次要做（大D不是從 Play 商店裝的）：": {
+  "en": "First time (the app isn't from the Play Store):",
+  "ko": "처음 한 번 (Play 스토어에서 설치한 앱이 아니므로):"
+ },
+ "1. 手機「設定 → 已連結的裝置 → Android Auto」→ 最下面「版本」連點 10 下，開啟開發人員模式。": {
+  "en": "1. Phone Settings → Connected devices → Android Auto → tap \"Version\" at the bottom 10 times to turn on developer mode.",
+  "ko": "1. 휴대폰 설정 → 연결된 기기 → Android Auto → 맨 아래 '버전'을 10번 눌러 개발자 모드를 켭니다."
+ },
+ "2. 右上角 ⋮ →「開發人員設定」→ 勾「不明來源」。": {
+  "en": "2. Top-right ⋮ → Developer settings → tick \"Unknown sources\".",
+  "ko": "2. 오른쪽 위 ⋮ → 개발자 설정 → '알 수 없는 소스'를 체크합니다."
+ },
+ "3. Android Auto「自訂啟動器」把大D打勾，車機上就看得到。": {
+  "en": "3. In Android Auto's \"Customize launcher\", tick Dylan so it shows on the car screen.",
+  "ko": "3. Android Auto '런처 맞춤설정'에서 大D를 체크하면 차량 화면에 보입니다."
+ },
+ "已允許「顯示在其他應用程式上層」：車機上可以直接開始錄音。": {
+  "en": "\"Display over other apps\" is allowed: recording can start straight from the car screen.",
+  "ko": "'다른 앱 위에 표시'가 허용됨: 차량 화면에서 바로 녹음을 시작할 수 있습니다."
+ },
+ "要在車機上直接開始錄音，需要允許「顯示在其他應用程式上層」（不然會跳通知，要在手機上點一下）。": {
+  "en": "To start recording straight from the car screen, allow \"Display over other apps\" (otherwise a notification appears and you tap it on the phone).",
+  "ko": "차량 화면에서 바로 녹음하려면 '다른 앱 위에 표시'를 허용하세요(아니면 알림이 뜨고 휴대폰에서 눌러야 합니다)."
+ },
+ "去允許": {
+  "en": "Allow",
+  "ko": "허용하기"
+ },
+ "美國": {
+  "en": "United States",
+  "ko": "미국"
+ },
+ "日本": {
+  "en": "Japan",
+  "ko": "일본"
+ },
+ "韓國": {
+  "en": "Korea",
+  "ko": "한국"
+ },
+ "自動": {
+  "en": "Auto",
+  "ko": "자동"
+ },
+ "營養資料庫": {
+  "en": "Nutrition database",
+  "ko": "영양 데이터베이스"
+ },
+ "依這一餐的所在地自動選（GPS，沒有就用電信網路的國家）。現在在：{0}。": {
+  "en": "Chosen automatically from where the meal is (GPS, otherwise the mobile network's country). Now in: {0}. ",
+  "ko": "식사한 위치에 따라 자동 선택(GPS, 없으면 통신망 국가). 현재 위치: {0}. "
+ },
+ "用{0}的官方食品成分資料計算熱量與營養素，份量依當地習慣估算。": {
+  "en": "Calories and nutrients come from {0}'s official food composition data; portions follow local habits.",
+  "ko": "{0}의 공식 식품성분 데이터로 열량과 영양소를 계산하고, 분량은 현지 기준으로 추정합니다."
+ },
+ "{0}還沒有內建資料庫：熱量由 AI 估算，份量依當地習慣。": {
+  "en": "{0} has no built-in database yet: calories are AI estimates, portions follow local habits.",
+  "ko": "{0}은(는) 아직 내장 데이터베이스가 없습니다: 열량은 AI가 추정하고 분량은 현지 기준입니다."
+ },
+ "在美國的餐點使用美國農業部 U.S. Department of Agriculture, Agricultural Research Service「FoodData Central」（SR Legacy，公共領域 CC0），名稱截短、只取熱量與營養素。": {
+  "en": "Meals in the US use U.S. Department of Agriculture, Agricultural Research Service, FoodData Central (SR Legacy, public domain CC0); names shortened, calories and nutrients only.",
+  "ko": "미국에서의 식사는 U.S. Department of Agriculture, Agricultural Research Service의 FoodData Central(SR Legacy, 퍼블릭 도메인 CC0)을 사용합니다. 이름은 줄였고 열량과 영양소만 사용합니다."
+ },
+ "FoodData Central（USDA）": {
+  "en": "FoodData Central (USDA)",
+  "ko": "FoodData Central (USDA)"
+ },
+ "在日本的餐點使用「日本食品標準成分表（八訂）増補2023年」（文部科学省）を加工して作成（公共データ利用規約 第1.0版，相容 CC BY 4.0）。": {
+  "en": "Meals in Japan use 「日本食品標準成分表（八訂）増補2023年」（文部科学省）を加工して作成 (Public Data License 1.0, CC BY 4.0 compatible).",
+  "ko": "일본에서의 식사는 「日本食品標準成分表（八訂）増補2023年」（文部科学省）を加工して作成 (공공데이터 이용규약 1.0, CC BY 4.0 호환)을 사용합니다."
+ },
+ "日本食品標準成分表（文部科学省）": {
+  "en": "Standard Tables of Food Composition in Japan (MEXT)",
+  "ko": "일본 식품표준성분표 (문부과학성)"
+ },
+ "在韓國的餐點使用 식품의약품안전처「식품영양성분 데이터베이스」（전국통합식품영양성분정보 음식 표준데이터，公共資料入口網站），只取一般菜色。": {
+  "en": "Meals in Korea use the MFDS 식품영양성분 데이터베이스 (전국통합식품영양성분정보 음식 standard data, Public Data Portal), general dishes only.",
+  "ko": "한국에서의 식사는 식품의약품안전처 식품영양성분 데이터베이스(전국통합식품영양성분정보 음식 표준데이터, 공공데이터포털)의 일반 음식만 사용합니다."
+ },
+ "식품영양성분 데이터베이스（공공데이터포털）": {
+  "en": "식품영양성분 데이터베이스 (Public Data Portal)",
+  "ko": "식품영양성분 데이터베이스 (공공데이터포털)"
+ },
+ "法律、醫療、財務等專業內容，報告多一節「專業重點」，術語與重點照該領域整理。自動判斷：一般對話不加。": {
+  "en": "For legal, medical, finance and other professional content, the report adds an \"Expert notes\" section and uses that field's terms. Auto: nothing is added for everyday conversations.",
+  "ko": "법률·의료·재무 등 전문 내용이면 보고서에 '전문가 관점' 섹션이 추가되고 해당 분야의 용어로 정리됩니다. 자동: 일상 대화에는 추가하지 않습니다."
+ },
+ "用餐的國家": {
+  "en": "Meal country",
+  "ko": "식사 국가"
+ },
+ "份量依當地習慣估算。自動：照這一餐的地點，沒有地點就照手機地區（現在：": {
+  "en": "Portions are estimated by local habits. Auto: uses the meal's location, or the phone's region if there is none (now: ",
+  "ko": "분량은 현지 기준으로 추정합니다. 자동: 식사 위치, 위치가 없으면 휴대폰 지역 기준(현재: "
+ },
+ "）。台灣的餐用食藥署資料計算，其他國家為 AI 估算。": {
+  "en": "). Meals in Taiwan use Taiwan FDA data; other countries are AI estimates.",
+  "ko": "). 대만 식사는 대만 식약청 데이터로 계산하고, 다른 국가는 AI 추정입니다."
  }
 }

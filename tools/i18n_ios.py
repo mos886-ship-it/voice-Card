@@ -3,7 +3,7 @@
 用法（在 repo 根目錄）：
   python3 tools/i18n_ios.py --wrap FILE...   把顯示用的中文字串包成 "…".tr / "…".trf(x)（\\(x) 換成 {0}）
   python3 tools/i18n_ios.py --missing        列出 iOS 程式裡 .tr/.trf 的鍵，對照表沒有（或缺 en/ko）的
-  python3 tools/i18n_ios.py --sync           把共用對照表 shared/.../strings.json 複製到 ios/Dylan/i18n/
+  python3 tools/i18n_ios.py --sync           把共用對照表 shared/.../strings.json 複製到 ios/Dylan/i18n/（report_domains.json 複製到 ios/Dylan/）
 
 不包的：註解、NSLog / print、比對用的字（== != case hasPrefix contains…）、存檔用的識別字（步驟名稱、設定鍵）、
 多行字串（提示詞）、已經有 .tr 的。包完要編譯、看一遍 diff。
@@ -153,6 +153,9 @@ def main():
         print(len(miss), file=sys.stderr)
     elif '--sync' in sys.argv:
         shutil.copyfile(SHARED, IOS)
+        # 領域專家模式清單（ReportDomain.swift 讀）也一起複製
+        shutil.copyfile(os.path.join(ROOT, 'shared/src/main/assets/report_domains.json'),
+                        os.path.join(ROOT, 'ios/Dylan/report_domains.json'))
         print('copied', IOS)
     else:
         print(__doc__)

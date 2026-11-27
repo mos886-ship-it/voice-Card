@@ -633,3 +633,9 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
   - JP：`tools/gen_mext.py <本表 xlsx>`（八訂増補2023、2026-03-27 修正版；公共データ利用規約 1.0，要寫「…を加工して作成」）。2,481 項、約 3.8 萬字。
   - KR：`tools/gen_mfds.py <CSV>`（公共資料入口網站「전국통합식품영양성분정보(음식)표준데이터」15100070，2026-10-06；網站只讓瀏覽器下載，由使用者下載）。去掉連鎖品牌商品（1.5 萬筆）與農村振興廳來源（公共누리 2 型不可商用），留 2,057 道一般菜色、約 1.7 萬字。**商用前要向食藥處書面確認授權**。
 - 大D的主機：`X-Food-Country` → `food_system(country)` 依國家換份量規則（要重新部署）。關於頁加 USDA、文部科學省出處。
+
+## iOS：領域專家模式、飲食依國家的份量（跟 Android）
+- `ios/Dylan/ReportDomain.swift`：讀 `ios/Dylan/report_domains.json`（`tools/i18n_ios.py --sync` 從 shared 複製），`rules` 跟 Android／主機一字不差（swiftc 對過 auto、legal、tech、off、不認得的 id）。`ReportLang.localize` 先 `ReportDomain.applyTo`（只加在有「## 待辦事項」的提示詞），已經換過報告語言的不再換；「專業重點」等三語對照加進 headings／phrases。送大D的主機帶 `X-Domain`。
+- 設定（目前在「介面」卡，報告語言下面）：領域專家模式 選單（自動判斷／關閉／各領域）。
+- `ios/Dylan/FoodRegion.swift`：設定 → 這一餐的 geo.json `country`（GeoFix 新增，反查的 isoCountryCode）→ 座標框 → 手機地區。`GeminiClient.foodPrompt(country:)`：台灣用食藥署版，其他國家用 AI 估算版＋當地份量規則；送主機帶 `X-Food-Country`。設定「飲食 → 用餐的國家」。
+- iOS 還沒有美、日、韓的內建資料庫（Android 的 us/jp/kr.json）；AppleAI（裝置端）提示詞還是台灣份量。

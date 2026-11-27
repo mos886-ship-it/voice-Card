@@ -79,7 +79,11 @@ struct GeminiClient {
     /// 飲食記錄（照抄 Android `FoodLog.PROMPT`）：第 3 行 NUTRITION 機讀行。
     /// 有內建的食藥署資料就用「拆食材＋對照資料庫」版（App 重算數字、自己產生表格與合計），沒有就用舊版。
     static let nutritionPrefix = "NUTRITION:"
-    static var foodPrompt: String { FoodDB.ready ? foodDBPrompt : legacyFoodPrompt }
+    /// 台灣的餐（有食藥署資料）用「拆食材＋對照資料庫」版；其他國家 iOS 還沒有當地資料庫 → AI 估算＋當地份量。
+    static func foodPrompt(country: String = FoodRegion.of()) -> String {
+        let p = FoodDB.ready && country == "TW" ? foodDBPrompt : legacyFoodPrompt
+        return p.replacingOccurrences(of: "- " + FoodRegion.portionRule("TW"), with: "- " + FoodRegion.portionRule(country))
+    }
 
     /// 照抄 Android `FoodLog.dbPrompt(withTranscript = true)`。
     static var foodDBPrompt: String { """
