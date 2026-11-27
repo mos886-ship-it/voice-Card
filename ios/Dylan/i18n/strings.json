@@ -6218,5 +6218,197 @@
  "大D・錄音中": {
   "en": "Dylan · Recording",
   "ko": "Dylan · 녹음 중"
+ },
+ "連線失敗（{0}）": {
+  "en": "Connection failed ({0})",
+  "ko": "연결 실패 ({0})"
+ },
+ "開遠距對話要先跟大D的主機配對（設定 → 大D的主機）": {
+  "en": "To start a remote conversation, pair with Dylan Host first (Settings → Dylan Host)",
+  "ko": "원격 대화를 시작하려면 먼저 大D 호스트와 페어링하세요 (설정 → 大D 호스트)"
+ },
+ "連不到大D的主機：{0}": {
+  "en": "Can't reach Dylan Host: {0}",
+  "ko": "大D 호스트에 연결할 수 없음: {0}"
+ },
+ "邀請連結看不懂": {
+  "en": "Can't read this invite link",
+  "ko": "초대 링크를 읽을 수 없습니다"
+ },
+ "連不到對方的主機：{0}": {
+  "en": "Can't reach the other person's host: {0}",
+  "ko": "상대방 호스트에 연결할 수 없음: {0}"
+ },
+ "連線中斷，重新連線中…": {
+  "en": "Connection lost, reconnecting…",
+  "ko": "연결이 끊겨 다시 연결하는 중…"
+ },
+ "{0} 加入了對話": {
+  "en": "{0} joined",
+  "ko": "{0}님이 참여했습니다"
+ },
+ "{0} 離開了對話": {
+  "en": "{0} left",
+  "ko": "{0}님이 나갔습니다"
+ },
+ "遠距對話": {
+  "en": "Remote talk",
+  "ko": "원격 대화"
+ },
+ "兩個人在不同地方、用各自的手機說各自的語言：你看到的是翻成你的語言，對方看到的是翻成他的語言。文字經過你的大D的主機轉送，不存檔。建議戴有麥克風的耳機。": {
+  "en": "Two people in different places, each on their own phone and in their own language: you read everything in your language, they read it in theirs. Text is relayed by your Dylan Host and not saved. A headset with a mic is recommended.",
+  "ko": "서로 다른 곳에서 각자의 휴대폰으로 각자의 언어로 말합니다. 나는 내 언어로, 상대방은 자기 언어로 읽습니다. 텍스트는 내 大D 호스트를 거쳐 전달되며 저장되지 않습니다. 마이크가 있는 이어폰을 권장합니다."
+ },
+ "你的名字（對方會看到）": {
+  "en": "Your name (shown to the other person)",
+  "ko": "내 이름 (상대방에게 표시됨)"
+ },
+ "你說的語言：{0}（在「翻譯」頁的「說的」可以改）": {
+  "en": "Your language: {0} (change it under \"Speaking\" on the Translate page)",
+  "ko": "내 언어: {0} (번역 화면의 '말하는 언어'에서 변경)"
+ },
+ "收到遠距對話的邀請": {
+  "en": "You've been invited to a remote talk",
+  "ko": "원격 대화 초대를 받았습니다"
+ },
+ "加入對話": {
+  "en": "Join",
+  "ko": "참여하기"
+ },
+ "開新對話，邀請對方": {
+  "en": "Start a talk and invite someone",
+  "ko": "새 대화를 열고 초대하기"
+ },
+ "或貼上對方傳來的邀請連結": {
+  "en": "Or paste an invite link you received",
+  "ko": "또는 받은 초대 링크 붙여넣기"
+ },
+ "用這個連結加入": {
+  "en": "Join with this link",
+  "ko": "이 링크로 참여"
+ },
+ "對話已結束。": {
+  "en": "The talk has ended.",
+  "ko": "대화가 끝났습니다."
+ },
+ "連線中…": {
+  "en": "Connecting…",
+  "ko": "연결 중…"
+ },
+ "你": {
+  "en": "You",
+  "ko": "나"
+ },
+ "把邀請連結傳給對方（LINE、簡訊…）。對方要先裝大D，點連結就會加入。": {
+  "en": "Send the invite link (LINE, SMS…). The other person needs Dylan installed; tapping the link joins.",
+  "ko": "초대 링크를 보내세요(LINE, 문자…). 상대방은 大D를 설치한 뒤 링크를 누르면 참여합니다."
+ },
+ "傳送邀請": {
+  "en": "Send invite",
+  "ko": "초대 보내기"
+ },
+ "大D 遠距對話邀請：": {
+  "en": "Dylan remote talk invite: ",
+  "ko": "大D 원격 대화 초대: "
+ },
+ "正在聽你說話…": {
+  "en": "Listening to you…",
+  "ko": "듣고 있어요…"
+ },
+ "按麥克風開始說話": {
+  "en": "Tap the mic to speak",
+  "ko": "마이크를 눌러 말하기"
+ },
+ "朗讀對方的話": {
+  "en": "Read the other person aloud",
+  "ko": "상대방 말 읽어 주기"
+ },
+ "離開": {
+  "en": "Leave",
+  "ko": "나가기"
+ },
+ "大D的主機還沒有遠距對話功能：請在 Mac 上重新部署大D的主機（更新到最新版）": {
+  "en": "Dylan Host doesn't have remote talk yet: redeploy Dylan Host on the Mac (update to the latest version)",
+  "ko": "大D 호스트에 아직 원격 대화 기능이 없습니다: Mac에서 大D 호스트를 다시 배포하세요(최신 버전으로 업데이트)"
+ },
+ "沒有連上": {
+  "en": "Couldn't connect",
+  "ko": "연결하지 못했습니다"
+ },
+ "遠距對話中": {
+  "en": "In remote talk",
+  "ko": "원격 대화 중"
+ },
+ "這支手機翻不了對方的語言（{0}）。可以到「翻譯」分頁用同樣的語言翻一次，系統會問要不要下載。": {
+  "en": "This phone can't translate the other person's language ({0}). Translate once with the same languages on the Translate tab and iOS will offer to download it.",
+  "ko": "이 휴대폰은 상대방 언어를 번역할 수 없습니다({0}). '번역' 탭에서 같은 언어로 한 번 번역하면 다운로드 여부를 묻습니다."
+ },
+ "兩個人在不同地方，各自用自己的手機、說自己的語言；大D的主機只轉送文字，每支手機把對方的話翻成自己的語言。": {
+  "en": "Two people in different places, each on their own phone and in their own language. Dylan Host only relays the text; each phone translates the other person's words into its own language.",
+  "ko": "서로 다른 곳에 있는 두 사람이 각자 휴대폰으로 자기 언어로 말합니다. Dylan 호스트는 글자만 전달하고, 각 휴대폰이 상대방 말을 자기 언어로 번역합니다."
+ },
+ "我的名字": {
+  "en": "My name",
+  "ko": "내 이름"
+ },
+ "我說的語言：{0}（在翻譯頁改）": {
+  "en": "My language: {0} (change it on the Translate page)",
+  "ko": "내 언어: {0}(번역 페이지에서 변경)"
+ },
+ "開新對話": {
+  "en": "Start a new talk",
+  "ko": "새 대화 시작"
+ },
+ "要先跟大D的主機配對。開好後把邀請連結傳給對方。": {
+  "en": "Requires pairing with Dylan Host. Then send the invite link to the other person.",
+  "ko": "먼저 Dylan 호스트와 페어링해야 합니다. 시작한 뒤 초대 링크를 상대방에게 보내세요."
+ },
+ "用邀請連結加入": {
+  "en": "Join with an invite link",
+  "ko": "초대 링크로 참여"
+ },
+ "貼上": {
+  "en": "Paste",
+  "ko": "붙여넣기"
+ },
+ "加入": {
+  "en": "Join",
+  "ko": "참여"
+ },
+ "對話已經結束": {
+  "en": "The talk has ended",
+  "ko": "대화가 끝났습니다"
+ },
+ "邀請對方": {
+  "en": "Invite",
+  "ko": "상대방 초대"
+ },
+ "把連結傳給對方，對方用大D 打開就能加入（不用跟主機配對）。從外面連線是一般 http，請只在需要時開房，用完離開。": {
+  "en": "Send the link; opening it in Dylan joins the talk (no pairing needed). Connections from outside use plain http, so only open a room when needed and leave when done.",
+  "ko": "링크를 보내면 상대방이 Dylan에서 열어 참여합니다(페어링 불필요). 외부 연결은 일반 http이므로 필요할 때만 방을 열고 끝나면 나가세요."
+ },
+ "分享邀請": {
+  "en": "Share invite",
+  "ko": "초대 공유"
+ },
+ "（我）": {
+  "en": " (me)",
+  "ko": "(나)"
+ },
+ "等對方加入…": {
+  "en": "Waiting for the other person…",
+  "ko": "상대방을 기다리는 중…"
+ },
+ "按下面的麥克風開始說話": {
+  "en": "Tap the mic below to start talking",
+  "ko": "아래 마이크를 눌러 말하기 시작"
+ },
+ "暫停說話": {
+  "en": "Pause talking",
+  "ko": "말하기 일시정지"
+ },
+ "開始說話": {
+  "en": "Start talking",
+  "ko": "말하기 시작"
  }
 }

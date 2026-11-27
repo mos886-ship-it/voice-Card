@@ -6334,5 +6334,81 @@
  "沒有連上": {
   "en": "Couldn't connect",
   "ko": "연결하지 못했습니다"
+ },
+ "遠距對話中": {
+  "en": "In remote talk",
+  "ko": "원격 대화 중"
+ },
+ "這支手機翻不了對方的語言（{0}）。可以到「翻譯」分頁用同樣的語言翻一次，系統會問要不要下載。": {
+  "en": "This phone can't translate the other person's language ({0}). Translate once with the same languages on the Translate tab and iOS will offer to download it.",
+  "ko": "이 휴대폰은 상대방 언어를 번역할 수 없습니다({0}). '번역' 탭에서 같은 언어로 한 번 번역하면 다운로드 여부를 묻습니다."
+ },
+ "兩個人在不同地方，各自用自己的手機、說自己的語言；大D的主機只轉送文字，每支手機把對方的話翻成自己的語言。": {
+  "en": "Two people in different places, each on their own phone and in their own language. Dylan Host only relays the text; each phone translates the other person's words into its own language.",
+  "ko": "서로 다른 곳에 있는 두 사람이 각자 휴대폰으로 자기 언어로 말합니다. Dylan 호스트는 글자만 전달하고, 각 휴대폰이 상대방 말을 자기 언어로 번역합니다."
+ },
+ "我的名字": {
+  "en": "My name",
+  "ko": "내 이름"
+ },
+ "我說的語言：{0}（在翻譯頁改）": {
+  "en": "My language: {0} (change it on the Translate page)",
+  "ko": "내 언어: {0}(번역 페이지에서 변경)"
+ },
+ "開新對話": {
+  "en": "Start a new talk",
+  "ko": "새 대화 시작"
+ },
+ "要先跟大D的主機配對。開好後把邀請連結傳給對方。": {
+  "en": "Requires pairing with Dylan Host. Then send the invite link to the other person.",
+  "ko": "먼저 Dylan 호스트와 페어링해야 합니다. 시작한 뒤 초대 링크를 상대방에게 보내세요."
+ },
+ "用邀請連結加入": {
+  "en": "Join with an invite link",
+  "ko": "초대 링크로 참여"
+ },
+ "貼上": {
+  "en": "Paste",
+  "ko": "붙여넣기"
+ },
+ "加入": {
+  "en": "Join",
+  "ko": "참여"
+ },
+ "對話已經結束": {
+  "en": "The talk has ended",
+  "ko": "대화가 끝났습니다"
+ },
+ "邀請對方": {
+  "en": "Invite",
+  "ko": "상대방 초대"
+ },
+ "把連結傳給對方，對方用大D 打開就能加入（不用跟主機配對）。從外面連線是一般 http，請只在需要時開房，用完離開。": {
+  "en": "Send the link; opening it in Dylan joins the talk (no pairing needed). Connections from outside use plain http, so only open a room when needed and leave when done.",
+  "ko": "링크를 보내면 상대방이 Dylan에서 열어 참여합니다(페어링 불필요). 외부 연결은 일반 http이므로 필요할 때만 방을 열고 끝나면 나가세요."
+ },
+ "分享邀請": {
+  "en": "Share invite",
+  "ko": "초대 공유"
+ },
+ "（我）": {
+  "en": " (me)",
+  "ko": "(나)"
+ },
+ "等對方加入…": {
+  "en": "Waiting for the other person…",
+  "ko": "상대방을 기다리는 중…"
+ },
+ "按下面的麥克風開始說話": {
+  "en": "Tap the mic below to start talking",
+  "ko": "아래 마이크를 눌러 말하기 시작"
+ },
+ "暫停說話": {
+  "en": "Pause talking",
+  "ko": "말하기 일시정지"
+ },
+ "開始說話": {
+  "en": "Start talking",
+  "ko": "말하기 시작"
  }
 }

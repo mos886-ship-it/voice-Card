@@ -49,6 +49,7 @@ struct RootView: View {
     @State private var toast: String?
     @ObservedObject private var photoCapture = FoodPhotoCapture.shared
     @ObservedObject private var translatePage = TranslatePage.shared
+    @ObservedObject private var talkPage = TalkPage.shared
 
     var body: some View {
         GeometryReader { geo in
@@ -73,13 +74,23 @@ struct RootView: View {
             .background(AppBackdrop())
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: String.self) { id in
-                DetailView(id: id) { if !path.isEmpty { path.removeLast() } }
-                    .toolbar(.hidden, for: .navigationBar)
+                if id == TalkPage.route {
+                    TalkView().toolbar(.hidden, for: .navigationBar)
+                } else {
+                    DetailView(id: id) { if !path.isEmpty { path.removeLast() } }
+                        .toolbar(.hidden, for: .navigationBar)
+                }
             }
         }
         .environment(\.pageWidth, geo.size.width)
         }
         .toast($toast)
+        // 遠距對話：推一頁（用全螢幕蓋在翻譯頁上會跟翻譯頁自己的視窗打架，打不開）
+        .onChange(of: talkPage.presented) { on in
+            guard on else { return }
+            talkPage.presented = false
+            if path.last != TalkPage.route { path.append(TalkPage.route) }
+        }
         // 舊的「即時翻譯」入口（主頁、錄音卡）：改到「翻譯」分頁
         .onChange(of: translatePage.presented) { on in
             guard on else { return }

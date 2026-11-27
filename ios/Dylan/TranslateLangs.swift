@@ -76,8 +76,15 @@ enum TranslateLangs {
             if let s = UserDefaults.standard.string(forKey: sourceKey), !s.isEmpty { return s }
             let rec = LangSettings.shared.lang
             if LiveCaptions.supported(rec) { return sourceId(rec) }
+            // 台語、客語、粵語手機辨識不了：在台灣多半也會說國語 → 台灣國語
+            if [.nan, .hak, .yue].contains(rec) { return "zh-TW" }
+            // 手機地區：只用辨識清單裡真的有的（不要湊出 zh-Hant-CN 這種）
             let cur = Locale.current.identifier.replacingOccurrences(of: "_", with: "-")
-            return SFSpeechRecognizer(locale: Locale(identifier: cur)) != nil ? cur : "zh-TW"
+            let all = SFSpeechRecognizer.supportedLocales().map { $0.identifier.replacingOccurrences(of: "_", with: "-") }
+            if all.contains(cur) { return cur }
+            let lang = Locale.current.language.languageCode?.identifier ?? "zh"
+            if lang == "zh" { return "zh-TW" }
+            return all.first { $0.hasPrefix(lang + "-") } ?? "zh-TW"
         }
         set {
             UserDefaults.standard.set(newValue, forKey: sourceKey)

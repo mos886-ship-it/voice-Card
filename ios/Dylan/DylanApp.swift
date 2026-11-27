@@ -29,6 +29,11 @@ struct DylanApp: App {
                 // 從別的 App 分享 / 「打開方式」送來的音檔（語音備忘錄、檔案、LINE…）→ 匯入
                 .onOpenURL { url in
                     if WidgetBridge.handle(url) { return }   // 小工具按鈕
+                    if url.scheme == "dylan", url.host == "talk" {   // 遠距對話的邀請連結
+                        RemoteTalk.shared.pendingInvite = url.absoluteString
+                        TalkPage.shared.presented = true
+                        return
+                    }
                     if url.scheme == "dylan" {   // 相機掃到主機配對頁的 QR 碼
                         Task {
                             var msg = "已和大D的主機配對".tr

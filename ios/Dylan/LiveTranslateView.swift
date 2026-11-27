@@ -54,7 +54,7 @@ struct LiveTranslateView: View {
                 .pageColumn()
                 .padding(.vertical, 8)
         }
-        .background(AppBackdrop())
+        .background { if !embedded { AppBackdrop() } }   // 嵌在分頁裡時 RootView 已經有背景（重複的背景會往上蓋住分頁上面的按鈕）
         .onAppear {
             if captions.running { source = captions.source; target = captions.target }
             else { source = TranslateLangs.source; target = TranslateLangs.target(for: source) }
