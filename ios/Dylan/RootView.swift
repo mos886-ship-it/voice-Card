@@ -94,6 +94,12 @@ struct RootView: View {
                 else { tab = .home }   // 拍＋說：錄音卡在「今天」
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: WidgetBridge.showHome)) { _ in path = []; tab = .home }
+        .onReceive(NotificationCenter.default.publisher(for: WidgetBridge.openReport)) { note in
+            guard let id = note.object as? String else { return }
+            tab = .records
+            path = [id]   // 小工具點最新報告
+        }
         .onReceive(NotificationCenter.default.publisher(for: AudioImport.didImport)) { note in
             path = []
             tab = (note.userInfo?["tab"] as? String) == "settings" ? .settings : .records

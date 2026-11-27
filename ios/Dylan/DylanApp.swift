@@ -21,12 +21,14 @@ struct DylanApp: App {
                 .onChange(of: phase) { p in
                     if p == .active {
                         PhoneRecorder.shared.checkAlive()
+                        WidgetBridge.refresh()   // 小工具的今天數字（過了午夜也會更新）
                         Task { await CallInbox.importFinished() }   // 通話錄音結束後回到大D：收進清單
                     }
                 }
                 .task { await CallInbox.importFinished() }
                 // 從別的 App 分享 / 「打開方式」送來的音檔（語音備忘錄、檔案、LINE…）→ 匯入
                 .onOpenURL { url in
+                    if WidgetBridge.handle(url) { return }   // 小工具按鈕
                     if url.scheme == "dylan" {   // 相機掃到主機配對頁的 QR 碼
                         Task {
                             var msg = "已和大D的主機配對".tr

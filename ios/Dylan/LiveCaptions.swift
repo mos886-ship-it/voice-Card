@@ -166,6 +166,7 @@ final class LiveCaptions: ObservableObject {
                     : "這個語言沒有手機上的語音辨識，聲音會傳到 Apple 辨識".tr
                 if self.micMode && !self.startMic() { return }
                 UIApplication.shared.isIdleTimerDisabled = true   // 翻譯中螢幕保持亮著
+                WidgetBridge.translateStarted(pair: TranslateLangs.name(sourceId) + " → " + TranslateLangs.name(targetId))
                 self.startSegment()
             }
         }
@@ -229,6 +230,7 @@ final class LiveCaptions: ObservableObject {
         running = false
         stopMic()
         UIApplication.shared.isIdleTimerDisabled = false
+        WidgetBridge.translateStopped()
         silence?.cancel()
         commitRemainder()
         endSegment()
@@ -447,6 +449,7 @@ final class LiveCaptions: ObservableObject {
         lines[i].translated = text
         if Self.watchCaptions { PhoneLink.shared.sendCaption(text) }
         if Self.readAloud { Speaker.shared.speak(text, lang: target) }
+        WidgetBridge.translated(text, original: lines[i].original)
     }
 
     func translationFailed(_ message: String) {

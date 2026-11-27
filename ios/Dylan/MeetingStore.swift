@@ -75,6 +75,7 @@ final class MeetingStore: ObservableObject {
     }
 
     func save(_ m: Meeting) {
+        WidgetBridge.changed()   // 小工具：今天幾段、大卡、最新報告
         // 飲食完成、營養或標題改了 → 同步到 Apple 健康（設定裡有打開才會寫）
         if m.isFood, m.status == .done {
             let old = meetings.first { $0.id == m.id }
@@ -439,6 +440,7 @@ final class MeetingStore: ObservableObject {
         m.aiStep = nil
         m.processEndedAt = Date()
         save(m)
+        CarMode.reportReady(m)   // 車用：報告做好時朗讀
     }
 
     /// 背景傳輸被取消（強制關閉 App）→ 重新分析。

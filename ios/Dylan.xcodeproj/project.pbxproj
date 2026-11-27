@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		AA0000000000000000000050 /* DylanWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000021 /* DylanWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		AA0000000000000000000054 /* DylanBroadcast.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000022 /* DylanBroadcast.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		AA0000000000000000000057 /* DylanWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000023 /* DylanWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -25,6 +26,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = AA0000000000000000000032;
 			remoteInfo = DylanBroadcast;
+		};
+		AA0000000000000000000058 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AA0000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AA0000000000000000000033;
+			remoteInfo = DylanWidget;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -47,6 +55,7 @@
 			dstSubfolderSpec = 13;
 			files = (
 				AA0000000000000000000054 /* DylanBroadcast.appex in Embed Foundation Extensions */,
+				AA0000000000000000000057 /* DylanWidget.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -57,6 +66,7 @@
 		AA0000000000000000000020 /* Dylan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Dylan.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA0000000000000000000021 /* DylanWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DylanWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA0000000000000000000022 /* DylanBroadcast.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = DylanBroadcast.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA0000000000000000000023 /* DylanWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = DylanWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -78,6 +88,11 @@
 		AA0000000000000000000013 /* DylanBroadcast */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = DylanBroadcast;
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000014 /* DylanWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = DylanWidget;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -104,6 +119,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AA000000000000000000004B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -114,6 +136,7 @@
 				AA0000000000000000000011 /* DylanWatch */,
 				AA0000000000000000000012 /* Shared */,
 				AA0000000000000000000013 /* DylanBroadcast */,
+				AA0000000000000000000014 /* DylanWidget */,
 				AA0000000000000000000003 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -124,6 +147,7 @@
 				AA0000000000000000000020 /* Dylan.app */,
 				AA0000000000000000000021 /* DylanWatch.app */,
 				AA0000000000000000000022 /* DylanBroadcast.appex */,
+				AA0000000000000000000023 /* DylanWidget.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -147,6 +171,7 @@
 			dependencies = (
 				AA0000000000000000000052 /* PBXTargetDependency */,
 				AA0000000000000000000056 /* PBXTargetDependency */,
+				AA0000000000000000000059 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				AA0000000000000000000010 /* Dylan */,
@@ -200,6 +225,27 @@
 			productReference = AA0000000000000000000022 /* DylanBroadcast.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		AA0000000000000000000033 /* DylanWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA0000000000000000000064 /* Build configuration list for PBXNativeTarget "DylanWidget" */;
+			buildPhases = (
+				AA000000000000000000004A /* Sources */,
+				AA000000000000000000004B /* Frameworks */,
+				AA000000000000000000004C /* Resources */,
+				AA0000000000000000000083 /* Set Version */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				AA0000000000000000000014 /* DylanWidget */,
+			);
+			name = DylanWidget;
+			productName = DylanWidget;
+			productReference = AA0000000000000000000023 /* DylanWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -217,6 +263,9 @@
 						CreatedOnToolsVersion = 27.2;
 					};
 					AA0000000000000000000032 = {
+						CreatedOnToolsVersion = 27.2;
+					};
+					AA0000000000000000000033 = {
 						CreatedOnToolsVersion = 27.2;
 					};
 				};
@@ -239,6 +288,7 @@
 				AA0000000000000000000030 /* Dylan */,
 				AA0000000000000000000031 /* DylanWatch */,
 				AA0000000000000000000032 /* DylanBroadcast */,
+				AA0000000000000000000033 /* DylanWidget */,
 			);
 		};
 /* End PBXProject section */
@@ -259,6 +309,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		AA0000000000000000000049 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AA000000000000000000004C /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -331,6 +388,27 @@
 			shellScript = "# 版本號跟 Android 一樣自動產生：<dylanVersion>.<commit 數>（例 1.1.63），build 號 = commit 數。\n# dylanVersion 只在 repo 根目錄的 gradle.properties 改（兩個平台共用）。\nROOT=\"${SRCROOT}/..\"\nBASE=$(sed -n 's/^dylanVersion=//p' \"$ROOT/gradle.properties\" 2>/dev/null | tr -d '[:space:]')\n[ -n \"$BASE\" ] || BASE=1.1\nCOUNT=$(git -C \"$ROOT\" rev-list --count HEAD 2>/dev/null) || COUNT=1\n[ -n \"$COUNT\" ] || COUNT=1\nPL=\"${TARGET_BUILD_DIR}/${INFOPLIST_PATH}\"\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $BASE.$COUNT\" \"$PL\" 2>/dev/null || /usr/libexec/PlistBuddy -c \"Add :CFBundleShortVersionString string $BASE.$COUNT\" \"$PL\"\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $COUNT\" \"$PL\" 2>/dev/null || /usr/libexec/PlistBuddy -c \"Add :CFBundleVersion string $COUNT\" \"$PL\"\necho \"version $BASE.$COUNT ($COUNT) -> $PL\"\n";
 			showEnvVarsInLog = 0;
 		};
+		AA0000000000000000000083 /* Set Version */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)",
+			);
+			name = "Set Version";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# 版本號跟 Android 一樣自動產生：<dylanVersion>.<commit 數>（例 1.1.63），build 號 = commit 數。\n# dylanVersion 只在 repo 根目錄的 gradle.properties 改（兩個平台共用）。\nROOT=\"${SRCROOT}/..\"\nBASE=$(sed -n 's/^dylanVersion=//p' \"$ROOT/gradle.properties\" 2>/dev/null | tr -d '[:space:]')\n[ -n \"$BASE\" ] || BASE=1.1\nCOUNT=$(git -C \"$ROOT\" rev-list --count HEAD 2>/dev/null) || COUNT=1\n[ -n \"$COUNT\" ] || COUNT=1\nPL=\"${TARGET_BUILD_DIR}/${INFOPLIST_PATH}\"\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $BASE.$COUNT\" \"$PL\" 2>/dev/null || /usr/libexec/PlistBuddy -c \"Add :CFBundleShortVersionString string $BASE.$COUNT\" \"$PL\"\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $COUNT\" \"$PL\" 2>/dev/null || /usr/libexec/PlistBuddy -c \"Add :CFBundleVersion string $COUNT\" \"$PL\"\necho \"version $BASE.$COUNT ($COUNT) -> $PL\"\n";
+			showEnvVarsInLog = 0;
+		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -355,6 +433,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AA000000000000000000004A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -367,6 +452,11 @@
 			isa = PBXTargetDependency;
 			target = AA0000000000000000000032 /* DylanBroadcast */;
 			targetProxy = AA0000000000000000000055 /* PBXContainerItemProxy */;
+		};
+		AA0000000000000000000059 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AA0000000000000000000033 /* DylanWidget */;
+			targetProxy = AA0000000000000000000058 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -603,6 +693,58 @@
 			};
 			name = Release;
 		};
+		AA0000000000000000000078 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Config/Widget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = PBG6YY45S2;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Config/Widget-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "大D";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.1;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(DYLAN_BUNDLE_ID).widget";
+				PRODUCT_NAME = DylanWidget;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		AA0000000000000000000079 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Config/Widget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = PBG6YY45S2;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Config/Widget-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "大D";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.1;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(DYLAN_BUNDLE_ID).widget";
+				PRODUCT_NAME = DylanWidget;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -638,6 +780,15 @@
 			buildConfigurations = (
 				AA0000000000000000000076 /* Debug */,
 				AA0000000000000000000077 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AA0000000000000000000064 /* Build configuration list for PBXNativeTarget "DylanWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA0000000000000000000078 /* Debug */,
+				AA0000000000000000000079 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

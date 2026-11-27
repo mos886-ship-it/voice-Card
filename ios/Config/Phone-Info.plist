@@ -2,19 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>CFBundleURLTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleURLName</key>
-			<string>tw.dylan.pair</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>dylan</string>
-			</array>
-		</dict>
-	</array>
-	<key>NSCameraUsageDescription</key>
-	<string>掃描大D的主機的配對 QR 碼。</string>
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
@@ -36,20 +23,35 @@
 			</array>
 		</dict>
 	</array>
-	<key>LSSupportsOpeningDocumentsInPlace</key>
-	<false/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>tw.dylan.pair</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>dylan</string>
+			</array>
+		</dict>
+	</array>
 	<key>DylanAppGroup</key>
 	<string>group.$(DYLAN_BUNDLE_ID)</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>大D 需要使用麥克風來錄音（會議、課堂、飲食記錄）。</string>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>audio</string>
-	</array>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<false/>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>掃描大D的主機的配對 QR 碼。</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>大D 需要使用麥克風來錄音（會議、課堂、飲食記錄）。</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
 </dict>
 </plist>

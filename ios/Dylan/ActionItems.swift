@@ -54,6 +54,7 @@ enum ActionItems {
         var s = done
         if on { s.insert(item.key) } else { s.remove(item.key) }
         UserDefaults.standard.set(Array(s), forKey: doneKey)
+        Task { @MainActor in WidgetBridge.changed() }   // 小工具的待辦數
     }
 
     /// 所有錄音報告的待辦（新的在前）。

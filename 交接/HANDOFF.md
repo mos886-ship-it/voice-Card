@@ -660,3 +660,11 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 - 翻譯記錄做報告：`TranslationReport.create` 建 tr_ 報告（source = translation，「翻譯」），input.txt 放說明＋原文/→譯文，走文字路徑（大D的主機 X-Input: text 等）；記錄頁「產生報告」／「打開報告」。
 - 營養資料庫依這一餐的國家：`FoodDB.use(country)`（TW tfnd、US us、JP jp、KR kr，跟 Android 同一份檔），提示詞的清單名稱與報告「來源」／合計那行的名稱跟著換（`FoodWords.dbTag/dbFull`）；Gemini 送出前與結果回來重算前都用這一餐的國家。設定 → 內建資料加 USDA、文部科学省（を加工して作成）、식약처出處。
 - 模擬器沒有語音辨識：麥克風模式、邊說邊翻、朗讀沒在真機驗過；美日韓資料庫沒用真的一餐驗過。
+
+## iOS：車用、Siri 捷徑、小工具、即時動態（跟 Android 的車用、HomeWidget、懸浮翻譯）
+- `CarMode.swift`：設定 → 車用。報告做好時朗讀（關／連著藍牙或 CarPlay 時（預設）／一律，`MeetingStore.finish` 呼叫）、連待辦一起唸、速度；唸最新報告、唸今天待辦（`Speaker`）。錄音麥克風：手機／車上・藍牙（playAndRecord＋allowBluetooth，`setPreferredInput` 藍牙 HFP；沒連就手機，記 phone:fallback），存每筆錄音資料夾的 mic.txt，報告基本資料顯示「麥克風」，8 kHz 標電話音質。
+- Siri／捷徑（App Intents，不用 entitlement）：開始錄音、停止錄音、記錄飲食（openAppWhenRun，麥克風要前景）、唸最新報告、唸今天待辦；`DylanShortcuts` 有中英文說法。捷徑 App 可以設「連上車子藍牙 → 開始錄音」。CarPlay 語音對話類要 Apple 核准，沒做。
+- 小工具（新 target `DylanWidget`，ios/DylanWidget/，bundle `<id>.widget`，App Group 同 App）：中／小尺寸，日期＋最新報告標題（錄音中紅色計時）、錄音／停止鍵；今天幾段、大卡／目標、幾項待辦；記錄飲食、翻譯、唸待辦。按鈕是 `dylan://action/…` 連結（打開 App 做，`WidgetBridge.handle`）。資料：App 寫 App Group UserDefaults 的 `widget_snapshot`（`WidgetShared.swift`，App 與小工具各一份、內容要一樣），錄音開始／停止、存記錄、打勾待辦、回到前景時更新。
+- 即時動態（Live Activity，Phone-Info.plist `NSSupportsLiveActivities`）：錄音中計時（鎖定畫面、動態島，停止鍵）；即時翻譯中顯示最新一句譯文＋原文（iOS 沒有懸浮視窗，這是最接近的）。
+- 模擬器驗過：小工具加到主畫面、數字正確（14 項待辦、最新報告）、按錄音鍵打開 App 開始錄音。真機的即時動態、藍牙麥克風、Siri 說法還沒驗。
+- iOS 不做：Android Auto 媒體服務、懸浮視窗、三星日常。

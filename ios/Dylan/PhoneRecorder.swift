@@ -73,10 +73,12 @@ final class PhoneRecorder: ObservableObject {
         guard !isRecording else { return }
         do {
             let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.record, mode: .default)
+            // 麥克風：手機或車上藍牙（設定 → 車用）
+            let micUsed = try CarMode.configureRecordingSession()
             try session.setActive(true)
 
             let id = RecordingID.make(prefix: food ? Meeting.foodPrefix : "")
+            CarMode.saveMic(id, micUsed)
             interrupted = false
             AudioLevel.shared.reset()
             writer = SegmentWriter(dir: Self.pendingDir, recordingId: id,
@@ -84,8 +86,10 @@ final class PhoneRecorder: ObservableObject {
                 Self.hand(url, seg)
             }
             try installTapAndStart()
-            state = .recording(id: id, since: Date())
+            let since = Date()
+            state = .recording(id: id, since: since)
             startWatchdog()
+            WidgetBridge.recordingStarted(since: since, food: food)   // 小工具計時、即時動態
             // 錄音地點：開始錄音時的位置（「拍＋說」也是這裡定位）
             Task { @MainActor in
                 if let loc = await GeoLocator.shared.current() { await GeoStore.save(id, loc) }
@@ -180,6 +184,7 @@ final class PhoneRecorder: ObservableObject {
     func stop() {
         guard isRecording else { return }
         LiveCaptions.shared.recordingStopped()   // 字幕跟著錄音停
+        WidgetBridge.recordingStopped()
         watchdog?.invalidate()
         watchdog = nil
         engine.inputNode.removeTap(onBus: 0)

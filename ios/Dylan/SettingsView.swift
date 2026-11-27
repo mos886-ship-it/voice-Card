@@ -162,6 +162,9 @@ struct SettingsView: View {
                 SectionLabel(text: "健康同步".tr)
                 HealthSyncCard()
 
+                SectionLabel(text: "車用".tr)
+                CarSettingsView()
+
                 if mode == .tech {
                 SectionLabel(text: "AI 引擎".tr)
                 GlassCard {

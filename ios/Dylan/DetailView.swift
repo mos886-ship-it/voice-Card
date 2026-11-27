@@ -53,6 +53,9 @@ struct DetailView: View {
                                 .accessibilityLabel("地點 {0}，點一下開地圖".trf(g.label))
                                 .padding(.top, 2)
                             }
+                            if let mic = CarMode.micLabel(m.id) {
+                                Text("麥克風  {0}".trf(mic)).font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 2)
+                            }
                             StatusChip(style: m.statusStyle).padding(.top, 10)
                         }
 

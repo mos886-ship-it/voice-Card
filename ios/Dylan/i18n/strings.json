@@ -5980,8 +5980,8 @@
   "ko": "변경하면 바로 저장됩니다"
  },
  "AI 引擎、大D的主機、手錶等在「設定」頁。": {
-  "en": "AI engine, Big D's host, watch and more are on the Settings page.",
-  "ko": "AI 엔진, 대D 호스트, 워치 등은 '설정' 페이지에 있습니다."
+  "en": "AI engine, Dylan Host, watch and more are on the Settings page.",
+  "ko": "AI 엔진, Dylan 호스트, 워치 등은 '설정' 페이지에 있습니다."
  },
  "共 {0} 筆": {
   "en": "{0} records",
@@ -6162,5 +6162,61 @@
  "翻譯記錄 {0}": {
   "en": "Translation {0}",
   "ko": "번역 기록 {0}"
+ },
+ "車上・藍牙": {
+  "en": "Car / Bluetooth",
+  "ko": "차량·블루투스"
+ },
+ "手機（沒連著藍牙麥克風）": {
+  "en": "Phone (no Bluetooth mic connected)",
+  "ko": "휴대폰(블루투스 마이크 미연결)"
+ },
+ "（電話音質）": {
+  "en": " (phone quality)",
+  "ko": "(전화 음질)"
+ },
+ "還沒有報告": {
+  "en": "No reports yet",
+  "ko": "아직 보고서가 없습니다"
+ },
+ "今天沒有待辦": {
+  "en": "No to-dos today",
+  "ko": "오늘은 할 일이 없습니다"
+ },
+ "報告做好時朗讀": {
+  "en": "Read reports aloud when ready",
+  "ko": "보고서가 완성되면 읽어 주기"
+ },
+ "停止朗讀": {
+  "en": "Stop reading",
+  "ko": "읽기 중지"
+ },
+ "車上・藍牙：連著車子或耳機的藍牙通話麥克風時用它錄（通話音質，約 8～16 kHz）；沒連著就用手機。報告的基本資料會寫用了哪個麥克風。": {
+  "en": "Car / Bluetooth: records with the car's or headset's Bluetooth call mic when connected (call quality, about 8–16 kHz); otherwise uses the phone. The report's details say which mic was used.",
+  "ko": "차량·블루투스: 차량이나 헤드셋의 블루투스 통화 마이크가 연결되어 있으면 그것으로 녹음합니다(통화 음질, 약 8~16 kHz). 연결되어 있지 않으면 휴대폰을 씁니다. 보고서 기본 정보에 사용한 마이크가 표시됩니다."
+ },
+ "Siri 與捷徑": {
+  "en": "Siri and Shortcuts",
+  "ko": "Siri와 단축어"
+ },
+ "可以說「嘿 Siri，大D 開始錄音」「大D 停止錄音」「大D 記錄飲食」「大D 唸最新報告」「大D 唸今天待辦」；也能在「捷徑」App 設成連上車子藍牙就開始錄音（自動化 → 藍牙）。": {
+  "en": "Say \"Hey Siri, start recording in Dylan\", \"Stop recording in Dylan\", \"Log food in Dylan\", \"Read the latest report in Dylan\" or \"Read today's to-dos in Dylan\". In the Shortcuts app you can also start recording when the car's Bluetooth connects (Automation → Bluetooth).",
+  "ko": "\"시리야, Dylan 녹음 시작\", \"Dylan 녹음 중지\", \"Dylan 식사 기록\", \"Dylan 최신 보고서 읽어 줘\", \"Dylan 오늘 할 일 읽어 줘\"라고 말할 수 있습니다. 단축어 앱에서 차량 블루투스에 연결되면 녹음을 시작하도록 설정할 수도 있습니다(자동화 → 블루투스)."
+ },
+ "CarPlay 畫面要 Apple 個別核准，目前沒有。": {
+  "en": "A CarPlay screen needs Apple's individual approval; not available yet.",
+  "ko": "CarPlay 화면은 Apple의 개별 승인이 필요해 아직 없습니다."
+ },
+ "麥克風  {0}": {
+  "en": "Mic  {0}",
+  "ko": "마이크  {0}"
+ },
+ "大D・記錄飲食": {
+  "en": "Dylan · Logging food",
+  "ko": "Dylan · 식사 기록"
+ },
+ "大D・錄音中": {
+  "en": "Dylan · Recording",
+  "ko": "Dylan · 녹음 중"
  }
 }
