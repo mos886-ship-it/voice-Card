@@ -45,6 +45,36 @@ object Settings {
     fun saveTranslations(context: Context): Boolean = prefs(context).getBoolean("translate_save", true)
     fun setSaveTranslations(context: Context, v: Boolean) = prefs(context).edit().putBoolean("translate_save", v).apply()
 
+    /** 即时翻译说的语言（辨识服务代码，例如 zh-TW）；预设跟录音语言。 */
+    fun translateSource(context: Context): String =
+        prefs(context).getString("translate_source", null) ?: SpeechLang.current.locale
+    fun setTranslateSource(context: Context, v: String) = prefs(context).edit().putString("translate_source", v).apply()
+    /** 最近用过的翻译语言（说的、翻成的都记，最多 8 个，新的在前）。 */
+    fun recentTranslateLangs(context: Context): List<String> =
+        prefs(context).getString("translate_recent", "")!!.split(',').filter { it.isNotBlank() }
+    fun addRecentTranslateLang(context: Context, v: String) {
+        val l = (listOf(v) + recentTranslateLangs(context).filter { it != v }).take(8)
+        prefs(context).edit().putString("translate_recent", l.joinToString(",")).apply()
+    }
+    /** 离线没有这个语言时可以用 Google 线上辨识（声音会传出去）。 */
+    fun allowOnlineRecognition(context: Context): Boolean = prefs(context).getBoolean("translate_online", true)
+    fun setAllowOnlineRecognition(context: Context, v: Boolean) = prefs(context).edit().putBoolean("translate_online", v).apply()
+    /** 翻译模型只在 Wi-Fi 下载。 */
+    fun translateModelsWifiOnly(context: Context): Boolean = prefs(context).getBoolean("translate_wifi", false)
+    fun setTranslateModelsWifiOnly(context: Context, v: Boolean) = prefs(context).edit().putBoolean("translate_wifi", v).apply()
+    /** 翻好自动朗读、朗读速度。 */
+    fun autoSpeak(context: Context): Boolean = prefs(context).getBoolean("translate_speak", false)
+    fun setAutoSpeak(context: Context, v: Boolean) = prefs(context).edit().putBoolean("translate_speak", v).apply()
+    fun speakRate(context: Context): Float = prefs(context).getFloat("translate_rate", 1.0f)
+    fun setSpeakRate(context: Context, v: Float) = prefs(context).edit().putFloat("translate_rate", v).apply()
+    /** 字幕显示原文、翻译时萤幕保持亮着、开始翻译时同时录音（录完产生报告）。 */
+    fun showOriginal(context: Context): Boolean = prefs(context).getBoolean("translate_original", true)
+    fun setShowOriginal(context: Context, v: Boolean) = prefs(context).edit().putBoolean("translate_original", v).apply()
+    fun keepScreenOn(context: Context): Boolean = prefs(context).getBoolean("translate_screen", true)
+    fun setKeepScreenOn(context: Context, v: Boolean) = prefs(context).edit().putBoolean("translate_screen", v).apply()
+    fun translateWithRecording(context: Context): Boolean = prefs(context).getBoolean("translate_record", false)
+    fun setTranslateWithRecording(context: Context, v: Boolean) = prefs(context).edit().putBoolean("translate_record", v).apply()
+
     /** 每日蛋白质 / 膳食纤维目标（克）。 */
     fun proteinGoal(context: Context): Int = prefs(context).getInt("protein_goal", 60)
     fun setProteinGoal(context: Context, value: Int) = prefs(context).edit().putInt("protein_goal", value.coerceIn(10, 400)).apply()

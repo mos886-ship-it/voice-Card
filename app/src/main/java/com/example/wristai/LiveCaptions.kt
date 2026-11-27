@@ -14,7 +14,6 @@ import com.example.voiceai.shared.AudioSpec
 import com.example.voiceai.shared.tr
 import com.example.voiceai.shared.trf
 import com.google.mlkit.common.model.DownloadConditions
-import com.google.mlkit.nl.translate.TranslateLanguage
 import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.Translator
 import com.google.mlkit.nl.translate.TranslatorOptions
@@ -32,16 +31,16 @@ import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.TimeUnit
 
 /**
- * 即时翻译（字幕）：手机录音的声音同时送进手机内建语音辨识（Android 13+，[RecognizerIntent.EXTRA_AUDIO_SOURCE]），
- * 一句辨识完就用 ML Kit 装置端翻译。都在手机上做、免费、不上传；只是辅助，完整报告照旧。
+ * 即时翻译（字幕）：手机内建语音辨识 → ML Kit 装置端翻译。语言不限：手机辨识得了、ML Kit 翻得了的都可以（[TranslateLangs]）。
  *
- * - [feed]：录音回圈（[PhoneRecordingService]）每读到一段 PCM 就丢进来；没开字幕时什么都不做。
- * - 辨识器一段落结束或出错 → 自动接新的一段，录音不中断。
- * - 每句翻好推给手表（[WatchNotifier.sendCaption]）。
+ * 两种听法：
+ * - 麦克风（只翻译、不录音）：辨识器自己开麦克风，一句结束就接下一句。旧手机也能用。
+ * - 录音中（[feed]）：手机录音的声音同时送进辨识器（Android 13+，[RecognizerIntent.EXTRA_AUDIO_SOURCE]），录完照常产生报告。
+ * 每句翻好推给手表（[WatchNotifier.sendCaption]），可以自动朗读（[Speaker]）。
  */
 object LiveCaptions {
     private const val TAG = "LiveCaptions"
-    private const val MAX_LINES = 200
+    private const val MAX_LINES = 300
 
     /** 一句：原文、译文（null = 翻译中）、是不是还在说（辨识中的暂时结果）。 */
     data class Line(val id: Long, val original: String, val translated: String?, val partial: Boolean = false)
@@ -49,55 +48,35 @@ object LiveCaptions {
     data class State(
         val running: Boolean = false,
         val lines: List<Line> = emptyList(),
-        /** 现在的状态说明（下载语言模型中、没有语音辨识…）；null = 正常 */
+        /** 现在的状态说明（下载语言模型中、改用线上辨识…）；null = 正常 */
         val status: String? = null,
         val error: String? = null,
-        val source: SpeechLang = SpeechLang.ZH,
-        val target: Target = Target.EN,
+        /** 说的语言（辨识服务的代码，例如 zh-TW、en-GB） */
+        val source: String = "zh-TW",
+        /** 翻成的语言（ML Kit 代码，例如 en、ja） */
+        val target: String = "en",
+        /** true = 用录音的声音（录音中）；false = 辨识器自己开麦克风 */
+        val fromRecording: Boolean = false,
         /** 这次翻译的编号＝开始时间（存记录用）；同时录的那段录音。 */
         val sessionId: Long = 0,
         val meetingId: String? = null,
     )
 
-    /** 翻译成：显示名称用该语言自己的写法。 */
-    enum class Target(val code: String, val label: String, val mlkit: String) {
-        ZH("zh", "繁體中文", TranslateLanguage.CHINESE),
-        EN("en", "English", TranslateLanguage.ENGLISH),
-        KO("ko", "한국어", TranslateLanguage.KOREAN),
-        JA("ja", "日本語", TranslateLanguage.JAPANESE),
-        VI("vi", "Tiếng Việt", TranslateLanguage.VIETNAMESE);
-
-        companion object {
-            fun of(code: String?) = entries.firstOrNull { it.code == code }
-        }
+    /** 翻成什么的预设：介面语言；跟说的一样就换一个（中文 ↔ 英文）。 */
+    fun defaultTarget(sourceTag: String, uiLang: String): String {
+        val src = TranslateLangs.mlkitOf(sourceTag)
+        val ui = TranslateLangs.mlkitOf(uiLang) ?: "en"
+        return if (ui != src) ui else if (ui == "zh") "en" else "zh"
     }
 
-    /** ML Kit 翻译认得的来源语言；台语、客语、粤语没有（手机也辨识不了）。 */
-    fun mlkitSource(l: SpeechLang): String? = when (l) {
-        SpeechLang.ZH -> TranslateLanguage.CHINESE
-        SpeechLang.EN -> TranslateLanguage.ENGLISH
-        SpeechLang.JA -> TranslateLanguage.JAPANESE
-        SpeechLang.KO -> TranslateLanguage.KOREAN
-        SpeechLang.VI -> TranslateLanguage.VIETNAMESE
-        SpeechLang.TH -> TranslateLanguage.THAI
-        SpeechLang.ID -> TranslateLanguage.INDONESIAN
-        else -> null
-    }
-
-    fun supported(l: SpeechLang) = mlkitSource(l) != null && Build.VERSION.SDK_INT >= 33
-
-    /** 预设翻成什么：介面语言；跟来源一样就换一个（中文 ↔ 英文）。 */
-    fun defaultTarget(source: SpeechLang, uiLang: String): Target {
-        val ui = Target.of(uiLang) ?: Target.EN
-        val same = mlkitSource(source) == ui.mlkit
-        return if (!same) ui else if (ui == Target.ZH) Target.EN else Target.ZH
-    }
-
-    /** 录音刚停止时那段录音的编号（录音停止会一起停字幕，那时 [PhoneRecorder.active] 已经清掉）。 */
-    @Volatile var lastMeetingId: String? = null
+    /** 录音的声音送进辨识器要 Android 13+；麦克风模式都可以。 */
+    val canUseRecording get() = Build.VERSION.SDK_INT >= 33
 
     private val _state = MutableStateFlow(State())
     val state: StateFlow<State> = _state.asStateFlow()
+
+    /** 录音刚停止时那段录音的编号（录音停止会一起停字幕，那时 [PhoneRecorder.active] 已经清掉）。 */
+    @Volatile var lastMeetingId: String? = null
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var nextId = 1L
@@ -109,7 +88,6 @@ object LiveCaptions {
     private val queue = ArrayBlockingQueue<ByteArray>(64)
     private var writer: Thread? = null
     private var appContext: Context? = null
-    private var segments = 0
     /** 离线辨识没有这个语言 → 改用线上辨识（会传到 Google），画面上会写。 */
     private var online = false
     /** 辨识服务候选（[engines]）里现在用第几个；这次开字幕有没有听到过字；连续出错几次。 */
@@ -117,62 +95,85 @@ object LiveCaptions {
     @Volatile private var heard = false
     private var errorsInRow = 0
     private const val ON_DEVICE = "on-device"
+    /** 这次开 App 已经知道离线没有的语言（不要每次都跳「下载离线语音」）。 */
+    private val offlineMissing = mutableSetOf<String>()
 
     /**
      * 辨识服务的候选顺序：离线（有、而且这个语言没确认缺）→ Google 的线上服务 → 手机上其他服务。
-     * 三星手机预设的服务可能不接受「直接把录音送进去」，所以明确指定 Google 的，不行再换。
+     * 设定关掉「允许线上辨识」就只用离线。
      */
     private fun engines(c: Context): List<String> {
         val src = _state.value.source
         val out = mutableListOf<String>()
-        if (src.code !in offlineMissing && SpeechRecognizer.isOnDeviceRecognitionAvailable(c)) out += ON_DEVICE
-        val services = c.packageManager.queryIntentServices(Intent(android.speech.RecognitionService.SERVICE_INTERFACE), 0)
-            .map { android.content.ComponentName(it.serviceInfo.packageName, it.serviceInfo.name) }
-        out += services.sortedBy { if (it.packageName.contains("google")) 0 else 1 }.map { it.flattenToString() }
+        if (src !in offlineMissing && SpeechRecognizer.isOnDeviceRecognitionAvailable(c)) out += ON_DEVICE
+        if (Settings.allowOnlineRecognition(c)) out += TranslateLangs.services(c).map { it.flattenToString() }
         return out
     }
 
-    /** 这次开 App 已经知道离线没有的语言（不要每次都跳「下载离线语音」）。 */
-    private val offlineMissing = mutableSetOf<String>()
-
-    /** 录音回圈呼叫：开着字幕才送。 */
+    /** 录音回圈呼叫：用录音的声音翻译时才送。 */
     fun feed(buf: ByteArray, n: Int) {
         if (sink == null || n <= 0) return
         queue.offer(buf.copyOf(n))
     }
 
-    fun start(context: Context, source: SpeechLang, target: Target) {
+    /**
+     * 开始翻译。[fromRecording] = 用正在录的声音（录音中才可以）；否则辨识器自己开麦克风。
+     */
+    fun start(context: Context, source: String, target: String, fromRecording: Boolean = PhoneRecorder.active.value != null) {
         if (_state.value.running) stop()
         val c = context.applicationContext
         appContext = c
-        if (!supported(source)) {
-            _state.value = State(error = "這個語言沒有即時字幕（台語、客語、粵語手機辨識不了）".tr, source = source, target = target)
-            return
+        val srcMl = TranslateLangs.mlkitOf(source)
+        val base = State(source = source, target = target, fromRecording = fromRecording)
+        when {
+            srcMl == null -> { _state.value = base.copy(error = "手機的翻譯不支援{0}".trf(TranslateLangs.name(source))); return }
+            srcMl == target -> { _state.value = base.copy(error = "說的語言和翻成的語言一樣".tr); return }
+            fromRecording && !canUseRecording -> { _state.value = base.copy(error = "這支手機（Android 13 以下）錄音中不能同時翻譯；請先停止錄音，改用只翻譯".tr); return }
         }
-        online = source.code in offlineMissing
+        online = source in offlineMissing
         lastMeetingId = null
         engine = 0; heard = false; errorsInRow = 0
-        _state.value = State(running = true, source = source, target = target,
+        Settings.addRecentTranslateLang(c, source)
+        Settings.addRecentTranslateLang(c, target)
+        _state.value = base.copy(running = true,
             sessionId = System.currentTimeMillis(), meetingId = PhoneRecorder.active.value?.meetingId,
-            status = if (online) "手機的離線語音沒有{0}，這次改用線上辨識（聲音會傳到 Google 辨識）".trf(source.label) else "準備翻譯模型…".tr)
+            status = if (online) onlineNote(source) else "準備翻譯模型…".tr)
         // 翻译模型：第一次要下载（约 30 MB）
         translator?.close()
-        val t = Translation.getClient(TranslatorOptions.Builder()
-            .setSourceLanguage(mlkitSource(source)!!).setTargetLanguage(target.mlkit).build())
+        val t = Translation.getClient(TranslatorOptions.Builder().setSourceLanguage(srcMl!!).setTargetLanguage(target).build())
         translator = t
         scope.launch {
             try {
-                t.downloadModelIfNeeded(DownloadConditions.Builder().build()).await()
+                val cond = DownloadConditions.Builder().apply { if (Settings.translateModelsWifiOnly(c)) requireWifi() }.build()
+                t.downloadModelIfNeeded(cond).await()
                 update { it.copy(status = if (online) it.status else null) }
                 // 先前没翻到的补翻
                 for (l in _state.value.lines) if (!l.partial && l.translated == null) translate(l.id, l.original)
             } catch (e: Exception) {
                 Log.w(TAG, "model download failed", e)
-                update { it.copy(status = "翻譯模型下載失敗，只顯示原文（{0}）".trf(e.message)) }
+                update { it.copy(status = if (Settings.translateModelsWifiOnly(c)) "翻譯模型還沒下載（設定為只用 Wi-Fi 下載），先只顯示原文".tr
+                    else "翻譯模型下載失敗，只顯示原文（{0}）".trf(e.message)) }
             }
         }
-        startWriter()
-        startRecognizer(c, source)
+        if (fromRecording) startWriter()
+        startRecognizer(c)
+    }
+
+    private fun onlineNote(tag: String) = "手機的離線語音沒有{0}，這次改用線上辨識（聲音會傳到 Google 辨識）".trf(TranslateLangs.shortName(tag))
+
+    /** 对调说的与翻成的（对话：换对方说）。正在翻译就用新的方向重新开始。 */
+    fun swap(context: Context) {
+        val s = _state.value
+        val newSource = TranslateLangs.defaultTag(s.target, preferred = Settings.recentTranslateLangs(context))
+        val newTarget = TranslateLangs.mlkitOf(s.source) ?: return
+        Settings.setTranslateSource(context, newSource)
+        Settings.setTranslateTarget(context, newTarget)
+        if (s.running) {
+            // 同一次对话：字幕留着（存记录时各自那一段分开存）
+            val keep = s.lines
+            start(context, newSource, newTarget, s.fromRecording)
+            update { it.copy(lines = (keep + it.lines).takeLast(MAX_LINES)) }
+        } else update { it.copy(source = newSource, target = newTarget) }
     }
 
     fun stop() {
@@ -191,17 +192,21 @@ object LiveCaptions {
         // 存成一笔记录；最后几句的翻译可能还没回来，3 秒后再存一次（同一笔）
         val id = _state.value.sessionId
         if (id != 0L && Settings.saveTranslations(c)) {
-            saveSession(c, _state.value)
-            scope.launch { kotlinx.coroutines.delay(3_000); if (_state.value.sessionId == id) saveSession(c, _state.value) }
+            val firstLine = startLineOf[id] ?: 0L
+            saveSession(c, _state.value, firstLine)
+            scope.launch { kotlinx.coroutines.delay(3_000); if (_state.value.sessionId == id) saveSession(c, _state.value, firstLine) }
         }
     }
 
-    private fun saveSession(c: Context, s: State) {
-        val lines = s.lines.filter { it.original.isNotBlank() }.map { TranslationStore.Line(it.original, it.translated) }
+    /** 每次开始时第一句的编号（对调方向时字幕留着，但存记录只存这一段）。 */
+    private val startLineOf = mutableMapOf<Long, Long>()
+
+    private fun saveSession(c: Context, s: State, firstLine: Long) {
+        val lines = s.lines.filter { it.id >= firstLine && it.original.isNotBlank() }.map { TranslationStore.Line(it.original, it.translated) }
         if (lines.isEmpty()) return
         runCatching {
             TranslationStore.save(c, TranslationStore.Session(s.sessionId, s.sessionId, System.currentTimeMillis(),
-                s.source.code, s.target.code, s.meetingId ?: PhoneRecorder.active.value?.meetingId ?: lastMeetingId, lines))
+                s.source, s.target, s.meetingId ?: PhoneRecorder.active.value?.meetingId ?: lastMeetingId, lines))
         }.onFailure { Log.w(TAG, "save session failed", it) }
     }
 
@@ -239,40 +244,46 @@ object LiveCaptions {
         }.apply { isDaemon = true; name = "live-captions"; start() }
     }
 
-    /** 开一段新的辨识（pipe 的读端交给辨识器，写端给 [feed]）。 */
-    private fun startRecognizer(c: Context, source: SpeechLang) {
-        if (Build.VERSION.SDK_INT < 33) return
-        val pipe = ParcelFileDescriptor.createPipe()
-        runCatching { readEnd?.close() }
-        readEnd = pipe[0]
-        val oldSink = sink
-        sink = ParcelFileDescriptor.AutoCloseOutputStream(pipe[1])
-        runCatching { oldSink?.close() }
+    /** 开一段新的辨识（录音模式：pipe 的读端交给辨识器，写端给 [feed]；麦克风模式：辨识器自己听）。 */
+    private fun startRecognizer(c: Context) {
+        val s = _state.value
+        if (!startLineOf.containsKey(s.sessionId)) startLineOf[s.sessionId] = nextId
+        val source = s.source
+        var pipeRead: ParcelFileDescriptor? = null
+        if (s.fromRecording) {
+            if (Build.VERSION.SDK_INT < 33) return
+            val pipe = ParcelFileDescriptor.createPipe()
+            runCatching { readEnd?.close() }
+            readEnd = pipe[0]; pipeRead = pipe[0]
+            val oldSink = sink
+            sink = ParcelFileDescriptor.AutoCloseOutputStream(pipe[1])
+            runCatching { oldSink?.close() }
+        }
         runCatching { recognizer?.destroy() }
         val list = engines(c)
         if (list.isEmpty()) {
-            update { it.copy(error = "這支手機沒有可用的語音辨識服務（請安裝 / 啟用 Google 語音服務）".tr) }
+            update { it.copy(error = if (!Settings.allowOnlineRecognition(c)) "{0}沒有離線語音辨識，而且線上辨識已關閉（翻譯 → 設定）".trf(TranslateLangs.name(source))
+                else "這支手機沒有可用的語音辨識服務（請安裝 / 啟用 Google 語音服務）".tr) }
             stop(); return
         }
         if (engine >= list.size) engine = 0
         val eng = list[engine]
-        val r = when (eng) {
-            ON_DEVICE -> SpeechRecognizer.createOnDeviceSpeechRecognizer(c)
+        val r = when {
+            eng == ON_DEVICE && Build.VERSION.SDK_INT >= 31 -> SpeechRecognizer.createOnDeviceSpeechRecognizer(c)
             else -> SpeechRecognizer.createSpeechRecognizer(c, android.content.ComponentName.unflattenFromString(eng))
         }
         recognizer = r
-        segments++
         r.setRecognitionListener(object : RecognitionListener {
             fun text(b: Bundle?) = b?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()?.trim().orEmpty()
 
             override fun onPartialResults(b: Bundle?) {
-                val t = text(b); if (t.isEmpty()) return
+                val t = text(b); if (t.isEmpty() || Speaker.speaking) return
                 heard = true; errorsInRow = 0
-                update { s ->
-                    val last = s.lines.lastOrNull()
-                    val lines = if (last != null && last.partial) s.lines.dropLast(1) + last.copy(original = t)
-                    else s.lines + Line(nextId++, t, null, partial = true)
-                    s.copy(lines = lines.takeLast(MAX_LINES))
+                update { st ->
+                    val last = st.lines.lastOrNull()
+                    val lines = if (last != null && last.partial) st.lines.dropLast(1) + last.copy(original = t)
+                    else st.lines + Line(nextId++, t, null, partial = true)
+                    st.copy(lines = lines.takeLast(MAX_LINES))
                 }
             }
 
@@ -288,14 +299,16 @@ object LiveCaptions {
                     }
                     SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE, SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED -> {
                         if (eng == ON_DEVICE) {
-                            // 离线没有这个语言：请系统下载离线语音（下次就能离线），这次改用线上辨识
-                            runCatching { r.triggerModelDownload(Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).putExtra(RecognizerIntent.EXTRA_LANGUAGE, source.locale)) }
-                            offlineMissing += source.code
+                            // 离线没有这个语言：这次改用线上辨识（不自动跳系统下载视窗；要离线就到「翻譯 → 設定 → 下載離線語音」）
+                            offlineMissing += source
                             online = true
-                            update { it.copy(status = "手機的離線語音沒有{0}，這次改用線上辨識（聲音會傳到 Google 辨識）".trf(source.label)) }
+                            if (Settings.allowOnlineRecognition(c)) update { it.copy(status = onlineNote(source)) }
                         }
                         nextEngine(list, error); return
                     }
+                    // 麦克风模式：没听到、没说话是常态 → 接着听
+                    SpeechRecognizer.ERROR_NO_MATCH, SpeechRecognizer.ERROR_SPEECH_TIMEOUT, SpeechRecognizer.ERROR_RECOGNIZER_BUSY,
+                    SpeechRecognizer.ERROR_SERVER_DISCONNECTED -> if (!_state.value.fromRecording) { restart(); return }   // 麦克风：安静、没说话是常态
                 }
                 // 这个辨识服务一直出错、一句都没听到（例如三星的服务不接受直接送录音）→ 换下一个
                 errorsInRow++
@@ -309,14 +322,16 @@ object LiveCaptions {
                     engine++
                     restart()
                 } else {
-                    update { it.copy(error = "手機的語音辨識沒辦法邊錄邊辨識（錯誤 {0}）。錄音照常，錄完的報告不受影響。".trf(error)) }
+                    update { it.copy(error = if (_state.value.fromRecording)
+                        "手機的語音辨識沒辦法邊錄邊辨識（錯誤 {0}）。錄音照常，錄完的報告不受影響。".trf(error)
+                        else "手機的語音辨識不能用（錯誤 {0}）".trf(error)) }
                     stop()
                 }
             }
 
             fun restart() {
                 if (!_state.value.running) return
-                scope.launch { kotlinx.coroutines.delay(200); if (_state.value.running) startRecognizer(c, source) }
+                scope.launch { kotlinx.coroutines.delay(150); if (_state.value.running) startRecognizer(c) }
             }
 
             override fun onReadyForSpeech(params: Bundle?) {}
@@ -328,19 +343,26 @@ object LiveCaptions {
         })
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, source.locale)
-            putExtra(RecognizerIntent.EXTRA_AUDIO_SOURCE, pipe[0])
-            putExtra(RecognizerIntent.EXTRA_AUDIO_SOURCE_CHANNEL_COUNT, AudioSpec.CHANNELS)
-            putExtra(RecognizerIntent.EXTRA_AUDIO_SOURCE_ENCODING, AudioFormat.ENCODING_PCM_16BIT)
-            putExtra(RecognizerIntent.EXTRA_AUDIO_SOURCE_SAMPLING_RATE, AudioSpec.SAMPLE_RATE)
-            putExtra(RecognizerIntent.EXTRA_SEGMENTED_SESSION, RecognizerIntent.EXTRA_AUDIO_SOURCE)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, source)
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+            if (pipeRead != null && Build.VERSION.SDK_INT >= 33) {
+                putExtra(RecognizerIntent.EXTRA_AUDIO_SOURCE, pipeRead)
+                putExtra(RecognizerIntent.EXTRA_AUDIO_SOURCE_CHANNEL_COUNT, AudioSpec.CHANNELS)
+                putExtra(RecognizerIntent.EXTRA_AUDIO_SOURCE_ENCODING, AudioFormat.ENCODING_PCM_16BIT)
+                putExtra(RecognizerIntent.EXTRA_AUDIO_SOURCE_SAMPLING_RATE, AudioSpec.SAMPLE_RATE)
+                putExtra(RecognizerIntent.EXTRA_SEGMENTED_SESSION, RecognizerIntent.EXTRA_AUDIO_SOURCE)
+            } else {
+                // 麦克风：说完停 1.5 秒算一句
+                putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 1500L)
+            }
         }
         r.startListening(intent)
     }
 
-    /** 一句说完：定下原文、开始翻译。 */
-    private fun finishLine(t: String) {
+    /** 一句说完：定下原文、开始翻译。朗读中听到的（自己的朗读）不算。 */
+    private fun finishLine(t0: String) {
+        val t = if (Speaker.speaking) "" else t0
         update { s ->
             val last = s.lines.lastOrNull()
             when {
@@ -356,11 +378,14 @@ object LiveCaptions {
 
     private fun translate(id: Long, text: String) {
         val t = translator ?: return
+        val target = _state.value.target
         scope.launch {
             val out = runCatching { t.translate(text).await() }.getOrNull() ?: return@launch
-            val shown = if (_state.value.target == Target.ZH) TraditionalChinese.convert(out) else out
+            val shown = if (target == "zh") TraditionalChinese.convert(out) else out
             update { s -> s.copy(lines = s.lines.map { if (it.id == id) it.copy(translated = shown) else it }) }
-            appContext?.takeIf { Settings.captionToWatch(it) }?.let { WatchNotifier.sendCaption(it, shown) }
+            val c = appContext ?: return@launch
+            if (Settings.captionToWatch(c)) WatchNotifier.sendCaption(c, shown)
+            if (Settings.autoSpeak(c) && _state.value.running) Speaker.speak(c, shown, target)
         }
     }
 }

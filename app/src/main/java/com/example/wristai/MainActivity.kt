@@ -115,10 +115,10 @@ class MainActivity : ComponentActivity() {
     private fun handleShare(intent: Intent?) {
         // 测试版才有：adb 送一个 WAV 进即时翻译（模拟器没办法真的说话）
         if ((applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0) intent?.getStringExtra("debug_caption_wav")?.let { path ->
-            val src = SpeechLang.of(intent.getStringExtra("debug_caption_lang") ?: "en")
-            val dst = LiveCaptions.Target.of(intent.getStringExtra("debug_caption_target")) ?: LiveCaptions.Target.ZH
+            val src = intent.getStringExtra("debug_caption_lang") ?: "en-US"
+            val dst = intent.getStringExtra("debug_caption_target") ?: "zh"
             com.example.wristai.ui.TranslatePage.open()
-            LiveCaptions.start(this, src, dst)
+            LiveCaptions.start(this, src, dst, fromRecording = true)
             LiveCaptions.debugFeedWav(java.io.File(path))
             return
         }

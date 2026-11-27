@@ -1,0 +1,58 @@
+package com.example.wristai
+
+import android.content.Context
+import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
+import java.util.Locale
+
+/**
+ * 朗读译文：手机内建的文字转语音（TextToSpeech），用手机已有的语音包，不上传。
+ * [speaking] = 正在念（即时翻译这时听到的声音是自己念的，不当成一句）。
+ */
+object Speaker {
+    @Volatile var speaking = false
+        private set
+    private var tts: TextToSpeech? = null
+    private var ready = false
+    private val pending = mutableListOf<Pair<String, String>>()
+
+    private fun ensure(c: Context) {
+        if (tts != null) return
+        tts = TextToSpeech(c.applicationContext) { status ->
+            ready = status == TextToSpeech.SUCCESS
+            if (ready) {
+                tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+                    override fun onStart(id: String?) { speaking = true }
+                    override fun onDone(id: String?) { speaking = tts?.isSpeaking == true }
+                    @Deprecated("old API") override fun onError(id: String?) { speaking = false }
+                })
+                val copy = pending.toList(); pending.clear()
+                for ((t, l) in copy) speak(c, t, l)
+            }
+        }
+    }
+
+    /** 念一句（[lang] = ML Kit 代码，例如 en、ja）。手机没有那个语言的语音就不念，回 false。 */
+    fun speak(c: Context, text: String, lang: String): Boolean {
+        ensure(c)
+        val t = tts ?: return false
+        if (!ready) { pending += text to lang; return true }
+        val locale = if (lang == "zh") Locale.TAIWAN else Locale.forLanguageTag(lang)
+        if (t.isLanguageAvailable(locale) < TextToSpeech.LANG_AVAILABLE) return false
+        t.language = locale
+        t.setSpeechRate(Settings.speakRate(c))
+        t.speak(text, TextToSpeech.QUEUE_ADD, null, "cap-${System.nanoTime()}")
+        return true
+    }
+
+    /** 这个语言手机能不能念（设定页显示用）；还没准备好回 null。 */
+    fun canSpeak(c: Context, lang: String): Boolean? {
+        ensure(c)
+        val t = tts ?: return null
+        if (!ready) return null
+        val locale = if (lang == "zh") Locale.TAIWAN else Locale.forLanguageTag(lang)
+        return t.isLanguageAvailable(locale) >= TextToSpeech.LANG_AVAILABLE
+    }
+
+    fun stop() { runCatching { tts?.stop() }; speaking = false }
+}

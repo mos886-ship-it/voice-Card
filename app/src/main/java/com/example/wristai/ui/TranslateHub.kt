@@ -3,6 +3,7 @@ package com.example.wristai.ui
 import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -42,13 +43,10 @@ import com.example.wristai.MeetingStore
 import com.example.wristai.Settings
 import com.example.wristai.SpeechLang
 import com.example.wristai.TranslationStore
+import com.example.wristai.TranslateLangs
+import com.example.wristai.TranslateModels
 import com.example.wristai.ui.theme.Brand
-import com.google.mlkit.common.model.DownloadConditions
-import com.google.mlkit.common.model.RemoteModelManager
-import com.google.mlkit.nl.translate.TranslateLanguage
-import com.google.mlkit.nl.translate.TranslateRemoteModel
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -62,7 +60,7 @@ fun TranslateHub(onOpen: (String) -> Unit, onOpenSettings: () -> Unit) {
     val live by LiveCaptions.state.collectAsState()
     HubScaffold(
         title = "即時翻譯".tr,
-        subtitle = if (live.running) "翻譯中：{0} → {1}".trf(live.source.label, live.target.label)
+        subtitle = if (live.running) "翻譯中：{0} → {1}".trf(TranslateLangs.shortName(live.source), TranslateLangs.shortName(live.target, true))
             else "邊錄邊翻譯，在手機上完成、不上傳".tr,
         sections = listOf("翻譯".tr, "記錄".tr, "分析".tr, "設定".tr),
         selected = Hubs.translate,
@@ -78,8 +76,9 @@ fun TranslateHub(onOpen: (String) -> Unit, onOpenSettings: () -> Unit) {
 }
 
 /** 说的语言用辨识语言的名字（國語、英語…），翻成的语言用翻译目标的名字（English、繁體中文…）。 */
-private fun srcLabel(code: String): String = SpeechLang.entries.firstOrNull { it.code == code }?.label ?: code
-private fun dstLabel(code: String): String = LiveCaptions.Target.of(code)?.label ?: code
+private fun srcLabel(code: String): String =
+    SpeechLang.entries.firstOrNull { it.code == code }?.label ?: TranslateLangs.shortName(code)   // 旧记录存的是录音语言代码
+private fun dstLabel(code: String): String = TranslateLangs.shortName(code, target = true)
 
 @Composable
 private fun TranslateRecords(sessions: List<TranslationStore.Session>, onOpen: (String) -> Unit) {
@@ -205,86 +204,210 @@ private fun TranslateAnalysis(sessions: List<TranslationStore.Session>) {
 @Composable
 private fun TranslateSettings(onOpenSettings: () -> Unit) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    LaunchedEffect(Unit) { TranslateLangs.refresh(context); TranslateModels.refresh() }
+    val support by TranslateLangs.support.collectAsState()
+    var source by remember { mutableStateOf(Settings.translateSource(context)) }
+    var target by remember { mutableStateOf(Settings.translateTarget(context).ifEmpty { LiveCaptions.defaultTarget(source, com.example.voiceai.shared.I18n.lang) }) }
+    var picking by remember { mutableStateOf<Boolean?>(null) }
+    val srcStatus = support.status(source)
     HubPage {
+        // ---------- 语言 ----------
+        SectionLabel("語言".tr)
         GlassCard {
-            Text("預設翻譯成".tr, style = MaterialTheme.typography.titleSmall, color = Brand.Text)
+            SettingRow("說的語言".tr, TranslateLangs.name(source), TranslateLangs.regionName(source) + " · " + source) { picking = true }
+            Divider(Modifier.padding(vertical = 10.dp))
+            SettingRow("翻譯成".tr, TranslateLangs.name(target, target = true), null) { picking = false }
             Spacer(Modifier.height(8.dp))
-            val opts = listOf("" to "跟介面".tr) + LiveCaptions.Target.entries.map { it.code to it.label }
-            var t by remember { mutableStateOf(Settings.translateTarget(context)) }
-            ChoiceGrid(opts.map { it.second }, opts.indexOfFirst { it.first == t }.coerceAtLeast(0)) { i ->
-                t = opts[i].first; Settings.setTranslateTarget(context, t)
-            }
-            Spacer(Modifier.height(6.dp))
-            Text("說的語言跟錄音的辨識語言是同一個設定（在「翻譯」頁或「錄音」的設定選）。".tr,
+            Text(
+                "能選的語言直接問手機：說的 = 手機語音辨識支援、而且能翻譯的（{0} 種）；翻成 = 手機裝置端翻譯支援的（{1} 種）。翻譯頁的 ⇄ 可以對調，跟對方輪流說。".trf(
+                    TranslateLangs.sources(support).size, TranslateLangs.targets.size),
                 style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
-            Spacer(Modifier.height(16.dp))
+        }
+
+        // ---------- 语音辨识 ----------
+        SectionLabel("語音辨識".tr)
+        GlassCard {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(TranslateLangs.name(source) + "（" + TranslateLangs.regionName(source) + "）", style = MaterialTheme.typography.titleSmall,
+                    color = Brand.Text, modifier = Modifier.weight(1f))
+                RecogBadge(srcStatus)
+            }
+            Text(when (srcStatus) {
+                TranslateLangs.Status.OFFLINE -> "手機已有離線語音：辨識在手機上做，不用網路。".tr
+                TranslateLangs.Status.DOWNLOADABLE -> "可以下載離線語音（下載後不用網路、聲音不出手機）。".tr
+                TranslateLangs.Status.ONLINE -> "只有線上辨識：聲音會傳到 Google 辨識，要有網路。".tr
+                null -> if (support.queried) "手機的辨識服務沒有列出這個口音，會試著用線上辨識。".tr else "這支手機查不到辨識清單（Android 13 以下），會用 Google 語音服務。".tr
+            }, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
+            if (srcStatus == TranslateLangs.Status.DOWNLOADABLE && android.os.Build.VERSION.SDK_INT >= 33) {
+                Spacer(Modifier.height(8.dp))
+                GhostButton("下載離線語音".tr, {
+                    runCatching {
+                        val r = android.speech.SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
+                        r.triggerModelDownload(android.content.Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+                            .putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE, source))
+                        scope.launch { kotlinx.coroutines.delay(5_000); r.destroy(); TranslateLangs.refresh(context) }
+                    }
+                }, Modifier.fillMaxWidth(), tint = Brand.Cyan)
+            }
+            Spacer(Modifier.height(10.dp))
+            Text("離線已裝 {0} 種、可下載 {1} 種、線上 {2} 種".trf(support.installed.size, support.downloadable.size, support.online.size),
+                style = MaterialTheme.typography.labelSmall, color = Brand.TextFaint)
+        }
+        var allowOnline by remember { mutableStateOf(Settings.allowOnlineRecognition(context)) }
+        SwitchCard("允許線上辨識".tr, "沒有離線語音的語言改用 Google 線上辨識（聲音會傳出手機）。關掉就只用離線，沒有離線語音的語言不能翻。".tr,
+            allowOnline, { allowOnline = it; Settings.setAllowOnlineRecognition(context, it) })
+
+        // ---------- 显示 ----------
+        SectionLabel("顯示".tr)
+        GlassCard {
             Text("字幕大小".tr, style = MaterialTheme.typography.titleSmall, color = Brand.Text)
             Spacer(Modifier.height(8.dp))
-            var size by remember { mutableStateOf(Settings.captionSize(context)) }
-            Segmented(listOf("小".tr, "中".tr, "大".tr), size) { size = it; Settings.setCaptionSize(context, it) }
+            var size by remember { mutableStateOf(Settings.captionSize(context).coerceIn(0, 3)) }
+            Segmented(listOf("小".tr, "中".tr, "大".tr, "特大".tr), size) { size = it; Settings.setCaptionSize(context, it) }
+            Spacer(Modifier.height(12.dp))
+            var orig by remember { mutableStateOf(Settings.showOriginal(context)) }
+            SettingSwitch("顯示原文".tr, "譯文上面小字顯示說的原文".tr, orig) { orig = it; Settings.setShowOriginal(context, it) }
+            var screen by remember { mutableStateOf(Settings.keepScreenOn(context)) }
+            SettingSwitch("翻譯時螢幕保持亮著".tr, "不會翻到一半螢幕關掉".tr, screen) { screen = it; Settings.setKeepScreenOn(context, it) }
+            var watch by remember { mutableStateOf(Settings.captionToWatch(context)) }
+            SettingSwitch("手錶顯示字幕".tr, "每翻好一句，手錶顯示最新的一句".tr, watch) { watch = it; Settings.setCaptionToWatch(context, it) }
         }
-        var watch by remember { mutableStateOf(Settings.captionToWatch(context)) }
-        SwitchCard("手錶顯示字幕".tr, "每翻好一句，手錶顯示最新的一句".tr, watch, { watch = it; Settings.setCaptionToWatch(context, it) })
-        var save by remember { mutableStateOf(Settings.saveTranslations(context)) }
-        SwitchCard("自動存翻譯記錄".tr, "每次翻譯的原文與譯文存在手機（「記錄」可以查看、分享、刪除）".tr, save,
-            { save = it; Settings.setSaveTranslations(context, it) })
-        OfflineModelsCard()
+
+        // ---------- 朗读 ----------
+        SectionLabel("朗讀".tr)
+        GlassCard {
+            var speak by remember { mutableStateOf(Settings.autoSpeak(context)) }
+            SettingSwitch("翻好自動朗讀".tr, "用手機的文字轉語音念譯文，讓對方聽。朗讀時聽到的聲音不會被當成新的一句；建議戴耳機或把音量調小。".tr, speak) {
+                speak = it; Settings.setAutoSpeak(context, it)
+            }
+            Spacer(Modifier.height(8.dp))
+            Text("朗讀速度".tr, style = MaterialTheme.typography.titleSmall, color = Brand.Text)
+            Spacer(Modifier.height(8.dp))
+            val rates = listOf(0.75f, 1.0f, 1.25f)
+            var rate by remember { mutableStateOf(Settings.speakRate(context)) }
+            Segmented(listOf("慢".tr, "正常".tr, "快".tr), rates.indexOfFirst { it == rate }.let { if (it < 0) 1 else it }) { rate = rates[it]; Settings.setSpeakRate(context, rate) }
+            Spacer(Modifier.height(8.dp))
+            var can by remember { mutableStateOf<Boolean?>(null) }
+            LaunchedEffect(target) { repeat(10) { can = com.example.wristai.Speaker.canSpeak(context, target); if (can != null) return@LaunchedEffect; kotlinx.coroutines.delay(500) } }
+            Text(when (can) {
+                true -> "手機可以念{0}。".trf(TranslateLangs.shortName(target, true))
+                false -> "手機沒有{0}的語音，可以在系統「文字轉語音」下載。".trf(TranslateLangs.shortName(target, true))
+                null -> "手機的文字轉語音準備中…".tr
+            }, style = MaterialTheme.typography.labelSmall, color = if (can == false) Brand.Warning else Brand.TextFaint)
+            Spacer(Modifier.height(6.dp))
+            GhostButton("試聽".tr, { com.example.wristai.Speaker.speak(context, sampleText(target), target) }, Modifier.fillMaxWidth())
+        }
+
+        // ---------- 录音与记录 ----------
+        SectionLabel("錄音與記錄".tr)
+        GlassCard {
+            var rec by remember { mutableStateOf(Settings.translateWithRecording(context)) }
+            SettingSwitch("開始翻譯時同時錄音".tr,
+                if (LiveCaptions.canUseRecording) "錄下來，翻完照常產生完整報告；關掉就只翻譯、不錄音（比較省電）。".tr
+                else "這支手機（Android 13 以下）不能邊錄邊翻譯，只能只翻譯。".tr, rec) { rec = it; Settings.setTranslateWithRecording(context, it) }
+            var save by remember { mutableStateOf(Settings.saveTranslations(context)) }
+            SettingSwitch("自動存翻譯記錄".tr, "每次翻譯的原文與譯文存在手機（「記錄」可以查看、分享、刪除）".tr, save) { save = it; Settings.setSaveTranslations(context, it) }
+        }
+
+        // ---------- 翻译模型 ----------
+        SectionLabel("離線翻譯模型".tr)
+        OfflineModelsCard(source, target)
         AllSettingsLink(onOpenSettings)
+    }
+    picking?.let { src ->
+        TranslateLangSheet(source = src, current = if (src) source else target, onDismiss = { picking = null }) { code ->
+            picking = null
+            if (src) { source = code; Settings.setTranslateSource(context, code) } else { target = code; Settings.setTranslateTarget(context, code) }
+            Settings.addRecentTranslateLang(context, code)
+        }
     }
 }
 
-/** 离线翻译模型（ML Kit，每个语言约 30 MB）：看有哪些、先下载、删掉省空间。英文内建不能删。 */
+/** 试听用的一句（翻成的语言）。 */
+private fun sampleText(lang: String) = when (lang) {
+    "zh" -> "你好，這是即時翻譯的朗讀。"
+    "ja" -> "こんにちは、これは翻訳の読み上げです。"
+    "ko" -> "안녕하세요, 번역 읽기 테스트입니다."
+    "vi" -> "Xin chào, đây là giọng đọc bản dịch."
+    "th" -> "สวัสดี นี่คือเสียงอ่านคำแปล"
+    "es" -> "Hola, esta es la lectura de la traducción."
+    "fr" -> "Bonjour, ceci est la lecture de la traduction."
+    "de" -> "Hallo, das ist die Vorlesefunktion der Übersetzung."
+    else -> "Hello, this is how translations will be read aloud."
+}
+
 @Composable
-private fun OfflineModelsCard() {
-    val scope = rememberCoroutineScope()
-    val manager = remember { RemoteModelManager.getInstance() }
-    var have by remember { mutableStateOf<Set<String>?>(null) }
-    var busy by remember { mutableStateOf<String?>(null) }
-    var error by remember { mutableStateOf<String?>(null) }
-    suspend fun refresh() {
-        have = runCatching { manager.getDownloadedModels(TranslateRemoteModel::class.java).await().map { it.language }.toSet() }.getOrDefault(emptySet())
+private fun SettingRow(label: String, value: String, detail: String?, onClick: () -> Unit) {
+    Row(Modifier.fillMaxWidth().clickable(onClick = onClick), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text(label, style = MaterialTheme.typography.labelMedium, color = Brand.TextMuted)
+            Text(value, style = MaterialTheme.typography.titleMedium, color = Brand.Text)
+            detail?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = Brand.TextFaint) }
+        }
+        Text("更改 ›".tr, style = MaterialTheme.typography.labelLarge, color = Brand.Cyan)
     }
-    LaunchedEffect(Unit) { refresh() }
-    val langs = listOf(
-        TranslateLanguage.CHINESE to "中文", TranslateLanguage.ENGLISH to "English", TranslateLanguage.KOREAN to "한국어",
-        TranslateLanguage.JAPANESE to "日本語", TranslateLanguage.VIETNAMESE to "Tiếng Việt", TranslateLanguage.THAI to "ไทย",
-        TranslateLanguage.INDONESIAN to "Bahasa Indonesia",
-    )
+}
+
+@Composable
+private fun SettingSwitch(title: String, detail: String, on: Boolean, onChange: (Boolean) -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.titleSmall, color = Brand.Text)
+            Text(detail, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
+        }
+        Spacer(Modifier.width(12.dp))
+        BrandSwitch(on, onChange)
+    }
+}
+
+/**
+ * 离线翻译模型：已下载的（可以删，英文内建）、这次用到但还没下载的（下载），加其他语言（选单）。
+ * 只用 Wi-Fi 下载的开关。
+ */
+@Composable
+private fun OfflineModelsCard(source: String, target: String) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val have by TranslateModels.downloaded.collectAsState()
+    val busy by TranslateModels.busy.collectAsState()
+    var error by remember { mutableStateOf<String?>(null) }
+    var adding by remember { mutableStateOf(false) }
+    val needed = listOfNotNull(TranslateLangs.mlkitOf(source), target).distinct()
+    val shown = (needed + (have ?: emptySet())).distinct().sortedBy { (if (it in needed) "0" else "1") + TranslateLangs.shortName(it, true) }
     GlassCard {
-        Text("離線翻譯模型".tr, style = MaterialTheme.typography.titleMedium, color = Brand.Text)
         Text("翻譯在手機上做，每個語言第一次用要下載（約 30 MB）。出門前先下載，沒網路也能翻。".tr,
             style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
         Spacer(Modifier.height(8.dp))
-        for ((code, name) in langs) {
+        for (code in shown) {
             val ok = have?.contains(code) == true
             Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(name, style = MaterialTheme.typography.bodyMedium, color = Brand.Text, modifier = Modifier.weight(1f))
+                Column(Modifier.weight(1f)) {
+                    Text(TranslateLangs.name(code, true), style = MaterialTheme.typography.bodyMedium, color = Brand.Text)
+                    if (code in needed) Text("目前使用".tr, style = MaterialTheme.typography.labelSmall, color = Brand.Cyan)
+                }
                 when {
                     have == null -> Text("…", color = Brand.TextFaint)
-                    busy == code -> Text("處理中…".tr, style = MaterialTheme.typography.labelLarge, color = Brand.TextFaint)
-                    code == TranslateLanguage.ENGLISH -> Text("內建".tr, style = MaterialTheme.typography.labelLarge, color = Brand.Success)
-                    ok -> TextButton({
-                        busy = code
-                        scope.launch {
-                            runCatching { manager.deleteDownloadedModel(TranslateRemoteModel.Builder(code).build()).await() }
-                                .onFailure { error = it.message }
-                            refresh(); busy = null
-                        }
-                    }) { Text("已下載 · 刪除".tr, color = Brand.TextMuted) }
-                    else -> TextButton({
-                        busy = code
-                        scope.launch {
-                            runCatching { manager.download(TranslateRemoteModel.Builder(code).build(), DownloadConditions.Builder().build()).await() }
-                                .onFailure { error = it.message }
-                            refresh(); busy = null
-                        }
-                    }) { Text("下載".tr, color = Brand.Cyan) }
+                    code in busy -> Text("處理中…".tr, style = MaterialTheme.typography.labelLarge, color = Brand.TextFaint)
+                    code == "en" -> Text("內建".tr, style = MaterialTheme.typography.labelLarge, color = Brand.Success)
+                    ok -> TextButton({ scope.launch { TranslateModels.delete(code).onFailure { error = it.message } } }) {
+                        Text("已下載 · 刪除".tr, color = Brand.TextMuted)
+                    }
+                    else -> TextButton({ scope.launch { TranslateModels.download(context, code).onFailure { error = it.message } } }) {
+                        Text("下載".tr, color = Brand.Cyan)
+                    }
                 }
             }
         }
         error?.let { Text("失敗：{0}".trf(it), style = MaterialTheme.typography.labelSmall, color = Brand.Warning) }
         Spacer(Modifier.height(6.dp))
-        Text("語音辨識：手機沒有那個語言的離線語音時會改用 Google 線上辨識；可以在系統「語音輸入 → 離線語音辨識」下載。".tr,
-            style = MaterialTheme.typography.labelSmall, color = Brand.TextFaint)
+        GhostButton("下載其他語言…".tr, { adding = true }, Modifier.fillMaxWidth())
+        Spacer(Modifier.height(10.dp))
+        var wifi by remember { mutableStateOf(Settings.translateModelsWifiOnly(context)) }
+        SettingSwitch("只用 Wi-Fi 下載".tr, "用行動網路時不下載翻譯模型（先只顯示原文）".tr, wifi) { wifi = it; Settings.setTranslateModelsWifiOnly(context, it) }
+    }
+    if (adding) TranslateLangSheet(source = false, current = target, onDismiss = { adding = false }) { code ->
+        adding = false
+        scope.launch { TranslateModels.download(context, code).onFailure { error = it.message } }
     }
 }
