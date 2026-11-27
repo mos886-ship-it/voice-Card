@@ -81,5 +81,79 @@ class TalkTest(unittest.TestCase):
         self.assertEqual([m["text"] for m in out["msgs"]], ["hello"])
 
 
+
+
+class ContactsTest(unittest.TestCase):
+    def setUp(self):
+        import tempfile, os
+        self.clock = Clock()
+        self.path = os.path.join(tempfile.mkdtemp(), "c.json")
+        self.r = talk.Rooms(clock=self.clock, contacts_path=self.path)
+
+    def test_contacts_presence_call_audio(self):
+        a = self.r.create("dev1", "大D", "cmn-Hant-TW")
+        ca = a["contact"]
+        self.assertIn("token", ca)
+        b = self.r.join(a["room"], a["code"], "Yuki", "ja-JP")
+        cb = b["contact"]
+        # 互相成為通話過的對象；在線上
+        p = self.r.presence(ca["token"], [cb["id"], "stranger"])
+        self.assertEqual(list(p["peers"]), [cb["id"]])
+        self.assertTrue(p["peers"][cb["id"]]["online"])
+        # 原聲片段
+        aid = self.r.put_audio(a["room"], a["token"], b"\x00" * 1000)["audio"]
+        self.r.post(a["room"], a["token"], "l1", "你好", "cmn-Hant-TW", True, audio=aid)
+        msg = [m for m in self.r.poll(a["room"], b["token"], 0, 0)["msgs"] if m.get("text")][0]
+        self.assertEqual(msg["audio"], aid)
+        self.assertEqual(len(self.r.get_audio(a["room"], b["token"], aid)[0]), 1000)
+        with self.assertRaises(talk.TalkError):
+            self.r.put_audio(a["room"], a["token"], b"x" * (talk.MAX_AUDIO + 1))
+        # 下次：Yuki 直接打給大D，帶著同一個身分
+        self.clock.t += 60
+        call = self.r.call(cb["token"], ca["id"], "Yuki", "ja-JP")
+        rings = self.r.presence(ca["token"], [cb["id"]])["calls"]
+        self.assertEqual(rings[0]["room"], call["room"])
+        self.assertTrue(rings[0]["live"])
+        j = self.r.join(call["room"], rings[0]["code"], "大D", "cmn-Hant-TW", contact=ca["token"])
+        self.assertEqual(j["contact"]["id"], ca["id"])
+        self.assertNotIn("token", j["contact"])        # 同一個人，不換 token
+        self.assertEqual(self.r.presence(ca["token"], [])["calls"], [])   # 接了就不再顯示
+        # 不能打給陌生人；打太快
+        with self.assertRaises(talk.TalkError) as e:
+            self.r.call(ca["token"], "stranger", "大D", "zh")
+        self.assertEqual(e.exception.code, 403)
+        with self.assertRaises(talk.TalkError) as e:
+            self.r.call(cb["token"], ca["id"], "Yuki", "ja-JP")
+        self.assertEqual(e.exception.code, 429)
+        # 存檔：重開主機還認得（只有名字、語言、雜湊、對象）
+        r2 = talk.Rooms(clock=self.clock, contacts_path=self.path)
+        self.assertEqual(r2.presence(cb["token"], [ca["id"]])["me"], cb["id"])
+        saved = open(self.path, encoding="utf-8").read()
+        self.assertNotIn(cb["token"], saved)
+        self.assertNotIn("你好", saved)
+
+    def test_missed_call_and_offline(self):
+        a = self.r.create("dev1", "A", "en-US")
+        b = self.r.join(a["room"], a["code"], "B", "ko-KR")
+        self.r.leave(a["room"], a["token"])
+        self.clock.t += talk.ONLINE_SECONDS + 5
+        p = self.r.presence(b["contact"]["token"], [a["contact"]["id"]])
+        self.assertFalse(p["peers"][a["contact"]["id"]]["online"])
+        self.r.call(b["contact"]["token"], a["contact"]["id"], "B", "ko-KR")
+        self.clock.t += talk.RING_SECONDS + 5
+        calls = self.r.presence(a["contact"]["token"], [])["calls"]
+        self.assertFalse(calls[0]["live"])        # 未接
+        self.r.dismiss(a["contact"]["token"], calls[0]["room"])
+        self.assertEqual(self.r.presence(a["contact"]["token"], [])["calls"], [])
+
+    def test_paired_device_keeps_identity(self):
+        a = self.r.create("dev1", "A", "en-US")
+        again = self.r.create("dev1", "A", "en-US")          # 沒帶 token（例如重裝 App）
+        self.assertEqual(again["contact"]["id"], a["contact"]["id"])
+        self.assertIn("token", again["contact"])              # 換新 token
+        with self.assertRaises(talk.TalkError):
+            self.r.presence(a["contact"]["token"], [])         # 舊 token 失效
+
+
 if __name__ == "__main__":
     unittest.main()

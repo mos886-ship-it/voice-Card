@@ -27,6 +27,11 @@ App 的報告解析、說話者名字、飲食 NUTRITION 解析都直接沿用�
     POST   /v1/talk/<room>/msg   X-Talk-Token；{line, text, lang, final}
     GET    /v1/talk/<room>?after=N&wait=25   X-Talk-Token；→ {msgs, members, ended, me, seq}
     DELETE /v1/talk/<room>    離開（開房的人離開 = 結束）
+    POST   /v1/talk/<room>/audio  X-Talk-Token；body 是這句的原聲（m4a，最多 400 KB）→ {audio}；msg 帶 audio=… 一起送
+    GET    /v1/talk/<room>/audio/<aid>   X-Talk-Token；下載原聲片段
+    POST   /v1/talk/presence  X-Contact-Token；{watch:[聯絡人 id], name, lang} → {me, peers:{id:{online,seen,name,lang}}, calls:[來電]}
+    POST   /v1/talk/call      X-Contact-Token；{to, name, lang} → 開房並在對方留來電（只能打給通話過的對象）
+    POST   /v1/talk/dismiss   X-Contact-Token；{room} 看過的未接來電拿掉
                        X-Food-Country: TW | US | JP | KR …（飲食：這一餐所在的國家，份量依當地；沒有 = TW）
                        X-Domain: auto | off | legal | medical …（領域專家模式，見 report_domains.json；沒有 = auto）
                        X-Lang: zh（國語 → FunASR）| nan（台語・國台語 → Breeze-ASR-26）| hak（客語 → 數位部 Taiwan Tongues；
@@ -810,7 +815,7 @@ MAX_FAILS = 10
 BLOCK_SECONDS = 3600
 import talk  # noqa: E402  遠距對話（兩地即時翻譯）的中繼
 
-TALK = talk.Rooms()
+TALK = talk.Rooms(contacts_path=os.path.join(HERE, "talk_contacts.json"))   # 通話對象（只有名字、語言、雜湊）
 
 FAILS = {}   # ip → [錯幾次, 封到何時]
 FAILS_LOCK = threading.Lock()
@@ -956,6 +961,19 @@ class Handler(BaseHTTPRequestHandler):
         return res
 
     def do_GET(self):
+        if self.path.startswith("/v1/talk/") and "/audio/" in self.path:
+            parts = self.path.split("?")[0].strip("/").split("/")   # v1 talk <room> audio <aid>
+            try:
+                data, mime = TALK.get_audio(parts[2], self.headers.get("X-Talk-Token", ""), parts[4] if len(parts) > 4 else "")
+            except talk.TalkError as e:
+                return self._json(e.code, {"error": str(e)})
+            self.send_response(200)
+            self.send_header("Content-Type", mime)
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(data)
+            return
         if self.path.startswith("/v1/talk/"):
             import urllib.parse
             q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
@@ -1110,10 +1128,26 @@ class Handler(BaseHTTPRequestHandler):
                 return
             return self._talk(lambda: self._talk_link(self._talk_create()))
         if self.path == "/v1/talk/join":
-            return self._talk(lambda: (lambda b: TALK.join(b.get("room"), b.get("code"), b.get("name"), b.get("lang")))(self._body()))
+            return self._talk(lambda: (lambda b: TALK.join(b.get("room"), b.get("code"), b.get("name"), b.get("lang"),
+                                                            contact=b.get("contact")))(self._body()))
+        if self.path in ("/v1/talk/presence", "/v1/talk/call", "/v1/talk/dismiss"):
+            ct = self.headers.get("X-Contact-Token", "")
+            if self.path == "/v1/talk/presence":
+                return self._talk(lambda: (lambda b: TALK.presence(ct, b.get("watch") or [], b.get("name"), b.get("lang")))(self._body()))
+            if self.path == "/v1/talk/call":
+                return self._talk(lambda: (lambda b: TALK.call(ct, b.get("to"), b.get("name"), b.get("lang")))(self._body()))
+            return self._talk(lambda: (lambda b: TALK.dismiss(ct, b.get("room")))(self._body()))
+        if self.path.startswith("/v1/talk/") and self.path.endswith("/audio"):
+            n = int(self.headers.get("Content-Length", "0") or 0)
+            if n <= 0 or n > talk.MAX_AUDIO:
+                return self._json(413, {"error": "原聲片段太大"})
+            data = self.rfile.read(n)
+            return self._talk(lambda: TALK.put_audio(self._talk_room(), self.headers.get("X-Talk-Token", ""), data,
+                                                     self.headers.get("Content-Type", "audio/mp4")))
         if self.path.startswith("/v1/talk/") and self.path.endswith("/msg"):
             return self._talk(lambda: (lambda b: TALK.post(self._talk_room(), self.headers.get("X-Talk-Token", ""),
-                                                            b.get("line"), b.get("text"), b.get("lang"), b.get("final")))(self._body()))
+                                                            b.get("line"), b.get("text"), b.get("lang"), b.get("final"),
+                                                            audio=b.get("audio")))(self._body()))
         if self.path == "/v1/chat/completions":
             return self._chat() if self._authorized() else None
         if self.path == "/v1/pair":
@@ -1189,7 +1223,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def _talk_create(self):
         b = self._body()
-        return TALK.create(self._dev(), b.get("name"), b.get("lang"))
+        return TALK.create(self._dev(), b.get("name"), b.get("lang"), contact=b.get("contact"))
 
     def do_DELETE(self):
         if self.path.startswith("/v1/talk/"):
