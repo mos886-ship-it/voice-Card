@@ -350,11 +350,71 @@ def spk_name(spk):
 def funasr_segments(wav):
     """FunASR → [(開始秒, 結束秒, 說話者編號, 文字)]。"""
     res = FUNASR.generate(input=wav, batch_size_s=300)
+    if not res:   # 整段沒聽到國語（或全是靜音）時 FunASR 回空清單
+        return []
     return [(s["start"] / 1000, s["end"] / 1000, s.get("spk", 0), s["text"]) for s in res[0].get("sentence_info", [])]
 
 
+def word_speakers(audio, words, win=1.5, hop=0.75, threshold=0.45):
+    """Whisper 系的說話者：在 Whisper 聽到聲音的地方每 1.5 秒（每 0.75 秒移一次）取 cam++ 聲紋，分群後每個字照它蓋到的
+    聲紋窗投票。不再借國語 FunASR 的句子：台語、客語、外語國語模型聽不懂，標點亂斷甚至整段回空，結果全部變成一位說話者。
+    words: [(開始秒, 結束秒)] → 每個字的說話者編號（照第一次出現的順序 0, 1, 2…）。"""
+    import torch
+    from sklearn.cluster import AgglomerativeClustering
+    if not words:
+        return []
+    regions = []   # 連續說話的區間（字之間停頓 0.5 秒以內算同一段）
+    for a, b in words:
+        if regions and a - regions[-1][1] <= 0.5:
+            regions[-1][1] = max(regions[-1][1], b)
+        else:
+            regions.append([a, b])
+    spans = []
+    for a, b in regions:
+        if b - a <= win:
+            c = (a + b) / 2
+            spans.append((max(0.0, c - win / 2), c + win / 2))
+            continue
+        t = a
+        while t + win < b:
+            spans.append((t, t + win))
+            t += hop
+        spans.append((b - win, b))
+    if len(spans) < 2:
+        return [0] * len(words)
+    chunks = [audio[int(a * 16000):int(b * 16000)] for a, b in spans]
+    rs = FUNASR.inference(chunks, input_len=None, model=FUNASR.spk_model, kwargs=FUNASR.spk_kwargs,
+                          fs=16000, disable_pbar=True)
+    emb = torch.cat([r["spk_embedding"] for r in rs], dim=0).cpu().numpy()
+    emb = emb / np.linalg.norm(emb, axis=1, keepdims=True)
+    if len(spans) >= 20:   # 夠多就用 FunASR 自己的分群（長錄音也撐得住）
+        lab = np.asarray(FUNASR.cb_model(torch.from_numpy(emb), oracle_num=None))
+    else:                  # FunASR 的分群少於 20 個窗會直接全部算同一人，短錄音自己分
+        lab = AgglomerativeClustering(n_clusters=None, metric="cosine", linkage="average",
+                                      distance_threshold=threshold).fit_predict(emb)
+    # 只出現一兩下的群（咳嗽、雜音）併到聲紋最像的說話者
+    big = [k for k in set(lab.tolist()) if (lab == k).sum() >= max(3, 0.05 * len(lab))]
+    if not big:
+        big = [int(np.bincount(lab).argmax())]
+    cent = {k: emb[lab == k].mean(0) for k in big}
+    lab = [k if k in cent else max(cent, key=lambda c: float(emb[i] @ cent[c])) for i, k in enumerate(lab.tolist())]
+    out = []
+    for a, b in words:
+        votes = {}
+        for (s0, s1), k in zip(spans, lab):
+            o = min(b, s1) - max(a, s0)
+            if o > 0:
+                votes[k] = votes.get(k, 0) + o
+        if not votes:
+            m = (a + b) / 2
+            votes = {lab[min(range(len(spans)), key=lambda i: abs((spans[i][0] + spans[i][1]) / 2 - m))]: 1}
+        out.append(max(votes, key=votes.get))
+    order = {k: n for n, k in enumerate(dict.fromkeys(out))}
+    return [order[k] for k in out]
+
+
 def breeze_segments(wav, asr="breeze", dialect=None, lang=None):
-    """Whisper 系（Breeze-ASR-26 台語、客語，MLX）辨識文字；每個字的說話者照 FunASR cam++ 的時間段（字的中點落在誰說話的時段）。"""
+    """Whisper 系（Breeze-ASR-26 台語、客語，MLX）辨識文字；說話者用 word_speakers（cam++ 聲紋直接分群，不靠國語辨識）。"""
     import mlx_whisper
     import torchaudio
     repo = ASR_OPTIONS[asr]["repo"]
@@ -364,35 +424,27 @@ def breeze_segments(wav, asr="breeze", dialect=None, lang=None):
     if ASR_OPTIONS[asr].get("dialect_prompt"):
         prompt = HAKKA_DIALECTS.get(dialect or "sixian", "htia_sixian")
     audio, _ = torchaudio.load(wav)   # afconvert 的 wav 是 extensible 格式，內建 wave 讀不了
-    r = mlx_whisper.transcribe(audio.mean(dim=0).numpy().astype(np.float32),
+    audio = audio.mean(dim=0).numpy().astype(np.float32)
+    r = mlx_whisper.transcribe(audio,
                                path_or_hf_repo=repo, language=WHISPER_LANG.get(lang, "zh"), initial_prompt=prompt,
                                condition_on_previous_text=False, word_timestamps=True,
                                hallucination_silence_threshold=2.0, verbose=None)   # 靜音處不要亂生字
-    spans = funasr_segments(wav)
-
-    def who(t, prev):
-        best, spk = None, prev
-        for s0, s1, k, _ in spans:
-            d = 0 if s0 <= t <= s1 else min(abs(t - s0), abs(t - s1))
-            if best is None or d < best:
-                best, spk = d, k
-        return spk
+    words = [w for seg in r["segments"]
+             for w in (seg.get("words") or [{"start": seg["start"], "end": seg["end"], "word": seg["text"]}])
+             if w["word"].strip()]
+    spks = word_speakers(audio, [(w["start"], w["end"]) for w in words])
 
     out = []   # (開始, 結束, 說話者, 文字)
-    for seg in r["segments"]:
-        for w in seg.get("words") or [{"start": seg["start"], "end": seg["end"], "word": seg["text"]}]:
-            word = w["word"]
-            if not word.strip():
-                continue
-            spk = who((w["start"] + w["end"]) / 2, out[-1][2] if out else 0)
-            # Whisper 用空白分句：中文之間的空白改成逗號
-            word = re.sub(r"(?<=[\u4e00-\u9fff])\s+(?=[\u4e00-\u9fff])", "，", word)
-            if out and out[-1][2] == spk and w["start"] - out[-1][1] < 2:
-                a, _, k, t = out[-1]
-                lead = "，" if word[:1].isspace() and t[-1:] not in "，。！？" else ""
-                out[-1] = (a, w["end"], k, t + lead + word.strip())
-            else:
-                out.append((w["start"], w["end"], spk, word.strip()))
+    for w, spk in zip(words, spks):
+        word = w["word"]
+        # Whisper 用空白分句：中文之間的空白改成逗號
+        word = re.sub(r"(?<=[\u4e00-\u9fff])\s+(?=[\u4e00-\u9fff])", "，", word)
+        if out and out[-1][2] == spk and w["start"] - out[-1][1] < 2:
+            a, _, k, t = out[-1]
+            lead = "，" if word[:1].isspace() and t[-1:] not in "，。！？" else ""
+            out[-1] = (a, w["end"], k, t + lead + word.strip())
+        else:
+            out.append((w["start"], w["end"], spk, word.strip()))
     # Whisper 偶爾在結尾一直重複同一個字或詞（「走走走走…」），重複 4 次以上就只留一次
     return [(a, b, k, re.sub(r"(.{1,4}?)\1{3,}", r"\1", t)) for a, b, k, t in out]
 
