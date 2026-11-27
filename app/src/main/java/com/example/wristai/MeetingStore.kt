@@ -65,6 +65,8 @@ data class Meeting(
     val dialect: String? = null,
     /** 大D的主机处理后的清理结果（例「主機上的錄音與報告已刪除」），报告「基本資料」的「隱私」栏；没给主机处理 → null。 */
     val hostCleanup: String? = null,
+    /** 录音用的麦克风（[MicRoute]）：phone / car:装置名:取样率；手表、汇入的 → null。 */
+    val mic: String? = null,
 ) {
     fun toJson(): String = JSONObject()
         .put("id", id).put("status", status.name).put("createdAt", createdAt)
@@ -84,6 +86,7 @@ data class Meeting(
         .put("lang", lang)
         .put("dialect", dialect)
         .put("hostCleanup", hostCleanup)
+        .put("mic", mic)
         .toString(2)
 
     companion object {
@@ -121,6 +124,7 @@ data class Meeting(
                 lang = j.optStringOrNull("lang")?.takeIf { it.isNotBlank() },
                 dialect = j.optStringOrNull("dialect")?.takeIf { it.isNotBlank() },
                 hostCleanup = j.optStringOrNull("hostCleanup")?.takeIf { it.isNotBlank() },
+                mic = j.optStringOrNull("mic")?.takeIf { it.isNotBlank() },
             )
         }
     }

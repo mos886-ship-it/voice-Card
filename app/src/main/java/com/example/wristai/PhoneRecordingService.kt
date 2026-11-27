@@ -192,6 +192,9 @@ class PhoneRecordingService : Service() {
                 try {
                     AudioLevel.reset()
                     record.startRecording()
+                    // 实际用的麦克风（手机 / 车上蓝牙＋取样率）记进这笔，报告「基本資料」显示、方便比较辨识率
+                    val mic = MicRoute.describe(this@PhoneRecordingService, record)
+                    MeetingStore.update(this@PhoneRecordingService, id) { it.copy(mic = mic) }
                     while (isActive && record.recordingState == AudioRecord.RECORDSTATE_RECORDING) {
                         val n = record.read(buffer, 0, buffer.size)
                         if (n <= 0) continue
@@ -265,12 +268,14 @@ class PhoneRecordingService : Service() {
     @SuppressLint("MissingPermission") // 调用前已检查 RECORD_AUDIO
     private fun createAudioRecord(): AudioRecord {
         val minBuf = AudioRecord.getMinBufferSize(AudioSpec.SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
-        // 手机多半放在桌上收整个会议室的声音：用 MIC（有自动增益），离得远的人声音也收得到
+        // 手机多半放在桌上收整个会议室的声音：用 MIC（有自动增益），离得远的人声音也收得到；
+        // 设定选了车上 / 蓝牙麦克风（而且连着）就用通话来源走蓝牙（MicRoute）
         val record = AudioRecord(
-            MediaRecorder.AudioSource.MIC, AudioSpec.SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO,
+            MicRoute.audioSource(this), AudioSpec.SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO,
             AudioFormat.ENCODING_PCM_16BIT, maxOf(minBuf * 2, 8192),
         )
         check(record.state == AudioRecord.STATE_INITIALIZED) { "AudioRecord 初始化失敗".tr }
+        MicRoute.apply(this, record)
         return record
     }
 
@@ -286,6 +291,7 @@ class PhoneRecordingService : Service() {
             runCatching { record.stop() }
             job.join()
             record.release()
+            MicRoute.release(this@PhoneRecordingService)   // 蓝牙通话通道还原（音乐恢复）
             recordJob = null
             wakeLock?.let { if (it.isHeld) it.release() }
             wakeLock = null
@@ -306,6 +312,7 @@ class PhoneRecordingService : Service() {
     }
 
     private fun stopSelfCompletely() {
+        MicRoute.release(this)   // 不管怎么结束都把蓝牙通话通道还原
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
         stopSelf()
     }

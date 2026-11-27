@@ -76,6 +76,8 @@ fun RecordsHub(
                 SectionLabel("自動整理".tr)
                 CallRecordingCard()
                 GalaxyExportCard()
+                SectionLabel("麥克風".tr)
+                MicSourceCard()
                 SectionLabel("地點與手錶".tr)
                 RecordLocationCard()
                 WatchRemoteCard()

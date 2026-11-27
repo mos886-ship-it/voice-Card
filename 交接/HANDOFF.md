@@ -596,3 +596,9 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 - 翻譯記錄做報告：翻譯 → 記錄 → 點一筆 →「產生報告」（沒連到錄音的才有）。`TranslationReport.create` 建一筆 `tr_` 報告（source = translation，沒有音檔），transcript.txt 放說明＋原文/→譯文；`ProcessMeetingWorker.processText`：大D的主機（X-Input: text）→ 組合式報告模型 → Gemini（`completeText`）→ Claude，都沒有就失敗。報告語言、領域專家模式照樣套用。詳情頁不顯示辨識語言，列表標「譯」，來源「翻譯」。
 - `ReportLang.localize` / `ReportDomain.applyTo` 可以重複呼叫（已換過、已加過就不再加）。
 - 模擬器用 fake_host（--dir 沿用已配對的資料夾）驗過：文字送到主機、X-Domain=auto 收到、領域規則有載入、報告回來顯示。fake_host 的 fake_process 補上新參數（之前就少 lang），文字輸入會回報收到的開頭與領域規則。
+
+## 錄音麥克風（車上試用版）
+- 錄音 → 設定 → 麥克風：手機（預設）／車上・藍牙（`MicRoute`）。選車上而且連著藍牙通話麥克風（TYPE_BLUETOOTH_SCO）：錄音來源改 VOICE_COMMUNICATION、`setCommunicationDevice`（API 31+；舊的 startBluetoothSco）、`setPreferredDevice`；錄完 / 服務結束 `clearCommunicationDevice`。沒連著就用手機，記成 `phone:fallback`。
+- 每筆錄音存 `Meeting.mic`（phone / phone:fallback / car:裝置名:取樣率），報告「基本資料」顯示「麥克風」，8 kHz 標「電話音質」。手錶、匯入、翻譯報告沒有這欄。
+- 模擬器驗過：沒藍牙時選車上 → phone:fallback。真車（藍牙 / 有線 Android Auto）還沒測；有線 Android Auto 的車上麥克風不是 SCO，這版不會用到它。
+- 還沒做：偵測 8 kHz 時主機改用電話音質模型。

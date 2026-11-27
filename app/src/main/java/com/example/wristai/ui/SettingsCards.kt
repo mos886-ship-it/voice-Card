@@ -211,6 +211,31 @@ fun CallRecordingCard() {
     }
 }
 
+/** 手机录音用哪支麦克风：手机 / 车上・蓝牙（[com.example.wristai.MicRoute]）。 */
+@Composable
+fun MicSourceCard() {
+    val context = LocalContext.current
+    var sel by remember { mutableStateOf(com.example.wristai.MicRoute.setting(context)) }
+    val bt = remember(sel) { com.example.wristai.MicRoute.btInput(context) }
+    GlassCard {
+        Text("錄音麥克風".tr, style = MaterialTheme.typography.titleSmall, color = Brand.Text)
+        Spacer(Modifier.height(8.dp))
+        val opts = listOf(com.example.wristai.MicRoute.PHONE to "手機".tr, com.example.wristai.MicRoute.CAR to "車上／藍牙".tr)
+        Segmented(opts.map { it.second }, opts.indexOfFirst { it.first == sel }.coerceAtLeast(0)) { i ->
+            sel = opts[i].first
+            com.example.wristai.MicRoute.set(context, sel)
+        }
+        Spacer(Modifier.height(6.dp))
+        Text(if (sel == com.example.wristai.MicRoute.CAR)
+            "對準駕駛、降噪強，一個人開車記事好用；但可能只有 8 kHz 電話音質、乘客聲音會被壓低，錄音時車上音樂會暫停。沒連著藍牙麥克風時自動改用手機。".tr
+        else "收整間 / 整車的人聲，音質完整、分說話者比較準。車上多人對話時建議用這個，手機放中間、遠離冷氣出風口。".tr,
+            style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
+        Text((if (bt != null) "現在連著：{0}".trf(bt.productName?.toString().orEmpty().ifBlank { "藍牙麥克風".tr })
+            else "現在沒有連著藍牙麥克風".tr) + "。每份報告的「基本資料」會寫這次用哪支麥克風，方便比較辨識率。".tr,
+            style = MaterialTheme.typography.bodySmall, color = Brand.TextFaint)
+    }
+}
+
 /** 录音地点（GPS 戳记）：饮食拍照也用同一个权限。 */
 @Composable
 fun RecordLocationCard() {

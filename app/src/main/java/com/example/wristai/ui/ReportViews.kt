@@ -443,6 +443,7 @@ fun ReportFacts(m: com.example.wristai.Meeting, geo: com.example.voiceai.shared.
             )
         } else FactRow("地點".tr, "未記錄".tr, faint = true)
         FactRow("來源".tr, m.origin().label)
+        com.example.wristai.MicRoute.label(m.mic)?.let { FactRow("麥克風".tr, it) }
         // AI 两种模式都显示（用了哪个模型）
         FactRow("AI", aiModelLabel(m.aiModel), faint = m.aiModel == null)
         m.importedAt?.let { FactRow("匯入".tr, formatWhen(it)) }

@@ -5546,5 +5546,57 @@
  "譯": {
   "en": "Tr",
   "ko": "번"
+ },
+ "手機（選了車上，但沒有連著藍牙麥克風）": {
+  "en": "Phone (car was chosen, but no Bluetooth mic was connected)",
+  "ko": "휴대폰 (차량을 선택했지만 블루투스 마이크가 연결되지 않음)"
+ },
+ "藍牙": {
+  "en": "Bluetooth",
+  "ko": "블루투스"
+ },
+ "車上／藍牙：{0}": {
+  "en": "Car / Bluetooth: {0}",
+  "ko": "차량/블루투스: {0}"
+ },
+ "（8 kHz 電話音質）": {
+  "en": " (8 kHz, phone-call quality)",
+  "ko": " (8 kHz 통화 음질)"
+ },
+ "（{0} kHz）": {
+  "en": " ({0} kHz)",
+  "ko": " ({0} kHz)"
+ },
+ "錄音麥克風": {
+  "en": "Recording microphone",
+  "ko": "녹음 마이크"
+ },
+ "車上／藍牙": {
+  "en": "Car / Bluetooth",
+  "ko": "차량/블루투스"
+ },
+ "對準駕駛、降噪強，一個人開車記事好用；但可能只有 8 kHz 電話音質、乘客聲音會被壓低，錄音時車上音樂會暫停。沒連著藍牙麥克風時自動改用手機。": {
+  "en": "Aimed at the driver with strong noise reduction — good for notes while driving alone. It may be only 8 kHz phone-call quality, passengers are turned down, and the car's music pauses while recording. Falls back to the phone mic when no Bluetooth mic is connected.",
+  "ko": "운전자 쪽을 향하고 소음 제거가 강해 혼자 운전하며 메모할 때 좋습니다. 다만 8 kHz 통화 음질일 수 있고 동승자 목소리는 작아지며, 녹음 중에는 차량 음악이 멈춥니다. 블루투스 마이크가 없으면 휴대폰 마이크를 사용합니다."
+ },
+ "收整間 / 整車的人聲，音質完整、分說話者比較準。車上多人對話時建議用這個，手機放中間、遠離冷氣出風口。": {
+  "en": "Picks up everyone in the room or car with full quality, so speakers are told apart better. Use this for conversations with passengers; put the phone in the middle, away from the air vents.",
+  "ko": "방이나 차 안의 모든 목소리를 온전한 음질로 담아 화자 구분이 더 정확합니다. 동승자와 대화할 때 권장하며, 휴대폰은 가운데에 두고 에어컨 송풍구에서 멀리 두세요."
+ },
+ "現在連著：{0}": {
+  "en": "Connected now: {0}",
+  "ko": "현재 연결됨: {0}"
+ },
+ "藍牙麥克風": {
+  "en": "Bluetooth mic",
+  "ko": "블루투스 마이크"
+ },
+ "現在沒有連著藍牙麥克風": {
+  "en": "No Bluetooth mic connected now",
+  "ko": "현재 연결된 블루투스 마이크 없음"
+ },
+ "。每份報告的「基本資料」會寫這次用哪支麥克風，方便比較辨識率。": {
+  "en": ". Each report's details note which mic was used, so recognition can be compared.",
+  "ko": ". 각 보고서의 기본 정보에 사용한 마이크가 표시되어 인식률을 비교할 수 있습니다."
  }
 }
