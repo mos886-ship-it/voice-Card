@@ -6326,5 +6326,13 @@
  "離開": {
   "en": "Leave",
   "ko": "나가기"
+ },
+ "大D的主機還沒有遠距對話功能：請在 Mac 上重新部署大D的主機（更新到最新版）": {
+  "en": "Dylan Host doesn't have remote talk yet: redeploy Dylan Host on the Mac (update to the latest version)",
+  "ko": "大D 호스트에 아직 원격 대화 기능이 없습니다: Mac에서 大D 호스트를 다시 배포하세요(최신 버전으로 업데이트)"
+ },
+ "沒有連上": {
+  "en": "Couldn't connect",
+  "ko": "연결하지 못했습니다"
  }
 }

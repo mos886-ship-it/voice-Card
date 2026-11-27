@@ -96,7 +96,12 @@ object RemoteTalk {
         } finally { conn.disconnect() }
     }
 
-    private fun errorText(code: Int, j: JSONObject) = j.optString("error").ifBlank { "連線失敗（{0}）".trf(code) }
+    /** 主机回的错误 → 给人看的文字。旧版主机没有遠距對話（回 404「not found」）→ 请在 Mac 上更新。 */
+    private fun errorText(code: Int, j: JSONObject): String {
+        val e = j.optString("error")
+        if (code == 404 && (e.isBlank() || e.equals("not found", true))) return "大D的主機還沒有遠距對話功能：請在 Mac 上重新部署大D的主機（更新到最新版）".tr
+        return e.ifBlank { "連線失敗（{0}）".trf(code) }
+    }
 
     // ---------- 开房 / 加入 / 离开 ----------
     /** 开一间房（要配对过大D的主机）。 */

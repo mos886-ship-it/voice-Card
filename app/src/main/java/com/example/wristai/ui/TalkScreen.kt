@@ -90,11 +90,17 @@ fun TalkScreen(onBack: () -> Unit) {
                     }
                 }
                 GhostButton("開新對話，邀請對方".tr, { saveName(); RemoteTalk.create(context, name) }, Modifier.fillMaxWidth(), tint = Brand.Cyan)
+                // 开房 / 加入失败：显眼地放在按钮下面（不然像是按了没反应）
+                s.error?.let { err ->
+                    GlassCard {
+                        Text("沒有連上".tr, style = MaterialTheme.typography.titleSmall, color = Brand.Warning)
+                        Text(err, style = MaterialTheme.typography.bodyMedium, color = Brand.Text)
+                    }
+                }
                 var paste by remember { mutableStateOf("") }
                 OutlinedTextField(paste, { paste = it }, Modifier.fillMaxWidth(), singleLine = true,
                     label = { Text("或貼上對方傳來的邀請連結".tr) }, shape = RoundedCornerShape(14.dp), colors = brandFieldColors())
                 if (paste.startsWith("dylan://talk")) GhostButton("用這個連結加入".tr, { saveName(); RemoteTalk.join(context, paste, name) }, Modifier.fillMaxWidth())
-                s.error?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Brand.Warning) }
                 if (s.ended) Text("對話已結束。".tr, style = MaterialTheme.typography.bodySmall, color = Brand.TextFaint)
             }
             return@Column
