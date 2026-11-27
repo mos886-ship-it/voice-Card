@@ -1,18 +1,18 @@
 import SwiftUI
 
-/// 底部分頁：今天 / 資料庫 /（中間錄音鍵）/ 飲食 / 設定。檔案管理在資料庫的「管理」。，從詳情返回回到原分頁。
+/// 底部分頁（三大主軸各一個，照 Android）：快錄＝今天 / 錄音 /（中間錄音鍵）/ 飲食 / 翻譯（設定在「今天」右上齒輪）；
+/// 總覽＝主頁 / 錄音 / 飲食 / 翻譯 / 設定。原本的「檔案」併進「錄音 → 管理」。從詳情返回回到原分頁。
 enum Tab: String, CaseIterable {
-    case home, records, food, files, settings
+    case home, records, food, translate, settings
 
-    /// 「總覽」排布才有「檔案」分頁（快錄在資料庫的「管理」）。
-    static func tabs(_ layout: LayoutMode) -> [Tab] { layout == .overview ? allCases : [.home, .records, .food, .settings] }
+    static func tabs(_ layout: LayoutMode) -> [Tab] { layout == .overview ? allCases : [.home, .records, .food, .translate] }
 
     func label(_ layout: LayoutMode) -> String {
         switch self {
         case .home: return layout == .overview ? "主頁".tr : "今天".tr
-        case .records: return layout == .overview ? "錄音".tr : "資料庫".tr
+        case .records: return "錄音".tr
         case .food: return "飲食".tr
-        case .files: return "檔案".tr
+        case .translate: return "翻譯".tr
         case .settings: return "設定".tr
         }
     }
@@ -36,8 +36,8 @@ enum LayoutMode: String, CaseIterable, Identifiable {
         }
     }
     var note: String {
-        self == .overview ? "主頁有快捷方塊、今日統計與最新報告；底部五個分頁：主頁、錄音、飲食、檔案、設定。".tr
-            : "「今天」只放現在要做的事；底部中間的錄音鍵任何分頁一按就錄；檔案管理在資料庫的「管理」。".tr
+        self == .overview ? "主頁有快捷方塊、今日統計與最新報告；底部五個分頁：主頁、錄音、飲食、翻譯、設定。".tr
+            : "「今天」只放現在要做的事；底部中間的錄音鍵任何分頁一按就錄；設定在「今天」右上的齒輪。".tr
     }
 }
 
@@ -59,17 +59,15 @@ struct RootView: View {
                     case .home:
                         if layout == .overview { OverviewDashboardView(open: open, select: select, toast: $toast) }
                         else { DashboardView(open: open, select: select, toast: $toast) }
-                    case .records: RecordsView(open: open, toast: $toast)
-                    case .food: FoodView(toast: $toast)
-                    case .files:
-                        if layout == .overview { FilesView(open: open, toast: $toast) }
-                        else { RecordsView(open: open, toast: $toast) }
+                    case .records: RecordsHub(open: open, toast: $toast)
+                    case .food: FoodHub(open: open, toast: $toast)
+                    case .translate: TranslateHub(open: open, toast: $toast)
                     case .settings: SettingsView()
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 if layout == .overview { OverviewBottomNav(current: tab, onSelect: select) }
-                else { BottomNav(current: tab == .files ? .records : tab, onSelect: select) }
+                else { BottomNav(current: tab, onSelect: select) }
             }
             .ignoresSafeArea(.keyboard, edges: .bottom)   // 鍵盤出來時分頁列不要跟著浮上來
             .background(AppBackdrop())
@@ -82,7 +80,14 @@ struct RootView: View {
         .environment(\.pageWidth, geo.size.width)
         }
         .toast($toast)
-        .background(Color.clear.fullScreenCover(isPresented: $translatePage.presented) { LiveTranslateView() })
+        // 舊的「即時翻譯」入口（主頁、錄音卡）：改到「翻譯」分頁
+        .onChange(of: translatePage.presented) { on in
+            guard on else { return }
+            translatePage.presented = false
+            path = []
+            UserDefaults.standard.set(0, forKey: "hub_" + Pillar.translate.rawValue)
+            tab = .translate
+        }
         .sheet(isPresented: $photoCapture.presented) {
             FoodPhotoSheet { id in
                 if let id { path = []; tab = .food; toast = "照片已送出，AI 估算中".tr }
@@ -117,7 +122,7 @@ struct BottomNav: View {
                 }
                 .frame(maxWidth: .infinity)
                 NavItem(tab: .food, selected: current == .food) { onSelect(.food) }.frame(maxWidth: .infinity)
-                NavItem(tab: .settings, selected: current == .settings) { onSelect(.settings) }.frame(maxWidth: .infinity)
+                NavItem(tab: .translate, selected: current == .translate) { onSelect(.translate) }.frame(maxWidth: .infinity)
             }
             .padding(.horizontal, 4)
             .frame(maxWidth: 560)
@@ -167,7 +172,7 @@ private struct NavItem: View {
         Button(action: action) {
             VStack(spacing: 4) {
                 icon(tint).frame(height: 26)
-                Text(tab.label).font(.system(size: 11, weight: selected ? .semibold : .regular))
+                Text(tab.label(.quick)).font(.system(size: 11, weight: selected ? .semibold : .regular))
                     .foregroundStyle(tint)
             }
             .contentShape(Rectangle())
@@ -182,7 +187,7 @@ private struct NavItem: View {
         case .home: Image(systemName: "sun.max").font(.system(size: 17)).foregroundStyle(tint)
         case .records: Image(systemName: "list.bullet.rectangle").font(.system(size: 17)).foregroundStyle(tint)
         case .food: BowlGlyph(color: tint).frame(width: 20, height: 20)
-        case .files: Image(systemName: "folder").font(.system(size: 17)).foregroundStyle(tint)
+        case .translate: Image(systemName: "character.bubble").font(.system(size: 17)).foregroundStyle(tint)
         case .settings: Image(systemName: "gearshape").font(.system(size: 17)).foregroundStyle(tint)
         }
     }
@@ -240,7 +245,7 @@ private struct OverviewNavItem: View {
         case .home: Image(systemName: "house.fill").font(.system(size: 17)).foregroundStyle(tint)
         case .records: Waveform(color: tint).frame(width: 20, height: 16)
         case .food: BowlGlyph(color: tint).frame(width: 20, height: 20)
-        case .files: Image(systemName: "folder.fill").font(.system(size: 17)).foregroundStyle(tint)
+        case .translate: Image(systemName: "character.bubble.fill").font(.system(size: 17)).foregroundStyle(tint)
         case .settings: Image(systemName: "gearshape.fill").font(.system(size: 17)).foregroundStyle(tint)
         }
     }

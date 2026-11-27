@@ -50,6 +50,8 @@ struct DashboardView: View {
                     if mode == .tech || hasWatch {
                         WatchPill(state: link.watchState) { select(.settings) }
                     }
+                    // 快錄的分頁列沒有「設定」：從這裡進
+                    IconCircle(systemImage: "gearshape", label: "設定".tr) { select(.settings) }
                 }
 
                 TwoColumns(wide: Wide.twoColumns(width)) {

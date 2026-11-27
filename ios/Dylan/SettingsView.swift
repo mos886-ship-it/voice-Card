@@ -663,7 +663,7 @@ private struct PrivacyCard: View {
 }
 
 /// 飲食同步到健康（照 Android 設定的「健康同步」卡）：只寫入飲食，不讀健康資料。
-private struct HealthSyncCard: View {
+struct HealthSyncCard: View {
     @EnvironmentObject private var store: MeetingStore
     @ObservedObject private var health = HealthSync.shared
 

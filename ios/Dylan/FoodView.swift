@@ -9,7 +9,7 @@ struct FoodView: View {
     @EnvironmentObject private var store: MeetingStore
     @State private var openId: String?
 
-    static let goal = 2000
+    static var goal: Int { FoodGoals.kcal }
 
     static func todayKcal(_ all: [Meeting]) -> Int {
         all.filter { $0.isFood && Calendar.current.isDateInToday($0.createdAt) }.reduce(0) { $0 + ($1.nutrition?.kcal ?? 0) }

@@ -60,8 +60,13 @@ final class LiveCaptions: ObservableObject {
     static func supported(_ l: SpeechLang) -> Bool { source(l) != nil }
 
     /// 預設翻成什麼：介面語言；跟來源一樣就換一個（中文 ↔ 英文）。
+    /// 翻譯設定：預設翻成（空 = 跟介面）、字幕大小（0～3）、手錶字幕
+    static let targetKey = "translate_target", textSizeKey = "translate_text_size", watchKey = "translate_watch"
+    static var watchCaptions: Bool { UserDefaults.standard.object(forKey: watchKey) as? Bool ?? true }
+
     static func defaultTarget(_ source: SpeechLang, uiLang: String) -> Target {
-        let ui = Target(rawValue: uiLang) ?? .en
+        let saved = UserDefaults.standard.string(forKey: targetKey).flatMap(Target.init(rawValue:))
+        let ui = saved ?? Target(rawValue: uiLang) ?? .en
         let same = (source == .zh && ui == .zh) || source.rawValue == ui.rawValue
         return !same ? ui : (ui == .zh ? .en : .zh)
     }
@@ -76,6 +81,8 @@ final class LiveCaptions: ObservableObject {
     @Published private(set) var generation = 0
 
     private var nextId = 1
+    /// 這次翻譯（開始到停止）：存翻譯記錄用
+    private var session: (id: String, start: Date, firstLine: Int, meetingId: String?)?
     private var recognizer: SFSpeechRecognizer?
     private var task: SFSpeechRecognitionTask?
     /// 這一段辨識已經變成整句（送去翻譯）的字數
@@ -116,6 +123,9 @@ final class LiveCaptions: ObservableObject {
         }
         running = true
         failures = 0
+        var mid: String?
+        if case let .recording(id, _) = PhoneRecorder.shared.state, !id.hasPrefix(Meeting.foodPrefix) { mid = id }
+        session = (TranslationStore.newId(), Date(), nextId, mid)
         online = false
         generation += 1
         SFSpeechRecognizer.requestAuthorization { auth in
@@ -149,6 +159,27 @@ final class LiveCaptions: ObservableObject {
         endSegment()
         lines.removeAll { $0.partial }
         PhoneLink.shared.sendCaption("")
+        saveSession()
+    }
+
+    /// 存翻譯記錄：停止時存一次，3 秒後補存晚到的翻譯（同一個 id 覆寫）。
+    private func saveSession() {
+        guard let s = session, TranslationStore.autoSave else { session = nil; return }
+        session = nil
+        let src = source.rawValue, tgt = target.rawValue
+        func snapshot() -> TranslationRecord {
+            TranslationRecord(id: s.id, start: s.start, end: Date(), source: src, target: tgt,
+                              lines: lines.filter { $0.id >= s.firstLine && !$0.partial }
+                                  .map { .init(original: $0.original, translated: $0.translated) },
+                              meetingId: s.meetingId, reportId: nil)
+        }
+        let first = snapshot()
+        TranslationStore.shared.save(first)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            var later = snapshot()
+            later.end = first.end
+            if later != first { TranslationStore.shared.save(later) }
+        }
     }
 
     /// 錄音停止：字幕一起停。
@@ -298,7 +329,7 @@ final class LiveCaptions: ObservableObject {
     func translated(_ id: Int, _ text: String) {
         guard let i = lines.firstIndex(where: { $0.id == id }) else { return }
         lines[i].translated = text
-        PhoneLink.shared.sendCaption(text)
+        if Self.watchCaptions { PhoneLink.shared.sendCaption(text) }
     }
 
     func translationFailed(_ message: String) {

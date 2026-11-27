@@ -32,14 +32,13 @@ struct RecordsView: View {
                 // ---------- 標題 ----------
                 HStack {
                     VStack(alignment: .leading, spacing: 0) {
-                        Text(layout == .overview ? "錄音".tr : "資料庫".tr).font(.headlineSmall).foregroundStyle(Brand.text)
+                        Text("錄音".tr).font(.headlineSmall).foregroundStyle(Brand.text)
                         Text(meetings.isEmpty ? "會議、課堂、訪談、通話、靈感筆記".tr
                              : "共 {0} 段 · {1}".trf(meetings.count, Fmt.duration(meetings.reduce(0) { $0 + $1.durationSec })))
                             .font(.bodySmall).foregroundStyle(Brand.textMuted)
                     }
                     Spacer()
                     // 原本的「檔案」分頁：大小、分享錄音檔、只刪錄音檔、刪除整筆
-                    if layout == .quick { GhostButton(text: "管理".tr, tint: Brand.cyan) { managing = true } }
                     GhostButton(text: importing ? "匯入中…".tr : "匯入".tr, systemImage: "plus", tint: Brand.cyan) {
                         if !importing { choosing = true }
                     }

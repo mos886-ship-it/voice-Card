@@ -5910,5 +5910,165 @@
  "）。台灣的餐用食藥署資料計算，其他國家為 AI 估算。": {
   "en": "). Meals in Taiwan use Taiwan FDA data; other countries are AI estimates.",
   "ko": "). 대만 식사는 대만 식약청 데이터로 계산하고, 다른 국가는 AI 추정입니다."
+ },
+ "錄音分析": {
+  "en": "Recording analysis",
+  "ko": "녹음 분석"
+ },
+ "段數、時間與待辦": {
+  "en": "Count, time and to-dos",
+  "ko": "개수, 시간, 할 일"
+ },
+ "段": {
+  "en": "recordings",
+  "ko": "개"
+ },
+ "總長": {
+  "en": "Total",
+  "ko": "총 길이"
+ },
+ "分鐘": {
+  "en": "min",
+  "ko": "분"
+ },
+ "待辦總覽": {
+  "en": "All to-dos",
+  "ko": "할 일 모아보기"
+ },
+ "報告裡還沒有待辦事項": {
+  "en": "No to-dos in your reports yet",
+  "ko": "보고서에 아직 할 일이 없습니다"
+ },
+ "待辦都完成了": {
+  "en": "All to-dos are done",
+  "ko": "할 일을 모두 마쳤습니다"
+ },
+ "收起已完成": {
+  "en": "Hide done",
+  "ko": "완료 항목 숨기기"
+ },
+ "顯示已完成": {
+  "en": "Show done",
+  "ko": "완료 항목 보기"
+ },
+ "來源與人": {
+  "en": "Sources and people",
+  "ko": "출처와 사람"
+ },
+ "AI 模型": {
+  "en": "AI models",
+  "ko": "AI 모델"
+ },
+ "失敗要重試的": {
+  "en": "Failed, needs retry",
+  "ko": "실패 – 다시 시도 필요"
+ },
+ "標成未完成": {
+  "en": "Mark as not done",
+  "ko": "미완료로 표시"
+ },
+ "標成完成": {
+  "en": "Mark as done",
+  "ko": "완료로 표시"
+ },
+ "錄音設定": {
+  "en": "Recording settings",
+  "ko": "녹음 설정"
+ },
+ "改了就存": {
+  "en": "Changes save automatically",
+  "ko": "변경하면 바로 저장됩니다"
+ },
+ "AI 引擎、大D的主機、手錶等在「設定」頁。": {
+  "en": "AI engine, Big D's host, watch and more are on the Settings page.",
+  "ko": "AI 엔진, 대D 호스트, 워치 등은 '설정' 페이지에 있습니다."
+ },
+ "共 {0} 筆": {
+  "en": "{0} records",
+  "ko": "총 {0}건"
+ },
+ "飲食分析": {
+  "en": "Food analysis",
+  "ko": "식사 분석"
+ },
+ "熱量、營養素與餐別": {
+  "en": "Calories, nutrients and meals",
+  "ko": "열량, 영양소, 식사 구분"
+ },
+ "平均大卡": {
+  "en": "Avg kcal",
+  "ko": "평균 kcal"
+ },
+ "每天熱量（虛線＝目標 {0}）": {
+  "en": "Daily calories (dashed = goal {0})",
+  "ko": "일일 열량(점선 = 목표 {0})"
+ },
+ "每天平均對目標": {
+  "en": "Daily average vs goal",
+  "ko": "일평균 대비 목표"
+ },
+ "還沒有資料": {
+  "en": "No data yet",
+  "ko": "아직 데이터가 없습니다"
+ },
+ "飲食設定": {
+  "en": "Food settings",
+  "ko": "식사 설정"
+ },
+ "翻譯記錄": {
+  "en": "Translation history",
+  "ko": "번역 기록"
+ },
+ "共 {0} 次": {
+  "en": "{0} sessions",
+  "ko": "총 {0}회"
+ },
+ "每次開始到停止翻譯會存成一筆記錄（可在翻譯設定關閉）。": {
+  "en": "Each translation, from start to stop, is saved as a record (you can turn this off in translation settings).",
+  "ko": "번역을 시작해서 멈출 때까지가 하나의 기록으로 저장됩니다(번역 설정에서 끌 수 있음)."
+ },
+ "打開這段錄音的報告": {
+  "en": "Open this recording's report",
+  "ko": "이 녹음의 보고서 열기"
+ },
+ "刪除這筆記錄": {
+  "en": "Delete this record",
+  "ko": "이 기록 삭제"
+ },
+ "翻譯分析": {
+  "en": "Translation analysis",
+  "ko": "번역 분석"
+ },
+ "次數、時間與語言": {
+  "en": "Sessions, time and languages",
+  "ko": "횟수, 시간, 언어"
+ },
+ "次": {
+  "en": "sessions",
+  "ko": "회"
+ },
+ "翻譯設定": {
+  "en": "Translation settings",
+  "ko": "번역 설정"
+ },
+ "預設翻成": {
+  "en": "Translate into",
+  "ko": "기본 번역 언어"
+ },
+ "自動：跟 App 介面語言；跟說的語言一樣時中↔英。": {
+  "en": "Auto: follows the app language; if that's the spoken language, Chinese ↔ English.",
+  "ko": "자동: 앱 언어를 따르며, 말하는 언어와 같으면 중국어 ↔ 영어."
+ },
+ "翻譯用 Apple「翻譯」（iOS 18 以上），第一次用某個語言時系統會問要不要下載。": {
+  "en": "Translation uses Apple Translate (iOS 18 or later); the first time you use a language, iOS asks whether to download it.",
+  "ko": "번역은 Apple 번역(iOS 18 이상)을 사용하며, 언어를 처음 쓸 때 다운로드 여부를 묻습니다."
+ },
+ "主頁有快捷方塊、今日統計與最新報告；底部五個分頁：主頁、錄音、飲食、翻譯、設定。": {
+  "en": "Home has shortcuts, today's numbers and the latest report; five tabs at the bottom: Home, Recordings, Food, Translate, Settings.",
+  "ko": "홈에는 바로가기, 오늘 통계, 최신 보고서가 있고, 아래에 홈·녹음·식사·번역·설정 다섯 탭이 있습니다."
+ },
+ "「今天」只放現在要做的事；底部中間的錄音鍵任何分頁一按就錄；設定在「今天」右上的齒輪。": {
+  "en": "\"Today\" shows only what to do now; the record key in the middle starts recording from any tab; Settings is the gear at the top right of \"Today\".",
+  "ko": "'오늘'에는 지금 할 일만 있고, 가운데 녹음 키로 어느 탭에서든 바로 녹음합니다. 설정은 '오늘' 오른쪽 위 톱니바퀴에 있습니다."
  }
 }

@@ -11,7 +11,10 @@ final class TranslatePage: ObservableObject {
 /// 即時翻譯頁（照 Android `LiveTranslateScreen.kt`）：用手機錄音，邊錄邊顯示原文與譯文（Apple 語音辨識＋Apple 翻譯）。
 /// 錄音照常存成一筆記錄、錄完照常產生完整報告；離開這頁字幕繼續跑，回來還看得到。
 struct LiveTranslateView: View {
+    /// 放在「翻譯」分頁裡（沒有返回鍵）；false = 全螢幕打開的那種
+    var embedded = false
     @Environment(\.dismiss) private var dismiss
+    @AppStorage(LiveCaptions.textSizeKey) private var textSize = 1
     @ObservedObject private var captions = LiveCaptions.shared
     @ObservedObject private var rec = PhoneRecorder.shared
     @ObservedObject private var langs = LangSettings.shared
@@ -21,7 +24,7 @@ struct LiveTranslateView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            TopBar(title: "即時翻譯".tr, onBack: { dismiss() }) { EmptyView() }
+            if !embedded { TopBar(title: "即時翻譯".tr, onBack: { dismiss() }) { EmptyView() } }
             VStack(alignment: .leading, spacing: 10) {
                 // 說的語言（跟錄音的辨識語言同一個設定）
                 Text("說的語言".tr).font(.titleSmall).foregroundStyle(Brand.text)
@@ -89,12 +92,13 @@ struct LiveTranslateView: View {
                         LazyVStack(alignment: .leading, spacing: 14) {
                             ForEach(captions.lines) { l in
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(l.original).font(.bodySmall).foregroundStyle(Brand.textMuted)
+                                    Text(l.original).font(.system(size: [12, 14, 17, 20][min(max(textSize, 0), 3)]))
+                                        .foregroundStyle(Brand.textMuted)
                                         .italic(l.partial)
                                     if !l.partial, l.translated != "" {
                                         HStack(alignment: .top, spacing: 8) {
                                             Circle().fill(Brand.cyan).frame(width: 5, height: 5).padding(.top, 8)
-                                            Text(l.translated ?? "…").font(.titleMedium)
+                                            Text(l.translated ?? "…").font(.system(size: [16, 20, 26, 34][min(max(textSize, 0), 3)], weight: .medium))
                                                 .foregroundStyle(l.translated == nil ? Brand.textFaint : Brand.text)
                                         }
                                     }
