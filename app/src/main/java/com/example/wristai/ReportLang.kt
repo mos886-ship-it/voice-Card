@@ -65,6 +65,7 @@ enum class ReportLang(val code: String, val label: String, val speaker: String, 
             Triple("決議事項", "Decisions", "결정 사항"),
             Triple("營養小提醒", "Nutrition tips", "영양 팁"),
             Triple("假設與待確認", "Assumptions to check", "가정 및 확인 필요"),
+            Triple("專業重點", "Expert notes", "전문가 관점"),
         )
         private val PHRASES = listOf(
             Triple("說話者 | 名字 | 角色 | 主要觀點", "Speaker | Name | Role | Main points", "화자 | 이름 | 역할 | 주요 의견"),
@@ -75,12 +76,18 @@ enum class ReportLang(val code: String, val label: String, val speaker: String, 
             Triple("「本人」", "「Me」", "「본인」"),
             Triple("「（聽不清）」", "「(inaudible)」", "「(잘 안 들림)」"),
             Triple("「（待確認）」", "「(to confirm)」", "「(확인 필요)」"),
+            // 领域专家模式（[ReportDomain]）
+            Triple("「## 專業重點」", "「## Expert notes」", "「## 전문가 관점」"),
+            Triple("「領域：○○」", "「Domain: …」", "「분야: …」"),
+            Triple("「（建議諮詢專業人員）」", "「(consult a professional)」", "「(전문가 상담 권장)」"),
         )
 
         private fun pick(t: Triple<String, String, String>, l: ReportLang) = when (l) { ZH -> t.first; EN -> t.second; KO -> t.third }
 
         /** 把中文提示词换成 [l] 的报告格式（[ZH] 原样回传）。 */
-        fun localize(prompt: String, l: ReportLang = active): String {
+        fun localize(prompt0: String, l: ReportLang = active): String {
+            // 领域专家模式的规则先加进去（报告类提示词才加），再一起换成报告语言
+            val prompt = ReportDomain.applyTo(prompt0)
             if (l == ZH) return prompt
             var p = prompt
             for (h in HEADINGS) p = p.replace(Regex("(?m)^(\\s*)## " + Regex.escape(h.first) + "\\s*$"), "$1## " + pick(h, l))

@@ -586,3 +586,10 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 - 改法（`local-ai/server.py` 的 `word_speakers`）：在 Whisper 有字的地方（字間停頓 ≤0.5 秒算同一段）每 1.5 秒、每 0.75 秒移一次取 cam++ 聲紋；≥20 個窗用 FunASR 自己的分群（`FUNASR.cb_model`），少於 20 個（約 15 秒以下）改用 sklearn 平均連結、餘弦距離 0.45（FunASR 的分群少於 20 個窗會全部算同一人）；只出現一兩下的小群併到最像的人；每個字照它蓋到的窗加權投票。Whisper 路徑不再跑整段 FunASR 國語辨識（比較快）。國語（FunASR）路徑不變；`funasr_segments` 回空清單時不再當掉。
 - 實測（主機上的模型，Breeze 8bit）：日文 3 種聲音 42 秒：舊 1 人（字的時間正確率 36%）→ 新 3 人、100%；日文 2 人 33 秒：舊 53% → 新 94%；15 秒 2 人：舊 61% → 新 95%；國語對話 53 秒走 Breeze：跟 FunASR 自己的分法 97% 一致（差在一個換人的邊界，新的較合理）。距離門檻 0.4～0.5 結果一樣。測試音檔是 macOS 語音合成，**還沒用真人台語多人錄音驗過**。
 - 主機上執行中的是舊版，要重新部署才生效。
+
+## 領域專家模式（報告）
+- 清單與規則：`shared/src/main/assets/report_domains.json`（App、大D的主機共用；iOS 之後也讀這份）。設定 `report_domain`：auto（預設，AI 自動判斷，一般對話不加）/ off / legal、medical、finance、business、tech、academic、realestate、insurance、hr、construction。
+- App：`ReportDomain.prepare` 在 ProcessMeetingWorker 開始時設好規則；`ReportLang.localize` 先 `ReportDomain.applyTo`（只加在有「## 待辦事項」的報告提示詞，飲食、分段筆記不加），再換報告語言（「## 專業重點」→ Expert notes / 전문가 관점）。所以 Gemini、組合式、Claude 都吃得到。
+- 報告多一節「## 專業重點」：第一行「領域：○○」＋該領域要注意的事項；法律、醫療、財務加「不構成專業意見」一行。
+- 大D的主機：讀 `X-Domain` 標頭（沒有 = auto），`with_domain(REPORT_SYSTEM, domain)`；`report_domains.json` 由 setup.sh 複製到服務目錄（找不到時讀 repo 路徑）。**主機要重新部署才生效**；舊主機會忽略標頭。
+- 設定在「錄音 → 設定 → 領域專家模式」。iOS 還沒做（等使用者說再通知 Mac）。

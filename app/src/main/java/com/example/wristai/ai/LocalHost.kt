@@ -365,6 +365,8 @@ object LocalHost {
             setRequestProperty("X-Duration", durationSec.toInt().toString())
             // 报告语言（zh / en / ko）：新主机照这个写报告，旧主机不认得就照旧中文
             setRequestProperty("X-Report-Lang", com.example.wristai.ReportLang.active.code)
+            // 领域专家模式：auto / off / legal / medical …（旧主机不认得就照旧）
+            setRequestProperty("X-Domain", com.example.wristai.ReportDomain.active)
             if (bytes != null) {
                 setRequestProperty("X-Input", "text")
                 setRequestProperty("Content-Type", "text/plain; charset=utf-8")

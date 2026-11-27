@@ -103,6 +103,7 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
         var meeting = MeetingStore.get(ctx, id) ?: return Result.failure()
         if (meeting.status == MeetingStatus.DONE) return Result.success()
         ReportLang.active = ReportLang.current(ctx)   // 报告用的语言（提示词、说话者代号、饮食表格）
+        ReportDomain.prepare(ctx)                     // 领域专家模式（法律、医疗…；自动判断）
         val node = meeting.watchNodeId
         val startedAt = System.currentTimeMillis()
 

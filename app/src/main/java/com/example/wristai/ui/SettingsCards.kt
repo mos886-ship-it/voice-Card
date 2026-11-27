@@ -40,6 +40,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.voiceai.shared.tr
+import com.example.voiceai.shared.trf
 import com.example.wristai.CallRecordingWatcher
 import com.example.wristai.RemoteRecordActivity
 import com.example.wristai.Settings
@@ -130,6 +131,34 @@ fun RecordingLanguageCard() {
         Text("AI 的標題、摘要與報告用這個語言寫；逐字稿照錄音原本的語言。現在：".tr +
             com.example.wristai.ReportLang.current(context).label + "。已經做好的報告可以在詳情頁「重新產生」。".tr,
             style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
+    }
+}
+
+/** 领域专家模式：报告用哪个专业领域的角度整理（自动判断 / 关闭 / 法律、医疗…）。 */
+@Composable
+fun ReportDomainCard() {
+    val context = LocalContext.current
+    val table = remember { runCatching { com.example.wristai.ReportDomain.table(context) }.getOrNull() } ?: return
+    var sel by remember { mutableStateOf(com.example.wristai.ReportDomain.setting(context)) }
+    val opts = listOf(com.example.wristai.ReportDomain.AUTO to "自動判斷".tr, com.example.wristai.ReportDomain.OFF to "關閉".tr) +
+        table.domains.map { it.id to it.name.tr }
+    GlassCard {
+        Text("領域專家模式".tr, style = MaterialTheme.typography.titleSmall, color = Brand.Text)
+        Spacer(Modifier.height(8.dp))
+        ChoiceGrid(opts.map { it.second }, opts.indexOfFirst { it.first == sel }.coerceAtLeast(0), perRow = 3) { i ->
+            sel = opts[i].first
+            com.example.wristai.ReportDomain.set(context, sel)
+        }
+        Spacer(Modifier.height(6.dp))
+        val d = table.domains.firstOrNull { it.id == sel }
+        Text(when {
+            sel == com.example.wristai.ReportDomain.AUTO -> "AI 先判斷內容屬於哪個專業領域，是的話用該領域專家的角度整理、術語寫正確，報告多一節「專業重點」；一般對話照常整理。".tr
+            sel == com.example.wristai.ReportDomain.OFF -> "照一般方式整理，不加專業角度。".tr
+            d != null -> "每份報告都用{0}專家的角度整理，報告多一節「專業重點」：".trf(d.name.tr) + d.focus.tr + "。".tr
+            else -> ""
+        } + (if (d?.disclaimer != null || sel == com.example.wristai.ReportDomain.AUTO) "法律、醫療、財務的報告會註明僅供參考，不構成專業意見。".tr else ""),
+            style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
+        Text("套用到之後的報告；已經做好的可以在詳情頁「重新產生」。".tr, style = MaterialTheme.typography.bodySmall, color = Brand.TextFaint)
     }
 }
 

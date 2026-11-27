@@ -5406,5 +5406,117 @@
  "下載離線語音中…（下載好標籤會變成「離線」）": {
   "en": "Downloading offline speech… (the label changes to \"Offline\" when done)",
   "ko": "오프라인 음성 다운로드 중… (완료되면 표시가 '오프라인'으로 바뀝니다)"
+ },
+ "自動判斷": {
+  "en": "Auto-detect",
+  "ko": "자동 판단"
+ },
+ "領域專家模式": {
+  "en": "Domain expert mode",
+  "ko": "분야 전문가 모드"
+ },
+ "AI 先判斷內容屬於哪個專業領域，是的話用該領域專家的角度整理、術語寫正確，報告多一節「專業重點」；一般對話照常整理。": {
+  "en": "The AI first works out whether the content belongs to a professional field. If it does, it writes the report from that field's expert view with correct terminology and adds an \"Expert notes\" section; everyday conversations are summarized as usual.",
+  "ko": "AI가 먼저 내용이 어떤 전문 분야인지 판단합니다. 해당되면 그 분야 전문가의 관점으로 정확한 용어를 써서 정리하고 '전문가 관점' 섹션을 추가합니다. 일상 대화는 평소처럼 정리합니다."
+ },
+ "照一般方式整理，不加專業角度。": {
+  "en": "Reports are written the usual way, without a professional angle.",
+  "ko": "전문 관점 없이 평소처럼 정리합니다."
+ },
+ "每份報告都用{0}專家的角度整理，報告多一節「專業重點」：": {
+  "en": "Every report is written from a {0} expert's view, with an \"Expert notes\" section: ",
+  "ko": "모든 보고서를 {0} 전문가의 관점으로 정리하고 '전문가 관점' 섹션을 추가합니다: "
+ },
+ "。": {
+  "en": ".",
+  "ko": "."
+ },
+ "法律、醫療、財務的報告會註明僅供參考，不構成專業意見。": {
+  "en": " Legal, medical and finance reports note that they are for reference only and are not professional advice.",
+  "ko": " 법률·의료·재무 보고서에는 참고용이며 전문적 조언이 아니라는 문구가 들어갑니다."
+ },
+ "套用到之後的報告；已經做好的可以在詳情頁「重新產生」。": {
+  "en": "Applies to new reports; for finished ones use \"Regenerate\" on the detail page.",
+  "ko": "이후 보고서에 적용됩니다. 이미 만든 보고서는 상세 화면에서 '다시 생성'하세요."
+ },
+ "法律": {
+  "en": "Legal",
+  "ko": "법률"
+ },
+ "醫療": {
+  "en": "Medical",
+  "ko": "의료"
+ },
+ "財務金融": {
+  "en": "Finance",
+  "ko": "재무·금융"
+ },
+ "商務業務": {
+  "en": "Business & sales",
+  "ko": "비즈니스·영업"
+ },
+ "科技工程": {
+  "en": "Tech & engineering",
+  "ko": "기술·엔지니어링"
+ },
+ "學術教育": {
+  "en": "Academic & education",
+  "ko": "학술·교육"
+ },
+ "不動產": {
+  "en": "Real estate",
+  "ko": "부동산"
+ },
+ "保險": {
+  "en": "Insurance",
+  "ko": "보험"
+ },
+ "人資勞動": {
+  "en": "HR & labor",
+  "ko": "인사·노무"
+ },
+ "建築營造": {
+  "en": "Construction",
+  "ko": "건축·시공"
+ },
+ "當事人與各自立場；爭點；各方主張與提到的事實、證據；提到的法條、契約條款、判決或文件；日期、期限與時效；風險與需要確認的事項": {
+  "en": "the parties and their positions; the issues in dispute; each side's claims, facts and evidence; laws, contract clauses, rulings or documents mentioned; dates, deadlines and limitation periods; risks and points to confirm",
+  "ko": "당사자와 각자의 입장, 쟁점, 각 측의 주장과 사실·증거, 언급된 법조문·계약 조항·판결·문서, 날짜·기한·시효, 위험과 확인할 사항"
+ },
+ "主訴；症狀、部位、開始時間與變化；過去病史與過敏；檢查、檢驗項目與數值（照原話，含單位）；診斷或疑似診斷；藥物名稱、劑量、頻次、療程；醫囑、回診時間；要注意的警示症狀": {
+  "en": "chief complaint; symptoms, location, onset and changes; history and allergies; tests and values (as said, with units); diagnosis or suspected diagnosis; drug names, doses, frequency and course; doctor's instructions and follow-up; warning signs",
+  "ko": "주호소, 증상·부위·시작 시점과 변화, 병력과 알레르기, 검사 항목과 수치(말한 그대로, 단위 포함), 진단 또는 의심 진단, 약 이름·용량·횟수·기간, 의사 지시와 재진, 주의할 경고 증상"
+ },
+ "金額、幣別、比率、期間（照原話，不要自行計算或推估）；標的或帳戶；收支、成本與預算；投資或融資決策與條件；風險；時程與負責人": {
+  "en": "amounts, currencies, rates and periods (as said, no own calculations); assets or accounts; income, costs and budgets; investment or financing decisions and terms; risks; timeline and owners",
+  "ko": "금액·통화·비율·기간(말한 그대로, 임의 계산 금지), 대상 자산 또는 계좌, 수입·비용·예산, 투자·자금 조달 결정과 조건, 위험, 일정과 담당자"
+ },
+ "客戶或對方的需求與痛點；報價、條件與折扣；決策者與流程；競爭對手；承諾與下一步；成交可能與時程": {
+  "en": "the client's needs and pain points; quotes, terms and discounts; decision makers and process; competitors; commitments and next steps; chances and timing of closing",
+  "ko": "고객의 요구와 문제점, 견적·조건·할인, 의사결정자와 절차, 경쟁사, 약속과 다음 단계, 성사 가능성과 일정"
+ },
+ "系統、架構與元件；問題現象、根因與重現方式；技術決策與取捨；版本、規格與數據；待修項目、風險與時程": {
+  "en": "systems, architecture and components; symptoms, root cause and how to reproduce; technical decisions and trade-offs; versions, specs and figures; items to fix, risks and timeline",
+  "ko": "시스템·아키텍처·구성 요소, 문제 현상·근본 원인·재현 방법, 기술적 결정과 트레이드오프, 버전·사양·수치, 수정할 항목·위험·일정"
+ },
+ "主要概念與定義；公式、推導或例子；引用的理論、學者或出處；考試、作業重點；要複習或延伸閱讀的地方": {
+  "en": "key concepts and definitions; formulas, derivations or examples; theories, scholars or sources cited; exam and homework points; what to review or read further",
+  "ko": "주요 개념과 정의, 공식·유도·예시, 인용된 이론·학자·출처, 시험·과제 포인트, 복습하거나 더 읽을 부분"
+ },
+ "物件條件（區域、坪數、格局、屋齡、樓層、車位）；價格、貸款與稅費；合約條件與交屋時程；屋況與要再查的事項（產權、使用分區、瑕疵）": {
+  "en": "property details (area, size, layout, age, floor, parking); price, loans and taxes; contract terms and handover; condition and things to check (title, zoning, defects)",
+  "ko": "매물 조건(지역·평수·구조·연식·층·주차), 가격·대출·세금, 계약 조건과 인도 일정, 상태와 추가 확인 사항(권리·용도지역·하자)"
+ },
+ "險種與保單；保障內容與額度；保費與繳費期間；除外責任與等待期；理賠條件、文件與期限；要再確認的條款": {
+  "en": "policy type; coverage and limits; premiums and payment period; exclusions and waiting periods; claim conditions, documents and deadlines; clauses to confirm",
+  "ko": "보험 종류와 증권, 보장 내용과 한도, 보험료와 납입 기간, 면책 사항과 대기 기간, 보험금 청구 조건·서류·기한, 확인할 약관"
+ },
+ "職位與工作內容；薪資、獎金與福利；工時、休假與勞動條件；考核、獎懲或爭議；勞基法等相關規定；後續流程與期限": {
+  "en": "position and duties; pay, bonuses and benefits; hours, leave and working conditions; reviews, rewards, discipline or disputes; labor law and related rules; next steps and deadlines",
+  "ko": "직무와 업무 내용, 급여·상여·복리후생, 근무시간·휴가·근로조건, 평가·상벌 또는 분쟁, 노동법 등 관련 규정, 후속 절차와 기한"
+ },
+ "工程項目與範圍；規格、材料與數量；圖說與法規；工期、進度與驗收；變更設計與追加費用；安全與品質問題": {
+  "en": "work items and scope; specs, materials and quantities; drawings and regulations; schedule, progress and inspection; design changes and extra costs; safety and quality issues",
+  "ko": "공사 항목과 범위, 사양·자재·수량, 도면과 법규, 공기·진척·검수, 설계 변경과 추가 비용, 안전과 품질 문제"
  }
 }

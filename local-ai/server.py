@@ -21,6 +21,7 @@ App 的報告解析、說話者名字、飲食 NUTRITION 解析都直接沿用�
   POST /v1/process  → （舊的，連著等結果；也是排進同一個佇列）body 是錄音檔（m4a / wav…）；標頭 X-Kind: meeting|food、X-Recorded-At、X-Duration（秒）
                        X-Input: text 時 body 是 UTF-8 文字（匯入的會議紀錄 / 逐字稿），跳過語音辨識直接寫報告
                        X-Report-Lang: zh | en | ko（報告語言；沒有 = 繁中）
+                       X-Domain: auto | off | legal | medical …（領域專家模式，見 report_domains.json；沒有 = auto）
                        X-Lang: zh（國語 → FunASR）| nan（台語・國台語 → Breeze-ASR-26）| hak（客語 → 數位部 Taiwan Tongues；
                        X-Dialect: sixian|hailu|dapu|raoping|zhaoan|nansixian 寫進報告提示，有裝陽明交大客語模型時也當模型提示）；
                        沒帶就用設定頁選的語音模型
@@ -589,7 +590,7 @@ _HEADINGS = [
     ("結論 / 決定", "Conclusions / Decisions", "결론 / 결정"), ("待辦事項", "Action items", "할 일"),
     ("待確認 / 後續問題", "Open questions / Follow-ups", "확인 필요 / 후속 질문"), ("討論重點", "Discussion", "논의 내용"),
     ("決議事項", "Decisions", "결정 사항"), ("營養小提醒", "Nutrition tips", "영양 팁"),
-    ("假設與待確認", "Assumptions to check", "가정 및 확인 필요"),
+    ("假設與待確認", "Assumptions to check", "가정 및 확인 필요"), ("專業重點", "Expert notes", "전문가 관점"),
 ]
 _PHRASES = [
     ("說話者 | 名字 | 角色 | 主要觀點", "Speaker | Name | Role | Main points", "화자 | 이름 | 역할 | 주요 의견"),
@@ -597,7 +598,54 @@ _PHRASES = [
     ("「未知」", "「Unknown」", "「미상」"), ("「未指定」", "「Unassigned」", "「미지정」"), ("「無」", "「None」", "「없음」"),
     ("「本人」", "「Me」", "「본인」"), ("「（聽不清）」", "「(inaudible)」", "「(잘 안 들림)」"),
     ("「（待確認）」", "「(to confirm)」", "「(확인 필요)」"),
+    # 領域專家模式
+    ("「## 專業重點」", "「## Expert notes」", "「## 전문가 관점」"), ("「領域：○○」", "「Domain: …」", "「분야: …」"),
+    ("「（建議諮詢專業人員）」", "「(consult a professional)」", "「(전문가 상담 권장)」"),
 ]
+
+
+# ---------------- 領域專家模式（法律、醫療…）----------------
+# 清單跟 App 共用：shared/src/main/assets/report_domains.json（setup.sh 會複製到服務目錄）。
+# App 送 X-Domain：auto（自動判斷，一般對話不加）/ off / 領域 id。跟 App 的 ReportDomain 一樣。
+def _load_domains():
+    here = os.path.dirname(os.path.abspath(__file__))
+    for path in (os.path.join(here, "report_domains.json"),
+                 os.path.join(here, "..", "shared", "src", "main", "assets", "report_domains.json")):
+        try:
+            with open(path, encoding="utf-8") as f:
+                return json.load(f)
+        except (OSError, ValueError):
+            continue
+    return None
+
+
+DOMAINS = _load_domains()
+
+
+def domain_rules(setting):
+    t = DOMAINS
+    if not t or setting == "off":
+        return ""
+    ds = t["domains"]
+    if setting in ("", None, "auto"):
+        focus = "\n".join(f"- {d['name']}：{d['focus']}" + (f"（報告最後加一行：「{d['disclaimer']}」）" if d.get("disclaimer") else "")
+                          for d in ds)
+        return t["auto"].replace("{names}", "、".join(d["name"] for d in ds)).replace("{focus}", focus)
+    d = next((d for d in ds if d["id"] == setting), None)
+    if not d:
+        return ""
+    out = t["common"].replace("【領域專家模式】", f"【領域專家模式：{d['name']}】") + f"\n這個領域要注意的事項：{d['focus']}。"
+    if d.get("disclaimer"):
+        out += f"\n報告最後加一行：「{d['disclaimer']}」"
+    return out
+
+
+def with_domain(prompt, setting):
+    """報告提示詞（有「待辦事項」章節）才加；飲食、分段筆記不加。"""
+    rules = domain_rules(setting)
+    if not rules or "## 待辦事項" not in prompt or "NUTRITION" in prompt:
+        return prompt
+    return prompt.rstrip() + "\n\n" + rules
 
 
 def report_lang(code):
@@ -627,7 +675,7 @@ def localize(prompt, lang):
             f"飲食的 NUTRITION 與 ITEM 行維持原本的欄位格式（欄位名稱與餐別用中文），只有標題、摘要與報告文字用 {name}。")
 
 
-def process(audio_path, kind, recorded_at, duration, text_input=False, asr=None, dialect=None, rlang="zh", lang=None):
+def process(audio_path, kind, recorded_at, duration, text_input=False, asr=None, dialect=None, rlang="zh", lang=None, domain="auto"):
     t0 = time.time()
     if text_input:
         with open(audio_path, encoding="utf-8", errors="replace") as f:
@@ -654,7 +702,7 @@ def process(audio_path, kind, recorded_at, duration, text_input=False, asr=None,
     elif kind == "food":
         report = chat(localize(FOOD_SYSTEM, rlang), f"{header}\n\n逐字稿：\n{transcript}", max_tokens=1500)
     elif len(transcript) <= chunk_chars():
-        report = chat(localize(REPORT_SYSTEM, rlang), f"{header}\n\n<transcript>\n{transcript}\n</transcript>")
+        report = chat(localize(with_domain(REPORT_SYSTEM, domain), rlang), f"{header}\n\n<transcript>\n{transcript}\n</transcript>")
     else:
         # 長錄音：分段做筆記再合併（照 Android LongMeeting 的做法）
         parts = chunks(transcript, chunk_chars())
@@ -662,7 +710,7 @@ def process(audio_path, kind, recorded_at, duration, text_input=False, asr=None,
         for i, p in enumerate(parts):
             log(f"  notes {i + 1}/{len(parts)}")
             notes.append(f"【第 {i + 1} 部分】\n" + chat(localize(NOTES_SYSTEM, rlang), p, max_tokens=1200))
-        report = chat(localize(REPORT_SYSTEM, rlang), f"{header}\n以下是長錄音各部分整理好的筆記（不是逐字稿），請整合成一份報告：\n\n" + "\n\n".join(notes))
+        report = chat(localize(with_domain(REPORT_SYSTEM, domain), rlang), f"{header}\n以下是長錄音各部分整理好的筆記（不是逐字稿），請整合成一份報告：\n\n" + "\n\n".join(notes))
     t2 = time.time()
     log(f"  asr {t1 - t0:.1f}s, llm {t2 - t1:.1f}s, transcript {len(transcript)} chars")
     return f"{report}\n\n{TRANSCRIPT_MARKER}\n{transcript}"
@@ -713,7 +761,8 @@ def run_job(j, path):
             log(f"job {j['id']} {j['kind']}{' text' if j.get('text_input') else ''} {j.get('size', 0) // 1024} KB, "
                 f"{float(j.get('duration') or 0):.0f}s, asr={asr or CUR['asr']}")
             text = process(path, j["kind"], j.get("recorded_at", ""), float(j.get("duration") or 0),
-                           bool(j.get("text_input")), asr, j.get("dialect"), j.get("report_lang") or "zh", j.get("lang"))
+                           bool(j.get("text_input")), asr, j.get("dialect"), j.get("report_lang") or "zh", j.get("lang"),
+                           j.get("domain") or "auto")
         return {"text": text, "model": tag}
     except Exception as e:  # noqa: BLE001
         log(f"  failed: {e}")
@@ -819,7 +868,8 @@ class Handler(BaseHTTPRequestHandler):
                 "recorded_at": self.headers.get("X-Recorded-At", "")[:40], "duration": duration,
                 "asr": asr, "dialect": dialect if dialect in HAKKA_DIALECTS else None,
                 "report_lang": report_lang(self.headers.get("X-Report-Lang", "")),
-                "lang": (self.headers.get("X-Lang", "") or "")[:8] or None}, None
+                "lang": (self.headers.get("X-Lang", "") or "")[:8] or None,
+                "domain": (self.headers.get("X-Domain", "") or "auto")[:24]}, None
 
     def _receive(self, params):
         """把上傳的內容寫進佇列（JOBS.submit）。"""

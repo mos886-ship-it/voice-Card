@@ -71,6 +71,7 @@ fun RecordsHub(
             2 -> FilesScreen(onBack = null, onOpen = onOpen, onOpenSettings = onOpenSettings, embedded = true)
             else -> HubPage {
                 RecordingLanguageCard()
+                ReportDomainCard()
                 EngineSummaryCard(onOpenSettings)
                 SectionLabel("自動整理".tr)
                 CallRecordingCard()
