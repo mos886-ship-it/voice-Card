@@ -306,7 +306,7 @@ struct FoodList: View {
                 Text(detail).font(.bodySmall).foregroundStyle(Brand.textMuted).fixedSize(horizontal: false, vertical: true)
             }
             if !src.isEmpty {
-                let c = src.hasPrefix("食藥署") || src.hasPrefix("Taiwan FDA") || src.hasPrefix("대만 식약청") ? Brand.success
+                let c = ["食藥署", "Taiwan FDA", "대만 식약청", "USDA", "日本成分表", "MEXT", "일본 성분표", "韓國食藥處", "MFDS", "식약처"].contains(where: { src.hasPrefix($0) }) ? Brand.success
                     : src.contains("營養標示") || src.hasPrefix("Nutrition label") || src.hasPrefix("영양성분표") ? Brand.blue : Brand.textFaint
                 Text(src).font(.labelMedium).foregroundStyle(c)
                     .padding(.horizontal, 8).padding(.vertical, 2)

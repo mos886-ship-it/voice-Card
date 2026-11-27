@@ -81,7 +81,8 @@ struct GeminiClient {
     static let nutritionPrefix = "NUTRITION:"
     /// 台灣的餐（有食藥署資料）用「拆食材＋對照資料庫」版；其他國家 iOS 還沒有當地資料庫 → AI 估算＋當地份量。
     static func foodPrompt(country: String = FoodRegion.of()) -> String {
-        let p = FoodDB.ready && country == "TW" ? foodDBPrompt : legacyFoodPrompt
+        FoodDB.use(country)   // 這一餐的國家有內建資料庫（台、美、日、韓）就用那份
+        let p = FoodDB.ready ? foodDBPrompt : legacyFoodPrompt
         return p.replacingOccurrences(of: "- " + FoodRegion.portionRule("TW"), with: "- " + FoodRegion.portionRule(country))
     }
 
@@ -94,7 +95,7 @@ struct GeminiClient {
     - 若附有照片：依照片辨識食物與份量（參考碗盤、餐具、杯子、包裝的大小估克數）；照片與口述不一致時以口述為準；看不清楚或被擋住的寫進「假設與待確認」。
     - 照片裡看得到包裝的「營養標示」：照標示的熱量、營養素與份量（每份 / 每 100 克）換算吃下的量，「對照」填「營養標示」。
     - 把這一餐拆成食材或單品，每樣一行 ITEM，估算重量（克，可食部分）。煎炒炸用的油、勾芡、糖、醬料要另外列一行（例如「調合植物油」）。
-    - 「對照」：從下面的【食藥署食品營養成分資料】清單挑一個「完全相同」的名稱（不要寫「·生」「·熟」）；清單裡沒有相近的就填「無」，不要硬湊。
+    - 「對照」：從下面的【\(FoodDB.label)食品營養成分資料】清單挑一個「完全相同」的名稱（照清單原文，不要翻譯，不要寫「·生」「·熟」）；清單裡沒有相近的就填「無」，不要硬湊。
       清單標「·生」的是生重：克數要填烹調前的生重。整道小吃（例如牛肉麵）清單沒有就拆成麵、肉、湯、青菜各自對照，拆不了就填「無」。
     - 每行也寫你自己估的熱量與營養素（App 對不到資料時用）。數字一律取整數；熱量單位大卡（kcal），營養素單位公克（g）。
     - 每樣食物的蛋白質＋碳水＋脂肪（克）加起來不能超過它的重量；熱量約等於 蛋白質×4＋碳水×4＋脂肪×9。
@@ -116,7 +117,7 @@ struct GeminiClient {
     之後單獨一行輸出 \(transcriptMarker)
     之後是逐字稿，每段一行：[mm:ss] 內容
 
-    【食藥署食品營養成分資料】（每 100 克；只能從這裡挑「對照」名稱）
+    【\(FoodDB.label)食品營養成分資料】（每 100 克；只能從這裡挑「對照」名稱）
     \(FoodDB.promptList)
     """ }
 

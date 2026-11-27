@@ -103,6 +103,7 @@ struct Meeting: Codable, Identifiable, Equatable {
         case "call": return "通話".tr
         case "food": return "飲食".tr
         case "photo": return "拍照".tr
+        case "translation": return "翻譯".tr
         default: return source
         }
     }

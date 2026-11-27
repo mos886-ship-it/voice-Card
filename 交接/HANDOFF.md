@@ -650,3 +650,13 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 - `TranslationStore.swift`：每次開始到停止存 Documents/translations/<id>.json（原文、譯文、語言、時間、同時錄的錄音）；停止時存，3 秒後補存晚到的翻譯。記錄頁可看、分享文字、刪除、打開那段錄音的報告。
 - 模擬器看過：錄音分析（待辦 14 項從報告讀出）、飲食分析、翻譯分頁。翻譯記錄實際存檔沒驗（模擬器沒有語音辨識）。
 - 還沒做：翻譯記錄做報告（文字送主機）、即時翻譯的全部語言／只翻譯（麥克風）模式／朗讀／邊說邊翻／不要提示聲、美日韓營養資料庫、車用、小工具。
+
+## iOS：即時翻譯升級、翻譯記錄做報告、美日韓營養資料庫（跟 Android）
+- 語言（`TranslateLangs.swift`）：說的 = `SFSpeechRecognizer.supportedLocales()`（存辨識代碼 zh-TW、en-GB…，標手機上／線上，`translate_source` 跟錄音語言分開，最近用過 `translate_recent`）；翻成 = iOS 18 `LanguageAvailability().supportedLanguages`（zh-Hant／zh-Hans／語言碼），問不到用常見 10 種。粵語、cmn 當中文翻。
+- `LiveCaptions`：source/target 改成字串；沒在錄音時自己開麥克風（只翻譯模式，AVAudioEngine，playAndRecord＋藍牙）；錄音中照舊吃錄音的聲音、錄音停了字幕才停（只翻譯模式不受影響）。邊說邊翻：還在說的那行每 0.8 秒送暫時翻譯（斜體）；停頓 0.7 秒（只翻譯 1 秒）切句，句號問號也切；太長（中日韓 40 字、其他 20 個字）在逗號或空白硬切。對調方向 `swap()`、`clear()`。翻譯中螢幕保持亮著。不允許線上辨識時，沒有手機上辨識的語言直接說明。
+- 朗讀（`Speaker.swift`，AVSpeechSynthesizer）：自動朗讀譯文、每句 🔊、速度；念的時候 `Speaker.busy`，音訊 tap 不送辨識（不把自己的聲音當新的一句）。
+- 不要提示聲：iOS 的語音辨識不會「叮」，不用做。
+- 翻譯頁：說的 ⇄ 翻成（可搜尋的語言面板、最近使用）、同時錄音開關、工具列（A−／A+、原文、朗讀、放大、清除）、長按複製、放大頁（最新一句、可翻轉 180°、對調、朗讀）。翻譯設定：預設翻成（Apple 翻譯支援的全部）、字幕大小、原文、手錶字幕、自動存記錄、允許線上辨識、自動朗讀、速度、試聽。
+- 翻譯記錄做報告：`TranslationReport.create` 建 tr_ 報告（source = translation，「翻譯」），input.txt 放說明＋原文/→譯文，走文字路徑（大D的主機 X-Input: text 等）；記錄頁「產生報告」／「打開報告」。
+- 營養資料庫依這一餐的國家：`FoodDB.use(country)`（TW tfnd、US us、JP jp、KR kr，跟 Android 同一份檔），提示詞的清單名稱與報告「來源」／合計那行的名稱跟著換（`FoodWords.dbTag/dbFull`）；Gemini 送出前與結果回來重算前都用這一餐的國家。設定 → 內建資料加 USDA、文部科学省（を加工して作成）、식약처出處。
+- 模擬器沒有語音辨識：麥克風模式、邊說邊翻、朗讀沒在真機驗過；美日韓資料庫沒用真的一餐驗過。

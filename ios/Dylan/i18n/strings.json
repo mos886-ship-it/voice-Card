@@ -6070,5 +6070,97 @@
  "「今天」只放現在要做的事；底部中間的錄音鍵任何分頁一按就錄；設定在「今天」右上的齒輪。": {
   "en": "\"Today\" shows only what to do now; the record key in the middle starts recording from any tab; Settings is the gear at the top right of \"Today\".",
   "ko": "'오늘'에는 지금 할 일만 있고, 가운데 녹음 키로 어느 탭에서든 바로 녹음합니다. 설정은 '오늘' 오른쪽 위 톱니바퀴에 있습니다."
+ },
+ "）。台灣、美國、日本、韓國的餐用當地官方營養資料計算，其他國家為 AI 估算。": {
+  "en": "). Meals in Taiwan, the US, Japan and Korea use local official nutrition data; other countries are AI estimates.",
+  "ko": "). 대만·미국·일본·한국 식사는 현지 공식 영양 데이터로 계산하고, 다른 국가는 AI 추정입니다."
+ },
+ "手機上辨識不了的語言，把聲音送到 Apple 辨識。要下載手機上的語音：iPhone 設定 → 一般 → 鍵盤 → 聽寫語言。": {
+  "en": "For languages the phone can't recognize on device, audio is sent to Apple. To download on-device speech: iPhone Settings → General → Keyboard → Dictation Languages.",
+  "ko": "휴대폰에서 인식할 수 없는 언어는 음성을 Apple로 보냅니다. 기기 내 음성 다운로드: iPhone 설정 → 일반 → 키보드 → 받아쓰기 언어."
+ },
+ "自動朗讀譯文": {
+  "en": "Read translations aloud automatically",
+  "ko": "번역 자동 읽기"
+ },
+ "速度": {
+  "en": "Speed",
+  "ko": "속도"
+ },
+ "「{0}」可以朗讀": {
+  "en": "\"{0}\" can be read aloud",
+  "ko": "'{0}' 읽기 가능"
+ },
+ "這支手機沒有「{0}」的聲音": {
+  "en": "This phone has no voice for \"{0}\"",
+  "ko": "이 휴대폰에는 '{0}' 음성이 없습니다"
+ },
+ "這個語言沒有手機上的語音辨識；要用的話在翻譯設定打開「允許線上辨識」": {
+  "en": "This language has no on-device recognition; turn on \"Allow online recognition\" in translation settings to use it",
+  "ko": "이 언어는 기기 내 인식이 없습니다. 사용하려면 번역 설정에서 '온라인 인식 허용'을 켜세요"
+ },
+ "手機辨識不了「{0}」，沒辦法對調": {
+  "en": "The phone can't recognize \"{0}\", so the direction can't be swapped",
+  "ko": "휴대폰이 '{0}'을(를) 인식할 수 없어 방향을 바꿀 수 없습니다"
+ },
+ "麥克風打不開：{0}": {
+  "en": "Couldn't open the microphone: {0}",
+  "ko": "마이크를 열 수 없습니다: {0}"
+ },
+ "對調方向": {
+  "en": "Swap direction",
+  "ko": "방향 바꾸기"
+ },
+ "手機上": {
+  "en": "On device",
+  "ko": "기기 내"
+ },
+ "同時錄音（錄完照常產生報告）": {
+  "en": "Also record (a report is made afterwards as usual)",
+  "ko": "동시에 녹음(녹음 후 평소처럼 보고서 생성)"
+ },
+ "字小一點": {
+  "en": "Smaller text",
+  "ko": "글자 작게"
+ },
+ "字大一點": {
+  "en": "Larger text",
+  "ko": "글자 크게"
+ },
+ "隱藏原文": {
+  "en": "Hide original",
+  "ko": "원문 숨기기"
+ },
+ "朗讀：開": {
+  "en": "Read aloud: on",
+  "ko": "읽기: 켬"
+ },
+ "朗讀：關": {
+  "en": "Read aloud: off",
+  "ko": "읽기: 끔"
+ },
+ "選好語言按開始：沒在錄音時只用麥克風翻譯；勾「同時錄音」或錄音中，錄完照常產生完整報告。辨識與翻譯在手機上做（手機上辨識不了的語言會改用 Apple 線上辨識）。": {
+  "en": "Pick the languages and tap Start. When not recording, only the mic is used for translation; with \"Also record\" or while recording, a full report is made afterwards. Recognition and translation run on the phone (languages it can't recognize on device use Apple's online recognition).",
+  "ko": "언어를 고르고 시작을 누르세요. 녹음 중이 아니면 마이크로만 번역하고, '동시에 녹음'을 켜거나 녹음 중이면 끝난 뒤 보고서를 만듭니다. 인식과 번역은 휴대폰에서 합니다(기기에서 인식할 수 없는 언어는 Apple 온라인 인식 사용)."
+ },
+ "念這句": {
+  "en": "Read this line",
+  "ko": "이 문장 읽기"
+ },
+ "複製": {
+  "en": "Copy",
+  "ko": "복사"
+ },
+ "搜尋語言": {
+  "en": "Search languages",
+  "ko": "언어 검색"
+ },
+ "翻轉給對面的人看": {
+  "en": "Flip for the person opposite",
+  "ko": "맞은편 사람에게 보이도록 뒤집기"
+ },
+ "翻譯記錄 {0}": {
+  "en": "Translation {0}",
+  "ko": "번역 기록 {0}"
  }
 }

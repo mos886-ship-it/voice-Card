@@ -155,7 +155,7 @@ struct SettingsView: View {
                         .pickerStyle(.menu).tint(Brand.blue)
                     }
                     Text("份量依當地習慣估算。自動：照這一餐的地點，沒有地點就照手機地區（現在：".tr
-                         + FoodRegion.name(FoodRegion.of()) + "）。台灣的餐用食藥署資料計算，其他國家為 AI 估算。".tr)
+                         + FoodRegion.name(FoodRegion.of()) + "）。台灣、美國、日本、韓國的餐用當地官方營養資料計算，其他國家為 AI 估算。".tr)
                         .font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 4)
                 }
 
@@ -212,6 +212,21 @@ struct SettingsView: View {
                         Link("政府資料開放授權條款－第1版".tr, destination: URL(string: "https://data.gov.tw/license")!)
                     }
                     .font(.labelLarge).tint(Brand.cyan).padding(.top, 10)
+                }
+                // 美國、日本、韓國的營養資料（這一餐在當地時用；見 FoodRegion）
+                GlassCard {
+                    Text("在美國的餐點使用美國農業部 U.S. Department of Agriculture, Agricultural Research Service「FoodData Central」（SR Legacy，公共領域 CC0），名稱截短、只取熱量與營養素。".tr)
+                        .font(.bodySmall).foregroundStyle(Brand.textMuted)
+                    Link("FoodData Central（USDA）".tr, destination: URL(string: "https://fdc.nal.usda.gov/")!)
+                        .font(.labelLarge).tint(Brand.cyan).padding(.vertical, 6)
+                    Text("在日本的餐點使用「日本食品標準成分表（八訂）増補2023年」（文部科学省）を加工して作成（公共データ利用規約 第1.0版，相容 CC BY 4.0）。".tr)
+                        .font(.bodySmall).foregroundStyle(Brand.textMuted)
+                    Link("日本食品標準成分表（文部科学省）".tr, destination: URL(string: "https://www.mext.go.jp/a_menu/syokuhinseibun/")!)
+                        .font(.labelLarge).tint(Brand.cyan).padding(.vertical, 6)
+                    Text("在韓國的餐點使用 식품의약품안전처「식품영양성분 데이터베이스」（전국통합식품영양성분정보 음식 표준데이터，公共資料入口網站），只取一般菜色。".tr)
+                        .font(.bodySmall).foregroundStyle(Brand.textMuted)
+                    Link("식품영양성분 데이터베이스（공공데이터포털）".tr, destination: URL(string: "https://www.data.go.kr/data/15100070/standard.do")!)
+                        .font(.labelLarge).tint(Brand.cyan).padding(.top, 6)
                 }
 
                 }

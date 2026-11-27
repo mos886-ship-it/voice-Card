@@ -18,15 +18,37 @@ enum FoodDB {
     private struct Loaded { let map: [String: Entry]; let order: [Entry] }
 
     nonisolated(unsafe) private static var override: Loaded?
-    private static let bundled: Loaded = {
-        guard let url = Bundle.main.url(forResource: "tfnd", withExtension: "json"),
-              let data = try? Data(contentsOf: url) else { return Loaded(map: [:], order: []) }
-        return parse(data)
-    }()
-    private static var db: Loaded { override ?? bundled }
+
+    /// 國家 → 內建檔案、簡稱（照 Android `FoodDb.FILES`）。美國 USDA SR Legacy（CC0）、日本文部科學省八訂（要標示出處）、
+    /// 韓國食藥處 음식 標準資料（商用前要書面確認）。
+    static let files: [String: (file: String, label: String)] = [
+        "TW": ("tfnd", "食藥署"), "US": ("us", "USDA"), "JP": ("jp", "日本食品成分表"), "KR": ("kr", "韓國食藥處"),
+    ]
+    nonisolated(unsafe) private static var loaded: [String: Loaded] = [:]
+    private static let lock = NSLock()
+    /// 現在這一餐用的資料庫國家（`use` 設；預設台灣）
+    nonisolated(unsafe) private(set) static var country = "TW"
+
+    private static func load(_ cc: String) -> Loaded? {
+        lock.lock(); defer { lock.unlock() }
+        if let l = loaded[cc] { return l }
+        guard let f = files[cc], let url = Bundle.main.url(forResource: f.file, withExtension: "json"),
+              let data = try? Data(contentsOf: url) else { return nil }
+        let l = parse(data)
+        loaded[cc] = l
+        return l
+    }
+
+    /// 這一餐的國家：有內建資料就用那份，沒有 → 不用資料庫（AI 估算＋當地份量）。
+    static func use(_ cc: String) { country = cc }
+    static func has(_ cc: String) -> Bool { files[cc] != nil && (load(cc).map { !$0.map.isEmpty } ?? false) }
+    /// 提示詞與報告用的簡稱（例「食藥署」「USDA」）
+    static var label: String { files[country]?.label ?? "食藥署" }
+
+    private static var db: Loaded { override ?? load(country) ?? Loaded(map: [:], order: []) }
 
     /// 測試用：直接給 JSON 內容。
-    static func loadForTest(_ data: Data) { override = parse(data) }
+    static func loadForTest(_ data: Data) { override = parse(data); country = "TW" }
 
     private static func parse(_ data: Data) -> Loaded {
         guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],

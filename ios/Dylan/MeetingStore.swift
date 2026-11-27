@@ -477,6 +477,7 @@ final class MeetingStore: ObservableObject {
             // 有 ITEM 行：對到食藥署資料的用資料庫重算，App 自己產生表格與合計（照 Android FoodLog.finish）
             let heading = "# \(report.title)\n\n"
             let body = report.markdown.hasPrefix(heading) ? String(report.markdown.dropFirst(heading.count)) : report.markdown
+            FoodDB.use(FoodRegion.of(id))   // 用這一餐國家的資料庫重算
             let done = FoodLog.finish(raw: text, body: body, aiSummary: report.shortSummary)
             m.nutrition = done.nutrition
             report.markdown = (report.markdown.hasPrefix(heading) ? heading : "") + done.body

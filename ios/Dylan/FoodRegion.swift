@@ -4,7 +4,7 @@ import Foundation
 ///
 /// 順序：設定指定的國家 → 這一餐的 GPS（反查的國家；沒有時用座標粗略判斷）→ 手機地區設定。
 /// 設定 `food_country`：auto（預設）/ TW / US / JP / KR。
-/// iOS 目前只有台灣（食藥署）資料庫：其他國家用 AI 估算＋當地份量。
+/// 台、美、日、韓有內建資料庫（FoodDB.files）；其他國家用 AI 估算＋當地份量。
 enum FoodRegion {
     static let auto = "auto"
     static let key = "food_country"

@@ -22,6 +22,8 @@ final class LiveCaptions: ObservableObject {
         var original: String
         var translated: String?
         var partial = false
+        /// 還在說的那行的暫時譯文（邊說邊翻）
+        var draft: String?
     }
 
     /// 翻譯成：名稱用該語言自己的寫法。
@@ -75,8 +77,11 @@ final class LiveCaptions: ObservableObject {
     @Published private(set) var lines: [Line] = []
     @Published private(set) var status: String?
     @Published private(set) var error: String?
-    @Published private(set) var source: SpeechLang = .zh
-    @Published private(set) var target: Target = .en
+    /// 說的（辨識代碼，例如 zh-TW）、翻成（翻譯代碼，例如 en、zh-Hant）
+    @Published private(set) var source: String = "zh-TW"
+    @Published private(set) var target: String = "en"
+    /// 只翻譯（自己開麥克風，沒有錄音）
+    @Published private(set) var micMode = false
     /// 換一次語言就加一，讓翻譯工作（LiveTranslateHost）重新開一個 session
     @Published private(set) var generation = 0
 
@@ -97,6 +102,12 @@ final class LiveCaptions: ObservableObject {
     private var silence: Task<Void, Never>?
     /// 等著翻譯的句子（行 id, 原文）
     private(set) var queue: [(Int, String)] = []
+    /// 還在說的那行要暫時翻的字（行 id, 原文）；新的蓋掉舊的
+    private(set) var draftQueue: (Int, String)?
+    private var lastDraftAt = Date.distantPast
+    /// 只翻譯模式自己的麥克風
+    private let micEngine = AVAudioEngine()
+    private var micRunning = false
     var queueChanged: (() -> Void)?
 
     /// 音訊 tap（錄音執行緒）→ 目前的辨識請求。用鎖保護，tap 不能等主執行緒。
@@ -105,26 +116,30 @@ final class LiveCaptions: ObservableObject {
 
     /// PhoneRecorder 的音訊 tap 呼叫：開著字幕才送。
     nonisolated static func feed(_ buffer: AVAudioPCMBuffer) {
+        if Speaker.busy { return }   // 正在念譯文：聽到的是自己的聲音
         lock.lock(); let r = request; lock.unlock()
         r?.append(buffer)
     }
 
     // MARK: - 開始 / 停止
 
+    /// 舊的入口（錄音語言、5 種翻成）：debug 餵音檔用
     func start(source: SpeechLang, target: Target) {
+        start(sourceId: TranslateLangs.sourceId(source), targetId: target == .zh ? "zh-Hant" : target.rawValue)
+    }
+
+    /// 開始翻譯。錄音中：用錄音的聲音；沒在錄音：自己開麥克風（只翻譯）。keepLines：對調方向時字幕保留。
+    func start(sourceId: String, targetId: String) {
         if running { stop() }
-        self.source = source
-        self.target = target
+        source = sourceId
+        target = targetId
         error = nil
         status = nil
-        guard Self.supported(source) else {
-            error = "台語、客語、粵語手機辨識不了，沒有即時字幕；錄完的報告不受影響。".tr
-            return
-        }
         running = true
         failures = 0
         var mid: String?
         if case let .recording(id, _) = PhoneRecorder.shared.state, !id.hasPrefix(Meeting.foodPrefix) { mid = id }
+        micMode = !PhoneRecorder.shared.isRecording
         session = (TranslationStore.newId(), Date(), nextId, mid)
         online = false
         generation += 1
@@ -136,24 +151,84 @@ final class LiveCaptions: ObservableObject {
                     self.running = false
                     return
                 }
-                let locale = source == .zh ? Locale(identifier: "zh-TW") : source.locale
-                guard let r = SFSpeechRecognizer(locale: locale), r.isAvailable else {
+                guard let r = SFSpeechRecognizer(locale: Locale(identifier: sourceId)), r.isAvailable else {
                     self.error = "這支 iPhone 沒有這個語言的語音辨識".tr
+                    self.running = false
+                    return
+                }
+                if !r.supportsOnDeviceRecognition && !Self.allowOnline {
+                    self.error = "這個語言沒有手機上的語音辨識；要用的話在翻譯設定打開「允許線上辨識」".tr
                     self.running = false
                     return
                 }
                 self.recognizer = r
                 self.status = r.supportsOnDeviceRecognition ? nil
                     : "這個語言沒有手機上的語音辨識，聲音會傳到 Apple 辨識".tr
+                if self.micMode && !self.startMic() { return }
+                UIApplication.shared.isIdleTimerDisabled = true   // 翻譯中螢幕保持亮著
                 self.startSegment()
             }
         }
         if #unavailable(iOS 18.0) { status = "翻譯需要 iOS 18 以上；這支 iPhone 只顯示原文".tr }
     }
 
+    /// 對調方向（翻譯中也可以）：字幕保留，記錄各自分開存。
+    func swap() {
+        guard let newSource = TranslateLangs.speechLocale(for: target) else {
+            status = "手機辨識不了「{0}」，沒辦法對調".trf(TranslateLangs.name(target))
+            return
+        }
+        let newTarget = TranslateLangs.translationId(source: source)
+        TranslateLangs.source = newSource
+        UserDefaults.standard.set(newTarget, forKey: Self.targetKey)
+        if running { start(sourceId: newSource, targetId: newTarget) }
+        else { source = newSource; target = newTarget }
+    }
+
+    func clear() { lines.removeAll() }
+
+    /// 設定：允許線上辨識（手機上辨識不了的語言送 Apple）、自動朗讀
+    static let onlineKey = "translate_online", readAloudKey = "translate_read_aloud", showOriginalKey = "translate_show_original"
+    static var allowOnline: Bool { UserDefaults.standard.object(forKey: onlineKey) as? Bool ?? true }
+    static var readAloud: Bool { UserDefaults.standard.bool(forKey: readAloudKey) }
+
+    // MARK: - 只翻譯：自己開麥克風
+
+    private func startMic() -> Bool {
+        let s = AVAudioSession.sharedInstance()
+        do {
+            try s.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth, .allowBluetoothA2DP])
+            try s.setActive(true)
+            let input = micEngine.inputNode
+            let fmt = input.outputFormat(forBus: 0)
+            input.removeTap(onBus: 0)
+            input.installTap(onBus: 0, bufferSize: 4096, format: fmt) { buf, _ in LiveCaptions.feed(buf) }
+            micEngine.prepare()
+            try micEngine.start()
+            micRunning = true
+            return true
+        } catch {
+            self.error = "麥克風打不開：{0}".trf(error.localizedDescription)
+            running = false
+            return false
+        }
+    }
+
+    private func stopMic() {
+        guard micRunning else { return }
+        micRunning = false
+        micEngine.inputNode.removeTap(onBus: 0)
+        micEngine.stop()
+        if !PhoneRecorder.shared.isRecording {
+            try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        }
+    }
+
     func stop() {
         guard running else { return }
         running = false
+        stopMic()
+        UIApplication.shared.isIdleTimerDisabled = false
         silence?.cancel()
         commitRemainder()
         endSegment()
@@ -166,7 +241,7 @@ final class LiveCaptions: ObservableObject {
     private func saveSession() {
         guard let s = session, TranslationStore.autoSave else { session = nil; return }
         session = nil
-        let src = source.rawValue, tgt = target.rawValue
+        let src = source, tgt = target
         func snapshot() -> TranslationRecord {
             TranslationRecord(id: s.id, start: s.start, end: Date(), source: src, target: tgt,
                               lines: lines.filter { $0.id >= s.firstLine && !$0.partial }
@@ -183,7 +258,7 @@ final class LiveCaptions: ObservableObject {
     }
 
     /// 錄音停止：字幕一起停。
-    func recordingStopped() { if running { stop() } }
+    func recordingStopped() { if running && !micMode { stop() } }
 
     // MARK: - 辨識
 
@@ -257,17 +332,58 @@ final class LiveCaptions: ObservableObject {
             rest = String(rest[r.upperBound...])
             commit(sentence)
         }
+        // 一直沒停頓又太長（中日韓約 40 字、其他約 20 個字）：在逗號或空白處硬切
+        if let cut = Self.backstop(rest) {
+            let sentence = String(rest[..<cut]).trimmingCharacters(in: .whitespaces)
+            committed += rest.distance(from: rest.startIndex, to: cut)
+            rest = String(rest[cut...])
+            if !sentence.isEmpty { commit(sentence) }
+        }
         partialText = rest
         setPartial(rest)
-        // 停頓一下（1.5 秒沒變）也算一句
+        requestDraft()
+        // 主要靠停頓切句：文字約 0.7 秒沒變（只翻譯模式 1 秒）就把這段定下來翻
         silence?.cancel()
         if !rest.trimmingCharacters(in: .whitespaces).isEmpty {
+            let wait: UInt64 = micMode ? 1_000_000_000 : 700_000_000
             silence = Task { [weak self] in
-                try? await Task.sleep(nanoseconds: 1_500_000_000)
+                try? await Task.sleep(nanoseconds: wait)
                 guard !Task.isCancelled else { return }
                 self?.commitRemainder()
             }
         }
+    }
+
+    /// 太長了要切在哪裡（nil = 還不用切）。
+    static func backstop(_ s: String) -> String.Index? {
+        let cjk = s.unicodeScalars.contains { $0.properties.isIdeographic || (0xAC00...0xD7A3).contains($0.value) || (0x3040...0x30FF).contains($0.value) }
+        if cjk {
+            guard s.count > 40 else { return nil }
+            let head = s.prefix(40)
+            if let i = head.lastIndex(where: { "，、,；; ".contains($0) }), i > head.startIndex { return s.index(after: i) }
+            return s.index(s.startIndex, offsetBy: 40)
+        }
+        let words = s.split(separator: " ", omittingEmptySubsequences: true)
+        guard words.count > 20 else { return nil }
+        let head = s[..<words[19].endIndex]
+        if let i = head.lastIndex(of: ","), i > head.startIndex { return s.index(after: i) }
+        return words[19].endIndex
+    }
+
+    /// 還在說的那行：最多每 0.8 秒送一次暫時翻譯。
+    private func requestDraft() {
+        guard let l = lines.last(where: { $0.partial }), l.original.count >= 4,
+              Date().timeIntervalSince(lastDraftAt) > 0.8 else { return }
+        lastDraftAt = Date()
+        draftQueue = (l.id, l.original)
+        queueChanged?()
+    }
+
+    func takeDraft() -> (Int, String)? { defer { draftQueue = nil }; return draftQueue }
+
+    func drafted(_ id: Int, _ text: String) {
+        guard let i = lines.firstIndex(where: { $0.id == id && $0.partial }) else { return }
+        lines[i].draft = text
     }
 
     /// 英文句點：後面有空白才算（避免 3.5、U.S. 這種）
@@ -330,6 +446,7 @@ final class LiveCaptions: ObservableObject {
         guard let i = lines.firstIndex(where: { $0.id == id }) else { return }
         lines[i].translated = text
         if Self.watchCaptions { PhoneLink.shared.sendCaption(text) }
+        if Self.readAloud { Speaker.shared.speak(text, lang: target) }
     }
 
     func translationFailed(_ message: String) {
@@ -368,6 +485,10 @@ struct LiveTranslateHost: View {
                     // 這個 session 一直用到換語言或停止；有新句子就翻
                     while captions.running {
                         let items = captions.takeQueue()
+                        if items.isEmpty, let (id, text) = captions.takeDraft(),
+                           let r = try? await session.translate(text) {
+                            captions.drafted(id, r.targetText)
+                        }
                         for (id, text) in items {
                             do {
                                 let r = try await session.translate(text)
@@ -384,8 +505,10 @@ struct LiveTranslateHost: View {
         }
 
         private func reconfigure() {
-            guard captions.running, let src = LiveCaptions.source(captions.source) else { config = nil; return }
-            config = TranslationSession.Configuration(source: src, target: captions.target.language)
+            guard captions.running else { config = nil; return }
+            config = TranslationSession.Configuration(
+                source: Locale.Language(identifier: TranslateLangs.translationId(source: captions.source)),
+                target: Locale.Language(identifier: captions.target))
         }
     }
 }

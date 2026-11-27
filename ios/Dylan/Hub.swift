@@ -500,7 +500,7 @@ struct FoodSettingsView: View {
                         .pickerStyle(.menu).tint(Brand.blue)
                     }
                     Text("份量依當地習慣估算。自動：照這一餐的地點，沒有地點就照手機地區（現在：".tr
-                         + FoodRegion.name(FoodRegion.of()) + "）。台灣的餐用食藥署資料計算，其他國家為 AI 估算。".tr)
+                         + FoodRegion.name(FoodRegion.of()) + "）。台灣、美國、日本、韓國的餐用當地官方營養資料計算，其他國家為 AI 估算。".tr)
                         .font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 4)
                 }
                 HealthSyncCard()
@@ -571,6 +571,12 @@ struct TranslationDetailView: View {
                         .font(.labelLarge).foregroundStyle(Brand.textMuted)
                     if let mid = record.meetingId, meetings.meetings.contains(where: { $0.id == mid }) {
                         GhostButton(text: "打開這段錄音的報告".tr, systemImage: "doc.text", tint: Brand.cyan) { open(mid) }
+                    } else if let rid = record.reportId, meetings.meetings.contains(where: { $0.id == rid }) {
+                        GhostButton(text: "打開報告".tr, systemImage: "doc.text", tint: Brand.cyan) { open(rid) }
+                    } else {
+                        GradientButton(text: "產生報告".tr, systemImage: "doc.badge.plus") {
+                            if let id = TranslationReport.create(record) { open(id) }
+                        }
                     }
                     ForEach(Array(record.lines.enumerated()), id: \.offset) { _, l in
                         VStack(alignment: .leading, spacing: 2) {
@@ -647,7 +653,11 @@ struct TranslateSettingsView: View {
     @AppStorage(LiveCaptions.textSizeKey) private var textSize = 1
     @AppStorage(TranslationStore.autoSaveKey) private var autoSave = true
     @AppStorage(LiveCaptions.watchKey) private var watch = true
-    @ObservedObject private var langs = LangSettings.shared
+    @AppStorage(LiveCaptions.onlineKey) private var online = true
+    @AppStorage(LiveCaptions.readAloudKey) private var readAloud = false
+    @AppStorage(LiveCaptions.showOriginalKey) private var showOriginal = true
+    @AppStorage(Speaker.rateKey) private var rate = 1.0
+    @State private var targets = TranslateLangs.fallbackTargets
 
     var body: some View {
         ScrollView {
@@ -657,9 +667,9 @@ struct TranslateSettingsView: View {
                     Text("預設翻成".tr).font(.titleSmall).foregroundStyle(Brand.text).padding(.bottom, 8)
                     Picker("預設翻成".tr, selection: $target) {
                         Text("自動".tr).tag("")
-                        ForEach(LiveCaptions.Target.allCases) { Text($0.label).tag($0.rawValue) }
+                        ForEach(targets, id: \.self) { Text(TranslateLangs.name($0)).tag($0) }
                     }
-                    .pickerStyle(.segmented)
+                    .pickerStyle(.menu).tint(Brand.blue)
                     Text("自動：跟 App 介面語言；跟說的語言一樣時中↔英。".tr).font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 6)
                 }
                 GlassCard {
@@ -669,8 +679,33 @@ struct TranslateSettingsView: View {
                     }
                     .pickerStyle(.segmented)
                     DividerLine().padding(.vertical, 12)
+                    Toggle(isOn: $showOriginal) { Text("顯示原文".tr).font(.bodyMedium).foregroundStyle(Brand.text) }.tint(Brand.cyan)
                     Toggle(isOn: $watch) { Text("手錶顯示字幕".tr).font(.bodyMedium).foregroundStyle(Brand.text) }.tint(Brand.cyan)
                     Toggle(isOn: $autoSave) { Text("自動存翻譯記錄".tr).font(.bodyMedium).foregroundStyle(Brand.text) }.tint(Brand.cyan)
+                }
+                GlassCard {
+                    Text("語音辨識".tr).font(.titleSmall).foregroundStyle(Brand.text).padding(.bottom, 6)
+                    Toggle(isOn: $online) { Text("允許線上辨識".tr).font(.bodyMedium).foregroundStyle(Brand.text) }.tint(Brand.cyan)
+                    Text("手機上辨識不了的語言，把聲音送到 Apple 辨識。要下載手機上的語音：iPhone 設定 → 一般 → 鍵盤 → 聽寫語言。".tr)
+                        .font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 4)
+                }
+                GlassCard {
+                    Text("朗讀".tr).font(.titleSmall).foregroundStyle(Brand.text).padding(.bottom, 6)
+                    Toggle(isOn: $readAloud) { Text("自動朗讀譯文".tr).font(.bodyMedium).foregroundStyle(Brand.text) }.tint(Brand.cyan)
+                    HStack {
+                        Text("速度".tr).font(.bodyMedium).foregroundStyle(Brand.text)
+                        Slider(value: $rate, in: 0.5...1.5, step: 0.1)
+                        Text(String(format: "%.1f×", rate)).font(.labelMedium).foregroundStyle(Brand.textMuted)
+                    }
+                    let t = TranslateLangs.target(for: TranslateLangs.source)
+                    HStack {
+                        Text(Speaker.canSpeak(t) ? "「{0}」可以朗讀".trf(TranslateLangs.name(t)) : "這支手機沒有「{0}」的聲音".trf(TranslateLangs.name(t)))
+                            .font(.bodySmall).foregroundStyle(Brand.textMuted)
+                        Spacer()
+                        GhostButton(text: "試聽".tr, tint: Brand.cyan) {
+                            Speaker.shared.speak(t.hasPrefix("zh") ? "你好，這是大D的朗讀。" : "Hello, this is Big D reading aloud.", lang: t, queue: false)
+                        }
+                    }
                 }
                 Text("翻譯用 Apple「翻譯」（iOS 18 以上），第一次用某個語言時系統會問要不要下載。".tr)
                     .font(.bodySmall).foregroundStyle(Brand.textFaint)
@@ -678,5 +713,6 @@ struct TranslateSettingsView: View {
             .pageColumn()
             .padding(.vertical, 12)
         }
+        .task { targets = await TranslateLangs.targets() }
     }
 }
