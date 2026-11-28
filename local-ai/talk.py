@@ -23,6 +23,11 @@
 - POST /v1/talk/friend/answer {from, accept}：接受 / 拒絕好友邀請。POST /v1/talk/unfriend {id}：刪除好友（雙方都拿掉）。
 - 上線回報多回：自己的 uid、收到的好友邀請 requests、我送出還沒被接受的 pending。
 
+頭貼：
+- POST /v1/talk/avatar（X-Contact-Token，body = JPEG，最多 64 KB）換自己的頭貼；body 空的 = 刪掉。存在 talk_avatars/<id>.jpg（不放進 talk_contacts.json）。
+- GET /v1/talk/avatar/<id>（X-Contact-Token）：只有自己、好友、互相有邀請的人拿得到。
+- 上線回報、好友邀請、來電都帶 av（頭貼版本 = 換的時間；0 = 沒有），App 看版本變了才重抓。
+
 安全與限制（主機對外開放）：
 - 房號 12 字、邀請碼 8 字、token 32 字，都是 secrets 隨機產生；邀請碼錯太多次（同房 10 次）就作廢。
 - 只能打給「同一間房待過」的人；每人 10 秒最多打一通。
@@ -55,6 +60,7 @@ CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"   # 不用 0 O 1 I L，口頭念�
 UID_LEN = 8
 FRIEND_GAP = 2          # 加好友：每人 2 秒最多一次
 MAX_REQUESTS = 50       # 每人最多掛 50 個沒處理的好友邀請
+MAX_AVATAR = 64_000     # 頭貼一張最多 64 KB（App 縮成 256×256 JPEG，大約 15 KB）
 
 
 def norm_uid(s):
@@ -90,6 +96,7 @@ class Rooms:
         self.by_hash = {}       # 雜湊 → id
         self.by_dev = {}        # 配對裝置 → id
         self.by_uid = {}        # 使用者 ID → id
+        self.mem_avatars = {}   # 沒有存檔路徑（測試）時頭貼放記憶體
         self.last_friend = {}
         self.seen = {}          # id → 最後回報時間（不存檔）
         self.rings = {}         # id → [{room, code, from, name, lang, at}]（不存檔）
@@ -186,7 +193,67 @@ class Rooms:
 
     def _brief(self, cid):
         c = self.contacts[cid]
-        return {"id": cid, "name": c.get("name"), "lang": c.get("lang"), "uid": show_uid(c.get("uid"))}
+        return {"id": cid, "name": c.get("name"), "lang": c.get("lang"), "uid": show_uid(c.get("uid")), "av": c.get("av", 0)}
+
+    # ---------- 頭貼 ----------
+    def _avatar_path(self, cid):
+        if not self.path:
+            return None
+        d = os.path.join(os.path.dirname(os.path.abspath(self.path)), "talk_avatars")
+        os.makedirs(d, exist_ok=True)
+        return os.path.join(d, cid + ".jpg")
+
+    def set_avatar(self, contact_token, data):
+        """換自己的頭貼（JPEG）；data 空的 = 刪掉。回新的版本。"""
+        with self.cond:
+            cid = self._contact(contact_token)
+            if not cid:
+                raise TalkError(401, "不認得這個通話身分")
+            if data and len(data) > MAX_AVATAR:
+                raise TalkError(413, "頭貼太大")
+            if data and not data.startswith(b"\xff\xd8"):
+                raise TalkError(400, "頭貼要是 JPEG")
+            path = self._avatar_path(cid)
+            c = self.contacts[cid]
+            if data:
+                if path:
+                    tmp = path + ".tmp"
+                    with open(tmp, "wb") as f:
+                        f.write(data)
+                    os.replace(tmp, path)
+                else:
+                    self.mem_avatars[cid] = bytes(data)
+                c["av"] = int(self.clock() * 1000)
+            else:
+                if path and os.path.exists(path):
+                    os.remove(path)
+                self.mem_avatars.pop(cid, None)
+                c["av"] = 0
+            self._save()
+            return {"av": c["av"]}
+
+    def get_avatar(self, contact_token, cid):
+        """拿頭貼：自己、好友、互相有邀請的人才可以。"""
+        with self.cond:
+            me = self._contact(contact_token)
+            if not me:
+                raise TalkError(401, "不認得這個通話身分")
+            cid = str(cid)
+            c = self.contacts.get(me, {})
+            allowed = cid == me or cid in c.get("peers", []) or cid in c.get("req_in", []) or cid in c.get("req_out", [])
+            if not allowed or cid not in self.contacts or not self.contacts[cid].get("av"):
+                raise TalkError(404, "沒有頭貼")
+            path = self._avatar_path(cid)
+            if path:
+                try:
+                    with open(path, "rb") as f:
+                        return f.read()
+                except OSError:
+                    raise TalkError(404, "沒有頭貼")
+            data = self.mem_avatars.get(cid)
+            if not data:
+                raise TalkError(404, "沒有頭貼")
+            return data
 
     def _befriend(self, a, b):
         for x, y in ((a, b), (b, a)):
@@ -467,7 +534,7 @@ class Rooms:
                     t = self.seen.get(w)
                     status[w] = {"online": bool(t and now - t <= ONLINE_SECONDS), "seen": t,
                                  "name": self.contacts[w].get("name"), "lang": self.contacts[w].get("lang"),
-                                 "uid": show_uid(self.contacts[w].get("uid"))}
+                                 "uid": show_uid(self.contacts[w].get("uid")), "av": self.contacts[w].get("av", 0)}
                 elif w in out and w in self.contacts:   # 我加了、對方還沒接受
                     status[w] = {"online": False, "pending": True, **{k: v for k, v in self._brief(w).items() if k != "id"}}
             requests = [self._brief(r) for r in c.get("req_in", []) if r in self.contacts]
@@ -477,8 +544,8 @@ class Rooms:
             for r in rings:
                 room = self.rooms.get(r["room"])
                 live = bool(room and not room["ended"] and room["code"] and now - r["at"] <= RING_SECONDS)
-                calls.append({**r, "live": live})
-            return {"me": cid, "uid": show_uid(self._uid(cid)), "peers": status, "calls": calls, "requests": requests}
+                calls.append({**r, "live": live, "av": self.contacts.get(r.get("from"), {}).get("av", 0)})
+            return {"me": cid, "uid": show_uid(self._uid(cid)), "av": c.get("av", 0), "peers": status, "calls": calls, "requests": requests}
 
     def dismiss(self, contact_token, room_id):
         """看過的未接來電拿掉。"""

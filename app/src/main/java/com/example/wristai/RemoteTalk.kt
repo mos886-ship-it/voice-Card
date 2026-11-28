@@ -115,12 +115,13 @@ object RemoteTalk {
 
     // ---------- HTTP ----------
     internal fun http(method: String, url: String, body: JSONObject? = null, auth: String? = null, talkToken: String? = null,
-                     contactToken: String? = null, readMs: Int = 15_000, raw: ByteArray? = null): Pair<Int, JSONObject> {
+                     contactToken: String? = null, readMs: Int = 15_000, raw: ByteArray? = null,
+                     contentType: String = "audio/mp4"): Pair<Int, JSONObject> {
         val conn = (URL(url).openConnection() as HttpURLConnection).apply {
             requestMethod = method
             connectTimeout = 6_000
             readTimeout = readMs
-            setRequestProperty("Content-Type", if (raw != null) "audio/mp4" else "application/json; charset=utf-8")
+            setRequestProperty("Content-Type", if (raw != null) contentType else "application/json; charset=utf-8")
             auth?.let { setRequestProperty("Authorization", "Bearer $it") }
             talkToken?.let { setRequestProperty("X-Talk-Token", it) }
             contactToken?.let { setRequestProperty("X-Contact-Token", it) }
@@ -319,6 +320,7 @@ object RemoteTalk {
                                 val o = p.getJSONObject(k)
                                 online[keyOf(k, b)] = o.optBoolean("online")
                                 if (o.optBoolean("pending")) pendingIds += k
+                                TalkAvatars.sync(ctx, b, k, o.optLong("av"))
                                 watch.firstOrNull { it.id == k }?.let { old ->
                                     val nm = o.optString("name"); val uid = o.optString("uid").ifBlank { null }
                                     if ((nm.isNotBlank() && nm != old.name) || (uid != null && uid != old.uid))
@@ -329,15 +331,18 @@ object RemoteTalk {
                         // 使用者 ID、好友邀請
                         val reqs = j.optJSONArray("requests")?.let { a ->
                             (0 until a.length()).map { a.getJSONObject(it) }.map { o ->
-                                TalkFriends.Request(b, o.optString("id"), o.optString("name"), o.optString("lang"), o.optString("uid"))
+                                TalkFriends.Request(b, o.optString("id"), o.optString("name"), o.optString("lang"), o.optString("uid"), o.optLong("av"))
                             }
                         }.orEmpty()
                         TalkFriends.onPresence(ctx, b, j, pendingIds, reqs)
+                        for (r in reqs) TalkAvatars.sync(ctx, b, r.id, r.av)
+                        TalkAvatars.pushIfMissing(ctx, b, j.optLong("av"))
                         j.optJSONArray("calls")?.let { a ->
                             for (i in 0 until a.length()) {
                                 val o = a.getJSONObject(i)
                                 calls += Call(b, o.optString("room"), o.optString("code"), o.optString("from"), o.optString("name"),
                                     o.optString("lang"), o.optBoolean("live"), (o.optDouble("at") * 1000).toLong())
+                                TalkAvatars.sync(ctx, b, o.optString("from"), o.optLong("av"))
                             }
                         }
                         break

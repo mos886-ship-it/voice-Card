@@ -1036,6 +1036,19 @@ class Handler(BaseHTTPRequestHandler):
         return res
 
     def do_GET(self):
+        if self.path.startswith("/v1/talk/avatar/"):
+            cid = self.path.split("?")[0].rstrip("/").split("/")[-1]
+            try:
+                data = TALK.get_avatar(self.headers.get("X-Contact-Token", ""), cid)
+            except talk.TalkError as e:
+                return self._json(e.code, {"error": str(e)})
+            self.send_response(200)
+            self.send_header("Content-Type", "image/jpeg")
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(data)
+            return
         if self.path.startswith("/v1/talk/") and "/audio/" in self.path:
             parts = self.path.split("?")[0].strip("/").split("/")   # v1 talk <room> audio <aid>
             try:
@@ -1205,6 +1218,12 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/v1/talk/join":
             return self._talk(lambda: (lambda b: TALK.join(b.get("room"), b.get("code"), b.get("name"), b.get("lang"),
                                                             contact=b.get("contact")))(self._body()))
+        if self.path == "/v1/talk/avatar":
+            n = int(self.headers.get("Content-Length", "0") or 0)
+            if n > talk.MAX_AVATAR:
+                return self._json(413, {"error": "頭貼太大"})
+            data = self.rfile.read(n) if n > 0 else b""
+            return self._talk(lambda: TALK.set_avatar(self.headers.get("X-Contact-Token", ""), data))
         if self.path == "/v1/talk/register":
             # 已經有通話身分 → 用它；沒有 → 要是配對過的裝置
             ct = self.headers.get("X-Contact-Token", "")

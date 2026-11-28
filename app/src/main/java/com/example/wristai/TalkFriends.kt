@@ -17,7 +17,7 @@ import org.json.JSONObject
  * 身分跟著主機走（[TalkStore.identity]）；沒配對的人先用邀請連結加入過一次對話就有身分，也能拿 ID。
  */
 object TalkFriends {
-    data class Request(val base: String, val id: String, val name: String, val lang: String, val uid: String)
+    data class Request(val base: String, val id: String, val name: String, val lang: String, val uid: String, val av: Long = 0)
 
     private val _myUid = MutableStateFlow<String?>(null)
     val myUid: StateFlow<String?> = _myUid.asStateFlow()

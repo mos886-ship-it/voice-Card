@@ -73,6 +73,8 @@ import com.example.wristai.LiveCaptions
 import com.example.wristai.RemoteTalk
 import com.example.wristai.Settings
 import com.example.wristai.TalkFriends
+import com.example.wristai.TalkAvatars
+import androidx.compose.ui.graphics.asImageBitmap
 import com.example.wristai.TalkStore
 import com.example.wristai.TranslateLangs
 import com.example.wristai.ui.theme.Brand
@@ -97,12 +99,20 @@ private fun avatarColor(name: String): Color {
 }
 
 @Composable
-private fun Avatar(name: String, size: Dp, online: Boolean? = null) {
+private fun Avatar(name: String, size: Dp, online: Boolean? = null, photo: (() -> java.io.File?)? = null) {
     val c = avatarColor(name)
+    // 頭貼照片（有的話）；換了頭貼 [TalkAvatars.version] 會變，重新讀
+    val ver by TalkAvatars.version.collectAsState()
+    val file = remember(ver, name) { photo?.invoke() }
+    val bmp = remember(file?.path, file?.lastModified(), ver) {
+        file?.takeIf { it.exists() }?.let { runCatching { android.graphics.BitmapFactory.decodeFile(it.path)?.asImageBitmap() }.getOrNull() }
+    }
     Box {
         Box(Modifier.size(size).clip(CircleShape).background(c.copy(alpha = 0.18f)).border(1.dp, c.copy(alpha = 0.5f), CircleShape),
             contentAlignment = Alignment.Center) {
-            Text(name.trim().take(1).uppercase().ifBlank { "?" }, color = c, fontWeight = FontWeight.SemiBold,
+            if (bmp != null) androidx.compose.foundation.Image(bmp, name, Modifier.size(size).clip(CircleShape),
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop)
+            else Text(name.trim().take(1).uppercase().ifBlank { "?" }, color = c, fontWeight = FontWeight.SemiBold,
                 fontSize = (size.value * 0.42f).sp)
         }
         if (online != null) Box(Modifier.align(Alignment.BottomEnd).size(size * 0.3f).clip(CircleShape).background(Brand.Bg).padding(2.dp)) {
@@ -270,7 +280,7 @@ private fun FriendsTab(modifier: Modifier) {
             items(requests, key = { "req" + it.id + it.base }) { r ->
                 GlassCard(highlight = true, contentPadding = 14.dp) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Avatar(r.name, 44.dp)
+                        Avatar(r.name, 44.dp, photo = { TalkAvatars.file(context, r.base, r.id) })
                         Spacer(Modifier.width(12.dp))
                         Column(Modifier.weight(1f)) {
                             Text("{0} 想加你為好友".trf(r.name), style = MaterialTheme.typography.titleSmall, color = Brand.Text)
@@ -334,7 +344,8 @@ private fun FriendRow(k: TalkStore.Contact, online: Boolean, pending: Boolean, o
     var menu by remember { mutableStateOf(false) }
     Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Brand.Surface).border(1.dp, Brand.Outline, RoundedCornerShape(16.dp))
         .clickable { menu = true }.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-        Avatar(k.name, 46.dp, online)
+        val ctx = LocalContext.current
+        Avatar(k.name, 46.dp, online, photo = { TalkAvatars.file(ctx, k.base, k.id) })
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(k.name, style = MaterialTheme.typography.titleMedium, color = Brand.Text, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -435,7 +446,7 @@ private fun RecentTab(modifier: Modifier, onReplay: (TalkStore.Talk) -> Unit) {
             items(missed, key = { "m" + it.room }) { call ->
                 Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Brand.Surface).border(1.dp, Brand.Outline, RoundedCornerShape(16.dp))
                     .padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Avatar(call.name, 42.dp)
+                    Avatar(call.name, 42.dp, photo = { TalkAvatars.file(context, call.base, call.from) })
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
                         Text(call.name, style = MaterialTheme.typography.titleSmall, color = Brand.Warning)
@@ -457,7 +468,9 @@ private fun RecentTab(modifier: Modifier, onReplay: (TalkStore.Talk) -> Unit) {
                 val mins = ((t.endedAt.takeIf { it > 0 } ?: t.lines.lastOrNull()?.at ?: t.startedAt) - t.startedAt).coerceAtLeast(0) / 60_000
                 Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Brand.Surface).border(1.dp, Brand.Outline, RoundedCornerShape(16.dp))
                     .clickable { onReplay(t) }.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Avatar(who, 42.dp)
+                    // 以前的對話：照名字找好友的頭貼
+                    val k = contacts.firstOrNull { it.name == t.partners.firstOrNull() }
+                    Avatar(who, 42.dp, photo = { k?.let { TalkAvatars.file(context, it.base, it.id) } })
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
                         Text(who, style = MaterialTheme.typography.titleSmall, color = Brand.Text, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -486,12 +499,42 @@ private fun MeTab(modifier: Modifier) {
     var busy by remember { mutableStateOf(false) }
     var orig by remember { mutableStateOf(RemoteTalk.playOriginal(context)) }
     var speak by remember { mutableStateOf(RemoteTalk.speakTranslation(context)) }
+    var avatarMenu by remember { mutableStateOf(false) }
+    fun saveAvatar(bytes: ByteArray?) {
+        scope.launch {
+            val err = TalkAvatars.setMine(context, bytes)
+            Toast.makeText(context, err ?: (if (bytes == null) "已移除頭貼".tr else "頭貼已更新".tr), Toast.LENGTH_SHORT).show()
+        }
+    }
+    val picker = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) scope.launch {
+            val bytes = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { TalkAvatars.square(context, uri) }
+            if (bytes == null) Toast.makeText(context, "讀不到照片".tr, Toast.LENGTH_SHORT).show() else saveAvatar(bytes)
+        }
+    }
+    if (avatarMenu) AlertDialog(onDismissRequest = { avatarMenu = false },
+        title = { Text("頭貼".tr) },
+        text = { Text("選一張照片，會裁成圓形；好友的清單和來電畫面都看得到。".tr, color = Brand.TextMuted) },
+        confirmButton = {
+            TextButton({
+                avatarMenu = false
+                picker.launch(androidx.activity.result.PickVisualMediaRequest(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly))
+            }) { Text("選照片".tr) }
+        },
+        dismissButton = { if (TalkAvatars.mine(context) != null) TextButton({ avatarMenu = false; saveAvatar(null) }) { Text("移除頭貼".tr, color = Brand.Warning) } })
     LazyColumn(modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { Spacer(Modifier.height(4.dp)) }
         item {
             GlassCard(highlight = true) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Avatar(name, 56.dp)
+                    // 頭貼：點了換照片 / 移除（朋友的好友清單、來電畫面都看得到）
+                    Box(Modifier.clickable { avatarMenu = true }) {
+                        Avatar(name, 64.dp, photo = { TalkAvatars.mine(context) })
+                        Box(Modifier.align(Alignment.BottomEnd).size(22.dp).clip(CircleShape).background(Brand.Cyan), contentAlignment = Alignment.Center) {
+                            Text("✎", fontSize = 12.sp, color = Brand.Bg)
+                        }
+                    }
                     Spacer(Modifier.width(14.dp))
                     Column(Modifier.weight(1f)) {
                         Text(name, style = MaterialTheme.typography.titleLarge, color = Brand.Text, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -587,7 +630,7 @@ private fun IncomingCall(call: RemoteTalk.Call) {
         Spacer(Modifier.weight(0.6f))
         Text("遠距對話來電".tr, style = MaterialTheme.typography.labelLarge, color = Brand.Cyan)
         Spacer(Modifier.height(28.dp))
-        Box(Modifier.scale(pulse)) { Avatar(call.name, 120.dp) }
+        Box(Modifier.scale(pulse)) { Avatar(call.name, 120.dp, photo = { TalkAvatars.file(context, call.base, call.from) }) }
         Spacer(Modifier.height(24.dp))
         Text(call.name, style = MaterialTheme.typography.headlineMedium, color = Brand.Text)
         Spacer(Modifier.height(6.dp))
@@ -633,7 +676,10 @@ private fun CallScreen(onMinimize: () -> Unit) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             IconCircle(Icons.AutoMirrored.Filled.ArrowBack, "返回".tr, onMinimize)
             Spacer(Modifier.width(12.dp))
-            Avatar(partner.ifBlank { "?" }, 44.dp, online = others.isNotEmpty())
+            val contacts by TalkStore.contacts.collectAsState()
+            val pk = others.firstOrNull()?.contact?.let { id -> contacts.firstOrNull { it.id == id } }
+                ?: contacts.firstOrNull { it.name == partner }
+            Avatar(partner.ifBlank { "?" }, 44.dp, online = others.isNotEmpty(), photo = { pk?.let { TalkAvatars.file(context, it.base, it.id) } })
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(partner.ifBlank { "等對方加入…".tr }, style = MaterialTheme.typography.titleMedium, color = Brand.Text,

@@ -209,5 +209,28 @@ class ContactsTest(unittest.TestCase):
         r2 = talk.Rooms(clock=self.clock, contacts_path=p)
         self.assertEqual(a["uid"], r2.register(a["contact"]["token"], "A", "en")["uid"])
 
+    def test_avatar_only_for_friends(self):
+        a = self.r.register(None, "A", "en", dev="d1"); b = self.r.register(None, "B", "ja", dev="d2")
+        c = self.r.register(None, "C", "ko", dev="d3")
+        at, bt, ct = (x["contact"]["token"] for x in (a, b, c))
+        jpg = b"\xff\xd8" + b"x" * 100
+        with self.assertRaises(talk.TalkError):
+            self.r.set_avatar(at, b"PNG data")                  # 不是 JPEG
+        with self.assertRaises(talk.TalkError):
+            self.r.set_avatar(at, b"\xff\xd8" + b"x" * talk.MAX_AVATAR)
+        v = self.r.set_avatar(at, jpg)["av"]
+        self.assertGreater(v, 0)
+        self.assertEqual(jpg, self.r.get_avatar(at, a["contact"]["id"]))   # 自己
+        with self.assertRaises(talk.TalkError):
+            self.r.get_avatar(ct, a["contact"]["id"])           # 陌生人拿不到
+        self.r.add_friend(bt, a["uid"])                          # B 加 A（還沒接受）：A 看得到 B 的、B 看得到 A 的
+        self.assertEqual(jpg, self.r.get_avatar(bt, a["contact"]["id"]))
+        self.assertEqual(v, self.r.presence(bt, [a["contact"]["id"]])["peers"][a["contact"]["id"]]["av"])   # 等待中也帶版本
+        self.r.answer_friend(at, b["contact"]["id"], True)
+        self.assertEqual(v, self.r.presence(bt, [a["contact"]["id"]])["peers"][a["contact"]["id"]]["av"])
+        self.assertEqual(0, self.r.set_avatar(at, b"")["av"])    # 刪掉
+        with self.assertRaises(talk.TalkError):
+            self.r.get_avatar(bt, a["contact"]["id"])
+
 if __name__ == "__main__":
     unittest.main()

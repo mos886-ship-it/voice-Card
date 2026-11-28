@@ -751,3 +751,4 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 - 修正：通話中按返回（系統返回鍵或左上箭頭）不再跳到「今天」，而是留在「對話」的好友清單、通話繼續，上面一條綠色「通話中：○○　回到通話 →」；不在通話時按返回才回「今天」。切到別的分頁時「對話」圖示是綠點（通話中）。每一通新的來電都會自動跳到來電畫面（之前那通還在響也一樣）。
 - 換自己的語言：通話畫面右上「我說 ○○ ▾」點了選語言（`RemoteTalk.setMyLanguage`：存成「翻譯 → 說的」，麥克風開著就用新語言重新聽；之後對方的話也翻成新語言）；「對話 → 我的」的「我說的語言」也可以點了改。每句話本來就帶語言代碼，所以通話中換語言對方照樣翻得對。
 - 鈴聲（`TalkRing`）：撥出去等接聽 → 回鈴音（ToneGenerator TONE_SUP_RINGTONE，媒體聲道）；有人打來 → 手機的來電鈴聲（循環）＋震動，照系統的鈴聲模式（靜音不響不震、震動只震）；接聽、拒接、掛斷、離開畫面就停。manifest 加 VIBRATE。
+- 頭貼：「對話 → 我的」點頭像 → 選照片（系統相片挑選器，不用相簿權限）或移除。App 裁正中間正方形、縮成 256×256 JPEG（`TalkAvatars.square`），存 files/talk_av/me.jpg，傳到每台有身分的主機 `POST /v1/talk/avatar`（body JPEG，最多 64 KB，空的 = 刪掉）；主機存 talk_avatars/<id>.jpg，contact 記 `av`（版本＝時間）。`GET /v1/talk/avatar/<id>`（X-Contact-Token）只有自己、好友、互相有邀請的人拿得到。上線回報（peers、requests、calls）都帶 av，App 版本變了才抓（`TalkAvatars.sync`），主機上沒有自己的就補傳（`pushIfMissing`）。好友清單、邀請、未接、以前的對話、來電、通話中都顯示照片，沒有就用名字第一個字。talk_test.py 13 個。

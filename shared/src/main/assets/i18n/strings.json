@@ -7626,5 +7626,37 @@
  "我說": {
   "en": "I speak",
   "ko": "내 언어"
+ },
+ "連不到大D的主機，頭貼之後再同步": {
+  "en": "Can't reach Dylan Host; your photo will sync later",
+  "ko": "Dylan Host에 연결할 수 없어 사진은 나중에 동기화됩니다"
+ },
+ "大D的主機還沒有頭貼功能：請在 Mac 上重新部署大D的主機": {
+  "en": "Dylan Host doesn't support profile photos yet: redeploy Dylan Host on the Mac",
+  "ko": "Dylan Host에 아직 프로필 사진 기능이 없습니다: Mac에서 Dylan Host를 다시 배포하세요"
+ },
+ "頭貼上傳失敗": {
+  "en": "Photo upload failed",
+  "ko": "사진 업로드 실패"
+ },
+ "已移除頭貼": {
+  "en": "Profile photo removed",
+  "ko": "프로필 사진을 삭제했습니다"
+ },
+ "頭貼已更新": {
+  "en": "Profile photo updated",
+  "ko": "프로필 사진을 바꿨습니다"
+ },
+ "頭貼": {
+  "en": "Profile photo",
+  "ko": "프로필 사진"
+ },
+ "選一張照片，會裁成圓形；好友的清單和來電畫面都看得到。": {
+  "en": "Choose a photo; it's cropped to a circle and friends see it in their list and on incoming calls.",
+  "ko": "사진을 고르면 원형으로 잘리며, 친구 목록과 수신 화면에 표시됩니다."
+ },
+ "移除頭貼": {
+  "en": "Remove photo",
+  "ko": "사진 삭제"
  }
 }
