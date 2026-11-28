@@ -30,6 +30,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -224,8 +225,14 @@ private fun App() {
     // App 開著就回報上線（有遠距對話身分才做），朋友打來就直接開來電畫面
     LaunchedEffect(Unit) { if (com.example.wristai.TalkStore.bases(context).isNotEmpty()) com.example.wristai.RemoteTalk.startPresence(context) }
     val talkCalls by com.example.wristai.RemoteTalk.calls.collectAsState()
-    val ringing = talkCalls.firstOrNull { it.live }?.room
-    LaunchedEffect(ringing) { if (ringing != null && route != Tab.TALK.route && route != "onboarding") go(Tab.TALK.route) }
+    // 每一通新的來電都跳一次（之前那通還在響也一樣）
+    val ringing = talkCalls.filter { it.live }.map { it.room }.toSet()
+    val rung = remember { mutableSetOf<String>() }
+    LaunchedEffect(ringing) {
+        val fresh = ringing - rung
+        rung += ringing
+        if (fresh.isNotEmpty() && route != Tab.TALK.route && route != "onboarding") go(Tab.TALK.route)
+    }
     // 小工具点最新报告 → 打开那份报告
     LaunchedEffect(PendingOpen.meetingId) {
         PendingOpen.meetingId?.let { id -> PendingOpen.meetingId = null; route = "detail:$id" }

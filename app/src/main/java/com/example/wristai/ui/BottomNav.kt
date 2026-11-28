@@ -226,7 +226,11 @@ internal fun TalkGlyph(color: Color, size: androidx.compose.ui.unit.Dp = 20.dp, 
             drawRoundRect(color, Offset(w * 0.40f, h * 0.40f), Size(w * 0.56f, h * 0.40f), CornerRadius(w * 0.13f))
             drawLine(color, Offset(w * 0.80f, h * 0.78f), Offset(w * 0.88f, h * 0.94f), s, StrokeCap.Round)
         }
-        if (badge && (calls.isNotEmpty() || requests.isNotEmpty()))
+        // 通話還在進行（切到別的分頁）：綠點；有來電、未接、好友邀請：紅點
+        val inCall by com.example.wristai.RemoteTalk.state.collectAsState()
+        if (badge && inCall.connected)
+            Box(Modifier.align(Alignment.TopEnd).size(8.dp).clip(CircleShape).background(Brand.Success))
+        else if (badge && (calls.isNotEmpty() || requests.isNotEmpty()))
             Box(Modifier.align(Alignment.TopEnd).size(8.dp).clip(CircleShape).background(Brand.Error))
     }
 }

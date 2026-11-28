@@ -7602,5 +7602,13 @@
  "要先跟大D的主機配對（設定 → 大D的主機），或先用邀請連結加入過一次對話": {
   "en": "Pair with Dylan Host first (Settings → Dylan Host), or join a talk once with an invite link",
   "ko": "먼저 Dylan 호스트와 페어링하거나(설정 → Dylan 호스트), 초대 링크로 대화에 한 번 참여하세요"
+ },
+ "通話中": {
+  "en": "In call",
+  "ko": "통화 중"
+ },
+ "回到通話": {
+  "en": "Back to call",
+  "ko": "통화로 돌아가기"
  }
 }

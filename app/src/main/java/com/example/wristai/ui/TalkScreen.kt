@@ -149,22 +149,25 @@ fun TalkScreen(onBack: () -> Unit, asTab: Boolean = false) {
     val context = LocalContext.current
     val s by RemoteTalk.state.collectAsState()
     val calls by RemoteTalk.calls.collectAsState()
-    BackHandler(onBack = onBack)
+    // 通話中按返回：留在「對話」（回到好友清單，通話繼續，上面有「回到通話」）；不是離開這一頁
+    var minimized by remember { mutableStateOf(false) }
+    LaunchedEffect(s.connected, s.room) { if (!s.connected) minimized = false }
+    BackHandler { if (s.connected && !minimized) minimized = true else onBack() }
     DisposableEffect(Unit) { RemoteTalk.startPresence(context); onDispose { } }
     var replaying by remember { mutableStateOf<TalkStore.Talk?>(null) }
     replaying?.let { t -> TalkReplay(t) { RemoteTalk.stopReplay(); replaying = null }; return }
 
     val ringing = calls.firstOrNull { it.live }
     when {
-        s.connected -> CallScreen(onMinimize = onBack)
-        ringing != null && !s.busy -> IncomingCall(ringing)
-        else -> TalkHome(onBack, showBack = !asTab) { replaying = it }
+        s.connected && !minimized -> CallScreen(onMinimize = { minimized = true })
+        ringing != null && !s.busy && !s.connected -> IncomingCall(ringing)
+        else -> TalkHome(onBack, showBack = !asTab, onResumeCall = if (s.connected) ({ minimized = false }) else null) { replaying = it }
     }
 }
 
 // ---------------- 首頁：我的 ID＋好友｜最近｜我的 ----------------
 @Composable
-private fun TalkHome(onBack: () -> Unit, showBack: Boolean, onReplay: (TalkStore.Talk) -> Unit) {
+private fun TalkHome(onBack: () -> Unit, showBack: Boolean, onResumeCall: (() -> Unit)? = null, onReplay: (TalkStore.Talk) -> Unit) {
     val context = LocalContext.current
     val s by RemoteTalk.state.collectAsState()
     val myUid by TalkFriends.myUid.collectAsState()
@@ -175,6 +178,18 @@ private fun TalkHome(onBack: () -> Unit, showBack: Boolean, onReplay: (TalkStore
     val missed = calls.count { !it.live }
 
     Column(Modifier.fillMaxSize()) {
+        // ---------- 通話還在進行：綠色橫條，點了回到通話 ----------
+        if (onResumeCall != null) {
+            val who = s.members.filter { it.id != s.me }.joinToString("、") { it.name }.ifBlank { s.calling.orEmpty() }
+            Row(Modifier.fillMaxWidth().background(Brand.Success.copy(alpha = 0.18f)).clickable(onClick = onResumeCall)
+                .padding(horizontal = 20.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(8.dp).clip(CircleShape).background(Brand.Success))
+                Spacer(Modifier.width(10.dp))
+                Text(("通話中".tr + (if (who.isNotBlank()) "：$who" else "")), style = MaterialTheme.typography.labelLarge, color = Brand.Text,
+                    modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text("回到通話".tr + " →", style = MaterialTheme.typography.labelLarge, color = Brand.Success)
+            }
+        }
         // ---------- 頁首 ----------
         Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             // 底部分頁的「對話」：不用返回鍵
