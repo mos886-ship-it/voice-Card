@@ -58,6 +58,10 @@ class AudioReceiverService : WearableListenerService() {
             WatchNotifier.sendDetail(this, event.sourceNodeId, event.data.toString(Charsets.UTF_8).trim())
             return
         }
+        if (event.path == WristAiProtocol.PATH_BATTERY) {
+            WatchBattery.save(this, event.data.toString(Charsets.UTF_8))
+            return
+        }
         if (event.path == WristAiProtocol.PATH_LANG_SET) {
             WatchNotifier.applyLangFromWatch(this, event.data.toString(Charsets.UTF_8))
             return

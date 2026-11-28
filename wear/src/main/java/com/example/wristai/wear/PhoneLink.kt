@@ -73,6 +73,15 @@ object PhoneLink {
             .sendMessage(phone.id, WristAiProtocol.PATH_PHONE_REC_CMD, cmd.toByteArray()).await()
     }
 
+    /** 手錶電量告訴手機（"百分比,充電中"）。 */
+    suspend fun sendBattery(context: Context) = withContext(Dispatchers.IO) {
+        val bm = context.getSystemService(android.os.BatteryManager::class.java)
+        val pct = bm.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY)
+        val charging = if (bm.isCharging) 1 else 0
+        val phone = findPhone(context)
+        Wearable.getMessageClient(context).sendMessage(phone.id, WristAiProtocol.PATH_BATTERY, "$pct,$charging".toByteArray()).await()
+    }
+
     /** 把手表选的辨识语言传给手机（成功才清掉「还没传」的记号）。 */
     suspend fun sendLang(context: Context) = withContext(Dispatchers.IO) {
         val phone = findPhone(context)

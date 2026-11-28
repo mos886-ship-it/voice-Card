@@ -340,6 +340,14 @@ internal fun WatchPill(watch: String?, onClick: () -> Unit) {
         Spacer(Modifier.width(6.dp))
         Text(if (watch != null) "手錶已連線".tr else "手錶未連線".tr, style = MaterialTheme.typography.labelMedium,
             color = if (watch != null) Brand.Text else Brand.TextMuted)
+        // 手錶電量（手錶 App 打開時送來，6 小時內的才顯示；低於 20% 變色）
+        val context = LocalContext.current
+        val b = remember(watch) { com.example.wristai.WatchBattery.recent(context) }
+        if (watch != null && b != null) {
+            Spacer(Modifier.width(6.dp))
+            Text((if (b.charging) "⚡" else "") + "${b.percent}%", style = MaterialTheme.typography.labelMedium,
+                color = if (b.percent < 20 && !b.charging) Brand.Warning else Brand.TextMuted)
+        }
     }
 }
 

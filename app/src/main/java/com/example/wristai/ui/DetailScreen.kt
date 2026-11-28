@@ -275,7 +275,10 @@ fun DetailScreen(id: String, onBack: () -> Unit, onOpenSettings: () -> Unit) {
                             }
                         })
                         Spacer(Modifier.height(12.dp))
-                        if (report != null) ReportView(report, names = names, onRenameSpeaker = { renaming = it }) else Empty("尚未產生報告".tr)
+                        if (report != null) ReportView(report, names = names, onRenameSpeaker = { renaming = it },
+                            // 點條列後面的「▶ 時間」跳到原音
+                            stamps = remember(report, transcript) { ReportSeek.stamps(report, transcript) },
+                            onSeek = player?.let { p -> { ms: Int -> p.seekTo(ms, play = true) } }) else Empty("尚未產生報告".tr)
                     } else {
                         if (transcript != null) TranscriptView(
                             transcript, names = names, onRename = { renaming = it },

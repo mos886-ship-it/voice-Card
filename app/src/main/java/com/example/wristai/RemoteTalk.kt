@@ -493,7 +493,7 @@ object RemoteTalk {
             val cond = DownloadConditions.Builder().apply { if (Settings.translateModelsWifiOnly(c)) requireWifi() }.build()
             t.downloadModelIfNeeded(cond).await()
             val out = t.translate(text).await()
-            if (dst == "zh") TraditionalChinese.convert(out) else out
+            TranslateFixes.apply(c, if (dst == "zh") TraditionalChinese.convert(out) else out, dst)
         }.getOrNull()
     }
 

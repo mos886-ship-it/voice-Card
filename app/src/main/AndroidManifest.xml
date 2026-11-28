@@ -196,6 +196,14 @@
                     android:pathPrefix="/wristai/detail"
                     android:scheme="wear" />
             </intent-filter>
+            <!-- 手錶電量（「今天」顯示） -->
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
+                <data
+                    android:host="*"
+                    android:pathPrefix="/wristai/battery"
+                    android:scheme="wear" />
+            </intent-filter>
         </service>
 
         <!-- WorkManager 在 Android 11 及以下用前台服务跑加急任务 -->

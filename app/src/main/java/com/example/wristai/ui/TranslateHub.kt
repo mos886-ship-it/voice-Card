@@ -4,6 +4,7 @@ import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -123,11 +124,14 @@ private fun TranslateRecords(sessions: List<TranslationStore.Session>, onOpen: (
     }
 }
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 private fun SessionDetail(s: TranslationStore.Session, onBack: () -> Unit, onOpen: (String) -> Unit) {
     val context = LocalContext.current
     BackHandler(onBack = onBack)
     var confirm by remember { mutableStateOf(false) }
+    var fixing by remember { mutableStateOf<Int?>(null) }
+    fixing?.let { i -> if (i < s.lines.size) FixLineDialog(s, i) { fixing = null } }
     val meeting = s.meetingId?.let { id -> MeetingStore.meetings.value.firstOrNull { it.id == id } }
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -151,12 +155,15 @@ private fun SessionDetail(s: TranslationStore.Session, onBack: () -> Unit, onOpe
             else GhostButton("產生報告".tr, { onOpen(com.example.wristai.TranslationReport.create(context, s)) }, tint = Brand.Cyan)
         }
         LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            items(s.lines) { l ->
-                Column {
+            items(s.lines.size) { i ->
+                val l = s.lines[i]
+                // 長按：更正這一句（也可以存成「以後都這樣翻」）
+                Column(Modifier.fillMaxWidth().combinedClickable(onClick = {}, onLongClick = { fixing = i })) {
                     Text(l.original, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
                     l.translated?.let { Text(it, style = MaterialTheme.typography.titleMedium, color = Brand.Text) }
                 }
             }
+            item { Text("長按一句可以更正翻譯。".tr, style = MaterialTheme.typography.labelSmall, color = Brand.TextFaint) }
             item { Spacer(Modifier.height(24.dp)) }
         }
     }
@@ -230,6 +237,9 @@ private fun TranslateSettings(onOpenSettings: () -> Unit) {
                     TranslateLangs.sources(support).size, TranslateLangs.targets.size),
                 style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
         }
+
+        // ---------- 翻译更正 ----------
+        TranslateFixesCard()
 
         // ---------- 语音辨识 ----------
         SectionLabel("語音辨識".tr)

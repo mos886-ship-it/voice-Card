@@ -456,7 +456,9 @@ object LiveCaptions {
         val target = _state.value.target
         scope.launch {
             val out = runCatching { t.translate(text).await() }.getOrNull() ?: return@launch
-            val shown = if (target == "zh") TraditionalChinese.convert(out) else out
+            val conv = if (target == "zh") TraditionalChinese.convert(out) else out
+            // 使用者存過的翻譯更正（人名、專有名詞…）
+            val shown = appContext?.let { TranslateFixes.apply(it, conv, target) } ?: conv
             update { s -> s.copy(lines = s.lines.map { if (it.id == id) it.copy(translated = shown) else it }) }
             val c = appContext ?: return@launch
             if (Settings.captionToWatch(c)) WatchNotifier.sendCaption(c, shown, text)

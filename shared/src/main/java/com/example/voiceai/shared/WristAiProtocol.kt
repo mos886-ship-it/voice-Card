@@ -103,6 +103,9 @@ object WristAiProtocol {
     const val PATH_LANG_SET = "/wristai/phone_rec/lang"
     const val PATH_LANG = "/wristai/lang"
 
+    /** 手錶 → 手機：手錶電量（"百分比,充電中 1/0"），打開手錶 App 時送；手機「今天」顯示。 */
+    const val PATH_BATTERY = "/wristai/battery"
+
     fun recordingIdFromPath(path: String): String? =
         path.removePrefix("$PATH_AUDIO_PREFIX/").takeIf { it.isNotBlank() && it != path }
 }

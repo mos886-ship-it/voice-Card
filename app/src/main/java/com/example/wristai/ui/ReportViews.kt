@@ -105,6 +105,8 @@ private val EMPTY_VALUES = com.example.wristai.ReportLang.UNKNOWN + setOf("无",
 fun ReportView(
     markdown: String, modifier: Modifier = Modifier,
     names: Map<String, String> = emptyMap(), onRenameSpeaker: ((String) -> Unit)? = null,
+    /** 條列 → 逐字稿時間（[ReportSeek.stamps]）；有給 [onSeek] 才顯示「▶ 時間」可以點。 */
+    stamps: Map<String, Pair<String, Int>> = emptyMap(), onSeek: ((Int) -> Unit)? = null,
 ) {
     val blocks = parseReport(markdown)
     SelectionContainer {
@@ -132,7 +134,13 @@ fun ReportView(
                     } else {
                         Box(Modifier.padding(top = 9.dp, end = 10.dp).size(5.dp).clip(CircleShape).background(Brand.Cyan))
                     }
-                    Text(richText(b.text), style = MaterialTheme.typography.bodyMedium, color = Brand.Text)
+                    Text(richText(b.text), style = MaterialTheme.typography.bodyMedium, color = Brand.Text, modifier = Modifier.weight(1f, fill = false))
+                    // 跳到原音：這一點在錄音裡大概的位置
+                    val at = if (onSeek != null) stamps[b.text] else null
+                    if (at != null) Text("▶ " + at.first, style = MaterialTheme.typography.labelSmall, color = Brand.Cyan,
+                        modifier = Modifier.padding(start = 6.dp, top = 2.dp).clip(RoundedCornerShape(50))
+                            .background(Brand.Cyan.copy(alpha = 0.12f)).clickable { onSeek!!(at.second) }
+                            .padding(horizontal = 8.dp, vertical = 2.dp))
                 }
                 is ReportBlock.Table -> ReportTable(b, names, onRenameSpeaker)
             }
@@ -468,5 +476,52 @@ private fun FactRow(label: String, value: String, link: Boolean = false, faint: 
         Text(label, style = MaterialTheme.typography.bodySmall, color = Brand.TextFaint, modifier = Modifier.widthIn(min = 44.dp).padding(end = 10.dp))
         Text(value + if (link) "  ›" else "", style = MaterialTheme.typography.bodySmall,
             color = when { link -> Brand.Cyan; faint -> Brand.TextFaint; else -> Brand.Text }, modifier = Modifier.weight(1f))
+    }
+}
+
+/**
+ * 摘要跳原音：報告的條列（重點、結論…）找逐字稿裡最像的那段，回傳（時間文字, 毫秒）。
+ * 在手機上比對字（中日韓用兩字一組、其他用單字），不用改提示詞，各家 AI 和舊報告都適用；像的程度不夠就不標。
+ */
+object ReportSeek {
+    private fun norm(s: String) = s.replace(Regex("說話者[A-Z?]|Speaker [A-Z?]|화자[A-Z?]"), " ").replace("**", "").lowercase()
+
+    fun grams(s: String): Set<String> {
+        val t = norm(s)
+        val out = HashSet<String>()
+        for (w in Regex("[a-z0-9]{2,}").findAll(t)) out += w.value
+        val cjk = t.filter { Character.isLetter(it) && it.code > 0x2E80 }
+        for (i in 0 until cjk.length - 1) out += cjk.substring(i, i + 2)
+        return out
+    }
+
+    /** [point] 在 [lines] 裡最像的位置（連續 1～3 段一起比）；分數 < [min] 回 null。 */
+    fun find(point: String, lines: List<TranscriptLine>, min: Float = 0.35f): Pair<String, Int>? {
+        val a = grams(point)
+        if (a.size < 3) return null
+        val g = lines.map { grams(it.text) }
+        var from = -1; var to = -1; var bestScore = 0f
+        for (i in lines.indices) {
+            val b = HashSet<String>()
+            for (j in i until minOf(i + 3, lines.size)) {
+                b += g[j]
+                val score = a.count { it in b }.toFloat() / a.size
+                if (score > bestScore + 0.001f) { bestScore = score; from = i; to = j }
+            }
+        }
+        if (from < 0 || bestScore < min) return null
+        // 這幾段裡最像、而且有時間的那一段
+        val best = (from..to).filter { lines[it].time != null }.maxByOrNull { k -> a.count { it in g[k] } } ?: return null
+        val t = lines[best].time!!
+        return parseStampMs(t)?.let { t to it }
+    }
+
+    /** 整份報告：條列文字 → 時間（表格、摘要段落不標）。 */
+    fun stamps(markdown: String, transcript: String?): Map<String, Pair<String, Int>> {
+        if (transcript.isNullOrBlank()) return emptyMap()
+        val lines = parseTranscript(transcript)
+        if (lines.none { it.time != null }) return emptyMap()
+        return parseReport(markdown).filterIsInstance<ReportBlock.Bullet>()
+            .mapNotNull { b -> find(b.text, lines)?.let { b.text to it } }.toMap()
     }
 }

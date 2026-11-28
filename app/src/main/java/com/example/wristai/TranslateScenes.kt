@@ -104,7 +104,7 @@ object TranslateScene {
             val cond = DownloadConditions.Builder().apply { if (Settings.translateModelsWifiOnly(c)) requireWifi() }.build()
             t.downloadModelIfNeeded(cond).await()
             val out = t.translate(text).await()
-            if (to == "zh") TraditionalChinese.convert(out) else out
+            TranslateFixes.apply(c, if (to == "zh") TraditionalChinese.convert(out) else out, to)
         } catch (_: Exception) { null } finally { t.close() }
     }
 

@@ -166,7 +166,10 @@ private fun WatchApp() {
     // 正在选辨识语言（全萤幕清单）
     var pickLang by remember { mutableStateOf(false) }
     // 打开 App 时问手机：是不是正在录音？主题是什么？
-    LaunchedEffect(Unit) { runCatching { PhoneLink.sendPhoneCommand(context, WristAiProtocol.CMD_QUERY) } }
+    LaunchedEffect(Unit) {
+        runCatching { PhoneLink.sendPhoneCommand(context, WristAiProtocol.CMD_QUERY) }
+        runCatching { PhoneLink.sendBattery(context) }   // 手機「今天」顯示手錶電量
+    }
 
     val permissions = buildList {
         add(Manifest.permission.RECORD_AUDIO)

@@ -7014,5 +7014,41 @@
  "主題與學習目標；主要概念與定義；例子與推導；講者強調、說會考或要記住的地方；作業與期限": {
   "en": "Topic and learning goals; key concepts and definitions; examples and derivations; points the speaker stressed or said will be tested; assignments and deadlines",
   "ko": "주제와 학습 목표; 핵심 개념과 정의; 예시와 유도; 강조하거나 시험에 나온다고 한 부분; 과제와 기한"
+ },
+ "更正翻譯": {
+  "en": "Correct translation",
+  "ko": "번역 수정"
+ },
+ "這一句的譯文": {
+  "en": "Translation of this line",
+  "ko": "이 문장의 번역"
+ },
+ "以後都這樣翻（選填）": {
+  "en": "Always translate it this way (optional)",
+  "ko": "앞으로 항상 이렇게 번역 (선택)"
+ },
+ "例如人名、公司名、專有名詞老是翻錯：填翻錯的詞和正確的詞，之後的即時翻譯、遠距對話都會自動換掉。": {
+  "en": "For names, companies or terms that keep coming out wrong: enter the wrong word and the right one, and later live translations and remote talks will replace it automatically.",
+  "ko": "이름, 회사명, 전문 용어가 계속 잘못 번역되면 틀린 단어와 맞는 단어를 입력하세요. 이후 실시간 번역과 원격 대화에서 자동으로 바뀝니다."
+ },
+ "翻錯的詞": {
+  "en": "Wrong word",
+  "ko": "틀린 단어"
+ },
+ "正確的詞": {
+  "en": "Correct word",
+  "ko": "맞는 단어"
+ },
+ "翻譯更正（{0}）": {
+  "en": "Translation corrections ({0})",
+  "ko": "번역 수정 ({0})"
+ },
+ "在「記錄」長按一句可以更正；存下的詞之後都會自動換掉。": {
+  "en": "Long-press a line in Records to correct it; saved words are replaced automatically from then on.",
+  "ko": "기록에서 문장을 길게 눌러 수정하세요. 저장한 단어는 이후 자동으로 바뀝니다."
+ },
+ "長按一句可以更正翻譯。": {
+  "en": "Long-press a line to correct its translation.",
+  "ko": "문장을 길게 눌러 번역을 수정할 수 있어요."
  }
 }
