@@ -7454,5 +7454,145 @@
  "要把 {0} 從通話對象移除嗎？雙方都不能再互相撥打（要再加好友）；以前的對話記錄會留著。": {
   "en": "Remove {0} from your contacts? Neither of you can call the other until you add each other again; past conversations are kept.",
   "ko": "{0}님을 통화 상대에서 삭제할까요? 다시 친구 추가할 때까지 서로 통화할 수 없습니다. 이전 대화 기록은 남습니다."
+ },
+ "各說各的語言，即時翻譯": {
+  "en": "Each speaks their own language, translated live",
+  "ko": "각자 자기 언어로, 실시간 번역"
+ },
+ "好友": {
+  "en": "Friends",
+  "ko": "친구"
+ },
+ "最近": {
+  "en": "Recent",
+  "ko": "최근"
+ },
+ "我的": {
+  "en": "Me",
+  "ko": "내 정보"
+ },
+ "還沒有好友": {
+  "en": "No friends yet",
+  "ko": "아직 친구가 없습니다"
+ },
+ "把你的 ID 給對方，或輸入對方的 ID 加好友。對方接受後，就能像打電話一樣直接撥打，各說各的語言。": {
+  "en": "Give someone your ID, or enter theirs to add them. Once they accept, you can call directly like a phone call, each speaking your own language.",
+  "ko": "내 ID를 알려 주거나 상대 ID를 입력해 친구를 추가하세요. 수락하면 전화처럼 바로 걸 수 있고, 각자 자기 언어로 말하면 됩니다."
+ },
+ "上線中 · {0}": {
+  "en": "Online · {0}",
+  "ko": "온라인 · {0}"
+ },
+ "好友 · {0}": {
+  "en": "Friends · {0}",
+  "ko": "친구 · {0}"
+ },
+ "其他好友 · {0}": {
+  "en": "Other friends · {0}",
+  "ko": "다른 친구 · {0}"
+ },
+ "對方還沒有 ID？": {
+  "en": "They don't have an ID yet?",
+  "ko": "상대에게 아직 ID가 없나요?"
+ },
+ "用邀請連結開一場對話 →": {
+  "en": "Start a conversation with an invite link →",
+  "ko": "초대 링크로 대화 시작 →"
+ },
+ "移除後雙方都不能再互相撥打（要再加好友）；以前的對話記錄會留著。": {
+  "en": "After removing, neither of you can call the other until you add each other again; past conversations are kept.",
+  "ko": "삭제하면 다시 친구 추가할 때까지 서로 통화할 수 없습니다. 이전 대화 기록은 남습니다."
+ },
+ "移除好友": {
+  "en": "Remove friend",
+  "ko": "친구 삭제"
+ },
+ "用邀請連結": {
+  "en": "Use an invite link",
+  "ko": "초대 링크 사용"
+ },
+ "開一場對話，把連結傳給對方（LINE、簡訊…）；對方裝了大D，點連結就會加入。對話過一次，之後就能用 ID 加好友。": {
+  "en": "Start a conversation and send the link (LINE, SMS…); if they have Dylan, tapping it joins. After one conversation you can add each other by ID.",
+  "ko": "대화를 시작하고 링크를 보내세요(LINE, 문자…). 상대가 Dylan을 설치했으면 링크를 눌러 참여합니다. 한 번 대화하면 이후 ID로 친구 추가할 수 있어요."
+ },
+ "開新對話，傳邀請連結": {
+  "en": "Start a conversation and send an invite link",
+  "ko": "새 대화 시작, 초대 링크 보내기"
+ },
+ "還沒有通話記錄。每次通話的文字和雙方的原聲都存在這支手機，可以回播。": {
+  "en": "No calls yet. Each call's text and both voices are saved on this phone for replay.",
+  "ko": "아직 통화 기록이 없습니다. 통화마다 텍스트와 양쪽 원음이 이 휴대폰에 저장되어 다시 들을 수 있어요."
+ },
+ "未接 · ": {
+  "en": "Missed · ",
+  "ko": "부재중 · "
+ },
+ "{0} 分鐘": {
+  "en": "{0} min",
+  "ko": "{0}분"
+ },
+ "說 {0}": {
+  "en": "Speaks {0}",
+  "ko": "{0} 사용"
+ },
+ "朋友輸入這個 ID 就能加你；你接受後才能互相撥打。": {
+  "en": "Friends enter this ID to add you; you can call each other once you accept.",
+  "ko": "친구가 이 ID를 입력하면 추가할 수 있고, 수락해야 서로 통화할 수 있어요."
+ },
+ "通話時": {
+  "en": "During calls",
+  "ko": "통화 중"
+ },
+ "先播對方的原聲": {
+  "en": "Play their voice first",
+  "ko": "상대 원음 먼저 재생"
+ },
+ "聽得到語氣，再聽翻譯": {
+  "en": "Hear their tone, then the translation",
+  "ko": "말투를 듣고 나서 번역을 들어요"
+ },
+ "唸出翻譯": {
+  "en": "Read translation aloud",
+  "ko": "번역 읽어 주기"
+ },
+ "關掉就只看字幕": {
+  "en": "Off: captions only",
+  "ko": "끄면 자막만 표시"
+ },
+ "文字和原聲經過你的大D的主機轉送，主機不存對話內容；對話記錄只存在你的手機。建議戴有麥克風的耳機。": {
+  "en": "Text and voice pass through your Dylan Host, which doesn't keep conversations; records stay only on your phone. A headset with a mic is recommended.",
+  "ko": "텍스트와 원음은 Dylan Host를 거쳐 전달되며 호스트는 대화를 저장하지 않습니다. 기록은 내 휴대폰에만 남습니다. 마이크 달린 이어폰을 권장합니다."
+ },
+ "遠距對話來電": {
+  "en": "Remote talk call",
+  "ko": "원격 대화 수신"
+ },
+ "撥號中…": {
+  "en": "Calling…",
+  "ko": "거는 중…"
+ },
+ "對方接聽後就可以開始說話。": {
+  "en": "Start talking once they answer.",
+  "ko": "상대가 받으면 말하기 시작하세요."
+ },
+ "按下面的麥克風開始說話；對方說的話會翻成你的語言。": {
+  "en": "Tap the mic below to talk; what they say is translated into your language.",
+  "ko": "아래 마이크를 눌러 말하세요. 상대의 말은 내 언어로 번역됩니다."
+ },
+ "麥克風關著": {
+  "en": "Mic off",
+  "ko": "마이크 꺼짐"
+ },
+ "原聲 開": {
+  "en": "Voice on",
+  "ko": "원음 켬"
+ },
+ "原聲 關": {
+  "en": "Voice off",
+  "ko": "원음 끔"
+ },
+ "說話": {
+  "en": "Talk",
+  "ko": "말하기"
  }
 }

@@ -59,8 +59,6 @@ fun TranslateHub(onOpen: (String) -> Unit, onOpenSettings: () -> Unit) {
     LaunchedEffect(Unit) { TranslationStore.reload(context) }
     val sessions by TranslationStore.sessions.collectAsState()
     val live by LiveCaptions.state.collectAsState()
-    // 遠距對話（两地即时翻译）：整页
-    if (TalkPage.open) { TalkScreen { TalkPage.open = false }; return }
     HubScaffold(
         title = "即時翻譯".tr,
         subtitle = if (live.running) "翻譯中：{0} → {1}".trf(TranslateLangs.shortName(live.source), TranslateLangs.shortName(live.target, true))

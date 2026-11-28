@@ -110,7 +110,7 @@ fun DashboardScreen(
             }
         } + talks.filter { it.startedAt >= todayStart }.map { t ->
             TimelineExtra(t.startedAt, "話".tr, "遠距對話".tr + "：" + t.partners.joinToString("、"), "{0} 句".trf(t.lines.size)) {
-                TalkPage.open = true; TranslatePage.open()
+                TalkPage.open = true
             }
         }
     }
@@ -169,6 +169,9 @@ fun DashboardScreen(
                 }
                 // 商用模式：手表只在有连线时显示
                 if (watch != null || UiMode.tech) WatchPill(watch, onOpenSettings)
+                // 遠距對話（獨立一頁）：有來電、未接、好友邀請時有紅色數字
+                Spacer(Modifier.width(8.dp))
+                TalkEntryButton { TalkPage.open = true }
                 // 快錄的分页列没有「設定」（三大主轴各占一格）：放在这里
                 Spacer(Modifier.width(8.dp))
                 IconCircle(Icons.Outlined.Settings, "設定".tr, onOpenSettings)

@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -157,7 +158,6 @@ class MainActivity : ComponentActivity() {
         if (intent?.action == Intent.ACTION_VIEW && intent.data?.scheme == "dylan" && intent.data?.host == "talk") {
             RemoteTalk.pendingInvite.value = intent.data.toString()
             com.example.wristai.ui.TalkPage.open = true
-            com.example.wristai.ui.TranslatePage.open()
             setIntent(Intent(this, MainActivity::class.java))
             return
         }
@@ -217,6 +217,15 @@ private fun App() {
             go(Tab.TRANSLATE.route)
         }
     }
+    // 遠距對話：獨立一頁（主頁的電話圖示、翻譯頁、邀請連結）
+    LaunchedEffect(com.example.wristai.ui.TalkPage.open) {
+        if (com.example.wristai.ui.TalkPage.open) { com.example.wristai.ui.TalkPage.open = false; route = "talk" }
+    }
+    // App 開著就回報上線（有遠距對話身分才做），朋友打來就直接開來電畫面
+    LaunchedEffect(Unit) { if (com.example.wristai.TalkStore.bases(context).isNotEmpty()) com.example.wristai.RemoteTalk.startPresence(context) }
+    val talkCalls by com.example.wristai.RemoteTalk.calls.collectAsState()
+    val ringing = talkCalls.firstOrNull { it.live }?.room
+    LaunchedEffect(ringing) { if (ringing != null && route != "talk" && route != "onboarding") route = "talk" }
     // 小工具点最新报告 → 打开那份报告
     LaunchedEffect(PendingOpen.meetingId) {
         PendingOpen.meetingId?.let { id -> PendingOpen.meetingId = null; route = "detail:$id" }
@@ -269,6 +278,7 @@ private fun App() {
                     onOpen = { route = "detail:${it}" },
                     onOpenSettings = { go(Tab.SETTINGS.route) },
                 )
+                r == "talk" -> com.example.wristai.ui.TalkScreen(onBack = { route = lastTab })
                 r.startsWith("detail:") -> DetailScreen(
                     id = r.removePrefix("detail:"),
                     onBack = { route = lastTab },
