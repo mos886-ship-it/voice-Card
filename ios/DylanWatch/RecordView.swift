@@ -9,6 +9,7 @@ struct RecordView: View {
     @ObservedObject private var link = WatchLink.shared
     @State private var page = 0
     @State private var note: String?
+    @State private var captionClosed = false
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
@@ -26,7 +27,10 @@ struct RecordView: View {
                 .ignoresSafeArea()
                 .allowsHitTesting(false)
             }
-            if recorder.isRecording {
+            if !recorder.isRecording, let pair = WatchCaption.split(link.caption), !captionClosed {
+                // 手機在翻譯：上下分割雙語（上半原文倒過來給對面看），點一下關掉
+                SplitCaption(original: pair.0, translated: pair.1) { captionClosed = true }
+            } else if recorder.isRecording {
                 RecordingScreen(recorder: recorder, waiting: link.pendingCount) { recorder.stop() }
             } else {
                 TabView(selection: $page) {
@@ -42,6 +46,7 @@ struct RecordView: View {
             }
         }
         .onChange(of: recorder.isRecording) { _, _ in note = nil }
+        .onChange(of: link.caption) { _, c in if c.isEmpty { captionClosed = false } }
         // 回到前景：錄音中但收音停了（被打斷 / 系統暫停）就接著錄
         .onChange(of: scenePhase) { _, phase in if phase == .active { recorder.checkAlive() } }
         #if DEBUG
@@ -68,7 +73,7 @@ struct RecordView: View {
         default: break
         }
         // 手機在即時翻譯：顯示最新一句譯文
-        if !link.caption.isEmpty { return ("文A " + link.caption, Brand.text) }
+        if !link.caption.isEmpty { return ("文A " + WatchCaption.translated(link.caption), Brand.text) }
         let status = link.phoneStatus
         if !status.isEmpty {
             // 手機傳來的進度：完成才打勾綠色，失敗橘色，其他（AI 分析中…）青色
@@ -78,6 +83,38 @@ struct RecordView: View {
         }
         if recorder.sending && !recorder.finalizing && link.pendingCount == 0 { return ("✓ 已傳送到手機", Brand.success) }
         return ("點一下開始錄音", Brand.textMuted)
+    }
+}
+
+/// 手機送來的字幕：`原文\u{1F}譯文`（新）或只有譯文（舊）。
+enum WatchCaption {
+    static func split(_ c: String) -> (String, String)? {
+        let parts = c.components(separatedBy: "\u{1F}")
+        guard parts.count == 2, !parts[0].isEmpty, !parts[1].isEmpty else { return nil }
+        return (parts[0], parts[1])
+    }
+    static func translated(_ c: String) -> String { split(c)?.1 ?? c }
+}
+
+/// 上下分割雙語：上半原文倒過來（給對面的人看），下半譯文。
+private struct SplitCaption: View {
+    let original: String
+    let translated: String
+    let close: () -> Void
+    var body: some View {
+        VStack(spacing: 0) {
+            Text(original).font(.system(size: 15, weight: .medium)).foregroundStyle(Brand.textMuted)
+                .multilineTextAlignment(.center).minimumScaleFactor(0.5)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .rotationEffect(.degrees(180))
+            Rectangle().fill(Brand.cyan.opacity(0.5)).frame(height: 1)
+            Text(translated).font(.system(size: 17, weight: .semibold)).foregroundStyle(Brand.text)
+                .multilineTextAlignment(.center).minimumScaleFactor(0.5)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .padding(.horizontal, 6)
+        .contentShape(Rectangle())
+        .onTapGesture(perform: close)
     }
 }
 

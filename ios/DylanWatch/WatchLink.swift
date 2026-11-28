@@ -1,5 +1,6 @@
 import Foundation
 import WatchConnectivity
+import WatchKit
 
 /// 手錶端 WatchConnectivity（對應 Android `PhoneLink`）。
 /// 分段用 transferFile（系統排隊、斷線自動補傳）。**手機存好後回傳確認（pathSegmentAck）手錶才刪檔**——
@@ -98,6 +99,16 @@ final class WatchLink: NSObject, ObservableObject, WCSessionDelegate {
             .sorted { ($0.1.recordingId, $0.1.seq) < ($1.1.recordingId, $1.1.seq) }
     }
 
+    /// 手錶電量送給手機（手機「今天」的手錶標籤顯示）。
+    func sendBattery() {
+        let d = WKInterfaceDevice.current()
+        d.isBatteryMonitoringEnabled = true
+        guard d.batteryLevel >= 0, WCSession.default.activationState == .activated else { return }
+        let charging = d.batteryState == .charging || d.batteryState == .full
+        WCSession.default.transferUserInfo([DylanProtocol.keyPath: DylanProtocol.pathBattery,
+                                            DylanProtocol.keyText: "\(Int(d.batteryLevel * 100)),\(charging ? 1 : 0)"])
+    }
+
     private func refreshCount() {
         let n = pendingFiles().count
         DispatchQueue.main.async { self.pendingCount = n }
@@ -109,6 +120,7 @@ final class WatchLink: NSObject, ObservableObject, WCSessionDelegate {
 
     func session(_ session: WCSession, activationDidCompleteWith state: WCSessionActivationState, error: Error?) {
         if state == .activated {
+            sendBattery()
             resendAll()
             handle(session.receivedApplicationContext)
         }

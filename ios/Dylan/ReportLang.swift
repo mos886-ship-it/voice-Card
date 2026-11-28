@@ -55,6 +55,9 @@ enum ReportLang: String, CaseIterable {
         ("營養小提醒", "Nutrition tips", "영양 팁"),
         ("假設與待確認", "Assumptions to check", "가정 및 확인 필요"),
         ("專業重點", "Expert notes", "전문가 관점"),
+        ("心智圖大綱", "Mind map outline", "마인드맵 개요"),
+        ("名詞解釋", "Glossary", "용어 설명"),
+        ("複習題", "Review questions", "복습 문제"),
     ]
     private static let phrases: [(String, String, String)] = [
         ("說話者 | 名字 | 角色 | 主要觀點", "Speaker | Name | Role | Main points", "화자 | 이름 | 역할 | 주요 의견"),
@@ -69,6 +72,12 @@ enum ReportLang: String, CaseIterable {
         ("「## 專業重點」", "「## Expert notes」", "「## 전문가 관점」"),
         ("「領域：○○」", "「Domain: …」", "「분야: …」"),
         ("「（建議諮詢專業人員）」", "「(consult a professional)」", "「(전문가 상담 권장)」"),
+        // 課堂講座
+        ("「## 心智圖大綱」", "「## Mind map outline」", "「## 마인드맵 개요」"),
+        ("「## 名詞解釋」", "「## Glossary」", "「## 용어 설명」"),
+        ("「## 複習題」", "「## Review questions」", "「## 복습 문제」"),
+        ("「名詞：一句白話解釋」", "「Term: one-line plain explanation」", "「용어: 쉬운 한 줄 설명」"),
+        ("「答：」", "「A:」", "「답:」"),
     ]
 
     private func pick(_ t: (String, String, String)) -> String {
@@ -78,7 +87,7 @@ enum ReportLang: String, CaseIterable {
     /// 把中文提示詞換成這個語言的報告格式（繁中原樣回傳）。
     func localize(_ prompt0: String) -> String {
         // 領域專家模式的規則先加進去（報告類提示詞才加），再一起換成報告語言
-        let prompt = ReportDomain.applyTo(prompt0)
+        let prompt = Vocab.applyTo(ReportDomain.applyTo(prompt0))
         guard self != .zh, !prompt.contains("【報告語言") else { return prompt }
         var p = prompt
         for h in Self.headings {

@@ -23,6 +23,9 @@ struct DylanApp: App {
                         PhoneRecorder.shared.checkAlive()
                         WidgetBridge.refresh()   // 小工具的今天數字（過了午夜也會更新）
                         Task { await CallInbox.importFinished() }   // 通話錄音結束後回到大D：收進清單
+                        RemoteTalk.shared.startPresence()   // 遠距對話：回報上線、收來電（App 開著時每 20 秒）
+                    } else if p == .background, !RemoteTalk.shared.connected {
+                        RemoteTalk.shared.stopPresence()
                     }
                 }
                 .task { await CallInbox.importFinished() }

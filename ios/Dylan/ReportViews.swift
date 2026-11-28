@@ -9,6 +9,8 @@ struct ReportSection: View {
     @State private var tab = 0
     @State private var report: String?
     @State private var lines: [TranscriptView.Line] = []
+    /// 條列 → 逐字稿時間（摘要跳原音）
+    @State private var stamps: [String: ReportSeek.Stamp] = [:]
 
     var body: some View {
         let names = meeting.speakerNames ?? [:]
@@ -19,7 +21,7 @@ struct ReportSection: View {
             } else if tab == 0 {
                 ReportFacts(meeting: meeting)
                 if let report {
-                    ReportView(markdown: Speakers.apply(report, names))
+                    ReportView(markdown: Speakers.apply(report, names), stamps: stamps) { player.play(at: $0) }
                 } else if meeting.status == .done {
                     GlassCard {
                         Text("這筆只有逐字稿：這支 iPhone 沒有可用的 Apple 整理模型。到「設定」貼上 Gemini 金鑰後可以按「重新產生報告」。".tr)
@@ -45,6 +47,7 @@ struct ReportSection: View {
             report = try? String(contentsOf: MeetingStore.reportURL(meeting.id), encoding: .utf8)
             let text = (try? String(contentsOf: MeetingStore.transcriptURL(meeting.id), encoding: .utf8)) ?? ""
             lines = TranscriptView.parse(text)
+            stamps = report.map { ReportSeek.stamps(Speakers.apply($0, names), lines) } ?? [:]
         }
     }
 }
@@ -119,6 +122,8 @@ struct ReportFacts: View {
 /// 把 Markdown 報告排成卡片（照 Android ReportViews：章節色條、條列、表格每列一張小卡；只有「無」的章節顯示一行淡色「無」）。
 struct ReportView: View {
     let markdown: String
+    var stamps: [String: ReportSeek.Stamp] = [:]
+    var onSeek: ((Double) -> Void)? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -154,6 +159,16 @@ struct ReportView: View {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Circle().fill(Brand.cyan).frame(width: 5, height: 5).offset(y: -3)
                 Text(Self.inline(t)).font(.bodyMedium).foregroundStyle(Brand.text).fixedSize(horizontal: false, vertical: true)
+                // 跳到原音：這一點在錄音裡大概的位置
+                if let onSeek, let at = stamps[t] {
+                    Button { onSeek(at.seconds) } label: {
+                        Text("▶ " + at.label).font(.labelSmall).foregroundStyle(Brand.cyan)
+                            .padding(.horizontal, 8).padding(.vertical, 2)
+                            .background(Capsule().fill(Brand.cyan.opacity(0.12)))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("從 {0} 播放".trf(at.label))
+                }
             }
         case let .row(header, cells):
             VStack(alignment: .leading, spacing: 4) {
@@ -424,5 +439,56 @@ struct TranscriptView: View {
         var seen: [String] = []
         for l in lines where !l.speaker.isEmpty && !seen.contains(l.speaker) { seen.append(l.speaker) }
         return seen
+    }
+}
+
+
+/// 摘要跳原音（照 Android `ReportSeek`）：報告的條列找逐字稿裡最像的那段（中日韓兩字一組、其他用單字，連續 1～3 段一起比），
+/// 夠像就標「▶ mm:ss」。不改提示詞，各家 AI 和舊報告都適用；逐字稿沒有時間就不標。
+enum ReportSeek {
+    struct Stamp: Equatable { let label: String; let seconds: Double }
+
+    private static func norm(_ s: String) -> String {
+        s.replacingOccurrences(of: "說話者[A-Z?]|Speaker [A-Z?]|화자[A-Z?]", with: " ", options: .regularExpression)
+            .replacingOccurrences(of: "**", with: "").lowercased()
+    }
+
+    static func grams(_ s: String) -> Set<String> {
+        let t = norm(s)
+        var out = Set<String>()
+        let re = try! NSRegularExpression(pattern: "[a-z0-9]{2,}")
+        for m in re.matches(in: t, range: NSRange(t.startIndex..., in: t)) { if let r = Range(m.range, in: t) { out.insert(String(t[r])) } }
+        let cjk = Array(t.unicodeScalars.filter { $0.properties.isAlphabetic && $0.value > 0x2E80 })
+        if cjk.count >= 2 { for i in 0..<(cjk.count - 1) { out.insert(String(cjk[i]) + String(cjk[i + 1])) } }
+        return out
+    }
+
+    static func find(_ point: String, _ lines: [TranscriptView.Line], min: Double = 0.35) -> Stamp? {
+        let a = grams(point)
+        guard a.count >= 3 else { return nil }
+        let g = lines.map { grams($0.content) }
+        var from = -1, to = -1, best = 0.0
+        for i in lines.indices {
+            var b = Set<String>()
+            for j in i..<Swift.min(i + 3, lines.count) {
+                b.formUnion(g[j])
+                let score = Double(a.filter { b.contains($0) }.count) / Double(a.count)
+                if score > best + 0.001 { best = score; from = i; to = j }
+            }
+        }
+        guard from >= 0, best >= min else { return nil }
+        let k = (from...to).filter { lines[$0].time != nil }.max { x, y in a.filter { g[x].contains($0) }.count < a.filter { g[y].contains($0) }.count }
+        guard let k, let t = lines[k].time else { return nil }
+        return Stamp(label: lines[k].stamp, seconds: t)
+    }
+
+    /// 整份報告：條列文字 → 時間。
+    static func stamps(_ markdown: String, _ lines: [TranscriptView.Line]) -> [String: Stamp] {
+        guard lines.contains(where: { $0.time != nil }) else { return [:] }
+        var out: [String: Stamp] = [:]
+        for sec in ReportView.sections(markdown) {
+            for b in sec.blocks { if case let .bullet(t) = b, out[t] == nil, let s = find(t, lines) { out[t] = s } }
+        }
+        return out
     }
 }

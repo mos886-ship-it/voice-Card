@@ -79,6 +79,33 @@ struct FoodView: View {
                     .padding(.top, 16)
                 }
 
+                // 常吃的：30 天內同一道記過 2 次以上，一鍵再記一次（照抄，不問 AI）
+                let favs = FoodRepeat.favorites(meals)
+                if !favs.isEmpty && !rec.isRecording {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("常吃的".tr).font(.titleSmall).foregroundStyle(Brand.text)
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(favs, id: \.0.id) { m, n in
+                                    Button {
+                                        FoodRepeat.repeatMeal(m)
+                                        toast = "已記錄：{0}（{1} 大卡）".trf(FoodRepeat.mealNow().tr + "：" + FoodRepeat.dish(m.title), m.nutrition?.kcal ?? 0)
+                                    } label: {
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text("＋ " + FoodRepeat.dish(m.title)).font(.titleSmall).foregroundStyle(Brand.text).lineLimit(1)
+                                            Text("{0} 大卡 · {1} 次".trf(m.nutrition?.kcal ?? 0, n)).font(.labelSmall).foregroundStyle(Brand.textMuted)
+                                        }
+                                        .padding(.horizontal, 12).padding(.vertical, 8)
+                                        .background(RoundedRectangle(cornerRadius: 12).fill(Brand.surface))
+                                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Brand.outline, lineWidth: 1))
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+                    }
+                }
+
                 if meals.isEmpty {
                     GlassCard {
                         Text("還沒有飲食記錄".tr).font(.titleMedium).foregroundStyle(Brand.text)

@@ -28,10 +28,12 @@ final class PhoneLink: NSObject, ObservableObject, WCSessionDelegate {
     }
 
     /// 即時翻譯：最新一句譯文推給手錶（"" = 關掉）。只在連得到時送，不排隊（過時的字幕沒用）。
-    func sendCaption(_ text: String) {
+    /// original：有的話一起送（`原文\u{1F}譯文`），手錶沒在錄音時上下分割顯示（上半原文倒過來給對面看）。
+    func sendCaption(_ text: String, original: String? = nil) {
         let s = WCSession.default
         guard s.activationState == .activated, s.isWatchAppInstalled, s.isReachable else { return }
-        s.sendMessage([DylanProtocol.keyPath: DylanProtocol.pathCaption, DylanProtocol.keyText: text],
+        let payload = original.map { $0.isEmpty || text.isEmpty ? text : $0 + "\u{1F}" + text } ?? text
+        s.sendMessage([DylanProtocol.keyPath: DylanProtocol.pathCaption, DylanProtocol.keyText: payload],
                       replyHandler: nil, errorHandler: nil)
     }
 
@@ -78,6 +80,14 @@ final class PhoneLink: NSObject, ObservableObject, WCSessionDelegate {
 
     func sessionWatchStateDidChange(_ session: WCSession) { refreshState(session) }
     func sessionReachabilityDidChange(_ session: WCSession) { refreshState(session) }
+
+    /// 手錶送來的小訊息（手錶電量）。
+    func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
+        if userInfo[DylanProtocol.keyPath] as? String == DylanProtocol.pathBattery, let t = userInfo[DylanProtocol.keyText] as? String {
+            WatchBattery.save(t)
+            DispatchQueue.main.async { self.objectWillChange.send() }
+        }
+    }
 
     func session(_ session: WCSession, didReceive file: WCSessionFile) {
         guard let path = file.metadata?[DylanProtocol.keyPath] as? String,

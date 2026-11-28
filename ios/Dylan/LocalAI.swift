@@ -52,6 +52,12 @@ enum LocalAI {
     /// 位址和存取碼都填了才算設定好。
     static var configured: Bool { !url.isEmpty && !token.isEmpty && URL(string: url) != nil }
 
+    /// AI 模式選雲端或離線時暫停：報告不交給主機（遠距對話照常用主機）。
+    static let pausedKey = "host_paused"
+    static var paused: Bool { UserDefaults.standard.bool(forKey: pausedKey) }
+    /// 報告要不要交給大D的主機。
+    static var active: Bool { configured && !paused }
+
     struct Health: Decodable {
         let ok: Bool
         let asr: String?
@@ -267,6 +273,8 @@ enum LocalAI {
         r.setValue(ReportLang.current.rawValue, forHTTPHeaderField: "X-Report-Lang")   // 新主機照這個寫報告；舊的照舊中文
         r.setValue(ReportDomain.setting, forHTTPHeaderField: "X-Domain")   // 領域專家模式（舊主機忽略）
         if let country { r.setValue(country, forHTTPHeaderField: "X-Food-Country") }   // 飲食：這一餐的國家（份量依當地）
+        if kind == "food" { r.setValue(FoodGoals.mode, forHTTPHeaderField: "X-Food-Goal") }   // 健康目標：營養小提醒照目標講
+        if let v = Vocab.header() { r.setValue(v, forHTTPHeaderField: "X-Vocab") }   // 個人詞庫＋常用人名（base64）
         // 標頭只能放 ASCII：錄音時間用數字格式
         r.setValue(recordedAt, forHTTPHeaderField: "X-Recorded-At")
         r.setValue(String(Int(durationSec)), forHTTPHeaderField: "X-Duration")
@@ -343,6 +351,38 @@ enum LocalAI {
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let text = json["text"] as? String else { return nil }
         return (text, json["model"] as? String ?? "local-funasr|qwen3-8b")
+    }
+
+    /// 翻譯錯誤回報送到主機（存在主機的 feedback.jsonl，只有原文、譯文、更正、語言、版本、裝置 id）。
+    static func feedback(_ body: [String: String]) async throws {
+        var r = try request("/v1/feedback", method: "POST", body: body)
+        r.setValue("application/json; charset=utf-8", forHTTPHeaderField: "Content-Type")
+        let (data, resp) = try await URLSession.shared.data(for: r)
+        let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
+        guard code == 200 else {
+            throw GeminiClient.Failure(message: code == 404 ? "大D的主機還沒有這個功能：請在 Mac 上重新部署大D的主機（更新到最新版）".tr : error(data, status: code), code: code)
+        }
+    }
+
+    /// 從連結抓音訊（主機用 yt-dlp，只抓音訊不轉檔）→ 存到暫存檔，回傳檔案與標題。
+    static func fetchURL(_ link: String) async throws -> (file: URL, title: String?) {
+        var r = try request("/v1/fetch_url", method: "POST", body: ["url": link])
+        r.setValue("application/json; charset=utf-8", forHTTPHeaderField: "Content-Type")
+        r.timeoutInterval = 15 * 60
+        let (tmp, resp) = try await URLSession.shared.download(for: r)
+        let http = resp as? HTTPURLResponse
+        let code = http?.statusCode ?? 0
+        guard code == 200 else {
+            let data = (try? Data(contentsOf: tmp)) ?? Data()
+            throw GeminiClient.Failure(message: code == 404 ? "大D的主機還沒有這個功能：請在 Mac 上重新部署大D的主機（更新到最新版）".tr : error(data, status: code), code: code)
+        }
+        let title = (http?.value(forHTTPHeaderField: "X-Title")).flatMap { Data(base64Encoded: $0) }.flatMap { String(data: $0, encoding: .utf8) }
+        let mime = http?.value(forHTTPHeaderField: "Content-Type") ?? ""
+        let ext = mime.contains("webm") ? "webm" : (mime.contains("mpeg") ? "mp3" : (mime.contains("ogg") ? "ogg" : "m4a"))
+        let out = FileManager.default.temporaryDirectory.appendingPathComponent("link-\(UUID().uuidString.prefix(8)).\(ext)")
+        try? FileManager.default.removeItem(at: out)
+        try FileManager.default.moveItem(at: tmp, to: out)
+        return (out, title)
     }
 
     static func error(_ data: Data, status: Int) -> String {

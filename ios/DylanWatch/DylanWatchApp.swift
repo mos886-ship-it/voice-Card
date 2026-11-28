@@ -1,4 +1,5 @@
 import SwiftUI
+import WatchKit
 
 @main
 struct DylanWatchApp: App {
@@ -24,6 +25,7 @@ private struct WatchThemedRoot: View {
         Brand.current = p
         return RecordView(recorder: recorder)
             .id(p.id)
+            .onReceive(NotificationCenter.default.publisher(for: WKApplication.didBecomeActiveNotification)) { _ in link.sendBattery() }
             .environment(\.colorScheme, p.isDark ? .dark : .light)
     }
 }

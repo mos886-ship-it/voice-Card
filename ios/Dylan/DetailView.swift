@@ -12,6 +12,7 @@ struct DetailView: View {
     @State private var newTitle = ""
     @State private var relang: SpeechLang?
     @StateObject private var player = PlayerState()
+    @State private var toast: String?
 
     @Environment(\.pageWidth) private var width
     @AppStorage(UIMode.key) private var mode: UIMode = .business
@@ -19,6 +20,22 @@ struct DetailView: View {
     var body: some View {
         VStack(spacing: 0) {
             TopBar(title: "錄音詳情".tr, onBack: onBack) {
+                if let m = store.meetings.first(where: { $0.id == id }), m.status == .done, let md = store.report(m.id) {
+                    // 分享：文字／PDF／Word／Markdown（都在手機產生）、存到 Notion
+                    Menu {
+                        ForEach(ReportExport.Format.allCases) { f in
+                            Button { exportReport(m, md, f) } label: { Label(f.label, systemImage: f.icon) }
+                        }
+                        if !m.isFood {
+                            Button { saveToNotion(m, md) } label: { Label("存到 Notion".tr, systemImage: "square.and.arrow.up.on.square") }
+                        }
+                    } label: {
+                        Image(systemName: "square.and.arrow.up").font(.system(size: 16, weight: .semibold)).foregroundStyle(Brand.text)
+                            .frame(width: 40, height: 40).background(Circle().fill(Brand.surface))
+                            .overlay(Circle().stroke(Brand.outline, lineWidth: 1))
+                    }
+                    .accessibilityLabel("分享".tr)
+                }
                 IconCircle(systemImage: "trash", label: "刪除".tr, tint: Brand.error) { confirmDelete = true }
             }
             if let m = store.meetings.first(where: { $0.id == id }) {
@@ -121,7 +138,7 @@ struct DetailView: View {
                         if m.status == .received {
                             GlassCard(highlight: true) {
                                 Text("還沒有 AI 報告".tr).font(.titleMedium).foregroundStyle(Brand.text)
-                                Text(LocalAI.configured ? "按下面的按鈕，用大D的主機 整理出重點、待辦與分說話者的逐字稿。".tr
+                                Text(LocalAI.active ? "按下面的按鈕，用大D的主機 整理出重點、待辦與分說話者的逐字稿。".tr
                                      : MeetingStore.hasGeminiKey && !MeetingStore.privacyMode
                                      ? "按下面的按鈕，用 Gemini 整理出重點、待辦與分說話者的逐字稿。".tr
                                      : "沒有 Gemini 金鑰或開著隱私模式：會用 Apple 在手機上產生逐字稿與重點（不分說話者，需要 iOS 26 以上）。".tr)
@@ -187,6 +204,7 @@ struct DetailView: View {
             }
         }
         .background(AppBackdrop())
+        .toast($toast)
         .confirmationDialog("刪除這筆錄音？".tr, isPresented: $confirmDelete, titleVisibility: .visible) {
             Button("刪除".tr, role: .destructive) {
                 player.stop()
@@ -221,6 +239,29 @@ struct DetailView: View {
             Button("取消".tr, role: .cancel) { relang = nil }
         } message: { Text("現在的報告和逐字稿會被新的取代。想對照兩種結果，請先把現在的逐字稿複製或截圖。".tr) }
         .onDisappear { player.stop() }
+    }
+
+    private func exportReport(_ m: Meeting, _ md: String, _ f: ReportExport.Format) {
+        let footer = "由大D產生 · {0}".trf(Fmt.stamp(m.createdAt, "yyyy/M/d HH:mm"))
+        if f == .text {
+            ReportExport.share([m.title + "\n\n" + ReportExport.plain(md)])
+        } else if let u = ReportExport.write(title: m.title, md: md, format: f, footer: footer) {
+            ReportExport.share([u])
+        }
+    }
+
+    private func saveToNotion(_ m: Meeting, _ md: String) {
+        guard NotionExport.configured else { toast = "先到「錄音 → 設定」填 Notion 金鑰與頁面連結".tr; return }
+        toast = "存到 Notion 中…".tr
+        Task {
+            do {
+                let url = try await NotionExport.save(title: m.title, md: md)
+                toast = "已存到 Notion".tr
+                if let u = URL(string: url) { await UIApplication.shared.open(u) }
+            } catch {
+                toast = "存到 Notion 失敗：{0}".trf(error.localizedDescription)
+            }
+        }
     }
 
     static func stepText(_ step: String?) -> String {

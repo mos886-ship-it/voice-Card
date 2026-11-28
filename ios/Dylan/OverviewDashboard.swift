@@ -8,6 +8,8 @@ struct OverviewDashboardView: View {
     @EnvironmentObject private var store: MeetingStore
     @EnvironmentObject private var link: PhoneLink
     @ObservedObject private var rec = PhoneRecorder.shared
+    @ObservedObject private var translations = TranslationStore.shared
+    @ObservedObject private var talks = TalkStore.shared
     @Environment(\.pageWidth) private var width
     @AppStorage(UIMode.key) private var mode: UIMode = .business
     @ObservedObject private var langs = LangSettings.shared
@@ -99,6 +101,12 @@ struct OverviewDashboardView: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, 10)
                 }
+                // 今日回顧（晚上 9 點到清晨 4 點）、今天的翻譯與遠距對話
+                TimelineView(.everyMinute) { ctx in
+                    let h = Calendar.current.component(.hour, from: ctx.date)
+                    if h >= 21 || h < 4 { DayRecapCard(r: TodayData.recap(store), openRecords: { select(.records) }, openFood: { select(.food) }) }
+                }
+                TodayExtrasCard(extras: TodayData.extras(select: select))
 
                 } right: {
                 // ---------- 處理中 ----------
@@ -173,7 +181,7 @@ struct OverviewDashboardView: View {
     }
 
     private var engineLabel: String {
-        if LocalAI.configured { return LocalAI.modelLabel }
+        if LocalAI.active { return LocalAI.modelLabel }
         if MeetingStore.hasGeminiKey && !MeetingStore.privacyMode { return "Google Gemini" }
         return "Apple（手機上）".tr
     }

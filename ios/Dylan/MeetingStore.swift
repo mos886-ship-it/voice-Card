@@ -222,7 +222,7 @@ final class MeetingStore: ObservableObject {
 
     /// 能不能自動產生報告 / 逐字稿：設定了自架 Mac、有 Gemini 金鑰，或這支 iPhone 有 Apple 語音辨識。
     static func canReport() async -> Bool {
-        if LocalAI.configured || (hasGeminiKey && !privacyMode) { return true }
+        if LocalAI.active || (hasGeminiKey && !privacyMode) { return true }
         return await AppleAI.speechAvailable()
     }
 
@@ -233,6 +233,7 @@ final class MeetingStore: ObservableObject {
     func process(_ id: String) async {
         guard !processing.contains(id), let m = load(id),
               FileManager.default.fileExists(atPath: Self.audioURL(id).path) || Self.isText(id) || FoodPhotos.has(id) else { return }
+        Vocab.prepare()   // 個人詞庫＋常用人名（報告提示詞、主機 X-Vocab）
         // 有照片的飲食：只有 Gemini 看得懂圖片（免費 flash 模型），大D的主機與 Apple 先不走
         if m.isFood && FoodPhotos.has(id) {
             if Self.privacyMode { aiFailed(id, message: "隱私模式不上傳到雲端；照片辨識飲食需要 Gemini（免費），請先關掉隱私模式".tr) }
@@ -241,7 +242,7 @@ final class MeetingStore: ObservableObject {
             return
         }
         if Self.isText(id) {   // 匯入的文字：Mac → Gemini；Apple 不處理文字
-            if LocalAI.configured { await runLocal(id) }
+            if LocalAI.active { await runLocal(id) }
             else if Self.hasGeminiKey && !Self.privacyMode { await runGeminiText(id) }
             else { aiFailed(id, message: "文字檔要用大D的主機 或 Gemini 產生報告：請到設定填好其中一個".tr) }
             return
@@ -250,7 +251,7 @@ final class MeetingStore: ObservableObject {
         //       有 Gemini 金鑰 → Gemini；都沒有 → Apple。隱私模式下自己的 Mac 可以用（錄音不出你的設備），Gemini 不行。
         if m.isFood && m.speechLang == .zh && AppleAI.availableModel != nil {   // Apple 聽不懂台語、客語
             await runApple(id, note: nil)
-        } else if LocalAI.configured {
+        } else if LocalAI.active {
             await runLocal(id)
         } else if Self.privacyMode {
             await runApple(id, note: "隱私模式：不上傳到雲端，在手機上處理".tr)

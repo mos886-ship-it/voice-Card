@@ -19,6 +19,8 @@ struct DashboardView: View {
     @State private var nameInput = ""
 
     @State private var picking = false
+    @ObservedObject private var translations = TranslationStore.shared
+    @ObservedObject private var talks = TalkStore.shared
     @State private var choosing = false
 
     var body: some View {
@@ -90,6 +92,12 @@ struct DashboardView: View {
                     }
                 }
 
+                // ---------- 今日回顧（晚上 9 點到清晨 4 點） ----------
+                TimelineView(.everyMinute) { ctx in
+                    let h = Calendar.current.component(.hour, from: ctx.date)
+                    if h >= 21 || h < 4 { DayRecapCard(r: recap, openRecords: { select(.records) }, openFood: { select(.food) }) }
+                }
+
                 // ---------- 今天的記錄 ----------
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
@@ -102,17 +110,23 @@ struct DashboardView: View {
                             .buttonStyle(.plain)
                         }
                     }
-                    if todays.isEmpty {
+                    let extras = todayExtras
+                    if todays.isEmpty && extras.isEmpty {
                         GlassCard {
                             Text("今天還沒有記錄".tr).font(.titleSmall).foregroundStyle(Brand.text)
                             Text("按「開始錄音」或手錶的錄音鍵，錄完會自動整理出重點、待辦與逐字稿。".tr)
                                 .font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 4)
                         }
                     } else {
+                        // 錄音、飲食、即時翻譯（沒連錄音的）、遠距對話照時間排在一起
+                        let rows: [(Date, AnyView)] = (todays.map { m in
+                            (m.createdAt, AnyView(Button { open(m.id) } label: { TodayRow(m: m) }.buttonStyle(.plain)))
+                        } + extras.map { e in (e.at, AnyView(Button(action: e.action) { TimelineExtraRow(e: e) }.buttonStyle(.plain))) })
+                            .sorted { $0.0 > $1.0 }
                         VStack(spacing: 0) {
-                            ForEach(Array(todays.enumerated()), id: \.element.id) { i, m in
-                                Button { open(m.id) } label: { TodayRow(m: m) }.buttonStyle(.plain)
-                                if i < todays.count - 1 { Rectangle().fill(Brand.outline).frame(height: 1).padding(.leading, 68) }
+                            ForEach(Array(rows.enumerated()), id: \.offset) { i, r in
+                                r.1
+                                if i < rows.count - 1 { Rectangle().fill(Brand.outline).frame(height: 1).padding(.leading, 68) }
                             }
                         }
                         .background(RoundedRectangle(cornerRadius: Brand.cardRadius, style: .continuous).fill(Brand.surface))
@@ -165,6 +179,9 @@ struct DashboardView: View {
         }
     }
 
+    private var todayExtras: [TimelineExtra] { TodayData.extras(select: select) }
+    private var recap: DayRecap { TodayData.recap(store) }
+
     /// 處理中卡片下面那一行：排隊位置、或在哪一步。
     static func busyText(_ m: Meeting) -> String {
         if let s = m.aiStep, LocalAI.isQueueText(s) { return s }
@@ -180,7 +197,7 @@ struct DashboardView: View {
     }
 
     private var engineLabel: String {
-        if LocalAI.configured { return LocalAI.modelLabel }
+        if LocalAI.active { return LocalAI.modelLabel }
         if MeetingStore.hasGeminiKey && !MeetingStore.privacyMode { return "Google Gemini" }
         return "Apple（手機上）".tr
     }
@@ -342,6 +359,135 @@ private struct RecordingCard: View {
             if !food {
                 GhostButton(text: "即時翻譯".tr, tint: Brand.cyan) { TranslatePage.shared.open() }.padding(.top, 10)
             }
+        }
+    }
+}
+
+/// 「今天」時間軸上的非錄音項目（即時翻譯、遠距對話）。
+struct TimelineExtra {
+    let at: Date, tag: String, title: String, sub: String?
+    let action: () -> Void
+}
+
+private struct TimelineExtraRow: View {
+    let e: TimelineExtra
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Text(Fmt.stamp(e.at, "HH:mm")).font(.labelMedium).monospacedDigit().foregroundStyle(Brand.textMuted)
+                .frame(width: 44, alignment: .leading).padding(.top, 2)
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 6) {
+                    Text(e.tag).font(.system(size: 11, weight: .semibold)).foregroundStyle(Brand.cyan)
+                        .padding(.horizontal, 5).padding(.vertical, 1)
+                        .background(RoundedRectangle(cornerRadius: 4).fill(Brand.cyan.opacity(0.12)))
+                    Text(e.title).font(.titleSmall).foregroundStyle(Brand.text).lineLimit(1)
+                }
+                if let s = e.sub, !s.isEmpty { Text(s).font(.bodySmall).foregroundStyle(Brand.textMuted).lineLimit(1) }
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 16).padding(.vertical, 14)
+        .contentShape(Rectangle())
+    }
+}
+
+/// 今日回顧（晚上 9 點後）：幾場錄音、熱量與蛋白質達標、還沒做的待辦。
+struct DayRecap {
+    let recordings: Int, translations: Int, kcal: Int, kcalGoal: Int, protein: Int, proteinGoal: Int
+    let usesFood: Bool, openTodos: [String]
+}
+
+struct DayRecapCard: View {
+    let r: DayRecap
+    let openRecords: () -> Void
+    let openFood: () -> Void
+
+    var body: some View {
+        GlassCard {
+            Text("今日回顧".tr).font(.titleMedium).foregroundStyle(Brand.text)
+            HStack(spacing: 10) {
+                stat("{0} 場".trf(r.recordings), "錄音整理".tr, openRecords)
+                if r.usesFood {
+                    stat(pct(r.kcal, r.kcalGoal), "熱量 {0} / {1}".trf(r.kcal, r.kcalGoal), openFood)
+                    stat(pct(r.protein, r.proteinGoal), "蛋白質 {0} / {1} g".trf(r.protein, r.proteinGoal), openFood)
+                } else {
+                    stat("{0} 次".trf(r.translations), "翻譯".tr, {})
+                }
+            }
+            .padding(.vertical, 10)
+            if r.openTodos.isEmpty {
+                Text("今天的待辦都處理完了，早點休息。".tr).font(.bodySmall).foregroundStyle(Brand.textMuted)
+            } else {
+                Text("明天記得：".tr).font(.labelLarge).foregroundStyle(Brand.textMuted)
+                ForEach(r.openTodos.prefix(3), id: \.self) { t in
+                    Text("・" + t).font(.bodySmall).foregroundStyle(Brand.text).lineLimit(1)
+                }
+                if r.openTodos.count > 3 {
+                    Text("還有 {0} 項".trf(r.openTodos.count - 3)).font(.labelSmall).foregroundStyle(Brand.textFaint)
+                }
+            }
+        }
+    }
+
+    private func pct(_ v: Int, _ goal: Int) -> String { goal <= 0 ? "—" : "\(v * 100 / goal)%" }
+
+    private func stat(_ big: String, _ small: String, _ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(big).font(.titleLarge).fontWeight(.semibold).foregroundStyle(Brand.text)
+                Text(small).font(.labelSmall).foregroundStyle(Brand.textMuted).lineLimit(1)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(10)
+            .background(RoundedRectangle(cornerRadius: 12).fill(Brand.surfaceHigh))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+/// 「今天」兩種排布共用：時間軸上的翻譯、遠距對話，與今日回顧的數字。
+@MainActor
+enum TodayData {
+    static func extras(select: @escaping (Tab) -> Void) -> [TimelineExtra] {
+        let tr = TranslationStore.shared.records.filter { Calendar.current.isDateInToday($0.start) && $0.meetingId == nil && !$0.lines.isEmpty }.map { r in
+            TimelineExtra(at: r.start, tag: "翻譯".tr, title: r.sourceLabel + " → " + r.targetLabel, sub: r.preview) {
+                UserDefaults.standard.set(1, forKey: "hub_" + Pillar.translate.rawValue)
+                select(.translate)
+            }
+        }
+        let tk = TalkStore.shared.today().map { t in
+            TimelineExtra(at: t.startedAt, tag: "遠距".tr, title: t.partners.isEmpty ? "遠距對話".tr : t.partners.joined(separator: "、"),
+                          sub: "{0} 句".trf(t.lines.count)) { TalkPage.shared.presented = true }
+        }
+        return (tr + tk).sorted { $0.at > $1.at }
+    }
+
+    static func recap(_ store: MeetingStore) -> DayRecap {
+        let today = store.meetings.filter { Calendar.current.isDateInToday($0.createdAt) && $0.status == .done }
+        let food = today.filter(\.isFood).compactMap(\.nutrition)
+        let open = ActionItems.all(store).filter { Calendar.current.isDateInToday($0.0.createdAt) }
+            .flatMap { $0.1 }.filter { !ActionItems.done.contains($0.key) }.map(\.task)
+        return DayRecap(recordings: today.filter { !$0.isFood }.count,
+                        translations: TranslationStore.shared.records.filter { Calendar.current.isDateInToday($0.start) }.count,
+                        kcal: food.reduce(0) { $0 + $1.kcal }, kcalGoal: FoodGoals.kcal,
+                        protein: food.reduce(0) { $0 + $1.protein }, proteinGoal: FoodGoals.protein,
+                        usesFood: store.meetings.contains(where: \.isFood), openTodos: open)
+    }
+}
+
+/// 今天的翻譯、遠距對話（總覽排布用；快錄排布直接排進「今天的記錄」）。
+struct TodayExtrasCard: View {
+    let extras: [TimelineExtra]
+    var body: some View {
+        if !extras.isEmpty {
+            VStack(spacing: 0) {
+                ForEach(Array(extras.enumerated()), id: \.offset) { i, e in
+                    Button(action: e.action) { TimelineExtraRow(e: e) }.buttonStyle(.plain)
+                    if i < extras.count - 1 { Rectangle().fill(Brand.outline).frame(height: 1).padding(.leading, 68) }
+                }
+            }
+            .background(RoundedRectangle(cornerRadius: Brand.cardRadius, style: .continuous).fill(Brand.surface))
+            .overlay(RoundedRectangle(cornerRadius: Brand.cardRadius, style: .continuous).stroke(Brand.outline, lineWidth: 1))
         }
     }
 }

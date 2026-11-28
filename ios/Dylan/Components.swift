@@ -228,6 +228,10 @@ struct WatchPill: View {
             HStack(spacing: 6) {
                 Circle().fill(on ? Brand.success : Brand.textFaint).frame(width: 8, height: 8)
                 Text(on ? "手錶已連線".tr : "手錶未連線".tr).font(.labelMedium).foregroundStyle(on ? Brand.text : Brand.textMuted)
+                if let b = WatchBattery.recent() {   // 手錶電量（6 小時內的才顯示，低於 20% 變色）
+                    Text((b.charging ? "⚡" : "") + "\(b.percent)%").font(.labelMedium).monospacedDigit()
+                        .foregroundStyle(b.percent < 20 && !b.charging ? Brand.warning : Brand.textMuted)
+                }
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 7)

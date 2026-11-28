@@ -7174,5 +7174,205 @@
  "回報失敗": {
   "en": "Report failed",
   "ko": "신고 실패"
+ },
+ "貼上連結（YouTube、Podcast、音檔）": {
+  "en": "Paste a link (YouTube, podcast, audio file)",
+  "ko": "링크 붙여넣기 (YouTube, 팟캐스트, 오디오 파일)"
+ },
+ "直接的音檔連結手機自己下載；YouTube 等網頁請大D的主機抓（只抓聲音）。請只匯入你有權使用的內容。": {
+  "en": "Direct audio links are downloaded by the phone; pages like YouTube are fetched by Dylan Host (audio only). Only import content you have the right to use.",
+  "ko": "오디오 파일 링크는 휴대폰이 직접 받고, YouTube 같은 페이지는 Dylan 호스트가 가져옵니다(소리만). 사용 권한이 있는 콘텐츠만 가져오세요."
+ },
+ "遠距": {
+  "en": "Remote",
+  "ko": "원격"
+ },
+ "由大D產生 · {0}": {
+  "en": "Made with Dylan · {0}",
+  "ko": "Dylan에서 생성 · {0}"
+ },
+ "先到「錄音 → 設定」填 Notion 金鑰與頁面連結": {
+  "en": "First add your Notion key and page link in Recordings → Settings",
+  "ko": "먼저 「녹음 → 설정」에서 Notion 키와 페이지 링크를 입력하세요"
+ },
+ "存到 Notion 中…": {
+  "en": "Saving to Notion…",
+  "ko": "Notion에 저장 중…"
+ },
+ "存到 Notion 失敗：{0}": {
+  "en": "Couldn't save to Notion: {0}",
+  "ko": "Notion 저장 실패: {0}"
+ },
+ "就醫週報": {
+  "en": "Doctor visit report",
+  "ko": "진료용 식단 보고서"
+ },
+ "把近幾天的飲食整理成一份報告（平均對目標、每天一列、熱量來源、常吃的），給醫師、營養師或家人看。": {
+  "en": "Turns your recent meals into a report (averages vs goals, one row per day, calorie sources, usual meals) for your doctor, dietitian or family.",
+  "ko": "최근 식단을 보고서로 정리합니다(목표 대비 평균, 하루 한 줄, 열량 구성, 자주 먹는 음식). 의사, 영양사, 가족에게 보여 주세요."
+ },
+ "{0} 大卡 · {1} 次": {
+  "en": "{0} kcal · {1}×",
+  "ko": "{0} kcal · {1}회"
+ },
+ "碳水超過上限的天數": {
+  "en": "Days over carb limit",
+  "ko": "탄수화물 상한 초과 일수"
+ },
+ "每日碳水上限 {0} g（控糖）": {
+  "en": "Daily carb limit {0} g (blood sugar)",
+  "ko": "하루 탄수화물 상한 {0} g (혈당 관리)"
+ },
+ "選了會套用一組每日目標，AI 的營養小提醒也會照目標講重點；數字之後還可以自己改。": {
+  "en": "Choosing a goal applies a set of daily targets, and the AI's nutrition tips focus on it. You can still change the numbers.",
+  "ko": "목표를 고르면 하루 목표치가 적용되고 AI 영양 팁도 그 목표에 맞춰집니다. 숫자는 나중에 바꿀 수 있어요."
+ },
+ "碳水上限": {
+  "en": "Carb limit",
+  "ko": "탄수화물 상한"
+ },
+ "不限": {
+  "en": "No limit",
+  "ko": "제한 없음"
+ },
+ "長按一句可以更正譯文。": {
+  "en": "Long-press a line to correct its translation.",
+  "ko": "문장을 길게 누르면 번역을 고칠 수 있어요."
+ },
+ "更正譯文": {
+  "en": "Correct translation",
+  "ko": "번역 고치기"
+ },
+ "譯文": {
+  "en": "Translation",
+  "ko": "번역문"
+ },
+ "以後都這樣改（選填）": {
+  "en": "Always fix this (optional)",
+  "ko": "앞으로도 이렇게 고치기 (선택)"
+ },
+ "例如人名、公司名老是翻錯：存了之後，即時翻譯、遠距對話、情境片語翻成「{0}」時都會自動換掉。": {
+  "en": "For names or company names that keep coming out wrong: once saved, live translation, remote talk and phrases into {0} replace them automatically.",
+  "ko": "이름이나 회사명이 계속 틀리게 번역될 때: 저장하면 실시간 번역, 원격 대화, 상황별 문구를 「{0}」(으)로 번역할 때 자동으로 바뀝니다."
+ },
+ "只送原文、譯文、你的更正與語言，存在你自己的主機，用來改進翻譯。": {
+  "en": "Only the original, translation, your correction and languages are sent, and they stay on your own host to improve translation.",
+  "ko": "원문, 번역문, 수정 내용, 언어만 보내며 내 호스트에만 저장되어 번역 개선에 쓰입니다."
+ },
+ "回報失敗：{0}": {
+  "en": "Couldn't send report: {0}",
+  "ko": "신고 실패: {0}"
+ },
+ "翻譯更正": {
+  "en": "Translation fixes",
+  "ko": "번역 수정"
+ },
+ "在翻譯記錄長按一句可以更正譯文，也可以存「翻錯的詞 → 正確的詞」，之後自動套用。": {
+  "en": "Long-press a line in a translation record to correct it, or save \"wrong → right\" terms that are applied automatically from then on.",
+  "ko": "번역 기록에서 문장을 길게 눌러 고치거나 「틀린 말 → 맞는 말」을 저장하면 이후 자동으로 적용됩니다."
+ },
+ "公司、產品、縮寫（例如 BOM、NDA、ESG）、常出現的人名，一行一個或用逗號分開。整理報告時優先用這些寫法，減少同音錯字。": {
+  "en": "Company and product names, abbreviations (e.g. BOM, NDA, ESG) and names that come up often, one per line or comma-separated. Reports prefer these spellings to cut down on sound-alike mistakes.",
+  "ko": "회사·제품명, 약어(예: BOM, NDA, ESG), 자주 나오는 이름을 한 줄에 하나씩 또는 쉼표로 구분해 입력하세요. 보고서를 정리할 때 이 표기를 우선 사용해 비슷한 소리 오타를 줄입니다."
+ },
+ "例如：大D、BOM、王小明": {
+  "en": "e.g. Dylan, BOM, Alex Wang",
+  "ko": "예: Dylan, BOM, 김민수"
+ },
+ "常替說話者取的名字（自動加入）：": {
+  "en": "Names you often give speakers (added automatically): ",
+  "ko": "자주 붙인 화자 이름 (자동 추가): "
+ },
+ "連結匯入": {
+  "en": "Imported link",
+  "ko": "링크 가져오기"
+ },
+ "下載失敗（{0}）": {
+  "en": "Download failed ({0})",
+  "ko": "다운로드 실패 ({0})"
+ },
+ "這個連結要請大D的主機抓（設定 → 大D的主機）；直接的音檔連結（.mp3、.m4a…）手機可以自己下載": {
+  "en": "This link needs Dylan Host to fetch it (Settings → Dylan Host); direct audio links (.mp3, .m4a…) can be downloaded by the phone",
+  "ko": "이 링크는 Dylan 호스트가 가져와야 합니다(설정 → Dylan 호스트). 오디오 파일 링크(.mp3, .m4a…)는 휴대폰이 직접 받을 수 있어요"
+ },
+ "自動換邊：開": {
+  "en": "Auto switch: on",
+  "ko": "자동 전환: 켬"
+ },
+ "自動換邊：關": {
+  "en": "Auto switch: off",
+  "ko": "자동 전환: 끔"
+ },
+ "大D的主機還沒有這個功能：請在 Mac 上重新部署大D的主機（更新到最新版）": {
+  "en": "Dylan Host doesn't have this yet: redeploy Dylan Host on the Mac (update to the latest version)",
+  "ko": "Dylan 호스트에 아직 이 기능이 없습니다: Mac에서 Dylan 호스트를 다시 배포하세요(최신 버전으로 업데이트)"
+ },
+ "到 notion.so/my-integrations 建一個「內部整合」，把金鑰貼在下面；再到要放報告的頁面右上 ⋯ → 連結，選這個整合，然後貼上那頁的連結。之後報告的分享選單就有「存到 Notion」。": {
+  "en": "Create an internal integration at notion.so/my-integrations and paste its key below. Then on the page for your reports, tap ⋯ → Connections, pick the integration, and paste that page's link here. Reports' share menu will then have Save to Notion.",
+  "ko": "notion.so/my-integrations에서 「내부 통합」을 만들고 키를 아래에 붙여넣으세요. 보고서를 둘 페이지 오른쪽 위 ⋯ → 연결에서 그 통합을 고른 뒤 페이지 링크를 붙여넣으면, 보고서 공유 메뉴에 「Notion에 저장」이 생깁니다."
+ },
+ "Notion 金鑰（ntn_… 或 secret_…）": {
+  "en": "Notion key (ntn_… or secret_…)",
+  "ko": "Notion 키 (ntn_… 또는 secret_…)"
+ },
+ "看不懂這個頁面連結": {
+  "en": "Can't read this page link",
+  "ko": "페이지 링크를 알 수 없어요"
+ },
+ "從外面連線是一般 http，請只在需要時開房，用完離開。": {
+  "en": "Connections from outside use plain http, so only open a room when you need it and leave when done.",
+  "ko": "외부 연결은 일반 http이니 필요할 때만 방을 열고 끝나면 나가세요."
+ },
+ "從 {0} 播放": {
+  "en": "Play from {0}",
+  "ko": "{0}부터 재생"
+ },
+ "雲端": {
+  "en": "Cloud",
+  "ko": "클라우드"
+ },
+ "私有主機": {
+  "en": "Private host",
+  "ko": "개인 호스트"
+ },
+ "錄音交給你的大D的主機（分說話者、免費、不出你的設備）；連不到時改用 Gemini 或 Apple。": {
+  "en": "Recordings go to your Dylan Host (speaker labels, free, never leaves your devices); falls back to Gemini or Apple if it can't connect.",
+  "ko": "녹음을 내 Dylan 호스트에서 처리합니다(화자 구분, 무료, 내 기기 밖으로 안 나감). 연결이 안 되면 Gemini나 Apple을 씁니다."
+ },
+ "不上傳：用 Apple 在手機上轉文字與整理（不分說話者，需要 iOS 26 以上）。": {
+  "en": "No upload: Apple transcribes and summarizes on the phone (no speaker labels, needs iOS 26 or later).",
+  "ko": "업로드 없음: Apple이 휴대폰에서 받아쓰고 정리합니다(화자 구분 없음, iOS 26 이상 필요)."
+ },
+ "用 Gemini（免費金鑰）整理，分說話者、品質最好。進階可以在下面填大D的主機。": {
+  "en": "Gemini (free key) writes the report with speaker labels and the best quality. Advanced: set up Dylan Host below.",
+  "ko": "Gemini(무료 키)로 화자를 구분해 가장 좋은 품질로 정리합니다. 고급: 아래에서 Dylan 호스트를 설정하세요."
+ },
+ "照片讀不到": {
+  "en": "Couldn't read the photo",
+  "ko": "사진을 읽을 수 없어요"
+ },
+ "情境": {
+  "en": "Scene",
+  "ko": "상황"
+ },
+ "自訂片語": {
+  "en": "Custom phrase",
+  "ko": "내 문구"
+ },
+ "例如：請幫我叫計程車": {
+  "en": "e.g. Please call me a taxi",
+  "ko": "예: 택시 좀 불러 주세요"
+ },
+ "用你的語言寫，點一下會翻成對方的語言。長按可以刪除。": {
+  "en": "Write it in your language; tap to translate into the other person's language. Long-press to delete.",
+  "ko": "내 언어로 쓰면 누를 때 상대방 언어로 번역됩니다. 길게 눌러 삭제하세요."
+ },
+ "翻譯中…": {
+  "en": "Translating…",
+  "ko": "번역 중…"
+ },
+ "菜單翻譯": {
+  "en": "Menu translation",
+  "ko": "메뉴 번역"
  }
 }

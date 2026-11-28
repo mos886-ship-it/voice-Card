@@ -15,6 +15,8 @@ enum DylanProtocol {
     static let pathTheme = "/wristai/theme"
     /// 手機 → 手錶：即時翻譯最新一句（譯文，text；"" = 關掉）。
     static let pathCaption = "/wristai/caption"
+    /// 手錶 → 手機：手錶電量（text = "百分比,1=充電中"），手錶 App 打開時送。
+    static let pathBattery = "/wristai/battery"
 
     static let keyPath = "path"
     static let keyId = "id"

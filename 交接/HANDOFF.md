@@ -714,3 +714,11 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 - 翻譯錯誤回報：更正翻譯時「也回報給大D的主機」→ `POST /v1/feedback`，主機存到 `~/dylan-local/feedback.jsonl`（只留原文、譯文、更正、語言、版本、裝置 id）。
 - 主機：requirements 加 yt-dlp（不固定版本；抓不到時 `~/dylan-local/venv/bin/pip install -U yt-dlp`），setup.sh 複製 fetchurl.py。測試：`python local-ai/fetchurl_test.py`。
 - 測試：LinkAndNotionTest（SeekAndFixesTest.kt 裡）。
+
+## iOS：遠距對話 v2、第一～四批（跟 Android ac7e1ec～e849caa）
+- 遠距對話 v2：`TalkStore`（通話對象、每台主機的身分：id 在 UserDefaults、token 在鑰匙圈；記錄存 Documents/talks/<id>/talk.json＋原聲）、`TalkAudio`（`TalkClip` 從即時翻譯的音訊 tap 存最近 30 秒，一句說完剪成 AAC m4a；`TalkPlayer` 先播原聲再唸翻譯，播的時候辨識不聽）、`RemoteTalk`（開房／加入／接聽都帶 contact、撥打、拒接、上線回報：App 在前景每 20 秒）、`TalkView`（來電卡、未接、通話對象綠點、撥打、以前的對話＋回播）。App 其他畫面上方有來電橫幅（`IncomingCallBanner`）。
+- 第一批：「今天」時間軸排進即時翻譯（沒連錄音的）與遠距對話、晚上 9 點到清晨 4 點「今日回顧」（快錄、總覽兩種排布都有）；飲食「常吃的」一鍵再記（`FoodRepeat`）；健康目標四選一＋碳水上限（`FoodGoals`，提示詞營養小提醒照目標、主機 X-Food-Goal）；個人詞庫（錄音 → 設定，`Vocab`，報告提示詞＋主機 X-Vocab）。iOS 沒有說話者改名對話框，所以「常用的名字」只用在詞庫。
+- 第二批：翻譯情境列＋片語（`TranslateScenes.swift`，片語用 Apple 翻譯、iOS 18 以上）；旅遊「拍菜單／選照片」→ Gemini；手錶上下分割雙語（`原文\u{1F}譯文`，手錶沒在錄音時顯示，點一下關）；報告分享選單：文字／PDF（HTML → 系統列印引擎，A4）／Word（自己組的 zip）／Markdown／存到 Notion；課堂講座 extra 與三個新章節標題；就醫週報（飲食 → 分析，PDF／Word）；AI 模式三選一（設定，雲端／離線／私有主機：`LocalAI.paused`、`LocalAI.active`，遠距對話照常用主機）。
+- 第三批：報告條列「▶ mm:ss」跳原音（`ReportSeek`，跟 Android 同規則）；翻譯記錄長按 → 更正譯文、存「翻錯的 → 正確的」（`TranslateFixes`，即時翻譯、遠距對話、片語都套用；翻譯 → 設定有清單）；手錶電量（手錶打開時 transferUserInfo `/wristai/battery`，手錶標籤顯示，6 小時內）。
+- 第四批：即時翻譯工具列「自動換邊」（譯文念完＋安靜 1.6 秒對調）；匯入選單「貼上連結」（直接媒體手機下載，其他請主機 /v1/fetch_url）；翻譯更正可勾「也回報給大D的主機」（/v1/feedback）；Notion 金鑰存鑰匙圈。iOS 還沒有分享延伸功能，別的 App 分享「連結」給大D這條沒做（檔案照舊可以用「打開方式」）。
+- 模擬器用 fake_host 驗過：邀請連結加入（帶聯絡人身分）、收到對方原聲＋同語言句子 → 下載原聲、存記錄；對方掛斷後撥打 → 20 秒內出現來電卡與綠點 → 接聽進房；情境列、AI 模式、匯出 PDF（中文、表格正常）。**還沒驗**：真機的 Apple 翻譯、自己的原聲剪輯（模擬器麥克風沒聲音）、兩支真手機、拍菜單、Notion、連結匯入、手錶分割字幕與電量。

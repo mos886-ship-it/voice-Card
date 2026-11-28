@@ -108,14 +108,6 @@ struct TranslateHub: View {
 
 // MARK: - 共用
 
-/// 飲食目標（飲食 → 設定）：熱量、蛋白質、纖維。
-enum FoodGoals {
-    static let kcalKey = "food_goal_kcal", proteinKey = "food_goal_protein", fiberKey = "food_goal_fiber"
-    static var kcal: Int { (UserDefaults.standard.object(forKey: kcalKey) as? Int) ?? 2000 }
-    static var protein: Int { (UserDefaults.standard.object(forKey: proteinKey) as? Int) ?? 60 }
-    static var fiber: Int { (UserDefaults.standard.object(forKey: fiberKey) as? Int) ?? 25 }
-}
-
 /// 近 7／30 天。
 private struct RangePicker: View {
     @Binding var days: Int
@@ -338,6 +330,8 @@ struct RecordSettingsView: View {
                     Text("法律、醫療、財務等專業內容，報告多一節「專業重點」，術語與重點照該領域整理。自動判斷：一般對話不加。".tr)
                         .font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 4)
                 }
+                VocabCard()
+                NotionCard()
                 Text("AI 引擎、大D的主機、手錶等在「設定」頁。".tr).font(.bodySmall).foregroundStyle(Brand.textFaint)
             }
             .pageColumn()
@@ -472,6 +466,14 @@ struct FoodAnalysisView: View {
                         ForEach(mealsBy, id: \.0) { m in kv(m.0.isEmpty ? "其他".tr : m.0.tr, "\(m.1)") }
                     }
                 }
+                if FoodGoals.carbCap > 0 {
+                    let over = logged.filter { sum($0.1, \.carbs) > FoodGoals.carbCap }.count
+                    GlassCard {
+                        kv("碳水超過上限的天數".tr, "\(over)/\(logged.count)")
+                        Text("每日碳水上限 {0} g（控糖）".trf(FoodGoals.carbCap)).font(.bodySmall).foregroundStyle(Brand.textMuted)
+                    }
+                }
+                FoodReportCard()
             }
             .pageColumn()
             .padding(.vertical, 12)
@@ -490,6 +492,8 @@ struct FoodAnalysisView: View {
 // MARK: - 飲食：設定
 
 struct FoodSettingsView: View {
+    @AppStorage(FoodGoals.modeKey) private var goalMode = FoodGoals.balanced
+    @AppStorage(FoodGoals.carbCapKey) private var carbCap = 0
     @AppStorage(FoodGoals.kcalKey) private var kcal = 2000
     @AppStorage(FoodGoals.proteinKey) private var protein = 60
     @AppStorage(FoodGoals.fiberKey) private var fiber = 25
@@ -500,10 +504,23 @@ struct FoodSettingsView: View {
             VStack(alignment: .leading, spacing: 12) {
                 PageTitle(title: "飲食設定".tr, sub: "改了就存".tr)
                 GlassCard {
+                    Text("健康目標".tr).font(.titleSmall).foregroundStyle(Brand.text).padding(.bottom, 6)
+                    Picker("健康目標".tr, selection: Binding(get: { goalMode }, set: { FoodGoals.setMode($0); goalMode = $0
+                        kcal = FoodGoals.kcal; protein = FoodGoals.protein; fiber = FoodGoals.fiber; carbCap = FoodGoals.carbCap })) {
+                        ForEach(FoodGoals.allModes, id: \.self) { Text(FoodGoals.label($0)).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                    Text("選了會套用一組每日目標，AI 的營養小提醒也會照目標講重點；數字之後還可以自己改。".tr)
+                        .font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 6)
+                }
+                GlassCard {
                     Text("每日目標".tr).font(.titleSmall).foregroundStyle(Brand.text).padding(.bottom, 6)
                     Stepper(value: $kcal, in: 800...5000, step: 50) { kv("熱量".tr, "\(kcal) " + "大卡".tr) }
                     Stepper(value: $protein, in: 10...300, step: 5) { kv("蛋白質".tr, "\(protein) g") }
                     Stepper(value: $fiber, in: 5...80, step: 1) { kv("纖維".tr, "\(fiber) g") }
+                    Stepper(value: $carbCap, in: 0...400, step: 10) {
+                        kv("碳水上限".tr, carbCap == 0 ? "不限".tr : "\(carbCap) g")
+                    }
                 }
                 GlassCard {
                     HStack {
@@ -574,7 +591,12 @@ struct TranslationDetailView: View {
     let open: (String) -> Void
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var meetings: MeetingStore
+    @ObservedObject private var store = TranslationStore.shared
     @State private var confirmDelete = false
+    @State private var editing: Int?
+
+    /// 改過的那筆（存檔後畫面跟著更新）
+    private var current: TranslationRecord { store.records.first { $0.id == record.id } ?? record }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -594,11 +616,20 @@ struct TranslationDetailView: View {
                             if let id = TranslationReport.create(record) { open(id) }
                         }
                     }
-                    ForEach(Array(record.lines.enumerated()), id: \.offset) { _, l in
+                    Text("長按一句可以更正譯文。".tr).font(.labelMedium).foregroundStyle(Brand.textFaint)
+                    ForEach(Array(current.lines.enumerated()), id: \.offset) { i, l in
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(l.original).font(.bodySmall).foregroundStyle(Brand.textMuted).textSelection(.enabled)
+                            Text(l.original).font(.bodySmall).foregroundStyle(Brand.textMuted)
                             if let t = l.translated, !t.isEmpty {
-                                Text(t).font(.titleMedium).foregroundStyle(Brand.text).textSelection(.enabled)
+                                Text(t).font(.titleMedium).foregroundStyle(Brand.text)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                        .contextMenu {
+                            Button { editing = i } label: { Label("更正譯文".tr, systemImage: "pencil") }
+                            Button { UIPasteboard.general.string = [l.original, l.translated ?? ""].filter { !$0.isEmpty }.joined(separator: "\n") } label: {
+                                Label("複製".tr, systemImage: "doc.on.doc")
                             }
                         }
                     }
@@ -612,6 +643,97 @@ struct TranslationDetailView: View {
         .background(AppBackdrop())
         .confirmationDialog("刪除這筆翻譯記錄？".tr, isPresented: $confirmDelete, titleVisibility: .visible) {
             Button("刪除".tr, role: .destructive) { TranslationStore.shared.delete(record); dismiss() }
+        }
+        .sheet(item: Binding(get: { editing.map { EditIndex(i: $0) } }, set: { editing = $0?.i })) { e in
+            FixLineSheet(record: current, index: e.i)
+        }
+    }
+
+    private struct EditIndex: Identifiable { let i: Int; var id: Int { i } }
+}
+
+/// 更正一句譯文：改這句、也可以存「翻錯的詞 → 正確的詞」（之後自動套用）、回報給大D的主機。
+struct FixLineSheet: View {
+    let record: TranslationRecord
+    let index: Int
+    @Environment(\.dismiss) private var dismiss
+    @State private var text = ""
+    @State private var wrong = ""
+    @State private var right = ""
+    @State private var report = false
+    @State private var note: String?
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("原文".tr) { Text(record.lines[index].original).foregroundStyle(.secondary) }
+                Section("譯文".tr) { TextField("譯文".tr, text: $text, axis: .vertical).lineLimit(2...6) }
+                Section {
+                    TextField("翻錯的詞".tr, text: $wrong)
+                    TextField("正確的詞".tr, text: $right)
+                } header: { Text("以後都這樣改（選填）".tr) } footer: {
+                    Text("例如人名、公司名老是翻錯：存了之後，即時翻譯、遠距對話、情境片語翻成「{0}」時都會自動換掉。".trf(record.targetLabel))
+                }
+                if LocalAI.configured {
+                    Section {
+                        Toggle("也回報給大D的主機".tr, isOn: $report)
+                    } footer: { Text("只送原文、譯文、你的更正與語言，存在你自己的主機，用來改進翻譯。".tr) }
+                }
+                if let note { Text(note).foregroundStyle(.orange) }
+            }
+            .navigationTitle("更正譯文".tr).navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("取消".tr) { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) { Button("儲存".tr) { save() } }
+            }
+        }
+        .onAppear { text = record.lines[index].translated ?? "" }
+    }
+
+    private func save() {
+        let old = record.lines[index].translated ?? ""
+        var r = record
+        r.lines[index].translated = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        TranslationStore.shared.save(r)
+        if !wrong.trimmingCharacters(in: .whitespaces).isEmpty { TranslateFixes.add(lang: record.target, wrong: wrong, right: right) }
+        guard report else { dismiss(); return }
+        Task {
+            do {
+                try await LocalAI.feedback(["kind": "translation", "source": record.source, "target": record.target,
+                                            "original": record.lines[index].original, "translated": old, "corrected": text,
+                                            "note": wrong.isEmpty ? "" : wrong + " → " + right,
+                                            "app": "ios " + (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")])
+                dismiss()
+            } catch {
+                note = "回報失敗：{0}".trf(error.localizedDescription)
+            }
+        }
+    }
+}
+
+/// 翻譯 → 設定：翻譯更正清單（可以刪）。
+struct FixesCard: View {
+    @State private var fixes = TranslateFixes.all
+    var body: some View {
+        GlassCard {
+            Text("翻譯更正".tr).font(.titleSmall).foregroundStyle(Brand.text)
+            if fixes.isEmpty {
+                Text("在翻譯記錄長按一句可以更正譯文，也可以存「翻錯的詞 → 正確的詞」，之後自動套用。".tr)
+                    .font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 4)
+            } else {
+                ForEach(fixes, id: \.self) { f in
+                    HStack {
+                        Text(f.wrong + " → " + f.right).font(.bodyMedium).foregroundStyle(Brand.text)
+                        Text(TranslateLangs.name(f.lang)).font(.labelSmall).foregroundStyle(Brand.textFaint)
+                        Spacer()
+                        Button { TranslateFixes.remove(f); fixes = TranslateFixes.all } label: {
+                            Image(systemName: "xmark.circle.fill").foregroundStyle(Brand.textFaint)
+                        }
+                        .buttonStyle(.plain).accessibilityLabel("刪除".tr)
+                    }
+                    .padding(.vertical, 2)
+                }
+            }
         }
     }
 }
@@ -719,10 +841,11 @@ struct TranslateSettingsView: View {
                             .font(.bodySmall).foregroundStyle(Brand.textMuted)
                         Spacer()
                         GhostButton(text: "試聽".tr, tint: Brand.cyan) {
-                            Speaker.shared.speak(t.hasPrefix("zh") ? "你好，這是大D的朗讀。" : "Hello, this is Big D reading aloud.", lang: t, queue: false)
+                            Speaker.shared.speak(t.hasPrefix("zh") ? "你好，這是大D的朗讀。" : "Hello, this is Dylan reading aloud.", lang: t, queue: false)
                         }
                     }
                 }
+                FixesCard()
                 Text("翻譯用 Apple「翻譯」（iOS 18 以上），第一次用某個語言時系統會問要不要下載。".tr)
                     .font(.bodySmall).foregroundStyle(Brand.textFaint)
             }
@@ -730,5 +853,25 @@ struct TranslateSettingsView: View {
             .padding(.vertical, 12)
         }
         .task { targets = await TranslateLangs.targets() }
+    }
+}
+
+
+/// 錄音 → 設定：個人詞庫（專有名詞、縮寫、人名）。
+struct VocabCard: View {
+    @AppStorage(Vocab.key) private var raw = ""
+    var body: some View {
+        GlassCard {
+            Text("個人詞庫".tr).font(.titleSmall).foregroundStyle(Brand.text)
+            Text("公司、產品、縮寫（例如 BOM、NDA、ESG）、常出現的人名，一行一個或用逗號分開。整理報告時優先用這些寫法，減少同音錯字。".tr)
+                .font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.vertical, 6)
+            TextField("例如：大D、BOM、王小明".tr, text: $raw, axis: .vertical)
+                .lineLimit(3...8).textFieldStyle(.roundedBorder)
+            let names = Vocab.frequentNames(limit: 10)
+            if !names.isEmpty {
+                Text("常替說話者取的名字（自動加入）：".tr + names.joined(separator: "、"))
+                    .font(.labelMedium).foregroundStyle(Brand.textFaint).padding(.top, 6)
+            }
+        }
     }
 }

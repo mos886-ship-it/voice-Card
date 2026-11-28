@@ -85,6 +85,8 @@ struct RootView: View {
         .environment(\.pageWidth, geo.size.width)
         }
         .toast($toast)
+        // 來電（遠距對話頁自己有來電卡，不重複）
+        .overlay(alignment: .top) { if path.last != TalkPage.route { IncomingCallBanner() } }
         // 遠距對話：推一頁（用全螢幕蓋在翻譯頁上會跟翻譯頁自己的視窗打架，打不開）
         .onChange(of: talkPage.presented) { on in
             guard on else { return }

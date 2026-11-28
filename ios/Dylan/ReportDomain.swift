@@ -10,7 +10,7 @@ enum ReportDomain {
     static let auto = "auto", off = "off"
     static let key = "report_domain"
 
-    struct Domain: Decodable { let id: String; let name: String; let focus: String; let disclaimer: String? }
+    struct Domain: Decodable { let id: String; let name: String; let focus: String; let disclaimer: String?; let extra: String? }
     struct Table: Decodable { let section: String; let common: String; let auto: String; let domains: [Domain] }
 
     static let table: Table? = {
@@ -38,6 +38,7 @@ enum ReportDomain {
             guard let d = t.domains.first(where: { $0.id == setting }) else { return "" }
             return t.common.replacingOccurrences(of: "【領域專家模式】", with: "【領域專家模式：\(d.name)】")
                 + "\n這個領域要注意的事項：\(d.focus)。"
+                + (d.extra.map { "\n" + $0 } ?? "")
                 + (d.disclaimer.map { "\n報告最後加一行：「\($0)」" } ?? "")
         }
     }

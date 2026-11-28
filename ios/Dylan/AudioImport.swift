@@ -117,15 +117,37 @@ struct ImportSources: ViewModifier {
     let done: (_ errors: [String], _ total: Int) -> Void
     @State private var pickingVideos = false
     @State private var items: [PhotosPickerItem] = []
+    @State private var askingLink = false
+    @State private var link = ""
 
     func body(content: Content) -> some View {
         content
             .confirmationDialog("匯入".tr, isPresented: $choosing, titleVisibility: .visible) {
                 Button("從檔案選（錄音、影片、文字）".tr) { pickingFiles = true }
                 Button("從相簿選影片".tr) { pickingVideos = true }
+                Button("貼上連結（YouTube、Podcast、音檔）".tr) {
+                    // 剪貼簿有連結就先填好
+                    link = UIPasteboard.general.hasURLs || (UIPasteboard.general.string ?? "").contains("http")
+                        ? (LinkImport.normalize(UIPasteboard.general.string ?? UIPasteboard.general.url?.absoluteString ?? "") ?? "") : ""
+                    askingLink = true
+                }
                 Button("取消".tr, role: .cancel) {}
             } message: {
                 Text("影片只取出聲音來產生報告，影像不會存。".tr)
+            }
+            .alert("從連結匯入".tr, isPresented: $askingLink) {
+                TextField("https://…", text: $link).textInputAutocapitalization(.never).autocorrectionDisabled()
+                Button("匯入".tr) {
+                    let l = link
+                    started()
+                    Task {
+                        let e = await LinkImport.run(l)
+                        done(e.map { [$0] } ?? [], 1)
+                    }
+                }
+                Button("取消".tr, role: .cancel) {}
+            } message: {
+                Text("直接的音檔連結手機自己下載；YouTube 等網頁請大D的主機抓（只抓聲音）。請只匯入你有權使用的內容。".tr)
             }
             .photosPicker(isPresented: $pickingVideos, selection: $items, maxSelectionCount: 5,
                           matching: .videos, preferredItemEncoding: .current)

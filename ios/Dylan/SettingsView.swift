@@ -41,10 +41,10 @@ struct SettingsView: View {
                 GlassCard(highlight: true) {
                     Text("系統狀態".tr).font(.labelSmall).tracking(1.2).foregroundStyle(Brand.textMuted)
                     StatusRow(label: "AI 報告引擎".tr,
-                              value: LocalAI.configured ? LocalAI.modelLabel : (ai.engine?.title ?? "偵測中…".tr),
-                              detail: LocalAI.configured ? "大D的主機：分說話者、免費、不出你的設備；連不到時改用 ".tr + (MeetingStore.hasGeminiKey ? "Gemini" : "Apple")
+                              value: LocalAI.active ? LocalAI.modelLabel : (ai.engine?.title ?? "偵測中…".tr),
+                              detail: LocalAI.active ? "大D的主機：分說話者、免費、不出你的設備；連不到時改用 ".tr + (MeetingStore.hasGeminiKey ? "Gemini" : "Apple")
                                                          : (ai.engine?.detail ?? ""),
-                              color: LocalAI.configured || (ai.engine?.ready ?? false) ? Brand.success : Brand.warning)
+                              color: LocalAI.active || (ai.engine?.ready ?? false) ? Brand.success : Brand.warning)
                         .padding(.top, 12)
                     if mode == .tech || hasWatch {
                         DividerLine().padding(.vertical, 12)
@@ -183,7 +183,7 @@ struct SettingsView: View {
                         DividerLine().padding(.vertical, 12)
                         Text("這支 iPhone 會用：".tr).font(.labelMedium).foregroundStyle(Brand.textMuted)
                         VStack(alignment: .leading, spacing: 8) {
-                            UseRow(task: "錄音報告".tr, engine: LocalAI.configured ? LocalAI.modelLabel + "（連不到時改用 Gemini）".tr : (ai.engine?.title ?? ""))
+                            UseRow(task: "錄音報告".tr, engine: LocalAI.active ? LocalAI.modelLabel + "（連不到時改用 Gemini）".tr : (ai.engine?.title ?? ""))
                             UseRow(task: "輔助".tr, engine: ai.helper?.title ?? "無（這支 iPhone 沒有 Apple 語音辨識）".tr)
                             UseRow(task: "飲食".tr, engine: ai.foodEngine?.title ?? "")
                         }
@@ -196,6 +196,8 @@ struct SettingsView: View {
                 }
                 }
                 } right: {
+                SectionLabel(text: "AI 模式".tr)
+                AiModeCard { Task { await ai.refresh() } }
                 SectionLabel(text: "大D的主機".tr)
                 LocalMacCard { Task { await ai.refresh() } }
                 SectionLabel(text: "隱私模式".tr)
@@ -660,6 +662,48 @@ private struct LocalMacCard: View {
                 .background(RoundedRectangle(cornerRadius: 12).fill(Brand.surfaceHigh))
                 .overlay(RoundedRectangle(cornerRadius: 12).stroke(Brand.outline, lineWidth: 1))
         }
+    }
+}
+
+/// AI 模式三選一（照 Android「AI 引擎」）：雲端（Gemini）／離線（Apple，手機上）／私有主機（大D的主機）。
+/// 雲端、離線時主機暫停（報告不交給主機，遠距對話照常）；離線＝隱私模式。
+private struct AiModeCard: View {
+    let onChange: () -> Void
+    @AppStorage(MeetingStore.privacyKey) private var privacy = false
+    @AppStorage(LocalAI.pausedKey) private var paused = false
+
+    private var mode: String { LocalAI.configured && !paused ? "host" : (privacy ? "offline" : "cloud") }
+
+    var body: some View {
+        GlassCard {
+            Picker("AI 模式".tr, selection: Binding(get: { mode }, set: { set($0) })) {
+                Text("雲端".tr).tag("cloud")
+                Text("離線".tr).tag("offline")
+                Text("私有主機".tr).tag("host")
+            }
+            .pickerStyle(.segmented)
+            Text(note).font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 6)
+        }
+    }
+
+    private var note: String {
+        switch mode {
+        case "host": return "錄音交給你的大D的主機（分說話者、免費、不出你的設備）；連不到時改用 Gemini 或 Apple。".tr
+        case "offline": return "不上傳：用 Apple 在手機上轉文字與整理（不分說話者，需要 iOS 26 以上）。".tr
+        default: return "用 Gemini（免費金鑰）整理，分說話者、品質最好。進階可以在下面填大D的主機。".tr
+        }
+    }
+
+    private func set(_ m: String) {
+        switch m {
+        case "host":
+            paused = false; privacy = false
+        case "offline":
+            paused = true; privacy = true
+        default:
+            paused = true; privacy = false
+        }
+        onChange()
     }
 }
 

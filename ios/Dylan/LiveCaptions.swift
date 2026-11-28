@@ -116,6 +116,7 @@ final class LiveCaptions: ObservableObject {
 
     /// PhoneRecorder 的音訊 tap 呼叫：開著字幕才送。
     nonisolated static func feed(_ buffer: AVAudioPCMBuffer) {
+        TalkClip.append(buffer, silent: Speaker.busy)   // 遠距對話的原聲（沒開時只記樣本數）
         if Speaker.busy { return }   // 正在念譯文：聽到的是自己的聲音
         lock.lock(); let r = request; lock.unlock()
         r?.append(buffer)
@@ -190,6 +191,10 @@ final class LiveCaptions: ObservableObject {
 
     /// 設定：允許線上辨識（手機上辨識不了的語言送 Apple）、自動朗讀
     static let onlineKey = "translate_online", readAloudKey = "translate_read_aloud", showOriginalKey = "translate_show_original"
+    /// 對話模式（⇄ 自動換邊）：一句說完、譯文念完、安靜 1.6 秒就自動對調方向；還在說就不換。
+    static let conversationKey = "translate_conversation"
+    static var conversationMode: Bool { UserDefaults.standard.bool(forKey: conversationKey) }
+    static let turnSeconds = 1.6
     static var allowOnline: Bool { UserDefaults.standard.object(forKey: onlineKey) as? Bool ?? true }
     static var readAloud: Bool { UserDefaults.standard.bool(forKey: readAloudKey) }
 
@@ -342,6 +347,7 @@ final class LiveCaptions: ObservableObject {
             if !sentence.isEmpty { commit(sentence) }
         }
         partialText = rest
+        if !rest.trimmingCharacters(in: .whitespaces).isEmpty { turnTask?.cancel() }   // 還在說：不換邊
         setPartial(rest)
         requestDraft()
         // 主要靠停頓切句：文字約 0.7 秒沒變（只翻譯模式 1 秒）就把這段定下來翻
@@ -385,7 +391,7 @@ final class LiveCaptions: ObservableObject {
 
     func drafted(_ id: Int, _ text: String) {
         guard let i = lines.firstIndex(where: { $0.id == id && $0.partial }) else { return }
-        lines[i].draft = text
+        lines[i].draft = TranslateFixes.apply(text, lang: target)
     }
 
     /// 英文句點：後面有空白才算（避免 3.5、U.S. 這種）
@@ -444,12 +450,28 @@ final class LiveCaptions: ObservableObject {
 
     func takeQueue() -> [(Int, String)] { defer { queue = [] }; return queue }
 
-    func translated(_ id: Int, _ text: String) {
+    func translated(_ id: Int, _ raw: String) {
         guard let i = lines.firstIndex(where: { $0.id == id }) else { return }
+        let text = TranslateFixes.apply(raw, lang: target)   // 使用者存過的「翻錯的 → 正確的」
         lines[i].translated = text
-        if Self.watchCaptions { PhoneLink.shared.sendCaption(text) }
+        scheduleTurn()
+        if Self.watchCaptions { PhoneLink.shared.sendCaption(text, original: lines[i].original) }
         if Self.readAloud { Speaker.shared.speak(text, lang: target) }
         WidgetBridge.translated(text, original: lines[i].original)
+    }
+
+    private var turnTask: Task<Void, Never>?
+
+    /// 對話模式：等譯文念完、再安靜 1.6 秒，沒人在說就對調方向（不是遠距對話時才做）。
+    private func scheduleTurn() {
+        guard Self.conversationMode, running, !RemoteTalk.shared.connected else { return }
+        turnTask?.cancel()
+        turnTask = Task { [weak self] in
+            while Speaker.shared.speaking { try? await Task.sleep(nanoseconds: 200_000_000) }
+            try? await Task.sleep(nanoseconds: UInt64(Self.turnSeconds * 1_000_000_000))
+            guard !Task.isCancelled, let self, self.running, !self.lines.contains(where: \.partial), self.queue.isEmpty else { return }
+            self.swap()
+        }
     }
 
     func translationFailed(_ message: String) {

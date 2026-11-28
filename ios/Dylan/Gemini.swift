@@ -84,6 +84,7 @@ struct GeminiClient {
         FoodDB.use(country)   // 這一餐的國家有內建資料庫（台、美、日、韓）就用那份
         let p = FoodDB.ready ? foodDBPrompt : legacyFoodPrompt
         return p.replacingOccurrences(of: "- " + FoodRegion.portionRule("TW"), with: "- " + FoodRegion.portionRule(country))
+            .replacingOccurrences(of: "（1～3 點，針對這一餐的簡短、實際建議）", with: "（1～3 點，針對這一餐的簡短、實際建議；\(FoodGoals.adviceRule())）")
     }
 
     /// 照抄 Android `FoodLog.dbPrompt(withTranscript = true)`。

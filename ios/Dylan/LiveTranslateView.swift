@@ -24,6 +24,7 @@ struct LiveTranslateView: View {
     @AppStorage(LiveCaptions.showOriginalKey) private var showOriginal = true
     @AppStorage(LiveCaptions.readAloudKey) private var readAloud = false
     @AppStorage("translate_with_recording") private var withRecording = false
+    @AppStorage(LiveCaptions.conversationKey) private var conversation = false
     @State private var source = TranslateLangs.source
     @State private var target = TranslateLangs.target(for: TranslateLangs.source)
     @State private var picking: Side?
@@ -38,6 +39,7 @@ struct LiveTranslateView: View {
             if !embedded { TopBar(title: "即時翻譯".tr, onBack: { dismiss() }) { EmptyView() } }
             VStack(alignment: .leading, spacing: 10) {
                 langBar
+                SceneBar(source: source, target: target)
                 controls
                 if let s = captions.error ?? captions.status {
                     Text(s).font(.bodySmall).foregroundStyle(captions.error != nil ? Brand.warning : Brand.textMuted)
@@ -154,6 +156,9 @@ struct LiveTranslateView: View {
             tool(readAloud ? "speaker.wave.2.fill" : "speaker.slash", readAloud ? "朗讀：開".tr : "朗讀：關".tr, on: readAloud) {
                 readAloud.toggle()
                 if !readAloud { speaker.stop() }
+            }
+            tool("arrow.left.arrow.right.circle", conversation ? "自動換邊：開".tr : "自動換邊：關".tr, on: conversation) {
+                conversation.toggle()
             }
             tool("arrow.up.left.and.arrow.down.right", "放大".tr) { enlarged = true }
             tool("trash", "清除".tr, enabled: !captions.lines.isEmpty) { captions.clear() }
