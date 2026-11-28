@@ -78,21 +78,7 @@ struct FoodHub: View {
 struct TranslateHub: View {
     let open: (String) -> Void
     @Binding var toast: String?
-    @ObservedObject private var talk = RemoteTalk.shared
-    var body: some View {
-        VStack(spacing: 0) {
-            // 右上：遠距對話（兩地即時翻譯）
-            HStack {
-                Spacer()
-                GhostButton(text: talk.connected ? "遠距對話中".tr : "遠距對話".tr, systemImage: "person.2.wave.2", tint: Brand.cyan) {
-                    TalkPage.shared.presented = true
-                }
-            }
-            .pageColumn()
-            .padding(.top, 4)
-            hub
-        }
-    }
+    var body: some View { hub }   // 遠距對話改成自己的「對話」分頁
 
     private var hub: some View {
         HubScaffold(pillar: .translate) { i in

@@ -52,7 +52,6 @@ struct DashboardView: View {
                     if mode == .tech || hasWatch {
                         WatchPill(state: link.watchState) { select(.settings) }
                     }
-                    TalkEntryButton()   // 遠距對話（來電、未接、好友邀請有紅色數字）
                     // 快錄的分頁列沒有「設定」：從這裡進
                     IconCircle(systemImage: "gearshape", label: "設定".tr) { select(.settings) }
                 }
@@ -261,6 +260,9 @@ private struct CaptureCard: View {
                 mini("通話".tr, call) { Image(systemName: "phone").font(.system(size: 15)).foregroundStyle(Brand.cyan) }
                 mini("匯入".tr, importFile) { Image(systemName: "square.and.arrow.down").font(.system(size: 15)).foregroundStyle(Brand.cyan) }
                 mini("翻譯".tr, { TranslatePage.shared.open() }) { Text("文A").font(.labelMedium).foregroundStyle(Brand.cyan) }
+                mini("對話".tr, { TalkPage.shared.presented = true }) {
+                    Image(systemName: "bubble.left.and.bubble.right").font(.system(size: 14)).foregroundStyle(Brand.cyan)
+                }
             }
             .padding(.top, 12)
         }

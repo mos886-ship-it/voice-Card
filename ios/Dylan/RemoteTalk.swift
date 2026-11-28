@@ -587,14 +587,17 @@ struct TalkTranslateHost: View {
 /// 遠距對話頁（獨立一頁，照 Android `ui/TalkScreen.kt`）：還沒通話 → 好友｜最近｜我的；通話中 → 通話畫面。
 /// 入口：主頁右上電話鈕、翻譯頁「遠距對話」、邀請連結、時間軸（都設 `TalkPage.shared.presented = true`）。
 struct TalkView: View {
+    /// 放在「對話」分頁：沒有返回鍵、背景由 RootView 畫（重複的背景會蓋住上面的按鈕）
+    var asTab = false
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var talk = RemoteTalk.shared
 
     var body: some View {
+        let back: (() -> Void)? = asTab ? nil : { dismiss() }
         Group {
-            if talk.connected { InCallView { dismiss() } } else { TalkHome { dismiss() } }
+            if talk.connected { InCallView(back: back) } else { TalkHome(back: back) }
         }
-        .background(AppBackdrop())
+        .background { if !asTab { AppBackdrop() } }
         .background(TalkTranslateHost())
         .onAppear { talk.startPresence() }
     }
@@ -645,7 +648,7 @@ private struct RoundButton: View {
 // MARK: - 還沒通話：好友｜最近｜我的
 
 private struct TalkHome: View {
-    let back: () -> Void
+    let back: (() -> Void)?
     @ObservedObject private var talk = RemoteTalk.shared
     @ObservedObject private var friends = TalkFriends.shared
     @ObservedObject private var store = TalkStore.shared
@@ -704,7 +707,7 @@ private struct TalkHome: View {
 
     private var header: some View {
         HStack(spacing: 12) {
-            IconCircle(systemImage: "chevron.left", label: "返回".tr, action: back)
+            if let back { IconCircle(systemImage: "chevron.left", label: "返回".tr, action: back) }
             VStack(alignment: .leading, spacing: 0) {
                 Text("遠距對話".tr).font(.titleMedium).foregroundStyle(Brand.text)
                 Text("各說各的語言，即時翻譯".tr).font(.labelMedium).foregroundStyle(Brand.textMuted)
@@ -1011,7 +1014,7 @@ private struct InviteSheet: View {
 // MARK: - 通話中
 
 private struct InCallView: View {
-    let back: () -> Void
+    let back: (() -> Void)?
     @ObservedObject private var talk = RemoteTalk.shared
     @ObservedObject private var captions = LiveCaptions.shared
     @AppStorage(RemoteTalk.playOriginalKey) private var playOriginal = true
@@ -1021,7 +1024,7 @@ private struct InCallView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 12) {
-                IconCircle(systemImage: "chevron.left", label: "返回".tr, action: back)
+                if let back { IconCircle(systemImage: "chevron.left", label: "返回".tr, action: back) }
                 TalkAvatar(name: other?.name ?? talk.calling ?? "?", size: 40)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(other?.name ?? talk.calling ?? "遠距對話".tr).font(.titleSmall).foregroundStyle(Brand.text).lineLimit(1)
@@ -1217,29 +1220,11 @@ struct IncomingCallView: View {
     }
 }
 
-/// 主頁右上的電話鈕：有來電、未接、好友邀請時紅色數字。
-struct TalkEntryButton: View {
-    @ObservedObject private var talk = RemoteTalk.shared
-    @ObservedObject private var friends = TalkFriends.shared
-
-    var body: some View {
-        let n = talk.calls.count + friends.requests.count
-        IconCircle(systemImage: "phone", label: "遠距對話".tr, tint: Brand.success) { TalkPage.shared.presented = true }
-            .overlay(alignment: .topTrailing) {
-                if n > 0 {
-                    Text("\(n)").font(.system(size: 11, weight: .bold)).foregroundStyle(.white)
-                        .padding(.horizontal, 5).frame(minWidth: 18, minHeight: 18)
-                        .background(Capsule().fill(Brand.error)).offset(x: 4, y: -4)
-                }
-            }
-    }
-}
-
-/// 打開遠距對話頁（翻譯分頁右上的按鈕、dylan://talk 連結）。
+/// 打開遠距對話（「對話」分頁）：邀請連結、時間軸、來電接聽。
 @MainActor
 final class TalkPage: ObservableObject {
     static let shared = TalkPage()
-    /// 設成 true：RootView 推出遠距對話頁（然後改回 false）
+    /// 設成 true：RootView 切到「對話」分頁（然後改回 false）
     @Published var presented = false
     static let route = "__talk__"
 }

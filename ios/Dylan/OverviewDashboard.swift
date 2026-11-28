@@ -49,7 +49,6 @@ struct OverviewDashboardView: View {
                     if mode == .tech || hasWatch {
                         WatchPill(state: link.watchState) { select(.settings) }
                     }
-                    TalkEntryButton()   // 遠距對話（來電、未接、好友邀請有紅色數字）
                 }
 
                 // AI 設定只放在「設定」分頁（使用者要求），主頁不顯示提醒卡。
@@ -81,7 +80,10 @@ struct OverviewDashboardView: View {
                     }
                 }
                 if !rec.isRecording {
-                    GhostButton(text: "文A  " + "即時翻譯".tr, tint: Brand.cyan) { TranslatePage.shared.open() }
+                    HStack(spacing: 8) {
+                        GhostButton(text: "文A  " + "即時翻譯".tr, tint: Brand.cyan) { TranslatePage.shared.open() }
+                        GhostButton(text: "對話".tr, systemImage: "bubble.left.and.bubble.right", tint: Brand.cyan) { TalkPage.shared.presented = true }
+                    }
                 }
                 CallTile(detailed: mode == .tech) { BroadcastPicker.open() }
                     .background(BroadcastPicker().frame(width: 1, height: 1))

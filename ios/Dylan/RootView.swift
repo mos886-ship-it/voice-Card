@@ -3,9 +3,9 @@ import SwiftUI
 /// 底部分頁（三大主軸各一個，照 Android）：快錄＝今天 / 錄音 /（中間錄音鍵）/ 飲食 / 翻譯（設定在「今天」右上齒輪）；
 /// 總覽＝主頁 / 錄音 / 飲食 / 翻譯 / 設定。原本的「檔案」併進「錄音 → 管理」。從詳情返回回到原分頁。
 enum Tab: String, CaseIterable {
-    case home, records, food, translate, settings
+    case home, records, food, translate, talk, settings
 
-    static func tabs(_ layout: LayoutMode) -> [Tab] { layout == .overview ? allCases : [.home, .records, .food, .translate] }
+    static func tabs(_ layout: LayoutMode) -> [Tab] { layout == .overview ? allCases : [.home, .records, .food, .translate, .talk] }
 
     func label(_ layout: LayoutMode) -> String {
         switch self {
@@ -13,6 +13,7 @@ enum Tab: String, CaseIterable {
         case .records: return "錄音".tr
         case .food: return "飲食".tr
         case .translate: return "翻譯".tr
+        case .talk: return "對話".tr
         case .settings: return "設定".tr
         }
     }
@@ -63,6 +64,7 @@ struct RootView: View {
                     case .records: RecordsHub(open: open, toast: $toast)
                     case .food: FoodHub(open: open, toast: $toast)
                     case .translate: TranslateHub(open: open, toast: $toast)
+                    case .talk: TalkView(asTab: true)
                     case .settings: SettingsView()
                     }
                 }
@@ -91,7 +93,8 @@ struct RootView: View {
         .onChange(of: talkPage.presented) { on in
             guard on else { return }
             talkPage.presented = false
-            if path.last != TalkPage.route { path.append(TalkPage.route) }
+            path = []
+            tab = .talk   // 遠距對話是自己的分頁（邀請連結、時間軸、來電都到這裡）
         }
         // 舊的「即時翻譯」入口（主頁、錄音卡）：改到「翻譯」分頁
         .onChange(of: translatePage.presented) { on in
@@ -142,6 +145,7 @@ struct BottomNav: View {
                 .frame(maxWidth: .infinity)
                 NavItem(tab: .food, selected: current == .food) { onSelect(.food) }.frame(maxWidth: .infinity)
                 NavItem(tab: .translate, selected: current == .translate) { onSelect(.translate) }.frame(maxWidth: .infinity)
+                NavItem(tab: .talk, selected: current == .talk) { onSelect(.talk) }.frame(maxWidth: .infinity)
             }
             .padding(.horizontal, 4)
             .frame(maxWidth: 560)
@@ -207,6 +211,7 @@ private struct NavItem: View {
         case .records: Image(systemName: "list.bullet.rectangle").font(.system(size: 17)).foregroundStyle(tint)
         case .food: BowlGlyph(color: tint).frame(width: 20, height: 20)
         case .translate: Image(systemName: "character.bubble").font(.system(size: 17)).foregroundStyle(tint)
+        case .talk: TalkGlyph(tint: tint, filled: false)
         case .settings: Image(systemName: "gearshape").font(.system(size: 17)).foregroundStyle(tint)
         }
     }
@@ -265,7 +270,25 @@ private struct OverviewNavItem: View {
         case .records: Waveform(color: tint).frame(width: 20, height: 16)
         case .food: BowlGlyph(color: tint).frame(width: 20, height: 20)
         case .translate: Image(systemName: "character.bubble.fill").font(.system(size: 17)).foregroundStyle(tint)
+        case .talk: TalkGlyph(tint: tint, filled: true)
         case .settings: Image(systemName: "gearshape.fill").font(.system(size: 17)).foregroundStyle(tint)
         }
+    }
+}
+
+/// 「對話」分頁的圖示：兩個對話泡泡（不用電話，免得跟「通話」錄音搞混）；有來電、未接、好友邀請時右上紅點。
+struct TalkGlyph: View {
+    let tint: Color
+    var filled = false
+    @ObservedObject private var talk = RemoteTalk.shared
+    @ObservedObject private var friends = TalkFriends.shared
+    var body: some View {
+        Image(systemName: filled ? "bubble.left.and.bubble.right.fill" : "bubble.left.and.bubble.right")
+            .font(.system(size: 16)).foregroundStyle(tint)
+            .overlay(alignment: .topTrailing) {
+                if !talk.calls.isEmpty || !friends.requests.isEmpty {
+                    Circle().fill(Brand.error).frame(width: 8, height: 8).offset(x: 4, y: -2)
+                }
+            }
     }
 }
