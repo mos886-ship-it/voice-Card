@@ -6622,5 +6622,397 @@
  "還有 {0} 項": {
   "en": "{0} more",
   "ko": "{0}개 더"
+ },
+ "飲食週報 {0}–{1}": {
+  "en": "Food report {0}–{1}",
+  "ko": "식단 리포트 {0}–{1}"
+ },
+ "摘要": {
+  "en": "Summary",
+  "ko": "요약"
+ },
+ "期間：近 {0} 天，有記錄 {1} 天、共 {2} 餐": {
+  "en": "Period: last {0} days, {1} days logged, {2} meals",
+  "ko": "기간: 최근 {0}일, 기록한 날 {1}일, 총 {2}끼"
+ },
+ "健康目標：{0}；每日目標 {1} 大卡、蛋白質 {2} g、纖維 {3} g": {
+  "en": "Health goal: {0}; daily targets {1} kcal, protein {2} g, fiber {3} g",
+  "ko": "건강 목표: {0}; 하루 목표 {1} kcal, 단백질 {2} g, 식이섬유 {3} g"
+ },
+ "碳水上限 {0} g": {
+  "en": "carb limit {0} g",
+  "ko": "탄수화물 상한 {0} g"
+ },
+ "平均每天：{0} 大卡（目標的 {1}%）": {
+  "en": "Daily average: {0} kcal ({1}% of target)",
+  "ko": "하루 평균: {0} kcal (목표의 {1}%)"
+ },
+ "熱量未超標：{0} / {1} 天": {
+  "en": "Within calorie target: {0} / {1} days",
+  "ko": "칼로리 목표 이내: {0} / {1}일"
+ },
+ "蛋白質達標：{0} / {1} 天": {
+  "en": "Protein target met: {0} / {1} days",
+  "ko": "단백질 목표 달성: {0} / {1}일"
+ },
+ "碳水超過上限：{0} / {1} 天": {
+  "en": "Over carb limit: {0} / {1} days",
+  "ko": "탄수화물 상한 초과: {0} / {1}일"
+ },
+ "每日平均 vs 目標": {
+  "en": "Daily average vs target",
+  "ko": "하루 평균 vs 목표"
+ },
+ "項目": {
+  "en": "Item",
+  "ko": "항목"
+ },
+ "目標": {
+  "en": "Target",
+  "ko": "목표"
+ },
+ "熱量（大卡）": {
+  "en": "Calories (kcal)",
+  "ko": "칼로리 (kcal)"
+ },
+ "蛋白質（g）": {
+  "en": "Protein (g)",
+  "ko": "단백질 (g)"
+ },
+ "碳水（g）": {
+  "en": "Carbs (g)",
+  "ko": "탄수화물 (g)"
+ },
+ "脂肪（g）": {
+  "en": "Fat (g)",
+  "ko": "지방 (g)"
+ },
+ "纖維（g）": {
+  "en": "Fiber (g)",
+  "ko": "식이섬유 (g)"
+ },
+ "蛋白質 {0}%、碳水 {1}%、脂肪 {2}%（一般建議：蛋白質 10–35%、碳水 45–65%、脂肪 20–35%）": {
+  "en": "Protein {0}%, carbs {1}%, fat {2}% (general guideline: protein 10–35%, carbs 45–65%, fat 20–35%)",
+  "ko": "단백질 {0}%, 탄수화물 {1}%, 지방 {2}% (일반 권장: 단백질 10–35%, 탄수화물 45–65%, 지방 20–35%)"
+ },
+ "每天": {
+  "en": "Each day",
+  "ko": "일별"
+ },
+ "日期": {
+  "en": "Date",
+  "ko": "날짜"
+ },
+ "餐數": {
+  "en": "Meals",
+  "ko": "끼니"
+ },
+ "對目標": {
+  "en": "vs target",
+  "ko": "목표 대비"
+ },
+ "常吃的": {
+  "en": "Frequent meals",
+  "ko": "자주 먹는 음식"
+ },
+ "{0}：{1} 次，平均 {2} 大卡": {
+  "en": "{0}: {1} times, avg {2} kcal",
+  "ko": "{0}: {1}회, 평균 {2} kcal"
+ },
+ "熱量與營養為 AI 依口述或照片估算，僅供參考，不能取代營養師或醫療建議。": {
+  "en": "Calories and nutrients are AI estimates from your description or photos. For reference only; not a substitute for a dietitian or medical advice.",
+  "ko": "칼로리와 영양소는 설명이나 사진을 바탕으로 AI가 추정한 값입니다. 참고용이며 영양사나 의료 조언을 대신하지 않습니다."
+ },
+ "照護居家": {
+  "en": "Home care",
+  "ko": "돌봄"
+ },
+ "商務": {
+  "en": "Business",
+  "ko": "비즈니스"
+ },
+ "旅遊": {
+  "en": "Travel",
+  "ko": "여행"
+ },
+ "一般": {
+  "en": "General",
+  "ko": "일반"
+ },
+ "大字、慢速朗讀，常用照護片語一點就念（適合外籍看護、長輩）。": {
+  "en": "Large text, slow read-aloud, care phrases spoken with one tap (for caregivers and seniors).",
+  "ko": "큰 글씨, 느린 읽기, 돌봄 문구를 한 번에 읽어 줍니다 (간병인, 어르신용)."
+ },
+ "原文與譯文對照、不朗讀，適合會議與商談。": {
+  "en": "Original and translation side by side, no read-aloud; for meetings and negotiations.",
+  "ko": "원문과 번역을 함께 표시, 읽지 않음; 회의와 상담용."
+ },
+ "譯文念給對方聽，常用旅遊片語；可以拍菜單翻譯。": {
+  "en": "Reads translations aloud to the other person, travel phrases, and menu photo translation.",
+  "ko": "번역을 상대에게 읽어 주고, 여행 문구와 메뉴 사진 번역을 제공합니다."
+ },
+ "用你自己的字幕設定。": {
+  "en": "Uses your own caption settings.",
+  "ko": "내 자막 설정을 사용합니다."
+ },
+ "該吃藥了": {
+  "en": "It's time to take your medicine",
+  "ko": "약 드실 시간이에요"
+ },
+ "要不要喝水？": {
+  "en": "Would you like some water?",
+  "ko": "물 드실래요?"
+ },
+ "哪裡不舒服？": {
+  "en": "Where does it hurt?",
+  "ko": "어디가 불편하세요?"
+ },
+ "要去廁所嗎？": {
+  "en": "Do you need the toilet?",
+  "ko": "화장실 가실래요?"
+ },
+ "慢慢來，不急": {
+  "en": "Take your time, no rush",
+  "ko": "천천히 하세요, 급하지 않아요"
+ },
+ "我扶你起來": {
+  "en": "Let me help you up",
+  "ko": "제가 일으켜 드릴게요"
+ },
+ "會痛嗎？": {
+  "en": "Does it hurt?",
+  "ko": "아프세요?"
+ },
+ "該吃飯了": {
+  "en": "It's time to eat",
+  "ko": "식사하실 시간이에요"
+ },
+ "要洗澡了": {
+  "en": "It's time for your bath",
+  "ko": "목욕하실 시간이에요"
+ },
+ "要量血壓了": {
+  "en": "Let's check your blood pressure",
+  "ko": "혈압 잴게요"
+ },
+ "有沒有頭暈？": {
+  "en": "Do you feel dizzy?",
+  "ko": "어지러우세요?"
+ },
+ "晚安，好好休息": {
+  "en": "Good night, rest well",
+  "ko": "안녕히 주무세요, 푹 쉬세요"
+ },
+ "很高興認識你": {
+  "en": "Nice to meet you",
+  "ko": "만나서 반갑습니다"
+ },
+ "請再說一次": {
+  "en": "Could you say that again?",
+  "ko": "다시 한번 말씀해 주세요"
+ },
+ "可以說慢一點嗎？": {
+  "en": "Could you speak more slowly?",
+  "ko": "조금 천천히 말씀해 주시겠어요?"
+ },
+ "我們再確認一下細節": {
+  "en": "Let's confirm the details",
+  "ko": "세부 사항을 다시 확인하죠"
+ },
+ "我會再寄郵件給你": {
+  "en": "I'll follow up by email",
+  "ko": "이메일로 다시 연락드릴게요"
+ },
+ "報價什麼時候可以提供？": {
+  "en": "When can you send the quote?",
+  "ko": "견적은 언제 받을 수 있을까요?"
+ },
+ "交期是什麼時候？": {
+  "en": "What is the delivery date?",
+  "ko": "납기는 언제인가요?"
+ },
+ "我需要跟團隊討論": {
+  "en": "I need to discuss this with my team",
+  "ko": "팀과 논의해 봐야 합니다"
+ },
+ "謝謝你的時間": {
+  "en": "Thank you for your time",
+  "ko": "시간 내 주셔서 감사합니다"
+ },
+ "多少錢？": {
+  "en": "How much is it?",
+  "ko": "얼마예요?"
+ },
+ "廁所在哪裡？": {
+  "en": "Where is the restroom?",
+  "ko": "화장실이 어디예요?"
+ },
+ "可以刷卡嗎？": {
+  "en": "Can I pay by card?",
+  "ko": "카드 결제 되나요?"
+ },
+ "請給我菜單": {
+  "en": "Could I have the menu, please?",
+  "ko": "메뉴판 주세요"
+ },
+ "我對花生過敏": {
+  "en": "I'm allergic to peanuts",
+  "ko": "저는 땅콩 알레르기가 있어요"
+ },
+ "不要辣": {
+  "en": "Not spicy, please",
+  "ko": "안 맵게 해 주세요"
+ },
+ "請帶我去這個地址": {
+  "en": "Please take me to this address",
+  "ko": "이 주소로 가 주세요"
+ },
+ "可以幫我拍照嗎？": {
+  "en": "Could you take a photo for me?",
+  "ko": "사진 좀 찍어 주시겠어요?"
+ },
+ "請問車站怎麼走？": {
+  "en": "How do I get to the station?",
+  "ko": "역에 어떻게 가나요?"
+ },
+ "結帳，謝謝": {
+  "en": "The bill, please",
+  "ko": "계산해 주세요"
+ },
+ "拍照翻譯需要 Gemini（免費）：請到設定填 Gemini 金鑰": {
+  "en": "Photo translation needs Gemini (free): add a Gemini key in Settings",
+  "ko": "사진 번역에는 Gemini(무료)가 필요합니다: 설정에서 Gemini 키를 입력하세요"
+ },
+ "AI 模式": {
+  "en": "AI mode",
+  "ko": "AI 모드"
+ },
+ "報告由誰產生；隨時可以換": {
+  "en": "Who makes your reports; change it any time",
+  "ko": "리포트를 만드는 곳; 언제든 바꿀 수 있어요"
+ },
+ "雲端（Gemini，免費）": {
+  "en": "Cloud (Gemini, free)",
+  "ko": "클라우드 (Gemini, 무료)"
+ },
+ "最簡單：填一把免費金鑰，錄完自動產生報告與分說話者逐字稿": {
+  "en": "Easiest: add one free key and reports with speaker transcripts are made after each recording",
+  "ko": "가장 간단: 무료 키 하나만 입력하면 녹음 후 리포트와 화자별 녹취록이 자동으로 만들어집니다"
+ },
+ "離線（Galaxy AI）": {
+  "en": "Offline (Galaxy AI)",
+  "ko": "오프라인 (Galaxy AI)"
+ },
+ "錄音不上傳，存入三星錄音機後在手機上轉錄 / 摘要；適合機密內容": {
+  "en": "Recordings stay on the phone and are transcribed / summarized in Samsung Voice Recorder; good for confidential content",
+  "ko": "녹음을 업로드하지 않고 삼성 음성 녹음에서 휴대폰으로 변환·요약; 기밀 내용에 적합"
+ },
+ "私有主機（大D的主機）": {
+  "en": "Private host (Dylan Host)",
+  "ko": "개인 호스트 (Dylan Host)"
+ },
+ "用你自己的電腦跑 AI：免費、錄音不出你的設備；連不到時自動改用雲端": {
+  "en": "Runs AI on your own computer: free, recordings never leave your devices; falls back to cloud when unreachable",
+  "ko": "내 컴퓨터에서 AI 실행: 무료, 녹음이 내 기기 밖으로 나가지 않음; 연결 안 되면 클라우드로 자동 전환"
+ },
+ "進階：選擇雲端服務": {
+  "en": "Advanced: choose cloud service",
+  "ko": "고급: 클라우드 서비스 선택"
+ },
+ "匯出失敗：": {
+  "en": "Export failed: ",
+  "ko": "내보내기 실패: "
+ },
+ "分享 / 匯出": {
+  "en": "Share / export",
+  "ko": "공유 / 내보내기"
+ },
+ "PDF 與 Word 在手機上產生，不會上傳。": {
+  "en": "PDF and Word files are made on the phone and not uploaded.",
+  "ko": "PDF와 Word 파일은 휴대폰에서 만들어지며 업로드되지 않습니다."
+ },
+ "文字（貼到 LINE、Email）": {
+  "en": "Text (for LINE, email)",
+  "ko": "텍스트 (LINE, 이메일용)"
+ },
+ "Markdown（Notion、Obsidian）": {
+  "en": "Markdown (Notion, Obsidian)",
+  "ko": "Markdown (Notion, Obsidian)"
+ },
+ "產生中…": {
+  "en": "Creating…",
+  "ko": "만드는 중…"
+ },
+ "就醫週報（PDF / Word）": {
+  "en": "Report for your doctor (PDF / Word)",
+  "ko": "진료용 리포트 (PDF / Word)"
+ },
+ "另外加：心智圖大綱、名詞解釋、複習題（含答案）。": {
+  "en": "Also adds a mind map outline, glossary, and review questions (with answers).",
+  "ko": "마인드맵 개요, 용어 설명, 복습 문제(답 포함)도 추가합니다."
+ },
+ "讀不到照片": {
+  "en": "Couldn't read the photo",
+  "ko": "사진을 읽을 수 없습니다"
+ },
+ "翻譯失敗": {
+  "en": "Translation failed",
+  "ko": "번역 실패"
+ },
+ "常用片語": {
+  "en": "Quick phrases",
+  "ko": "자주 쓰는 문구"
+ },
+ "拍菜單": {
+  "en": "Snap menu",
+  "ko": "메뉴 촬영"
+ },
+ "選照片": {
+  "en": "Pick photo",
+  "ko": "사진 선택"
+ },
+ "翻譯失敗（第一次用這個語言要先下載翻譯模型，請連上網路）": {
+  "en": "Translation failed (the first time a language is used its model must download; please connect to the internet)",
+  "ko": "번역 실패 (언어를 처음 사용할 때 번역 모델을 내려받아야 하니 인터넷에 연결하세요)"
+ },
+ "再念一次": {
+  "en": "Say again",
+  "ko": "다시 읽기"
+ },
+ "新增常用片語": {
+  "en": "Add quick phrase",
+  "ko": "자주 쓰는 문구 추가"
+ },
+ "用你的語言寫，點一下會翻成對方的語言並念出來；長按可以刪除。": {
+  "en": "Write it in your language; tap to translate into the other person's language and read it aloud. Long-press to delete.",
+  "ko": "내 언어로 쓰면 탭할 때 상대 언어로 번역해 읽어 줍니다. 길게 누르면 삭제됩니다."
+ },
+ "例如：我的房間是 1203": {
+  "en": "e.g. My room is 1203",
+  "ko": "예: 제 방은 1203호예요"
+ },
+ "新增": {
+  "en": "Add",
+  "ko": "추가"
+ },
+ "照片翻譯": {
+  "en": "Photo translation",
+  "ko": "사진 번역"
+ },
+ "翻譯中…（照片會傳到 Gemini）": {
+  "en": "Translating… (the photo is sent to Gemini)",
+  "ko": "번역 중… (사진이 Gemini로 전송됩니다)"
+ },
+ "AI 翻譯僅供參考；過敏請再跟店家確認。": {
+  "en": "AI translation is for reference; confirm allergies with the staff.",
+  "ko": "AI 번역은 참고용입니다. 알레르기는 직원에게 다시 확인하세요."
+ },
+ "課堂講座": {
+  "en": "Lecture & class",
+  "ko": "강의·수업"
+ },
+ "主題與學習目標；主要概念與定義；例子與推導；講者強調、說會考或要記住的地方；作業與期限": {
+  "en": "Topic and learning goals; key concepts and definitions; examples and derivations; points the speaker stressed or said will be tested; assignments and deadlines",
+  "ko": "주제와 학습 목표; 핵심 개념과 정의; 예시와 유도; 강조하거나 시험에 나온다고 한 부분; 과제와 기한"
  }
 }

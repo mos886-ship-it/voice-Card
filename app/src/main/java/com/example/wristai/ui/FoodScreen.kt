@@ -79,7 +79,7 @@ fun FoodHub(onOpen: (String) -> Unit, onOpenSettings: () -> Unit) {
 private fun FoodToday(all: List<Meeting>, food: List<Meeting>, onOpen: (String) -> Unit, onOpenSettings: () -> Unit) {
     val context = LocalContext.current
     val goal = Settings.dailyKcalGoal(context)
-    val hasCloud = Settings.geminiKey(context).isNotBlank() || com.example.wristai.ai.LocalHost.configured(context)
+    val hasCloud = Settings.geminiKey(context).isNotBlank() || com.example.wristai.ai.LocalHost.active(context)
     val start = remember { dayStarts(1).first() }
     val today = food.filter { it.createdAt >= start }
     LazyColumn(
@@ -202,6 +202,16 @@ private fun FoodAnalysis(food: List<Meeting>) {
     HubPage {
         Segmented(listOf("近 7 天".tr, "近 30 天".tr), range) { range = it }
         if (done.isEmpty()) { EmptyNote("這段期間沒有飲食記錄。".tr); return@HubPage }
+        // 就醫週報：這段期間整理成 PDF / Word，給醫師、營養師或家人看
+        var report by remember { mutableStateOf(false) }
+        GhostButton("就醫週報（PDF / Word）".tr, { report = true }, Modifier.fillMaxWidth(), icon = Icons.Filled.Share, tint = Brand.Cyan)
+        if (report) {
+            val mode = com.example.wristai.FoodGoals.mode(context)
+            val g = com.example.wristai.FoodReport.Goals(goal, pGoal, fGoal, com.example.wristai.FoodGoals.carbCap(context),
+                com.example.wristai.FoodGoals.label(mode))
+            ExportDialog(com.example.wristai.FoodReport.title(days), markdown = { com.example.wristai.FoodReport.markdown(food, days, g) },
+                onDismiss = { report = false }, footer = "大D")
+        }
 
         val perDay = starts.map { s -> done.filter { it.createdAt in s until s + 86_400_000L }.mapNotNull { it.nutrition } }
         val logged = perDay.filter { it.isNotEmpty() }

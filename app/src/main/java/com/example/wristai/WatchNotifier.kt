@@ -19,8 +19,9 @@ object WatchNotifier {
     }
 
     /** 即时翻译：最新一句译文推给所有手表（"" = 关掉）。 */
-    fun sendCaption(context: Context, text: String) {
-        broadcast(context, WristAiProtocol.PATH_CAPTION, text)
+    /** 即時翻譯的最新一句：[original] 有給就一起送（手錶的上下分割雙語畫面用），用  分開。 */
+    fun sendCaption(context: Context, text: String, original: String? = null) {
+        broadcast(context, WristAiProtocol.PATH_CAPTION, if (original.isNullOrBlank() || text.isBlank()) text else original + "" + text)
     }
 
     fun sendSummary(context: Context, nodeId: String?, summary: MeetingSummary) {

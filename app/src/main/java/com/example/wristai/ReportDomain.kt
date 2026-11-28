@@ -16,7 +16,7 @@ object ReportDomain {
     private const val PREFS = "wristai_settings"
     private const val KEY = "report_domain"
 
-    data class Domain(val id: String, val name: String, val focus: String, val disclaimer: String?)
+    data class Domain(val id: String, val name: String, val focus: String, val disclaimer: String?, val extra: String? = null)
     data class Table(val section: String, val common: String, val auto: String, val domains: List<Domain>)
 
     @Volatile private var table: Table? = null
@@ -26,7 +26,8 @@ object ReportDomain {
         val arr = j.getJSONArray("domains")
         val list = (0 until arr.length()).map { i ->
             val d = arr.getJSONObject(i)
-            Domain(d.getString("id"), d.getString("name"), d.getString("focus"), d.optString("disclaimer").ifBlank { null })
+            Domain(d.getString("id"), d.getString("name"), d.getString("focus"), d.optString("disclaimer").ifBlank { null },
+                d.optString("extra").ifBlank { null })
         }
         return Table(j.getString("section"), j.getString("common"), j.getString("auto"), list)
     }
@@ -48,6 +49,7 @@ object ReportDomain {
         else -> t.domains.firstOrNull { it.id == setting }?.let { d ->
             t.common.replace("【領域專家模式】", "【領域專家模式：${d.name}】") +
                 "\n這個領域要注意的事項：${d.focus}。" +
+                (d.extra?.let { "\n$it" } ?: "") +
                 (d.disclaimer?.let { "\n報告最後加一行：「$it」" } ?: "")
         } ?: ""
     }

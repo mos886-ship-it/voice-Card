@@ -459,7 +459,7 @@ object LiveCaptions {
             val shown = if (target == "zh") TraditionalChinese.convert(out) else out
             update { s -> s.copy(lines = s.lines.map { if (it.id == id) it.copy(translated = shown) else it }) }
             val c = appContext ?: return@launch
-            if (Settings.captionToWatch(c)) WatchNotifier.sendCaption(c, shown)
+            if (Settings.captionToWatch(c)) WatchNotifier.sendCaption(c, shown, text)
             if (Settings.autoSpeak(c) && _state.value.running) Speaker.speak(c, shown, target)
         }
     }

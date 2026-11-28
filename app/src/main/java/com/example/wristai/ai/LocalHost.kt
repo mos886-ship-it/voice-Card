@@ -71,6 +71,13 @@ object LocalHost {
     /** 位址和存取码都填了才算设定好。 */
     fun configured(c: Context) = url(c).isNotEmpty() && hasToken(c) && runCatching { URL(url(c)) }.isSuccess
 
+    /** 設定頁「AI 模式」選了雲端或離線：主機的連線資料留著，但報告不交給主機（遠距對話照常用主機轉送）。 */
+    fun paused(c: Context) = p(c).getBoolean("local_ai_paused", false)
+    fun setPaused(c: Context, v: Boolean) = p(c).edit().putBoolean("local_ai_paused", v).apply()
+
+    /** 報告要不要交給主機：設定好而且沒有暫停。 */
+    fun active(c: Context) = configured(c) && !paused(c)
+
     /** 最后一次从主机得知的模型代号（local-<辨识>|<报告>），主页 / 设定显示用。 */
     fun lastTag(c: Context): String = p(c).getString(KEY_MODEL, null) ?: DEFAULT_TAG
     private fun rememberTag(c: Context, tag: String?) { if (!tag.isNullOrBlank()) p(c).edit().putString(KEY_MODEL, tag).apply() }

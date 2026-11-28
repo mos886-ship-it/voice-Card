@@ -209,7 +209,16 @@ object WatchState {
     /** 手机即时翻译的最新一句（null = 没开）。 */
     private val _caption = MutableStateFlow<String?>(null)
     val caption: StateFlow<String?> = _caption.asStateFlow()
-    fun setCaption(text: String) { _caption.value = text.ifBlank { null } }
+    /** 原文＋譯文（上下分割雙語畫面）；點一下關掉（下一句來會再出現）。 */
+    private val _split = MutableStateFlow<Pair<String, String>?>(null)
+    val split: StateFlow<Pair<String, String>?> = _split.asStateFlow()
+    fun setCaption(raw: String) {
+        val i = raw.indexOf('')
+        val translated = if (i >= 0) raw.substring(i + 1) else raw
+        _caption.value = translated.ifBlank { null }
+        _split.value = if (i >= 0 && translated.isNotBlank()) raw.substring(0, i) to translated else if (raw.isBlank()) null else _split.value
+    }
+    fun closeSplit() { _split.value = null }
 
     fun setPhoneStatus(text: String?) {
         _phoneStatus.value = text

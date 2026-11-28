@@ -691,3 +691,12 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 - 飲食：`FoodRepeat` 常吃的（30 天內同一道 ≥2 次）一鍵再記一次（照抄、換現在的餐別，不問 AI）；`FoodGoals` 健康目標（均衡／減脂控卡／增肌高蛋白／控糖穩血糖）套用每日目標預設，控糖加每日碳水上限 180 g，營養小提醒照目標講重點（App 提示詞＋主機 X-Food-Goal）。
 - 錄音：`Vocab` 個人詞庫（錄音 → 設定）＋常替說話者取的名字，加進報告提示詞（Gemini、組合式、主機 X-Vocab base64）；說話者改名對話框有「常用的名字」一鍵選。
 - 測試：RetentionFeaturesTest。主機改動要重新部署。
+
+## 第二批：翻譯情境、報告匯出、就醫週報、AI 模式（依產品規劃書）
+- 翻譯情境（`TranslateScene`，即時翻譯頁的情境列）：一般／照護居家（大字、慢速 0.8 朗讀）／商務（原文對照、不朗讀）／旅遊（朗讀）。選了就套字幕設定。常用片語＋自訂片語（長按刪除），點一下用 ML Kit 翻成對方的語言（「說的／翻成」裡不是畫面語言的那邊）、放大、念出來、可翻轉 180°。旅遊多「拍菜單／選照片」：照片 → Gemini（`GeminiReportGenerator.completeImages`，不加報告語言規則）翻成畫面語言。
+- 手錶上下分割雙語：手機送字幕時帶原文（`原文\u001F譯文`），手錶沒在錄音時顯示分割畫面（上半原文倒過來給對面看），點一下關掉。
+- 報告匯出（`ReportExport`）：詳情頁分享 → 文字／PDF（PdfDocument，A4）／Word（自己組的 docx zip）／Markdown。都在手機產生。
+- 課堂講座模板：`report_domains.json` 新增 lecture（含選填 `extra` 欄位：心智圖大綱、名詞解釋、複習題）。App、主機的 domain_rules 都會加 extra；三個新章節標題有英韓對照。
+- 就醫週報（`FoodReport`）：飲食 → 分析 → 「就醫週報」，近 7／30 天 → PDF／Word（摘要、平均對目標、每天一列含熱量長條、熱量來源、常吃的、控糖碳水超標天數）。
+- AI 模式三選一（設定 → AI 引擎）：雲端（Gemini；進階可換組合式）／離線（Galaxy AI）／私有主機（大D的主機設定移到這裡面）。選雲端或離線時 `LocalHost.paused`，報告不交給主機（`LocalHost.active`），遠距對話照常用主機。
+- 測試：ExportFeaturesTest。主機要重新部署（lecture extra、新章節標題）。

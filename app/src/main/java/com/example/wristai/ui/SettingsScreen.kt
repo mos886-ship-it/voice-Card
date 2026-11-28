@@ -222,14 +222,11 @@ fun SettingsScreen(onBack: (() -> Unit)? = null, onOpenPillar: (Tab) -> Unit = {
                 }
             }
 
-            // ---------- 大D的主機（使用者自己的电脑跑 AI） ----------
-            LocalHostSection()
-
             // ---------- Google 云端硬碟备份 / 取回（档案清单在「檔案」分页） ----------
             BackupSection()
 
 
-            // ---------- AI 引擎：Gemini 一站式 / 组合式（百炼、讯飞、OpenAI、Meta、Claude）/ 只用 Galaxy AI ----------
+            // ---------- AI 引擎：雲端（Gemini / 組合式）/ 離線（Galaxy AI）/ 私有主機（大D的主機，設定在裡面） ----------
             AiEngineSection(
                 // 金钥打了就存（跟其他 AI 金钥一样，不用再按「储存设定」）
                 gemini = gemini, onGemini = { gemini = it; Settings.setGeminiKey(context, it) },

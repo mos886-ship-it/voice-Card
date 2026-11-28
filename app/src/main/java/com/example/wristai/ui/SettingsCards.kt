@@ -177,7 +177,7 @@ fun ReportDomainCard() {
             sel == com.example.wristai.ReportDomain.OFF -> "照一般方式整理，不加專業角度。".tr
             d != null -> "每份報告都用{0}專家的角度整理，報告多一節「專業重點」：".trf(d.name.tr) + d.focus.tr + "。".tr
             else -> ""
-        } + (if (d?.disclaimer != null || sel == com.example.wristai.ReportDomain.AUTO) "法律、醫療、財務的報告會註明僅供參考，不構成專業意見。".tr else ""),
+        } + (if (d?.extra != null) "另外加：心智圖大綱、名詞解釋、複習題（含答案）。".tr else "") + (if (d?.disclaimer != null || sel == com.example.wristai.ReportDomain.AUTO) "法律、醫療、財務的報告會註明僅供參考，不構成專業意見。".tr else ""),
             style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
         Text("套用到之後的報告；已經做好的可以在詳情頁「重新產生」。".tr, style = MaterialTheme.typography.bodySmall, color = Brand.TextFaint)
     }

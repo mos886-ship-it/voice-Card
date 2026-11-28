@@ -51,6 +51,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -240,6 +241,12 @@ private fun WatchApp() {
                     else RecordingService.stop(context)
                 },
             )
+            return@AppScaffold
+        }
+        // 手機在即時翻譯（沒在錄音）：上下分割雙語畫面，上半倒過來給對面的人看
+        val split by WatchState.split.collectAsState()
+        split?.let { (orig, tr) ->
+            SplitCaption(orig, tr, onClose = { WatchState.closeSplit() })
             return@AppScaffold
         }
         if (pickLang) {
@@ -930,6 +937,25 @@ private fun RecordingScreen(recorder: RecorderStatus, phoneRec: Long?, phoneStat
             },
             textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis,
         )
+    }
+}
+
+/**
+ * 上下分割雙語：上半是原文（倒過來，手腕轉向對面時對方看得到正的），下半是譯文（自己看）。
+ * 點一下關掉，下一句翻好會再出現。
+ */
+@Composable
+private fun SplitCaption(original: String, translated: String, onClose: () -> Unit) {
+    Column(Modifier.fillMaxSize().clickableNoRipple(onClose).padding(horizontal = 26.dp, vertical = 22.dp)) {
+        Box(Modifier.weight(1f).fillMaxWidth().graphicsLayer { rotationZ = 180f }, contentAlignment = Alignment.Center) {
+            Text(original, fontSize = 15.sp, lineHeight = 18.sp, color = Brand.TextMuted, textAlign = TextAlign.Center,
+                maxLines = 4, overflow = TextOverflow.Ellipsis)
+        }
+        Box(Modifier.fillMaxWidth().height(1.dp).background(Brand.TextFaint))
+        Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+            Text(translated, fontSize = 16.sp, lineHeight = 19.sp, color = Brand.Text, fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center, maxLines = 4, overflow = TextOverflow.Ellipsis)
+        }
     }
 }
 

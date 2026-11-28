@@ -476,7 +476,7 @@ object RemoteTalk {
                 if (withContext(Dispatchers.IO) { download("$b/v1/talk/${_state.value.room}/audio/$aid", token ?: "", out) }) clip = out
             }
             TalkAudio.Player.enqueue(c, clip.takeIf { playOriginal(c) }, tr.takeIf { speakTranslation(c) && it != text }, myReading(c))
-            if (tr != null && Settings.captionToWatch(c)) WatchNotifier.sendCaption(c, tr)
+            if (tr != null && Settings.captionToWatch(c)) WatchNotifier.sendCaption(c, tr, text)
             record(c, TalkStore.TalkLine(false, m.optString("name"), text, lang, tr, clip?.name, System.currentTimeMillis()))
         }
     }

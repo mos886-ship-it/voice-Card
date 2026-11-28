@@ -91,7 +91,7 @@ data class EngineInfo(val name: String, val detail: String, val ready: Boolean, 
 
 fun currentEngine(context: Context): EngineInfo = when {
     // 大D的主機（使用者自己的电脑）：有设定就优先
-    com.example.wristai.ai.LocalHost.configured(context) -> EngineInfo(
+    com.example.wristai.ai.LocalHost.active(context) -> EngineInfo(
         com.example.wristai.ai.LocalHost.label(com.example.wristai.ai.LocalHost.lastTag(context)),
         "你自己的電腦 · 免費、錄音不出你的設備；連不到時自動改用其他引擎".tr, true, Brand.Success,
     )

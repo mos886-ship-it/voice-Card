@@ -202,6 +202,10 @@ class GeminiReportGenerator(
     /** 只有文字（例如翻译记录）：[system] 是还没换报告语言的中文提示词（这里会换）。回传模型原文。 */
     fun completeText(system: String, user: String): String = withModels("text") { model -> generateContent(model, null, user, system) }
 
+    /** 照片＋文字（例如拍菜單翻譯）：[system] 原樣送出（不換報告語言）。回傳模型原文。 */
+    fun completeImages(system: String, user: String, images: List<File>): String =
+        withModels("image") { model -> generateContent(model, null, user, system, images, rawSystem = true) }
+
     private fun withModels(what: String, call: (String) -> String): String {
         var last: GeminiException? = null
         for (model in MODELS) {
@@ -329,14 +333,14 @@ class GeminiReportGenerator(
     }
 
     private fun generateContent(model: String, fileUri: String?, prompt: String, system: String = SYSTEM_PROMPT,
-                                images: List<File> = emptyList()): String {
+                                images: List<File> = emptyList(), rawSystem: Boolean = false): String {
         val parts = JSONArray()
         if (fileUri != null) parts.put(JSONObject().put("file_data", JSONObject().put("mime_type", UPLOAD_MIME).put("file_uri", fileUri)))
         for (img in images) parts.put(JSONObject().put("inline_data", JSONObject().put("mime_type", "image/jpeg")
             .put("data", android.util.Base64.encodeToString(img.readBytes(), android.util.Base64.NO_WRAP))))
         parts.put(JSONObject().put("text", prompt))
         val body = JSONObject()
-            .put("systemInstruction", JSONObject().put("parts", JSONArray().put(JSONObject().put("text", ReportLang.localize(system)))))
+            .put("systemInstruction", JSONObject().put("parts", JSONArray().put(JSONObject().put("text", if (rawSystem) system else ReportLang.localize(system)))))
             .put("contents", JSONArray().put(JSONObject().put("role", "user").put("parts", parts)))
             .put("generationConfig", JSONObject().put("temperature", 0.2))
 

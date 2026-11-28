@@ -66,6 +66,9 @@ enum class ReportLang(val code: String, val label: String, val speaker: String, 
             Triple("營養小提醒", "Nutrition tips", "영양 팁"),
             Triple("假設與待確認", "Assumptions to check", "가정 및 확인 필요"),
             Triple("專業重點", "Expert notes", "전문가 관점"),
+            Triple("心智圖大綱", "Mind map outline", "마인드맵 개요"),
+            Triple("名詞解釋", "Glossary", "용어 설명"),
+            Triple("複習題", "Review questions", "복습 문제"),
         )
         private val PHRASES = listOf(
             Triple("說話者 | 名字 | 角色 | 主要觀點", "Speaker | Name | Role | Main points", "화자 | 이름 | 역할 | 주요 의견"),
@@ -80,6 +83,12 @@ enum class ReportLang(val code: String, val label: String, val speaker: String, 
             Triple("「## 專業重點」", "「## Expert notes」", "「## 전문가 관점」"),
             Triple("「領域：○○」", "「Domain: …」", "「분야: …」"),
             Triple("「（建議諮詢專業人員）」", "「(consult a professional)」", "「(전문가 상담 권장)」"),
+            // 課堂講座
+            Triple("「## 心智圖大綱」", "「## Mind map outline」", "「## 마인드맵 개요」"),
+            Triple("「## 名詞解釋」", "「## Glossary」", "「## 용어 설명」"),
+            Triple("「## 複習題」", "「## Review questions」", "「## 복습 문제」"),
+            Triple("「名詞：一句白話解釋」", "「Term: one-line plain explanation」", "「용어: 쉬운 한 줄 설명」"),
+            Triple("「答：」", "「A:」", "「답:」"),
         )
 
         private fun pick(t: Triple<String, String, String>, l: ReportLang) = when (l) { ZH -> t.first; EN -> t.second; KO -> t.third }

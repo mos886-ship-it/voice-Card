@@ -67,6 +67,7 @@ fun DetailScreen(id: String, onBack: () -> Unit, onOpenSettings: () -> Unit) {
     val meeting = meetings.firstOrNull { it.id == id }
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var confirmDelete by remember { mutableStateOf(false) }
+    var exporting by remember { mutableStateOf(false) }
     // 换辨识语言（已有报告时要先确认，会用新语言重新产生）
     var pendingLang by remember { mutableStateOf<com.example.wristai.SpeechLang?>(null) }
     var pendingDialect by remember { mutableStateOf<com.example.wristai.HakkaDialect?>(null) }
@@ -113,15 +114,14 @@ fun DetailScreen(id: String, onBack: () -> Unit, onOpenSettings: () -> Unit) {
         }
         TopBar("錄音詳情".tr, onBack) {
             if (report != null) {
-                IconCircle(Icons.Filled.Share, "分享".tr, {
-                    val share = Intent(Intent.ACTION_SEND).setType("text/plain")
-                        .putExtra(Intent.EXTRA_SUBJECT, meetingTitle(meeting))
-                        .putExtra(Intent.EXTRA_TEXT, buildString {
-                            append(withRecordingTime(report, meeting, geo))
-                            if (transcript != null) append("\n\n## 逐字稿\n".tr).append(Speakers.apply(transcript, names))
-                        })
-                    context.startActivity(Intent.createChooser(share, "分享報告".tr))
-                })
+                IconCircle(Icons.Filled.Share, "分享".tr, { exporting = true })
+                // 分享 / 匯出：文字、PDF、Word、Markdown
+                if (exporting) ExportDialog(meetingTitle(meeting), markdown = {
+                    buildString {
+                        append(withRecordingTime(report, meeting, geo))
+                        if (transcript != null) append("\n\n## 逐字稿\n".tr).append(Speakers.apply(transcript, names))
+                    }
+                }, onDismiss = { exporting = false }, footer = "大D")
                 Spacer(Modifier.width(8.dp))
             }
             IconCircle(Icons.Filled.Delete, "刪除".tr, { confirmDelete = true }, tint = Brand.Error)

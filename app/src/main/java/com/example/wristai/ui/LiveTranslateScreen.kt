@@ -102,6 +102,7 @@ fun LiveTranslateScreen(onBack: (() -> Unit)? = null) {
     var withRec by remember { mutableStateOf(Settings.translateWithRecording(context)) }
     var picking by remember { mutableStateOf<Boolean?>(null) }   // true = 说的、false = 翻成的
     var big by remember { mutableStateOf(false) }
+    var sceneVer by remember { mutableIntStateOf(0) }
     val starter = rememberRecordStarter()
 
     // 翻译中萤幕保持亮着
@@ -170,6 +171,14 @@ fun LiveTranslateScreen(onBack: (() -> Unit)? = null) {
             ToolChip("⛶ " + "放大".tr, s.lines.isNotEmpty()) { big = true }
             ToolChip("清除".tr, s.lines.isNotEmpty() && !s.running) { LiveCaptions.clear() }
         }
+        Spacer(Modifier.height(8.dp))
+        // ---------- 情境（照護、商務、旅遊）＋常用片語 ----------
+        SceneBar {
+            size = Settings.captionSize(context).coerceIn(0, 3); original = Settings.showOriginal(context)
+            speak = Settings.autoSpeak(context); sceneVer++
+        }
+        Spacer(Modifier.height(6.dp))
+        PhraseRow(source, target, sceneVer)
         Spacer(Modifier.height(8.dp))
 
         // ---------- 字幕：新的在下面，自动捲到最新 ----------

@@ -58,6 +58,9 @@ fun AiEngineSection(gemini: String, onGemini: (String) -> Unit, claude: String, 
     val context = LocalContext.current
     // 改了就重画（AiConfig 存在 SharedPreferences，不是 Compose 状态）
     var tick by remember { mutableIntStateOf(0) }
+    var advanced by remember { mutableStateOf(false) }
+    // 選了「私有主機」但還沒設定好：先顯示主機設定
+    var hostChosen by remember { mutableStateOf(false) }
     fun changed() { tick++ }
     if (tick < 0) return   // 读 tick：改设定后整段重画
     val mode = AiConfig.mode(context)
@@ -65,22 +68,55 @@ fun AiEngineSection(gemini: String, onGemini: (String) -> Unit, claude: String, 
     val llm = AiConfig.llmKind(context)
     fun open(url: String) = runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
 
+    // ---------- AI 模式（三選一）：雲端 / 離線 / 私有主機 ----------
+    val host = com.example.wristai.ai.LocalHost
+    val simple = when {
+        host.configured(context) && !host.paused(context) -> 2
+        hostChosen -> 2
+        mode == AiConfig.MODE_DEVICE && AiConfig.explicit(context) -> 1
+        else -> 0
+    }
     SectionLabel("AI 引擎".tr)
     GlassCard {
-        Text("報告由誰產生".tr, style = MaterialTheme.typography.titleMedium, color = Brand.Text)
+        Text("AI 模式".tr, style = MaterialTheme.typography.titleMedium, color = Brand.Text)
+        Text("報告由誰產生；隨時可以換".tr, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
         Spacer(Modifier.height(10.dp))
-        ModeOption(mode == AiConfig.MODE_GEMINI, "Google Gemini（一站式）".tr, "直接聆聽錄音，產生報告與分說話者逐字稿；免費方案可用".tr) {
-            AiConfig.setMode(context, AiConfig.MODE_GEMINI); changed()
+        ModeOption(simple == 0, "☁ " + "雲端（Gemini，免費）".tr, "最簡單：填一把免費金鑰，錄完自動產生報告與分說話者逐字稿".tr) {
+            host.setPaused(context, true); hostChosen = false
+            if (mode == AiConfig.MODE_DEVICE || !AiConfig.explicit(context)) AiConfig.setMode(context, AiConfig.MODE_GEMINI)
+            changed()
         }
-        ModeOption(mode == AiConfig.MODE_PIPELINE, "組合：語音辨識 ＋ 報告模型".tr, "阿里百煉、科大訊飛、OpenAI、Meta、Claude 自由搭配".tr) {
-            AiConfig.setMode(context, AiConfig.MODE_PIPELINE); changed()
-        }
-        ModeOption(mode == AiConfig.MODE_DEVICE, "只用 Galaxy AI（裝置端）".tr, "錄音不上傳，存入三星錄音機後在手機上轉錄 / 摘要".tr) {
+        ModeOption(simple == 1, "📱 " + "離線（Galaxy AI）".tr, "錄音不上傳，存入三星錄音機後在手機上轉錄 / 摘要；適合機密內容".tr) {
+            host.setPaused(context, true); hostChosen = false
             AiConfig.setMode(context, AiConfig.MODE_DEVICE); changed()
+        }
+        ModeOption(simple == 2, "🖥 " + "私有主機（大D的主機）".tr, "用你自己的電腦跑 AI：免費、錄音不出你的設備；連不到時自動改用雲端".tr) {
+            host.setPaused(context, false); hostChosen = true; changed()
         }
     }
 
-    when (mode) {
+    if (simple == 2) {
+        LocalHostSection()
+        return
+    }
+    if (simple == 0) GlassCard {
+        // 進階：換成組合式（語音辨識＋報告模型）
+        Row(Modifier.fillMaxWidth().clickable { advanced = !advanced; changed() }, verticalAlignment = Alignment.CenterVertically) {
+            Text("進階：選擇雲端服務".tr, style = MaterialTheme.typography.titleSmall, color = Brand.Text, modifier = Modifier.weight(1f))
+            Text(if (advanced || mode == AiConfig.MODE_PIPELINE) "▲" else "▼", color = Brand.TextMuted)
+        }
+        if (advanced || mode == AiConfig.MODE_PIPELINE) {
+            Spacer(Modifier.height(8.dp))
+            ModeOption(mode != AiConfig.MODE_PIPELINE, "Google Gemini（一站式）".tr, "直接聆聽錄音，產生報告與分說話者逐字稿；免費方案可用".tr) {
+                AiConfig.setMode(context, AiConfig.MODE_GEMINI); changed()
+            }
+            ModeOption(mode == AiConfig.MODE_PIPELINE, "組合：語音辨識 ＋ 報告模型".tr, "阿里百煉、科大訊飛、OpenAI、Meta、Claude 自由搭配".tr) {
+                AiConfig.setMode(context, AiConfig.MODE_PIPELINE); changed()
+            }
+        }
+    }
+
+    when (if (simple == 1) AiConfig.MODE_DEVICE else if (mode == AiConfig.MODE_DEVICE) AiConfig.MODE_GEMINI else mode) {
         AiConfig.MODE_GEMINI -> GlassCard(highlight = gemini.isNotBlank()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {

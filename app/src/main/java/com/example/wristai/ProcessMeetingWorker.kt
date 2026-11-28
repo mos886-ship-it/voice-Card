@@ -435,7 +435,7 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
         val llm = if (mode == cfg.MODE_PIPELINE) cfg.llm(ctx) else null
         val gemini = Settings.geminiKey(ctx).takeIf { it.isNotBlank() }
         val claude = Settings.apiKey(ctx).takeIf { it.isNotBlank() }
-        val useHost = host.configured(ctx)
+        val useHost = host.active(ctx)
         plan(id, listOf("接收記錄") + (if (useHost) listOf(STEP_HOST_UP, STEP_HOST_AI, STEP_HOST_PURGE, STEP_HOST_BACK) else listOf("報告整理")))
         MeetingStore.update(ctx, id) { it.copy(status = MeetingStatus.SUMMARIZING, error = null, engineNote = null) }
 
@@ -570,7 +570,7 @@ class ProcessMeetingWorker(context: Context, params: WorkerParameters) :
     private suspend fun tryLocalHost(id: String, meeting: Meeting, food: Boolean): Result? {
         val host = com.example.wristai.ai.LocalHost
         val cfg = com.example.wristai.ai.AiConfig
-        if (!host.configured(ctx)) return null
+        if (!host.active(ctx)) return null
         val node = meeting.watchNodeId
         val mode = cfg.mode(ctx)
         val pipelineOk = mode == cfg.MODE_PIPELINE && cfg.pipelineMissing(ctx) == null
