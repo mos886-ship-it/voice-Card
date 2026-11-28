@@ -15,7 +15,9 @@ import java.io.File
  * - 對話記錄（[Talk]）：files/talks/<id>/talk.json＋每句的原聲片段（自己的、對方的），可以回播。
  */
 object TalkStore {
-    data class Contact(val id: String, val name: String, val lang: String, val base: String, val lan: String?, val lastTalk: Long)
+    data class Contact(val id: String, val name: String, val lang: String, val base: String, val lan: String?, val lastTalk: Long,
+                       /** 對方的使用者 ID（加好友用，像 K7MX-29QP）；舊的對象沒有。 */
+                       val uid: String? = null)
     data class Identity(val id: String, val token: String)
     data class TalkLine(val mine: Boolean, val name: String, val text: String, val lang: String, val translated: String?,
                         val audio: String?, val at: Long)
@@ -31,14 +33,14 @@ object TalkStore {
         val arr = runCatching { JSONArray(prefs(c).getString("contacts", "[]")) }.getOrDefault(JSONArray())
         _contacts.value = (0 until arr.length()).map { arr.getJSONObject(it) }.map { o ->
             Contact(o.getString("id"), o.optString("name"), o.optString("lang"), o.getString("base"),
-                o.optString("lan").ifBlank { null }, o.optLong("last"))
+                o.optString("lan").ifBlank { null }, o.optLong("last"), o.optString("uid").ifBlank { null })
         }.sortedByDescending { it.lastTalk }
         reloadTalks(c)
     }
 
     private fun saveContacts(c: Context, list: List<Contact>) {
         val arr = JSONArray()
-        list.forEach { k -> arr.put(JSONObject().put("id", k.id).put("name", k.name).put("lang", k.lang).put("base", k.base).put("lan", k.lan).put("last", k.lastTalk)) }
+        list.forEach { k -> arr.put(JSONObject().put("id", k.id).put("name", k.name).put("lang", k.lang).put("base", k.base).put("lan", k.lan).put("last", k.lastTalk).put("uid", k.uid)) }
         prefs(c).edit().putString("contacts", arr.toString()).apply()
         _contacts.value = list.sortedByDescending { it.lastTalk }
     }
@@ -46,7 +48,7 @@ object TalkStore {
     fun upsertContact(c: Context, k: Contact) {
         val old = _contacts.value.firstOrNull { it.id == k.id && it.base == k.base }
         val merged = k.copy(name = k.name.ifBlank { old?.name.orEmpty() }, lang = k.lang.ifBlank { old?.lang.orEmpty() },
-            lan = k.lan ?: old?.lan, lastTalk = maxOf(k.lastTalk, old?.lastTalk ?: 0))
+            lan = k.lan ?: old?.lan, lastTalk = maxOf(k.lastTalk, old?.lastTalk ?: 0), uid = k.uid ?: old?.uid)
         saveContacts(c, _contacts.value.filterNot { it.id == k.id && it.base == k.base } + merged)
     }
 

@@ -1205,6 +1205,22 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/v1/talk/join":
             return self._talk(lambda: (lambda b: TALK.join(b.get("room"), b.get("code"), b.get("name"), b.get("lang"),
                                                             contact=b.get("contact")))(self._body()))
+        if self.path == "/v1/talk/register":
+            # 已經有通話身分 → 用它；沒有 → 要是配對過的裝置
+            ct = self.headers.get("X-Contact-Token", "")
+            dev = None
+            if not TALK.has_contact(ct):
+                if not self._authorized():
+                    return
+                dev = self._dev() or "main"
+            return self._talk(lambda: (lambda b: TALK.register(ct, b.get("name"), b.get("lang"), dev=dev))(self._body()))
+        if self.path in ("/v1/talk/friend", "/v1/talk/friend/answer", "/v1/talk/unfriend"):
+            ct = self.headers.get("X-Contact-Token", "")
+            if self.path == "/v1/talk/friend":
+                return self._talk(lambda: TALK.add_friend(ct, self._body().get("id")))
+            if self.path == "/v1/talk/friend/answer":
+                return self._talk(lambda: (lambda b: TALK.answer_friend(ct, b.get("from"), bool(b.get("accept"))))(self._body()))
+            return self._talk(lambda: TALK.unfriend(ct, self._body().get("id")))
         if self.path in ("/v1/talk/presence", "/v1/talk/call", "/v1/talk/dismiss"):
             ct = self.headers.get("X-Contact-Token", "")
             if self.path == "/v1/talk/presence":

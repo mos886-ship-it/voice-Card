@@ -155,5 +155,59 @@ class ContactsTest(unittest.TestCase):
             self.r.presence(a["contact"]["token"], [])         # 舊 token 失效
 
 
+    def test_register_and_friends_by_id(self):
+        with self.assertRaises(talk.TalkError):             # 沒配對、沒身分 → 不能註冊
+            self.r.register(None, "陌生人", "en")
+        a = self.r.register(None, "大D", "cmn-Hant-TW", dev="dev1")
+        b = self.r.register(None, "Yuki", "ja-JP", dev="dev2")
+        at, bt = a["contact"]["token"], b["contact"]["token"]
+        self.assertRegex(a["uid"], r"^[A-Z2-9]{4}-[A-Z2-9]{4}$")
+        self.assertEqual(a["uid"], self.r.register(at, "大D", "zh")["uid"])   # 同一個人同一個 ID
+        with self.assertRaises(talk.TalkError):
+            self.r.add_friend(at, a["uid"])                 # 自己
+        self.clock.t += 5
+        with self.assertRaises(talk.TalkError) as e:
+            self.r.add_friend(at, "ZZZZ-ZZZZ")
+        self.assertEqual(e.exception.code, 404)
+        self.clock.t += 5
+        res = self.r.add_friend(at, b["uid"].lower().replace("-", " "))   # 小寫、空白也可以
+        self.assertEqual(res["status"], "pending")
+        with self.assertRaises(talk.TalkError):             # 還沒接受 → 不能打
+            self.r.call(at, b["contact"]["id"], "大D", "zh")
+        pb = self.r.presence(bt, [])
+        self.assertEqual([q["name"] for q in pb["requests"]], ["大D"])
+        pa = self.r.presence(at, [b["contact"]["id"]])
+        self.assertTrue(pa["peers"][b["contact"]["id"]]["pending"])
+        self.r.answer_friend(bt, a["contact"]["id"], True)
+        self.assertEqual(self.r.presence(bt, [])["requests"], [])
+        pa = self.r.presence(at, [b["contact"]["id"]])
+        self.assertTrue(pa["peers"][b["contact"]["id"]]["online"])
+        self.r.call(at, b["contact"]["id"], "大D", "zh")    # 好友可以打
+        self.r.unfriend(bt, a["contact"]["id"])
+        self.clock.t += 20
+        with self.assertRaises(talk.TalkError):
+            self.r.call(at, b["contact"]["id"], "大D", "zh")
+
+    def test_mutual_add_and_decline(self):
+        a = self.r.register(None, "A", "en", dev="d1"); b = self.r.register(None, "B", "ja", dev="d2")
+        c = self.r.register(None, "C", "ko", dev="d3")
+        at, bt, ct = (x["contact"]["token"] for x in (a, b, c))
+        self.r.add_friend(at, b["uid"])
+        self.assertEqual(self.r.add_friend(bt, a["uid"])["status"], "friends")   # 互加 → 直接好友
+        self.r.add_friend(ct, a["uid"])
+        self.r.answer_friend(at, c["contact"]["id"], False)
+        self.assertEqual(self.r.presence(at, [])["requests"], [])
+        with self.assertRaises(talk.TalkError):
+            self.r.call(ct, a["contact"]["id"], "C", "ko")
+
+    def test_uid_survives_restart(self):
+        import os, tempfile
+        d = tempfile.mkdtemp()
+        p = os.path.join(d, "c.json")
+        r1 = talk.Rooms(clock=self.clock, contacts_path=p)
+        a = r1.register(None, "A", "en", dev="d1")
+        r2 = talk.Rooms(clock=self.clock, contacts_path=p)
+        self.assertEqual(a["uid"], r2.register(a["contact"]["token"], "A", "en")["uid"])
+
 if __name__ == "__main__":
     unittest.main()

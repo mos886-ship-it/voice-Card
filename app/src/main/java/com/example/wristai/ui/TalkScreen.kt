@@ -30,6 +30,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -105,8 +107,61 @@ private fun TalkHome(modifier: Modifier, onReplay: (TalkStore.Talk) -> Unit) {
     fun saveName() = prefs.edit().putString("talk_name", name.trim().ifBlank { android.os.Build.MODEL.take(20) }).apply()
     val myLang = TranslateLangs.shortName(TranslateLangs.mlkitOf(Settings.translateSource(context)) ?: "zh")
     var paste by remember { mutableStateOf("") }
+    val myUid by com.example.wristai.TalkFriends.myUid.collectAsState()
+    val requests by com.example.wristai.TalkFriends.requests.collectAsState()
+    val pending by com.example.wristai.TalkFriends.pending.collectAsState()
+    val scope = rememberCoroutineScope()
+    var adding by remember { mutableStateOf(false) }
+    var idBusy by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { com.example.wristai.TalkFriends.loadCached(context) }
+    fun toast(s: String) = android.widget.Toast.makeText(context, s, android.widget.Toast.LENGTH_LONG).show()
 
     LazyColumn(modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        // ---------- 我的 ID ＋ 加好友 ----------
+        item(key = "myId") {
+            GlassCard {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("我的 ID".tr, style = MaterialTheme.typography.labelMedium, color = Brand.TextMuted)
+                        Text(myUid ?: "—", style = MaterialTheme.typography.headlineSmall, color = Brand.Text,
+                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                    }
+                    if (myUid != null) {
+                        GhostButton("分享".tr, {
+                            val text = "我在大D的遠距對話 ID：{0}（在大D → 翻譯 → 遠距對話 →「加好友」輸入）".trf(myUid)
+                            context.startActivity(android.content.Intent.createChooser(android.content.Intent(android.content.Intent.ACTION_SEND)
+                                .setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT, text), "分享我的 ID".tr))
+                        })
+                    } else GhostButton(if (idBusy) "…" else "取得我的 ID".tr, {
+                        if (idBusy) return@GhostButton
+                        saveName(); idBusy = true
+                        scope.launch {
+                            runCatching { com.example.wristai.TalkFriends.register(context, name.trim(), Settings.translateSource(context)) }
+                                .onFailure { toast(it.message ?: "失敗".tr) }
+                            idBusy = false
+                        }
+                    }, tint = Brand.Cyan)
+                }
+                Spacer(Modifier.height(8.dp))
+                GhostButton("＋ " + "加好友（輸入對方的 ID）".tr, { saveName(); adding = true }, Modifier.fillMaxWidth(), tint = Brand.Cyan)
+                Text("對方接受後，兩邊的「通話對象」都會出現，可以直接撥打。".tr, style = MaterialTheme.typography.bodySmall, color = Brand.TextFaint)
+            }
+        }
+        // ---------- 好友邀請 ----------
+        items(requests, key = { "req" + it.id + it.base }) { r ->
+            GlassCard(highlight = true) {
+                Text("{0} 想加你為好友".trf(r.name), style = MaterialTheme.typography.titleSmall, color = Brand.Text)
+                Text(listOf(r.uid, langName(r.lang)).filter { it.isNotBlank() }.joinToString(" · "),
+                    style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    GhostButton("接受".tr, { scope.launch { runCatching { com.example.wristai.TalkFriends.answer(context, r, true) }.onFailure { toast(it.message ?: "") } } },
+                        Modifier.weight(1f), tint = Brand.Success)
+                    GhostButton("拒絕".tr, { scope.launch { runCatching { com.example.wristai.TalkFriends.answer(context, r, false) }.onFailure { toast(it.message ?: "") } } },
+                        Modifier.weight(1f), tint = Brand.Warning)
+                }
+            }
+        }
         // 來電
         val live = calls.filter { it.live }
         items(live, key = { "call" + it.room }) { call ->
@@ -143,10 +198,13 @@ private fun TalkHome(modifier: Modifier, onReplay: (TalkStore.Talk) -> Unit) {
             item(key = "contactsLabel") { SectionLabel("通話對象".tr) }
             items(contacts, key = { "c" + it.id + it.base }) { k ->
                 val on = online["${k.id}@${k.base}"] == true
-                ContactRow(k, on, onCall = { saveName(); RemoteTalk.call(context, k) },
+                val waiting = "${k.id}@${k.base}" in pending
+                ContactRow(k, on, onCall = {
+                        if (waiting) toast("{0} 還沒接受好友邀請".trf(k.name)) else { saveName(); RemoteTalk.call(context, k) }
+                    },
                     onHistory = { talks.firstOrNull { t -> k.name in t.partners }?.let(onReplay) },
                     hasHistory = talks.any { t -> k.name in t.partners },
-                    onRemove = { TalkStore.removeContact(context, k) })
+                    onRemove = { scope.launch { com.example.wristai.TalkFriends.remove(context, k) } }, pending = waiting)
             }
         }
         // 未接
@@ -201,10 +259,40 @@ private fun TalkHome(modifier: Modifier, onReplay: (TalkStore.Talk) -> Unit) {
         }
         item { Spacer(Modifier.height(24.dp)) }
     }
+    if (adding) {
+        var uid by remember { mutableStateOf("") }
+        var busy by remember { mutableStateOf(false) }
+        AlertDialog(onDismissRequest = { adding = false },
+            title = { Text("加好友".tr) },
+            text = {
+                Column {
+                    Text("輸入對方的 ID（對方在遠距對話頁最上面看得到）。".tr, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
+                    Spacer(Modifier.height(8.dp))
+                    // 英文鍵盤、全大寫（注音、倉頡鍵盤打不出 ID）
+                    OutlinedTextField(uid, { uid = it.uppercase().take(12) }, Modifier.fillMaxWidth(), singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Characters,
+                            keyboardType = androidx.compose.ui.text.input.KeyboardType.Ascii, autoCorrectEnabled = false),
+                        placeholder = { Text("K7MX-29QP", color = Brand.TextFaint) }, shape = RoundedCornerShape(14.dp), colors = brandFieldColors())
+                }
+            },
+            confirmButton = {
+                TextButton({
+                    busy = true
+                    scope.launch {
+                        runCatching { com.example.wristai.TalkFriends.add(context, uid, name.trim(), Settings.translateSource(context)) }
+                            .onSuccess { toast(it); adding = false }.onFailure { toast(it.message ?: "失敗".tr) }
+                        busy = false
+                    }
+                }, enabled = !busy && uid.count { it.isLetterOrDigit() } >= 8) { Text(if (busy) "…" else "加好友".tr) }
+            },
+            dismissButton = { TextButton({ adding = false }) { Text("取消".tr) } })
+    }
 }
 
 @Composable
-private fun ContactRow(k: TalkStore.Contact, online: Boolean, onCall: () -> Unit, onHistory: () -> Unit, hasHistory: Boolean, onRemove: () -> Unit) {
+private fun ContactRow(k: TalkStore.Contact, online: Boolean, onCall: () -> Unit, onHistory: () -> Unit, hasHistory: Boolean, onRemove: () -> Unit,
+                       pending: Boolean = false) {
     var confirm by remember { mutableStateOf(false) }
     Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Brand.SurfaceHigh).padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
         // 頭像＋上線綠點
@@ -219,15 +307,16 @@ private fun ContactRow(k: TalkStore.Contact, online: Boolean, onCall: () -> Unit
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f).clickable { confirm = true }) {
             Text(k.name, style = MaterialTheme.typography.titleSmall, color = Brand.Text, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text((if (online) "上線中".tr else "離線".tr) + " · " + langName(k.lang), style = MaterialTheme.typography.labelSmall,
-                color = if (online) Brand.Success else Brand.TextFaint)
+            Text((if (pending) "等待對方接受".tr else if (online) "上線中".tr else "離線".tr) + " · " + langName(k.lang) +
+                (k.uid?.let { " · $it" } ?: ""), style = MaterialTheme.typography.labelSmall,
+                color = if (pending) Brand.Warning else if (online) Brand.Success else Brand.TextFaint)
         }
         if (hasHistory) { GhostButton("記錄".tr, onHistory); Spacer(Modifier.width(6.dp)) }
         GhostButton("撥打".tr, onCall, tint = if (online) Brand.Success else Brand.Cyan)
     }
     if (confirm) AlertDialog(onDismissRequest = { confirm = false },
         title = { Text(k.name) },
-        text = { Text("要把 {0} 從通話對象移除嗎？以前的對話記錄會留著。".trf(k.name)) },
+        text = { Text("要把 {0} 從通話對象移除嗎？雙方都不能再互相撥打（要再加好友）；以前的對話記錄會留著。".trf(k.name)) },
         confirmButton = { TextButton({ confirm = false; onRemove() }) { Text("移除".tr, color = Brand.Warning) } },
         dismissButton = { TextButton({ confirm = false }) { Text("取消".tr) } })
 }

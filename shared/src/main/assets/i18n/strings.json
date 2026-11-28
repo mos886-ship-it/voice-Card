@@ -7374,5 +7374,85 @@
  "菜單翻譯": {
   "en": "Menu translation",
   "ko": "메뉴 번역"
+ },
+ "大D的主機還沒有加好友功能：請在 Mac 上重新部署大D的主機": {
+  "en": "Dylan Host doesn't support friends yet: redeploy Dylan Host on the Mac",
+  "ko": "Dylan Host에 아직 친구 기능이 없습니다: Mac에서 Dylan Host를 다시 배포하세요"
+ },
+ "要先跟大D的主機配對（設定 → AI 引擎 → 私有主機），或先用邀請連結加入過一次對話": {
+  "en": "Pair with Dylan Host first (Settings → AI engine → Private host), or join a conversation once with an invite link",
+  "ko": "먼저 Dylan Host와 페어링하거나(설정 → AI 엔진 → 개인 호스트) 초대 링크로 대화에 한 번 참여하세요"
+ },
+ "要先跟大D的主機配對": {
+  "en": "Pair with Dylan Host first",
+  "ko": "먼저 Dylan Host와 페어링하세요"
+ },
+ "沒有通話身分": {
+  "en": "No call identity",
+  "ko": "통화 신원이 없습니다"
+ },
+ "已送出好友邀請給 {0}，對方接受後就能互相撥打": {
+  "en": "Friend request sent to {0}; you can call each other once they accept",
+  "ko": "{0}님에게 친구 요청을 보냈습니다. 수락하면 서로 통화할 수 있어요"
+ },
+ "{0} 已經是你的好友": {
+  "en": "{0} is already your friend",
+  "ko": "{0}님은 이미 친구입니다"
+ },
+ "我的 ID": {
+  "en": "My ID",
+  "ko": "내 ID"
+ },
+ "我在大D的遠距對話 ID：{0}（在大D → 翻譯 → 遠距對話 →「加好友」輸入）": {
+  "en": "My Dylan remote talk ID: {0} (in Dylan → Translate → Remote talk → Add friend)",
+  "ko": "Dylan 원격 대화 ID: {0} (Dylan → 번역 → 원격 대화 → '친구 추가'에 입력)"
+ },
+ "分享我的 ID": {
+  "en": "Share my ID",
+  "ko": "내 ID 공유"
+ },
+ "取得我的 ID": {
+  "en": "Get my ID",
+  "ko": "내 ID 받기"
+ },
+ "加好友（輸入對方的 ID）": {
+  "en": "Add friend (enter their ID)",
+  "ko": "친구 추가 (상대 ID 입력)"
+ },
+ "對方接受後，兩邊的「通話對象」都會出現，可以直接撥打。": {
+  "en": "Once they accept, you both appear in each other's contacts and can call directly.",
+  "ko": "상대가 수락하면 서로의 통화 상대에 표시되어 바로 통화할 수 있어요."
+ },
+ "{0} 想加你為好友": {
+  "en": "{0} wants to add you as a friend",
+  "ko": "{0}님이 친구 추가를 요청했습니다"
+ },
+ "接受": {
+  "en": "Accept",
+  "ko": "수락"
+ },
+ "拒絕": {
+  "en": "Decline",
+  "ko": "거절"
+ },
+ "{0} 還沒接受好友邀請": {
+  "en": "{0} hasn't accepted your friend request yet",
+  "ko": "{0}님이 아직 친구 요청을 수락하지 않았습니다"
+ },
+ "加好友": {
+  "en": "Add friend",
+  "ko": "친구 추가"
+ },
+ "輸入對方的 ID（對方在遠距對話頁最上面看得到）。": {
+  "en": "Enter their ID (shown at the top of their Remote talk page).",
+  "ko": "상대의 ID를 입력하세요 (상대의 원격 대화 화면 맨 위에 있어요)."
+ },
+ "等待對方接受": {
+  "en": "Waiting for them to accept",
+  "ko": "상대 수락 대기 중"
+ },
+ "要把 {0} 從通話對象移除嗎？雙方都不能再互相撥打（要再加好友）；以前的對話記錄會留著。": {
+  "en": "Remove {0} from your contacts? Neither of you can call the other until you add each other again; past conversations are kept.",
+  "ko": "{0}님을 통화 상대에서 삭제할까요? 다시 친구 추가할 때까지 서로 통화할 수 없습니다. 이전 대화 기록은 남습니다."
  }
 }

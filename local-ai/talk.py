@@ -16,6 +16,13 @@
   「在線上」＝ 90 秒內有回報。主機沒辦法叫醒關著的 App（那要 Google / Apple 的推播），所以對方沒開 App 就是「未接」。
 - POST /v1/talk/call（X-Contact-Token）{to, name, lang}：直接打給通話過的對象：開一間房、在對方那邊留來電（2 分鐘內接都可以）。
 
+使用者 ID（加好友）：
+- POST /v1/talk/register：取得自己的使用者 ID（8 碼，像 K7MX-29QP，好念好打）。配對過的裝置（Authorization）或已經有通話身分（X-Contact-Token）的人才能註冊。
+- POST /v1/talk/friend（X-Contact-Token）{id: "K7MX-29QP"}：輸入對方的 ID → 對方收到好友邀請；對方接受後互相成為好友（＝可以互打）。
+  對方也加過我 → 直接成為好友。
+- POST /v1/talk/friend/answer {from, accept}：接受 / 拒絕好友邀請。POST /v1/talk/unfriend {id}：刪除好友（雙方都拿掉）。
+- 上線回報多回：自己的 uid、收到的好友邀請 requests、我送出還沒被接受的 pending。
+
 安全與限制（主機對外開放）：
 - 房號 12 字、邀請碼 8 字、token 32 字，都是 secrets 隨機產生；邀請碼錯太多次（同房 10 次）就作廢。
 - 只能打給「同一間房待過」的人；每人 10 秒最多打一通。
@@ -45,6 +52,18 @@ RING_SECONDS = 120
 CALL_GAP = 10
 MAX_CONTACTS = 2000
 CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"   # 不用 0 O 1 I L，口頭念也不會搞混
+UID_LEN = 8
+FRIEND_GAP = 2          # 加好友：每人 2 秒最多一次
+MAX_REQUESTS = 50       # 每人最多掛 50 個沒處理的好友邀請
+
+
+def norm_uid(s):
+    """使用者輸入的 ID → 標準寫法（大寫、去掉 - 和空白；容易混的 0→O 不用處理，因為 ID 裡根本沒有）。"""
+    return "".join(ch for ch in str(s or "").upper() if ch in CODE_CHARS)[:UID_LEN]
+
+
+def show_uid(uid):
+    return f"{uid[:4]}-{uid[4:]}" if uid and len(uid) == UID_LEN else (uid or "")
 
 
 def _rand(n, chars=string.ascii_letters + string.digits):
@@ -70,6 +89,8 @@ class Rooms:
         self.contacts = {}      # id → {name, lang, hash, dev, peers:[id]}
         self.by_hash = {}       # 雜湊 → id
         self.by_dev = {}        # 配對裝置 → id
+        self.by_uid = {}        # 使用者 ID → id
+        self.last_friend = {}
         self.seen = {}          # id → 最後回報時間（不存檔）
         self.rings = {}         # id → [{room, code, from, name, lang, at}]（不存檔）
         self.last_call = {}
@@ -88,6 +109,8 @@ class Rooms:
             self.by_hash[c["hash"]] = cid
             if c.get("dev"):
                 self.by_dev[c["dev"]] = cid
+            if c.get("uid"):
+                self.by_uid[c["uid"]] = cid
 
     def _save(self):
         if not self.path:
@@ -103,6 +126,10 @@ class Rooms:
 
     def _contact(self, token):
         return self.by_hash.get(_hash(token)) if token else None
+
+    def has_contact(self, token):
+        with self.cond:
+            return bool(self._contact(token))
 
     def _ensure_contact(self, token, name, lang, dev=None):
         """帶 token → 同一個人（更新名字、語言）；沒有 → 新的（配對裝置沿用它自己的身分，換一把新 token）。
@@ -143,6 +170,111 @@ class Rooms:
                         changed = True
         if changed:
             self._save()
+
+    def _uid(self, cid):
+        """這個人的使用者 ID（第一次用到才產生）。"""
+        c = self.contacts[cid]
+        if not c.get("uid"):
+            while True:
+                uid = _rand(UID_LEN, CODE_CHARS)
+                if uid not in self.by_uid:
+                    break
+            c["uid"] = uid
+            self.by_uid[uid] = cid
+            self._save()
+        return c["uid"]
+
+    def _brief(self, cid):
+        c = self.contacts[cid]
+        return {"id": cid, "name": c.get("name"), "lang": c.get("lang"), "uid": show_uid(c.get("uid"))}
+
+    def _befriend(self, a, b):
+        for x, y in ((a, b), (b, a)):
+            cx = self.contacts[x]
+            if y not in cx["peers"]:
+                cx["peers"].append(y)
+            for k in ("req_in", "req_out"):
+                if y in cx.get(k, []):
+                    cx[k].remove(y)
+
+    def register(self, contact_token, name, lang, dev=None):
+        """取得使用者 ID。有通話身分就用它；沒有的話要是配對過的裝置（[dev]）才給新的。"""
+        with self.cond:
+            if not self._contact(contact_token) and not dev:
+                raise TalkError(401, "要先跟大D的主機配對，或先用邀請連結加入過一次對話")
+            cid, tok = self._ensure_contact(contact_token, name, lang, dev=dev)
+            return {"contact": self._contact_out(cid, tok), "uid": show_uid(self._uid(cid))}
+
+    def add_friend(self, contact_token, uid):
+        with self.cond:
+            cid = self._contact(contact_token)
+            if not cid:
+                raise TalkError(401, "不認得這個通話身分")
+            now = self.clock()
+            if now - self.last_friend.get(cid, 0) < FRIEND_GAP:
+                raise TalkError(429, "太快了，等一下再試")
+            self.last_friend[cid] = now
+            u = norm_uid(uid)
+            if len(u) != UID_LEN:
+                raise TalkError(400, "ID 是 8 個英文字母或數字，例如 K7MX-29QP")
+            to = self.by_uid.get(u)
+            if not to or to not in self.contacts:
+                raise TalkError(404, "找不到這個 ID")
+            if to == cid:
+                raise TalkError(400, "這是你自己的 ID")
+            me, them = self.contacts[cid], self.contacts[to]
+            if to in me["peers"]:
+                status = "friends"
+            elif to in me.get("req_in", []):          # 對方也加過我 → 直接成為好友
+                self._befriend(cid, to)
+                status = "friends"
+            else:
+                inbox = them.setdefault("req_in", [])
+                if cid not in inbox:
+                    if len(inbox) >= MAX_REQUESTS:
+                        raise TalkError(429, "對方的好友邀請太多了，請稍後再試")
+                    inbox.append(cid)
+                out = me.setdefault("req_out", [])
+                if to not in out:
+                    out.append(to)
+                status = "pending"
+            self._save()
+            return {"status": status, "friend": self._brief(to)}
+
+    def answer_friend(self, contact_token, frm, accept):
+        with self.cond:
+            cid = self._contact(contact_token)
+            if not cid:
+                raise TalkError(401, "不認得這個通話身分")
+            frm = str(frm)
+            me = self.contacts[cid]
+            if frm not in me.get("req_in", []) or frm not in self.contacts:
+                raise TalkError(404, "沒有這個好友邀請")
+            if accept:
+                self._befriend(cid, frm)
+            else:
+                me["req_in"].remove(frm)
+                out = self.contacts[frm].get("req_out", [])
+                if cid in out:
+                    out.remove(cid)
+            self._save()
+            return {"ok": True, "friend": self._brief(frm) if accept else None}
+
+    def unfriend(self, contact_token, other):
+        with self.cond:
+            cid = self._contact(contact_token)
+            if not cid:
+                raise TalkError(401, "不認得這個通話身分")
+            other = str(other)
+            for x, y in ((cid, other), (other, cid)):
+                cx = self.contacts.get(x)
+                if not cx:
+                    continue
+                for k in ("peers", "req_in", "req_out"):
+                    if y in cx.get(k, []):
+                        cx[k].remove(y)
+            self._save()
+            return {"ok": True}
 
     def _contact_out(self, cid, token):
         return {"id": cid, "token": token} if token else {"id": cid}
@@ -327,13 +459,18 @@ class Rooms:
             if lang:
                 c["lang"] = str(lang)[:20]
             peers = set(c["peers"])
+            out = set(c.get("req_out", []))
             status = {}
             for w in (watch or [])[:200]:
                 w = str(w)
                 if w in peers and w in self.contacts:
                     t = self.seen.get(w)
                     status[w] = {"online": bool(t and now - t <= ONLINE_SECONDS), "seen": t,
-                                 "name": self.contacts[w].get("name"), "lang": self.contacts[w].get("lang")}
+                                 "name": self.contacts[w].get("name"), "lang": self.contacts[w].get("lang"),
+                                 "uid": show_uid(self.contacts[w].get("uid"))}
+                elif w in out and w in self.contacts:   # 我加了、對方還沒接受
+                    status[w] = {"online": False, "pending": True, **{k: v for k, v in self._brief(w).items() if k != "id"}}
+            requests = [self._brief(r) for r in c.get("req_in", []) if r in self.contacts]
             rings = [r for r in self.rings.get(cid, []) if now - r["at"] <= 24 * 3600]
             self.rings[cid] = rings[-20:]
             calls = []
@@ -341,7 +478,7 @@ class Rooms:
                 room = self.rooms.get(r["room"])
                 live = bool(room and not room["ended"] and room["code"] and now - r["at"] <= RING_SECONDS)
                 calls.append({**r, "live": live})
-            return {"me": cid, "peers": status, "calls": calls}
+            return {"me": cid, "uid": show_uid(self._uid(cid)), "peers": status, "calls": calls, "requests": requests}
 
     def dismiss(self, contact_token, room_id):
         """看過的未接來電拿掉。"""

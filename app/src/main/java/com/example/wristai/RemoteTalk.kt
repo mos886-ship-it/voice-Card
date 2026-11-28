@@ -114,7 +114,7 @@ object RemoteTalk {
     fun setSpeakTranslation(c: Context, v: Boolean) = c.getSharedPreferences("wristai_settings", 0).edit().putBoolean("talk_speak", v).apply()
 
     // ---------- HTTP ----------
-    private fun http(method: String, url: String, body: JSONObject? = null, auth: String? = null, talkToken: String? = null,
+    internal fun http(method: String, url: String, body: JSONObject? = null, auth: String? = null, talkToken: String? = null,
                      contactToken: String? = null, readMs: Int = 15_000, raw: ByteArray? = null): Pair<Int, JSONObject> {
         val conn = (URL(url).openConnection() as HttpURLConnection).apply {
             requestMethod = method
@@ -306,16 +306,26 @@ object RemoteTalk {
                         }
                         val (code, j) = res.getOrNull() ?: continue
                         if (code != 200) break
+                        val pendingIds = mutableSetOf<String>()
                         j.optJSONObject("peers")?.let { p ->
                             for (k in p.keys()) {
                                 val o = p.getJSONObject(k)
                                 online[keyOf(k, b)] = o.optBoolean("online")
+                                if (o.optBoolean("pending")) pendingIds += k
                                 watch.firstOrNull { it.id == k }?.let { old ->
-                                    if (o.optString("name").isNotBlank() && o.optString("name") != old.name)
-                                        TalkStore.upsertContact(ctx, old.copy(name = o.optString("name"), lang = o.optString("lang").ifBlank { old.lang }))
+                                    val nm = o.optString("name"); val uid = o.optString("uid").ifBlank { null }
+                                    if ((nm.isNotBlank() && nm != old.name) || (uid != null && uid != old.uid))
+                                        TalkStore.upsertContact(ctx, old.copy(name = nm.ifBlank { old.name }, lang = o.optString("lang").ifBlank { old.lang }, uid = uid ?: old.uid))
                                 }
                             }
                         }
+                        // 使用者 ID、好友邀請
+                        val reqs = j.optJSONArray("requests")?.let { a ->
+                            (0 until a.length()).map { a.getJSONObject(it) }.map { o ->
+                                TalkFriends.Request(b, o.optString("id"), o.optString("name"), o.optString("lang"), o.optString("uid"))
+                            }
+                        }.orEmpty()
+                        TalkFriends.onPresence(ctx, b, j, pendingIds, reqs)
                         j.optJSONArray("calls")?.let { a ->
                             for (i in 0 until a.length()) {
                                 val o = a.getJSONObject(i)
