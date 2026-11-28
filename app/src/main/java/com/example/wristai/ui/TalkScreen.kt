@@ -530,8 +530,22 @@ private fun MeTab(modifier: Modifier) {
                     Modifier.fillMaxWidth(), singleLine = true, label = { Text("你的名字（對方會看到）".tr) },
                     shape = RoundedCornerShape(14.dp), colors = brandFieldColors())
                 Spacer(Modifier.height(8.dp))
-                Text("你說的語言：{0}（在「翻譯」頁的「說的」可以改）".trf(langName(Settings.translateSource(context))),
-                    style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
+                // 我說的語言：點了換（跟「翻譯 → 說的」是同一個設定）
+                var lang by remember { mutableStateOf(Settings.translateSource(context)) }
+                var picking by remember { mutableStateOf(false) }
+                Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Brand.SurfaceHigh).clickable { picking = true }
+                    .padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("我說的語言".tr, style = MaterialTheme.typography.labelMedium, color = Brand.TextMuted)
+                        Text(TranslateLangs.name(lang) + "（" + TranslateLangs.regionName(lang) + "）", style = MaterialTheme.typography.titleMedium, color = Brand.Text)
+                    }
+                    Text("更改 ▾".tr, style = MaterialTheme.typography.labelLarge, color = Brand.Cyan)
+                }
+                Text("對方說的話也會翻成這個語言；通話中點上方的語言也可以換。".tr, style = MaterialTheme.typography.bodySmall, color = Brand.TextFaint,
+                    modifier = Modifier.padding(top = 6.dp))
+                if (picking) TranslateLangSheet(source = true, current = lang, onDismiss = { picking = false }) { code ->
+                    picking = false; lang = code; RemoteTalk.setMyLanguage(context, code)
+                }
             }
         }
         item {
@@ -565,6 +579,8 @@ private fun ToggleRow(title: String, detail: String, on: Boolean, onChange: (Boo
 @Composable
 private fun IncomingCall(call: RemoteTalk.Call) {
     val context = LocalContext.current
+    // 來電鈴聲＋震動（照系統的靜音 / 震動模式）；畫面離開就停
+    DisposableEffect(call.room) { com.example.wristai.TalkRing.startRinging(context); onDispose { com.example.wristai.TalkRing.stop() } }
     val t = rememberInfiniteTransition(label = "ring")
     val pulse by t.animateFloat(1f, 1.15f, infiniteRepeatable(tween(900, easing = LinearEasing), RepeatMode.Reverse), label = "pulse")
     Column(Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -600,6 +616,17 @@ private fun CallScreen(onMinimize: () -> Unit) {
     LaunchedEffect(Unit) { while (true) { now = System.currentTimeMillis(); delay(1000) } }
     val sec = if (since == 0L) 0 else ((now - since) / 1000).toInt()
     var orig by remember { mutableStateOf(RemoteTalk.playOriginal(context)) }
+    var myLang by remember { mutableStateOf(Settings.translateSource(context)) }
+    var picking by remember { mutableStateOf(false) }
+    // 撥出去、對方還沒接：回鈴音
+    val dialing = others.isEmpty() && s.calling != null
+    DisposableEffect(dialing) {
+        if (dialing) com.example.wristai.TalkRing.startRingback()
+        onDispose { com.example.wristai.TalkRing.stop() }
+    }
+    if (picking) TranslateLangSheet(source = true, current = myLang, onDismiss = { picking = false }) { code ->
+        picking = false; myLang = code; RemoteTalk.setMyLanguage(context, code)
+    }
 
     Column(Modifier.fillMaxSize()) {
         // ---------- 上方：對方 ----------
@@ -614,9 +641,14 @@ private fun CallScreen(onMinimize: () -> Unit) {
                 Text(when {
                     others.isEmpty() && s.calling != null -> "撥號中…".tr
                     others.isEmpty() -> "等對方加入…".tr
-                    else -> "%02d:%02d".format(sec / 60, sec % 60) + " · " + (others.firstOrNull()?.let { langName(it.lang) } ?: "") +
-                        "  ⇄  " + langName(Settings.translateSource(context))
+                    else -> "%02d:%02d".format(sec / 60, sec % 60) + " · " + (others.firstOrNull()?.let { langName(it.lang) } ?: "")
                 }, style = MaterialTheme.typography.labelMedium, color = if (others.isEmpty()) Brand.Warning else Brand.Success)
+            }
+            // 我說的語言：點了換（通話中也可以）
+            Column(Modifier.clip(RoundedCornerShape(12.dp)).background(Brand.SurfaceHigh).border(1.dp, Brand.Outline, RoundedCornerShape(12.dp))
+                .clickable { picking = true }.padding(horizontal = 10.dp, vertical = 6.dp), horizontalAlignment = Alignment.End) {
+                Text("我說".tr, style = MaterialTheme.typography.labelSmall, color = Brand.TextFaint)
+                Text(langName(myLang) + " ▾", style = MaterialTheme.typography.labelLarge, color = Brand.Cyan)
             }
         }
         s.error?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Brand.Warning, modifier = Modifier.padding(horizontal = 20.dp)) }

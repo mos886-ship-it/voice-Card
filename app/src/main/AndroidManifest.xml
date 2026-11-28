@@ -5,6 +5,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- 系統語音辨識服務要求呼叫方持有麥克風權限（即使只是讀檔案） -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- 遠距對話來電震動 -->
+    <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />

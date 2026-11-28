@@ -7610,5 +7610,21 @@
  "回到通話": {
   "en": "Back to call",
   "ko": "통화로 돌아가기"
+ },
+ "我說的語言": {
+  "en": "My language",
+  "ko": "내 언어"
+ },
+ "更改 ▾": {
+  "en": "Change ▾",
+  "ko": "변경 ▾"
+ },
+ "對方說的話也會翻成這個語言；通話中點上方的語言也可以換。": {
+  "en": "What they say is translated into this language too; during a call, tap the language at the top to change it.",
+  "ko": "상대의 말도 이 언어로 번역됩니다. 통화 중에는 위쪽 언어를 눌러 바꿀 수 있어요."
+ },
+ "我說": {
+  "en": "I speak",
+  "ko": "내 언어"
  }
 }

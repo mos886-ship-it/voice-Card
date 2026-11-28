@@ -279,6 +279,13 @@ object RemoteTalk {
         LiveCaptions.start(c, mySource(c), target, fromRecording = own)
     }
 
+    /** 換自己說的語言（通話中也可以）：存成「翻譯 → 說的」；麥克風開著就用新語言重新聽。對方的話也改翻成這個語言。 */
+    fun setMyLanguage(c: Context, tag: String) {
+        Settings.setTranslateSource(c, tag)
+        Settings.addRecentTranslateLang(c, tag)
+        if (LiveCaptions.state.value.running) { stopMic(); toggleMic(c) }
+    }
+
     private fun stopMic() {
         if (LiveCaptions.state.value.running) LiveCaptions.stop()
         TalkAudio.Mic.stop()
