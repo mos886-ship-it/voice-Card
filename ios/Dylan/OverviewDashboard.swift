@@ -49,6 +49,7 @@ struct OverviewDashboardView: View {
                     if mode == .tech || hasWatch {
                         WatchPill(state: link.watchState) { select(.settings) }
                     }
+                    TalkEntryButton()   // 遠距對話（來電、未接、好友邀請有紅色數字）
                 }
 
                 // AI 設定只放在「設定」分頁（使用者要求），主頁不顯示提醒卡。

@@ -40,6 +40,8 @@ final class RemoteTalk: ObservableObject {
     @Published private(set) var busy = false
     /// 正在打給誰（對方還沒接）
     @Published private(set) var calling: String?
+    /// 對方加入的時間（通話計時從這裡開始）
+    @Published private(set) var joinedAt: Date?
     /// 收到的邀請連結（dylan://talk）：對話頁看到就問要不要加入
     @Published var pendingInvite: String?
     /// 要翻成自己語言的句子（TalkTranslateHost 拿去翻）
@@ -78,14 +80,14 @@ final class RemoteTalk: ObservableObject {
 
     private func resetState() {
         room = nil; link = nil; me = nil; members = []; lines = []; connected = false; ended = false; error = nil
-        calling = nil; sent = [:]; sentAt = [:]; lineStart = [:]; toTranslate = []; finals = [:]
+        calling = nil; joinedAt = nil; sent = [:]; sentAt = [:]; lineStart = [:]; toTranslate = []; finals = [:]
     }
 
     func isOnline(_ k: TalkStore.Contact) -> Bool { online[k.key] == true }
 
     // MARK: HTTP
 
-    private func http(_ method: String, _ url: String, body: [String: Any]? = nil, auth: String? = nil, talkToken: String? = nil,
+    func http(_ method: String, _ url: String, body: [String: Any]? = nil, auth: String? = nil, talkToken: String? = nil,
                       contactToken: String? = nil, raw: Data? = nil, timeout: TimeInterval = 15) async throws -> (Int, [String: Any]) {
         guard let u = URL(string: url) else { throw URLError(.badURL) }
         var r = URLRequest(url: u, timeoutInterval: timeout)
@@ -289,13 +291,26 @@ final class RemoteTalk: ObservableObject {
                                                       body: ["watch": watch.map(\.id), "name": Self.myName, "lang": mySource],
                                                       contactToken: id.token, timeout: 8) else { continue }
                 if code != 200 { break }
+                var pendingIds = Set<String>()
                 for (k, v) in (j["peers"] as? [String: [String: Any]]) ?? [:] {
                     on["\(k)@\(b)"] = v["online"] as? Bool ?? false
-                    if let old = watch.first(where: { $0.id == k }), let n = v["name"] as? String, !n.isEmpty, n != old.name {
-                        var c = old; c.name = n; if let l = v["lang"] as? String, !l.isEmpty { c.lang = l }
-                        store.upsert(c)
+                    if v["pending"] as? Bool == true { pendingIds.insert(k) }
+                    if let old = watch.first(where: { $0.id == k }) {
+                        let n = v["name"] as? String ?? "", uid = (v["uid"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+                        if (!n.isEmpty && n != old.name) || (uid != nil && uid != old.uid) {
+                            var c = old
+                            if !n.isEmpty { c.name = n }
+                            if let l = v["lang"] as? String, !l.isEmpty { c.lang = l }
+                            if let uid { c.uid = uid }
+                            store.upsert(c)
+                        }
                     }
                 }
+                let reqs = ((j["requests"] as? [[String: Any]]) ?? []).map {
+                    TalkFriends.Request(base: b, id: $0["id"] as? String ?? "", name: $0["name"] as? String ?? "",
+                                        lang: $0["lang"] as? String ?? "", uid: $0["uid"] as? String ?? "")
+                }
+                TalkFriends.shared.onPresence(base: b, uid: j["uid"] as? String, pending: pendingIds, requests: reqs)
                 for o in (j["calls"] as? [[String: Any]]) ?? [] {
                     found.append(Call(base: b, room: o["room"] as? String ?? "", code: o["code"] as? String ?? "",
                                       from: o["from"] as? String ?? "", name: o["name"] as? String ?? "", lang: o["lang"] as? String ?? "",
@@ -418,11 +433,11 @@ final class RemoteTalk: ObservableObject {
             members = a.map { Member(id: $0["id"] as? String ?? "", name: $0["name"] as? String ?? "",
                                      lang: $0["lang"] as? String ?? "", owner: $0["owner"] as? Bool ?? false,
                                      contact: ($0["contact"] as? String).flatMap { $0.isEmpty ? nil : $0 }) }
-            if members.count > 1 { calling = nil }
+            if members.count > 1 { calling = nil; if joinedAt == nil { joinedAt = Date() } }
             // 記住通話對象（記在這台主機的代表位址下）
             if let host = canon {
                 for m in members where m.id != me {
-                    if let c = m.contact { TalkStore.shared.upsert(.init(id: c, name: m.name, lang: m.lang, base: host, lan: lan, lastTalk: Date())) }
+                    if let c = m.contact { TalkStore.shared.upsert(.init(id: c, name: m.name, lang: m.lang, base: host, lan: lan, lastTalk: Date(), uid: nil)) }
                 }
             }
         }
@@ -569,239 +584,544 @@ struct TalkTranslateHost: View {
     }
 }
 
-/// 遠距對話頁（「翻譯」分頁右上「遠距對話」）。
+/// 遠距對話頁（獨立一頁，照 Android `ui/TalkScreen.kt`）：還沒通話 → 好友｜最近｜我的；通話中 → 通話畫面。
+/// 入口：主頁右上電話鈕、翻譯頁「遠距對話」、邀請連結、時間軸（都設 `TalkPage.shared.presented = true`）。
 struct TalkView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var talk = RemoteTalk.shared
-    @ObservedObject private var store = TalkStore.shared
-    @ObservedObject private var captions = LiveCaptions.shared
-    @ObservedObject private var player = TalkPlayer.shared
-    @AppStorage(RemoteTalk.readAloudKey) private var speak = true
-    @AppStorage(RemoteTalk.playOriginalKey) private var playOriginal = true
-    @State private var name = RemoteTalk.myName
-    @State private var invite = ""
-    @State private var openTalk: TalkStore.Talk?
-    @State private var removing: TalkStore.Contact?
-    @State private var deleting: TalkStore.Talk?
 
     var body: some View {
-        VStack(spacing: 0) {
-            TopBar(title: "遠距對話".tr, onBack: { dismiss() }) {
-                if talk.connected {
-                    GhostButton(text: "掛斷".tr, tint: Brand.warning) { talk.leave() }
-                }
-            }
-            ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
-                    if let e = talk.error {
-                        Text(e).font(.bodyMedium).foregroundStyle(Color.white)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(12)
-                            .background(RoundedRectangle(cornerRadius: 12).fill(Brand.warning))
-                    }
-                    if talk.connected { roomView } else { startView }
-                }
-                .pageColumn()
-                .padding(.vertical, 12)
-            }
-            if talk.connected { micBar }
+        Group {
+            if talk.connected { InCallView { dismiss() } } else { TalkHome { dismiss() } }
         }
         .background(AppBackdrop())
         .background(TalkTranslateHost())
-        .onAppear {
-            if let p = talk.pendingInvite { invite = p }
-            talk.startPresence()
+        .onAppear { talk.startPresence() }
+    }
+}
+
+/// 頭像：名字第一個字，顏色依名字固定。
+struct TalkAvatar: View {
+    let name: String
+    var size: CGFloat = 40
+    static func color(_ name: String) -> Color {
+        let colors = [Brand.cyan, Brand.violet, Brand.pink, Brand.success, Brand.warning, Brand.blue]
+        let h = name.unicodeScalars.reduce(0) { ($0 &* 31 &+ Int($1.value)) & 0xFFFF }
+        return colors[h % colors.count]
+    }
+    var body: some View {
+        let c = Self.color(name)
+        Text(name.first.map { String($0) } ?? "?")
+            .font(.system(size: size * 0.42, weight: .semibold)).foregroundStyle(c)
+            .frame(width: size, height: size)
+            .background(Circle().fill(c.opacity(0.16)))
+            .overlay(Circle().stroke(c.opacity(0.5), lineWidth: 1))
+    }
+}
+
+/// 圓形按鈕（撥打、掛斷、原聲）。
+private struct RoundButton: View {
+    let systemImage: String
+    var fill: Color = Brand.success
+    var size: CGFloat = 44
+    var outline = false
+    var rotate: Double = 0
+    let label: String
+    let action: () -> Void
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemImage).font(.system(size: size * 0.4, weight: .semibold))
+                .rotationEffect(.degrees(rotate))
+                .foregroundStyle(outline ? fill : Color.white)
+                .frame(width: size, height: size)
+                .background(Circle().fill(outline ? Color.clear : fill))
+                .overlay(Circle().stroke(fill, lineWidth: outline ? 2 : 0))
         }
-        .onChange(of: talk.pendingInvite) { p in if let p { invite = p } }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
+    }
+}
+
+// MARK: - 還沒通話：好友｜最近｜我的
+
+private struct TalkHome: View {
+    let back: () -> Void
+    @ObservedObject private var talk = RemoteTalk.shared
+    @ObservedObject private var friends = TalkFriends.shared
+    @ObservedObject private var store = TalkStore.shared
+    @AppStorage("talk_tab") private var tab = 0
+    @State private var adding = false
+    @State private var inviting = false
+    @State private var picked: TalkStore.Contact?
+    @State private var removing: TalkStore.Contact?
+    @State private var openTalk: TalkStore.Talk?
+    @State private var note: String?
+
+    var body: some View {
+        VStack(spacing: 0) {
+            header
+            SegmentTabs(selection: $tab, labels: ["好友".tr, "最近".tr, "我的".tr]).pageColumn().padding(.vertical, 8)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    if let e = talk.error ?? note {
+                        Text(e).font(.bodyMedium).foregroundStyle(Color.white)
+                            .frame(maxWidth: .infinity, alignment: .leading).padding(12)
+                            .background(RoundedRectangle(cornerRadius: 12).fill(talk.error != nil ? Brand.warning : Brand.cyan))
+                            .onTapGesture { talk.error = nil; note = nil }
+                    }
+                    if talk.ended { Text("對話已結束。".tr).font(.bodyMedium).foregroundStyle(Brand.textMuted) }
+                    switch tab {
+                    case 1: recent
+                    case 2: TalkMeTab()
+                    default: friendsTab
+                    }
+                }
+                .pageColumn()
+                .padding(.vertical, 8)
+            }
+            if tab == 0 {
+                GradientButton(text: "＋ " + "加好友".tr) { adding = true }
+                    .pageColumn().padding(.vertical, 10)
+            }
+        }
+        .onAppear { if let p = talk.pendingInvite, !p.isEmpty { inviting = true } }
+        .onChange(of: talk.pendingInvite) { p in if p != nil { inviting = true } }
+        .sheet(isPresented: $adding) { AddFriendSheet { note = $0 } }
+        .sheet(isPresented: $inviting) { InviteSheet() }
         .sheet(item: $openTalk) { t in TalkRecordView(talk: t) }
-        .confirmationDialog("要把 {0} 從通話對象移除嗎？以前的對話記錄會留著。".trf(removing?.name ?? ""),
-                            isPresented: Binding(get: { removing != nil }, set: { if !$0 { removing = nil } }), titleVisibility: .visible) {
-            Button("移除".tr, role: .destructive) { if let k = removing { store.remove(k) }; removing = nil }
-            Button("取消".tr, role: .cancel) { removing = nil }
-        }
-        .confirmationDialog("刪除這次對話？".tr, isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }),
+        .confirmationDialog(picked?.name ?? "", isPresented: Binding(get: { picked != nil }, set: { if !$0 { picked = nil } }),
                             titleVisibility: .visible) {
-            Button("刪除".tr, role: .destructive) { if let t = deleting { store.delete(t.id) }; deleting = nil }
-            Button("取消".tr, role: .cancel) { deleting = nil }
-        } message: { Text("文字和雙方的原聲都會從這支手機刪除。".tr) }
+            if let k = picked, !friends.isPending(k) { Button("撥打".tr) { talk.call(k); picked = nil } }
+            Button("移除好友".tr, role: .destructive) { removing = picked; picked = nil }
+            Button("取消".tr, role: .cancel) { picked = nil }
+        }
+        .confirmationDialog("移除好友".tr, isPresented: Binding(get: { removing != nil }, set: { if !$0 { removing = nil } }),
+                            titleVisibility: .visible) {
+            Button("移除好友".tr, role: .destructive) { if let k = removing { Task { await friends.remove(k) } }; removing = nil }
+            Button("取消".tr, role: .cancel) { removing = nil }
+        } message: { Text("移除後雙方都不能再互相撥打（要再加好友）；以前的對話記錄會留著。".tr) }
     }
 
-    // MARK: 還沒進房
+    private var header: some View {
+        HStack(spacing: 12) {
+            IconCircle(systemImage: "chevron.left", label: "返回".tr, action: back)
+            VStack(alignment: .leading, spacing: 0) {
+                Text("遠距對話".tr).font(.titleMedium).foregroundStyle(Brand.text)
+                Text("各說各的語言，即時翻譯".tr).font(.labelMedium).foregroundStyle(Brand.textMuted)
+            }
+            Spacer()
+            if let uid = friends.myUid, !uid.isEmpty {
+                ShareLink(item: "我在大D的遠距對話 ID：{0}（在大D → 翻譯 → 遠距對話 →「加好友」輸入）".trf(uid)) {
+                    VStack(alignment: .trailing, spacing: 0) {
+                        Text("我的 ID".tr).font(.labelSmall).foregroundStyle(Brand.textFaint)
+                        Text(uid).font(.system(size: 15, weight: .semibold, design: .monospaced)).foregroundStyle(Brand.cyan)
+                    }
+                }
+                .accessibilityLabel("分享我的 ID".tr)
+            }
+        }
+        .pageColumn()
+        .padding(.top, 8)
+    }
 
-    private var startView: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            if talk.ended { Text("對話已結束。".tr).font(.bodyMedium).foregroundStyle(Brand.textMuted) }
-            ForEach(talk.calls) { c in callCard(c) }
+    // MARK: 好友
+
+    @ViewBuilder private var friendsTab: some View {
+        ForEach(friends.requests) { r in
             GlassCard {
-                Text("兩個人在不同地方、用各自的手機說各自的語言。對方每說完一句，你會先聽到他的原聲，再聽到翻譯。文字和原聲經過你的大D的主機轉送，主機不存檔；對話記錄存在你的手機。建議戴有麥克風的耳機。".tr)
+                HStack(spacing: 10) {
+                    TalkAvatar(name: r.name)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("{0} 想加你為好友".trf(r.name)).font(.titleSmall).foregroundStyle(Brand.text)
+                        Text(r.uid + " · " + TranslateLangs.name(r.lang)).font(.labelMedium).foregroundStyle(Brand.textMuted)
+                    }
+                }
+                HStack(spacing: 8) {
+                    GradientButton(text: "接受".tr) { answer(r, true) }
+                    GhostButton(text: "拒絕".tr, tint: Brand.warning) { answer(r, false) }
+                }
+                .padding(.top, 8)
+            }
+        }
+        let online = store.contacts.filter { talk.isOnline($0) }
+        let others = store.contacts.filter { !talk.isOnline($0) }
+        if store.contacts.isEmpty {
+            GlassCard {
+                Text("還沒有好友".tr).font(.titleSmall).foregroundStyle(Brand.text)
+                Text("把你的 ID 給對方，或輸入對方的 ID 加好友。對方接受後，就能像打電話一樣直接撥打，各說各的語言。".tr)
+                    .font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 4)
+            }
+        }
+        if !online.isEmpty {
+            PlainLabel(text: "上線中 · {0}".trf(online.count))
+            friendList(online)
+        }
+        if !others.isEmpty {
+            PlainLabel(text: (online.isEmpty ? "好友 · {0}" : "其他好友 · {0}").trf(others.count))
+            friendList(others)
+        }
+        Button { inviting = true } label: {
+            Text("用邀請連結開一場對話 →".tr).font(.labelLarge).foregroundStyle(Brand.cyan).frame(minHeight: 44)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func friendList(_ list: [TalkStore.Contact]) -> some View {
+        VStack(spacing: 0) {
+            ForEach(Array(list.enumerated()), id: \.element.key) { i, k in
+                let pending = friends.isPending(k)
+                HStack(spacing: 12) {
+                    ZStack(alignment: .bottomTrailing) {
+                        TalkAvatar(name: k.name)
+                        if talk.isOnline(k) {
+                            Circle().fill(Brand.success).frame(width: 11, height: 11).overlay(Circle().stroke(Brand.surface, lineWidth: 2))
+                        }
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(k.name.isEmpty ? "?" : k.name).font(.titleSmall).foregroundStyle(Brand.text)
+                        Text(pending ? "等待對方接受".tr : [k.uid, TranslateLangs.name(k.lang)].compactMap { $0 }.joined(separator: " · "))
+                            .font(.labelMedium).foregroundStyle(pending ? Brand.warning : Brand.textMuted)
+                    }
+                    Spacer()
+                    RoundButton(systemImage: "phone.fill", fill: pending ? Brand.textFaint : Brand.success, size: 40, label: "撥打".tr) {
+                        if pending { note = "{0} 還沒接受好友邀請".trf(k.name) } else { talk.call(k) }
+                    }
+                    .disabled(talk.busy)
+                }
+                .padding(.horizontal, 14).padding(.vertical, 10)
+                .contentShape(Rectangle())
+                .onTapGesture { picked = k }
+                if i < list.count - 1 { Rectangle().fill(Brand.outline).frame(height: 1).padding(.leading, 66) }
+            }
+        }
+        .background(RoundedRectangle(cornerRadius: Brand.cardRadius, style: .continuous).fill(Brand.surface))
+        .overlay(RoundedRectangle(cornerRadius: Brand.cardRadius, style: .continuous).stroke(Brand.outline, lineWidth: 1))
+    }
+
+    private func answer(_ r: TalkFriends.Request, _ accept: Bool) {
+        Task {
+            do { try await friends.answer(r, accept: accept) } catch { talk.error = error.localizedDescription }
+        }
+    }
+
+    // MARK: 最近
+
+    @ViewBuilder private var recent: some View {
+        let missed = talk.calls.filter { !$0.live }
+        ForEach(missed) { c in
+            HStack(spacing: 12) {
+                TalkAvatar(name: c.name)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("未接 · ".tr + c.name).font(.titleSmall).foregroundStyle(Brand.warning)
+                    Text(Fmt.stamp(c.at, "M/d HH:mm")).font(.labelMedium).foregroundStyle(Brand.textMuted)
+                }
+                Spacer()
+                if let k = store.contacts.first(where: { $0.id == c.from && $0.base == c.base }) {
+                    RoundButton(systemImage: "phone.fill", size: 40, label: "回撥".tr) { talk.dismiss(c); talk.call(k) }
+                }
+                Button { talk.dismiss(c) } label: { Image(systemName: "xmark").foregroundStyle(Brand.textFaint) }
+                    .buttonStyle(.plain).accessibilityLabel("移除".tr)
+            }
+            .padding(12)
+            .background(RoundedRectangle(cornerRadius: 14).fill(Brand.surface))
+        }
+        if store.talks.isEmpty && missed.isEmpty {
+            GlassCard {
+                Text("還沒有通話記錄。每次通話的文字和雙方的原聲都存在這支手機，可以回播。".tr)
                     .font(.bodySmall).foregroundStyle(Brand.textMuted)
-                Text("你的名字（對方會看到）".tr).font(.titleSmall).foregroundStyle(Brand.text).padding(.top, 10)
-                TextField("你的名字（對方會看到）".tr, text: $name).textFieldStyle(.roundedBorder)
+            }
+        }
+        let days = Dictionary(grouping: store.talks) { Calendar.current.startOfDay(for: $0.startedAt) }.sorted { $0.key > $1.key }
+        ForEach(days, id: \.key) { day, list in
+            PlainLabel(text: Fmt.stamp(day, "M 月 d 日 EEEE".tr))
+            VStack(spacing: 0) {
+                ForEach(Array(list.enumerated()), id: \.element.id) { i, t in
+                    Button { openTalk = t } label: {
+                        HStack(spacing: 12) {
+                            TalkAvatar(name: t.partners.first ?? "?")
+                            VStack(alignment: .leading, spacing: 2) {
+                                HStack {
+                                    Text(t.partners.isEmpty ? "遠距對話".tr : t.partners.joined(separator: "、"))
+                                        .font(.titleSmall).foregroundStyle(Brand.text).lineLimit(1)
+                                    Spacer()
+                                    Text(Fmt.stamp(t.startedAt, "HH:mm")).font(.labelMedium).foregroundStyle(Brand.textMuted)
+                                }
+                                Text("{0} 句".trf(t.lines.count) + " · " + "{0} 分鐘".trf(max(1, Int(t.endedAt.timeIntervalSince(t.startedAt) / 60))))
+                                    .font(.labelMedium).foregroundStyle(Brand.textFaint)
+                                if let last = t.lines.last(where: { !$0.mine }) {
+                                    Text(last.translated ?? last.text).font(.bodySmall).foregroundStyle(Brand.textMuted).lineLimit(1)
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 14).padding(.vertical, 10)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .contextMenu { Button(role: .destructive) { store.delete(t.id) } label: { Label("刪除".tr, systemImage: "trash") } }
+                    if i < list.count - 1 { Rectangle().fill(Brand.outline).frame(height: 1).padding(.leading, 66) }
+                }
+            }
+            .background(RoundedRectangle(cornerRadius: Brand.cardRadius, style: .continuous).fill(Brand.surface))
+            .overlay(RoundedRectangle(cornerRadius: Brand.cardRadius, style: .continuous).stroke(Brand.outline, lineWidth: 1))
+        }
+    }
+}
+
+/// 我的：大字 ID、名字、說的語言、通話時的開關。
+private struct TalkMeTab: View {
+    @ObservedObject private var friends = TalkFriends.shared
+    @ObservedObject private var talk = RemoteTalk.shared
+    @AppStorage(RemoteTalk.readAloudKey) private var speak = true
+    @AppStorage(RemoteTalk.playOriginalKey) private var playOriginal = true
+    @State private var name = RemoteTalk.myName
+    @State private var busy = false
+    @State private var copied = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            GlassCard {
+                Text("我的 ID".tr).font(.labelMedium).foregroundStyle(Brand.textMuted)
+                if let uid = friends.myUid, !uid.isEmpty {
+                    Text(uid).font(.system(size: 34, weight: .bold, design: .monospaced)).foregroundStyle(Brand.text)
+                        .textSelection(.enabled).padding(.vertical, 4)
+                    Text("朋友輸入這個 ID 就能加你；你接受後才能互相撥打。".tr).font(.bodySmall).foregroundStyle(Brand.textMuted)
+                    HStack(spacing: 8) {
+                        ShareLink(item: "我在大D的遠距對話 ID：{0}（在大D → 翻譯 → 遠距對話 →「加好友」輸入）".trf(uid)) {
+                            Label("分享".tr, systemImage: "square.and.arrow.up")
+                        }
+                        .tint(Brand.cyan)
+                        Spacer()
+                        GhostButton(text: copied ? "已複製".tr : "複製".tr, systemImage: "doc.on.doc", tint: Brand.cyan) {
+                            UIPasteboard.general.string = uid; copied = true
+                        }
+                    }
+                    .padding(.top, 8)
+                } else {
+                    GradientButton(text: busy ? "連線中…".tr : "取得我的 ID".tr, enabled: !busy) {
+                        busy = true
+                        Task {
+                            do { try await friends.register() } catch { talk.error = error.localizedDescription }
+                            busy = false
+                        }
+                    }
+                    .padding(.top, 6)
+                }
+            }
+            GlassCard {
+                Text("你的名字（對方會看到）".tr).font(.titleSmall).foregroundStyle(Brand.text)
+                TextField("你的名字（對方會看到）".tr, text: $name).textFieldStyle(.roundedBorder).padding(.top, 4)
                     .onChange(of: name) { RemoteTalk.myName = $0 }
                 Text("你說的語言：{0}（在「翻譯」頁的「說的」可以改）".trf(TranslateLangs.name(talk.mySource)))
                     .font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 6)
-                Toggle(isOn: $playOriginal) { Text("對方原聲".tr).font(.bodyMedium).foregroundStyle(Brand.text) }.tint(Brand.cyan).padding(.top, 6)
-                Toggle(isOn: $speak) { Text("唸翻譯".tr).font(.bodyMedium).foregroundStyle(Brand.text) }.tint(Brand.cyan)
-            }
-            if !store.contacts.isEmpty {
-                GlassCard {
-                    Text("通話對象".tr).font(.titleSmall).foregroundStyle(Brand.text).padding(.bottom, 4)
-                    ForEach(store.contacts) { k in contactRow(k) }
-                }
             }
             GlassCard {
-                Text("新的對話".tr).font(.titleSmall).foregroundStyle(Brand.text)
-                Text("把邀請連結傳給對方（LINE、簡訊…）。對方要先裝大D，點連結就會加入。".tr)
-                    .font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.vertical, 6)
-                GradientButton(text: talk.busy ? "連線中…".tr : "開新對話，邀請對方".tr, enabled: !talk.busy) { talk.create() }
-                Text("或貼上對方傳來的邀請連結".tr).font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 10)
-                TextField("dylan://talk?…", text: $invite, axis: .vertical).textFieldStyle(.roundedBorder).padding(.vertical, 6)
-                    .autocorrectionDisabled().textInputAutocapitalization(.never)
-                HStack(spacing: 8) {
-                    GhostButton(text: "貼上".tr, systemImage: "doc.on.clipboard", tint: Brand.cyan) {
-                        invite = UIPasteboard.general.string ?? invite
+                Text("通話時".tr).font(.titleSmall).foregroundStyle(Brand.text)
+                Toggle(isOn: $playOriginal) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("先播對方的原聲".tr).font(.bodyMedium).foregroundStyle(Brand.text)
+                        Text("聽得到語氣，再聽翻譯".tr).font(.bodySmall).foregroundStyle(Brand.textMuted)
                     }
-                    GradientButton(text: "加入對話".tr, enabled: !talk.busy && !invite.isEmpty) { talk.join(invite) }
                 }
+                .tint(Brand.cyan)
+                Toggle(isOn: $speak) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("唸出翻譯".tr).font(.bodyMedium).foregroundStyle(Brand.text)
+                        Text("關掉就只看字幕".tr).font(.bodySmall).foregroundStyle(Brand.textMuted)
+                    }
+                }
+                .tint(Brand.cyan)
             }
-            if !store.talks.isEmpty {
-                GlassCard {
-                    Text("以前的對話".tr).font(.titleSmall).foregroundStyle(Brand.text).padding(.bottom, 4)
-                    ForEach(store.talks.prefix(30)) { t in
-                        Button { openTalk = t } label: {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(t.partners.isEmpty ? "遠距對話".tr : t.partners.joined(separator: "、"))
-                                        .font(.bodyMedium).foregroundStyle(Brand.text)
-                                    Text(Fmt.stamp(t.startedAt, "M/d HH:mm") + " · " + "{0} 句".trf(t.lines.count))
-                                        .font(.labelMedium).foregroundStyle(Brand.textMuted)
-                                }
-                                Spacer()
-                                Image(systemName: "chevron.right").foregroundStyle(Brand.textFaint)
-                            }
-                            .padding(.vertical, 6)
-                            .contentShape(Rectangle())
+            Text("文字和原聲經過你的大D的主機轉送，主機不存對話內容；對話記錄只存在你的手機。建議戴有麥克風的耳機。".tr)
+                .font(.bodySmall).foregroundStyle(Brand.textFaint)
+        }
+    }
+}
+
+/// 加好友：輸入對方 ID（英文全大寫鍵盤）。
+private struct AddFriendSheet: View {
+    let done: (String) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var uid = ""
+    @State private var busy = false
+    @State private var error: String?
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    TextField("K7MX-29QP", text: $uid)
+                        .font(.system(size: 24, weight: .semibold, design: .monospaced))
+                        .keyboardType(.asciiCapable)
+                        .textInputAutocapitalization(.characters)
+                        .autocorrectionDisabled()
+                        .onChange(of: uid) { v in let f = TalkFriends.format(v); if f != v { uid = f } }
+                } footer: { Text("輸入對方的 ID（對方在遠距對話頁最上面看得到）。".tr) }
+                if let error { Text(error).foregroundStyle(.orange) }
+            }
+            .navigationTitle("加好友".tr).navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("取消".tr) { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(busy ? "連線中…".tr : "加好友".tr) {
+                        busy = true; error = nil
+                        Task {
+                            do { done(try await TalkFriends.shared.add(uid)); dismiss() } catch { self.error = error.localizedDescription }
+                            busy = false
                         }
-                        .buttonStyle(.plain)
-                        .contextMenu { Button(role: .destructive) { deleting = t } label: { Label("刪除".tr, systemImage: "trash") } }
                     }
+                    .disabled(busy || uid.filter { $0 != "-" }.count != 8)
                 }
             }
         }
+        .presentationDetents([.medium])
     }
+}
 
-    private func contactRow(_ k: TalkStore.Contact) -> some View {
-        HStack(spacing: 10) {
-            Circle().fill(talk.isOnline(k) ? Brand.success : Brand.textFaint.opacity(0.4)).frame(width: 10, height: 10)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(k.name.isEmpty ? "?" : k.name).font(.bodyMedium).foregroundStyle(Brand.text)
-                Text((talk.isOnline(k) ? "上線中".tr : "離線".tr) + " · " + TranslateLangs.name(k.lang))
-                    .font(.labelMedium).foregroundStyle(Brand.textMuted)
-            }
-            Spacer()
-            GhostButton(text: "撥打".tr, systemImage: "phone.fill", tint: Brand.cyan) { talk.call(k) }
-                .disabled(talk.busy)
-        }
-        .padding(.vertical, 4)
-        .contextMenu { Button(role: .destructive) { removing = k } label: { Label("移除".tr, systemImage: "person.badge.minus") } }
-    }
+/// 用邀請連結：開新對話、或貼上對方的連結加入（對方還沒有 ID 時）。
+private struct InviteSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var talk = RemoteTalk.shared
+    @State private var invite = ""
 
-    private func callCard(_ c: RemoteTalk.Call) -> some View {
-        GlassCard {
-            Text(c.live ? "{0} 打來了".trf(c.name) : "未接來電".tr + "：" + c.name)
-                .font(.titleSmall).foregroundStyle(c.live ? Brand.text : Brand.warning)
-            Text(Fmt.stamp(c.at, "M/d HH:mm") + " · " + TranslateLangs.name(c.lang)).font(.labelMedium).foregroundStyle(Brand.textMuted)
-            HStack(spacing: 8) {
-                if c.live {
-                    GradientButton(text: "接聽".tr, systemImage: "phone.fill") { talk.answer(c) }
-                    GhostButton(text: "拒接".tr, tint: Brand.warning) { talk.dismiss(c) }
-                } else {
-                    if let k = store.contacts.first(where: { $0.id == c.from && $0.base == c.base }) {
-                        GradientButton(text: "回撥".tr, systemImage: "phone.arrow.up.right") { talk.dismiss(c); talk.call(k) }
-                    }
-                    GhostButton(text: "移除".tr, tint: Brand.textMuted) { talk.dismiss(c) }
-                }
-            }
-            .padding(.top, 6)
-        }
-    }
-
-    // MARK: 房間裡
-
-    private var roomView: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            if let who = talk.calling {
-                Text("正在打給 {0}，等對方接聽…".trf(who)).font(.bodyMedium).foregroundStyle(Brand.textMuted)
-            }
-            if let link = talk.link {
-                GlassCard {
-                    Text("傳送邀請".tr).font(.titleSmall).foregroundStyle(Brand.text)
-                    Text("把邀請連結傳給對方（LINE、簡訊…）。對方要先裝大D，點連結就會加入。".tr)
-                        .font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.vertical, 6)
-                    Text("從外面連線是一般 http，請只在需要時開房，用完離開。".tr).font(.bodySmall).foregroundStyle(Brand.textFaint)
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("對方還沒有 ID？".tr).font(.titleSmall).foregroundStyle(Brand.text)
+                    Text("開一場對話，把連結傳給對方（LINE、簡訊…）；對方裝了大D，點連結就會加入。對話過一次，之後就能用 ID 加好友。".tr)
+                        .font(.bodySmall).foregroundStyle(Brand.textMuted)
+                    GradientButton(text: talk.busy ? "連線中…".tr : "開新對話，傳邀請連結".tr, enabled: !talk.busy) { talk.create(); dismiss() }
+                    Text("或貼上對方傳來的邀請連結".tr).font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 8)
+                    TextField("dylan://talk?…", text: $invite, axis: .vertical).textFieldStyle(.roundedBorder)
+                        .autocorrectionDisabled().textInputAutocapitalization(.never)
                     HStack(spacing: 8) {
-                        ShareLink(item: "大D 遠距對話邀請：".tr + link) { Label("傳送邀請".tr, systemImage: "square.and.arrow.up") }.tint(Brand.cyan)
-                        Spacer()
-                        GhostButton(text: "複製".tr, systemImage: "doc.on.doc", tint: Brand.cyan) { UIPasteboard.general.string = link }
+                        GhostButton(text: "貼上".tr, systemImage: "doc.on.clipboard", tint: Brand.cyan) { invite = UIPasteboard.general.string ?? invite }
+                        GradientButton(text: "加入對話".tr, enabled: !talk.busy && !invite.isEmpty) { talk.join(invite); dismiss() }
+                    }
+                }
+                .padding(20)
+            }
+            .navigationTitle("用邀請連結".tr).navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("取消".tr) { talk.pendingInvite = nil; dismiss() } } }
+        }
+        .onAppear { if let p = talk.pendingInvite { invite = p } }
+    }
+}
+
+// MARK: - 通話中
+
+private struct InCallView: View {
+    let back: () -> Void
+    @ObservedObject private var talk = RemoteTalk.shared
+    @ObservedObject private var captions = LiveCaptions.shared
+    @AppStorage(RemoteTalk.playOriginalKey) private var playOriginal = true
+
+    private var other: RemoteTalk.Member? { talk.members.first { $0.id != talk.me } }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 12) {
+                IconCircle(systemImage: "chevron.left", label: "返回".tr, action: back)
+                TalkAvatar(name: other?.name ?? talk.calling ?? "?", size: 40)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(other?.name ?? talk.calling ?? "遠距對話".tr).font(.titleSmall).foregroundStyle(Brand.text).lineLimit(1)
+                    HStack(spacing: 6) {
+                        if let t = talk.joinedAt {
+                            TimelineView(.periodic(from: t, by: 1)) { ctx in
+                                Text(Fmt.clock(ctx.date.timeIntervalSince(t))).monospacedDigit()
+                            }
+                        } else {
+                            Text(talk.calling != nil ? "撥號中…".tr : "等對方加入…".tr)
+                        }
+                        if let o = other { Text("· " + TranslateLangs.name(talk.mySource) + " ⇄ " + TranslateLangs.name(o.lang)).lineLimit(1) }
+                    }
+                    .font(.labelMedium).foregroundStyle(Brand.textMuted)
+                }
+                Spacer()
+            }
+            .pageColumn().padding(.top, 8)
+
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 10) {
+                        if let link = talk.link {
+                            GlassCard {
+                                Text("把邀請連結傳給對方（LINE、簡訊…）。對方要先裝大D，點連結就會加入。".tr)
+                                    .font(.bodySmall).foregroundStyle(Brand.textMuted)
+                                Text("從外面連線是一般 http，請只在需要時開房，用完離開。".tr).font(.bodySmall).foregroundStyle(Brand.textFaint)
+                                HStack(spacing: 8) {
+                                    ShareLink(item: "大D 遠距對話邀請：".tr + link) { Label("傳送邀請".tr, systemImage: "square.and.arrow.up") }.tint(Brand.cyan)
+                                    Spacer()
+                                    GhostButton(text: "複製".tr, systemImage: "doc.on.doc", tint: Brand.cyan) { UIPasteboard.general.string = link }
+                                }
+                                .padding(.top, 6)
+                            }
+                        }
+                        if let e = talk.error {
+                            Text(e).font(.bodySmall).foregroundStyle(Brand.warning)
+                        }
+                        ForEach(talk.lines) { l in bubble(l).id(l.id) }
+                        if talk.lines.isEmpty {
+                            Text(talk.members.count < 2 ? "對方接聽後就可以開始說話。".tr : "按下面的麥克風開始說話；對方說的話會翻成你的語言。".tr)
+                                .font(.bodyMedium).foregroundStyle(Brand.textFaint).frame(maxWidth: .infinity).padding(.top, 30)
+                        }
+                    }
+                    .pageColumn().padding(.vertical, 12)
+                }
+                .onChange(of: talk.lines) { ls in if let l = ls.last { withAnimation { proxy.scrollTo(l.id, anchor: .bottom) } } }
+            }
+
+            VStack(spacing: 6) {
+                Text(captions.error ?? captions.status ?? (captions.running ? "正在聽你說話…".tr : "麥克風關著".tr))
+                    .font(.labelMedium).foregroundStyle(Brand.textMuted).lineLimit(2)
+                HStack(spacing: 34) {
+                    VStack(spacing: 4) {
+                        RoundButton(systemImage: "waveform", fill: Brand.cyan, size: 52, outline: !playOriginal,
+                                    label: playOriginal ? "原聲 開".tr : "原聲 關".tr) { playOriginal.toggle() }
+                        Text("原聲".tr).font(.labelSmall).foregroundStyle(Brand.textMuted)
+                    }
+                    VStack(spacing: 4) {
+                        RoundButton(systemImage: captions.running ? "pause.fill" : "mic.fill",
+                                    fill: captions.running ? Brand.recording : Brand.blue, size: 76,
+                                    label: captions.running ? "停止".tr : "說話".tr) { talk.toggleMic() }
+                        Text(captions.running ? "停止".tr : "說話".tr).font(.labelSmall).foregroundStyle(Brand.textMuted)
+                    }
+                    VStack(spacing: 4) {
+                        RoundButton(systemImage: "phone.down.fill", fill: Brand.error, size: 52, label: "掛斷".tr) { talk.leave() }
+                        Text("掛斷".tr).font(.labelSmall).foregroundStyle(Brand.textMuted)
                     }
                 }
             }
-            HStack {
-                Text(talk.members.map { $0.name + ($0.id == talk.me ? "（我）".tr : "") + " · " + TranslateLangs.name($0.lang) }
-                    .joined(separator: "、"))
-                    .font(.labelMedium).foregroundStyle(Brand.textMuted).lineLimit(2)
-                Spacer()
-                Toggle(isOn: $playOriginal) { Image(systemName: "waveform") }.toggleStyle(.button).tint(Brand.cyan)
-                    .accessibilityLabel("對方原聲".tr)
-                Toggle(isOn: $speak) { Image(systemName: "speaker.wave.2") }.toggleStyle(.button).tint(Brand.cyan)
-                    .accessibilityLabel("唸翻譯".tr)
-            }
-            ForEach(talk.lines) { l in row(l) }
-            if talk.lines.isEmpty {
-                Text(talk.members.count < 2 ? "等對方加入…".tr : "按麥克風開始說話".tr)
-                    .font(.bodyMedium).foregroundStyle(Brand.textFaint)
-            }
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity)
+            .background(Brand.surface.opacity(0.95))
         }
     }
 
-    @ViewBuilder private func row(_ l: RemoteTalk.Line) -> some View {
+    @ViewBuilder private func bubble(_ l: RemoteTalk.Line) -> some View {
         if let s = l.system {
             Text(s).font(.labelMedium).foregroundStyle(Brand.textFaint).frame(maxWidth: .infinity)
         } else {
-            VStack(alignment: l.mine ? .trailing : .leading, spacing: 2) {
-                if !l.mine {
-                    HStack(spacing: 4) {
-                        Text(l.name).font(.labelSmall).foregroundStyle(Brand.textFaint)
-                        if l.audio != nil { Image(systemName: "waveform").font(.labelSmall).foregroundStyle(Brand.textFaint) }
-                    }
-                }
+            VStack(alignment: l.mine ? .trailing : .leading, spacing: 3) {
                 Text(l.mine ? l.original : (l.translated ?? "…"))
-                    .font(.system(size: 22, weight: l.final ? .medium : .regular))
-                    .italic(!l.final)
+                    .font(.system(size: 20, weight: l.final ? .medium : .regular))
                     .foregroundStyle(l.final ? Brand.text : Brand.textMuted)
-                Text(l.mine ? (l.translated ?? "") : l.original).font(.bodySmall).foregroundStyle(Brand.textMuted)
+                HStack(spacing: 4) {
+                    if !l.mine && l.audio != nil { Image(systemName: "waveform") }
+                    Text(l.mine ? (l.translated ?? "") : l.original)
+                }
+                .font(.bodySmall).foregroundStyle(Brand.textMuted)
             }
+            .padding(12)
+            .background(RoundedRectangle(cornerRadius: 16).fill(l.mine ? AnyShapeStyle(Brand.accentSoft) : AnyShapeStyle(Brand.surface)))
             .frame(maxWidth: .infinity, alignment: l.mine ? .trailing : .leading)
-            .padding(10)
-            .background(RoundedRectangle(cornerRadius: 14).fill(l.mine ? Brand.surfaceHigh : Brand.cardFill))
+            .padding(l.mine ? .leading : .trailing, 40)
             .contextMenu {
                 Button { UIPasteboard.general.string = [l.original, l.translated ?? ""].filter { !$0.isEmpty }.joined(separator: "\n") } label: {
                     Label("複製".tr, systemImage: "doc.on.doc")
                 }
             }
         }
-    }
-
-    private var micBar: some View {
-        VStack(spacing: 4) {
-            if let s = captions.error ?? captions.status { Text(s).font(.labelMedium).foregroundStyle(Brand.textMuted) }
-            else if captions.running { Text("正在聽你說話…".tr).font(.labelMedium).foregroundStyle(Brand.textMuted) }
-            GradientButton(text: captions.running ? "停止".tr : "按麥克風開始說話".tr,
-                           systemImage: captions.running ? "pause.fill" : "mic.fill") { talk.toggleMic() }
-        }
-        .pageColumn()
-        .padding(.vertical, 10)
-        .background(Brand.surface.opacity(0.95))
     }
 }
 
@@ -850,25 +1170,68 @@ struct TalkRecordView: View {
     }
 }
 
-/// 來電（App 任何畫面上方）：接聽 → 打開遠距對話頁。
-struct IncomingCallBanner: View {
+/// 來電（整頁，App 開著時任何畫面都會跳出來）：頭像呼吸動畫、語言、紅色拒接、綠色接聽。
+struct IncomingCallView: View {
     @ObservedObject private var talk = RemoteTalk.shared
+    @State private var pulse = false
 
     var body: some View {
-        if let c = talk.calls.first(where: { $0.live }), !talk.connected {
-            HStack(spacing: 10) {
-                Image(systemName: "phone.arrow.down.left.fill").foregroundStyle(Brand.success)
-                Text("{0} 打來了".trf(c.name)).font(.titleSmall).foregroundStyle(Brand.text).lineLimit(1)
+        if let c = talk.calls.first(where: { $0.live }), !talk.connected, !talk.busy {
+            VStack(spacing: 18) {
                 Spacer()
-                Button("拒接".tr) { talk.dismiss(c) }.tint(Brand.warning)
-                Button("接聽".tr) { talk.answer(c); TalkPage.shared.presented = true }
-                    .buttonStyle(.borderedProminent).tint(Brand.success)
+                Text("遠距對話來電".tr).font(.labelLarge).foregroundStyle(Brand.textMuted)
+                ZStack {
+                    Circle().fill(TalkAvatar.color(c.name).opacity(0.18)).frame(width: 170, height: 170)
+                        .scaleEffect(pulse ? 1.15 : 0.9).opacity(pulse ? 0.3 : 0.9)
+                    TalkAvatar(name: c.name, size: 110)
+                }
+                .onAppear { withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) { pulse = true } }
+                Text(c.name).font(.system(size: 30, weight: .bold)).foregroundStyle(Brand.text)
+                Text(TranslateLangs.name(c.lang) + " ⇄ " + TranslateLangs.name(talk.mySource))
+                    .font(.bodyMedium).foregroundStyle(Brand.textMuted)
+                Spacer()
+                HStack(spacing: 80) {
+                    VStack(spacing: 8) {
+                        Button { talk.dismiss(c) } label: {
+                            Image(systemName: "phone.down.fill").font(.system(size: 28, weight: .semibold)).foregroundStyle(.white)
+                                .frame(width: 72, height: 72).background(Circle().fill(Brand.error))
+                        }
+                        .buttonStyle(.plain).accessibilityLabel("拒接".tr)
+                        Text("拒接".tr).font(.labelLarge).foregroundStyle(Brand.text)
+                    }
+                    VStack(spacing: 8) {
+                        Button { talk.answer(c); TalkPage.shared.presented = true } label: {
+                            Image(systemName: "phone.fill").font(.system(size: 28, weight: .semibold)).foregroundStyle(.white)
+                                .frame(width: 72, height: 72).background(Circle().fill(Brand.success))
+                        }
+                        .buttonStyle(.plain).accessibilityLabel("接聽".tr)
+                        Text("接聽".tr).font(.labelLarge).foregroundStyle(Brand.text)
+                    }
+                }
+                .padding(.bottom, 60)
             }
-            .padding(12)
-            .background(RoundedRectangle(cornerRadius: 16).fill(Brand.surface).shadow(radius: 8))
-            .padding(.horizontal, 12)
-            .transition(.move(edge: .top).combined(with: .opacity))
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(AppBackdrop())
+            .transition(.opacity)
         }
+    }
+}
+
+/// 主頁右上的電話鈕：有來電、未接、好友邀請時紅色數字。
+struct TalkEntryButton: View {
+    @ObservedObject private var talk = RemoteTalk.shared
+    @ObservedObject private var friends = TalkFriends.shared
+
+    var body: some View {
+        let n = talk.calls.count + friends.requests.count
+        IconCircle(systemImage: "phone", label: "遠距對話".tr, tint: Brand.success) { TalkPage.shared.presented = true }
+            .overlay(alignment: .topTrailing) {
+                if n > 0 {
+                    Text("\(n)").font(.system(size: 11, weight: .bold)).foregroundStyle(.white)
+                        .padding(.horizontal, 5).frame(minWidth: 18, minHeight: 18)
+                        .background(Capsule().fill(Brand.error)).offset(x: 4, y: -4)
+                }
+            }
     }
 }
 

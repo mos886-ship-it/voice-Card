@@ -12,6 +12,8 @@ final class TalkStore: ObservableObject {
         var id: String, name: String, lang: String, base: String
         var lan: String?
         var lastTalk: Date
+        /// 對方的使用者 ID（K7MX-29QP；加好友來的才有）
+        var uid: String?
         var key: String { "\(id)@\(base)" }
     }
     struct TalkLine: Codable, Equatable, Identifiable {
@@ -55,6 +57,7 @@ final class TalkStore: ObservableObject {
         if m.name.isEmpty { m.name = old?.name ?? "" }
         if m.lang.isEmpty { m.lang = old?.lang ?? "" }
         if m.lan == nil { m.lan = old?.lan }
+        if m.uid == nil { m.uid = old?.uid }
         m.lastTalk = max(k.lastTalk, old?.lastTalk ?? .distantPast)
         if m == old { return }
         saveContacts(contacts.filter { !($0.id == k.id && $0.base == k.base) } + [m])

@@ -7594,5 +7594,13 @@
  "說話": {
   "en": "Talk",
   "ko": "말하기"
+ },
+ "原聲": {
+  "en": "Voice",
+  "ko": "원음"
+ },
+ "要先跟大D的主機配對（設定 → 大D的主機），或先用邀請連結加入過一次對話": {
+  "en": "Pair with Dylan Host first (Settings → Dylan Host), or join a talk once with an invite link",
+  "ko": "먼저 Dylan 호스트와 페어링하거나(설정 → Dylan 호스트), 초대 링크로 대화에 한 번 참여하세요"
  }
 }

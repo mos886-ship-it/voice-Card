@@ -52,6 +52,7 @@ struct DashboardView: View {
                     if mode == .tech || hasWatch {
                         WatchPill(state: link.watchState) { select(.settings) }
                     }
+                    TalkEntryButton()   // 遠距對話（來電、未接、好友邀請有紅色數字）
                     // 快錄的分頁列沒有「設定」：從這裡進
                     IconCircle(systemImage: "gearshape", label: "設定".tr) { select(.settings) }
                 }
