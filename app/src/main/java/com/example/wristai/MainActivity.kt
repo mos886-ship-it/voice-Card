@@ -219,13 +219,13 @@ private fun App() {
     }
     // 遠距對話：獨立一頁（主頁的電話圖示、翻譯頁、邀請連結）
     LaunchedEffect(com.example.wristai.ui.TalkPage.open) {
-        if (com.example.wristai.ui.TalkPage.open) { com.example.wristai.ui.TalkPage.open = false; route = "talk" }
+        if (com.example.wristai.ui.TalkPage.open) { com.example.wristai.ui.TalkPage.open = false; go(Tab.TALK.route) }
     }
     // App 開著就回報上線（有遠距對話身分才做），朋友打來就直接開來電畫面
     LaunchedEffect(Unit) { if (com.example.wristai.TalkStore.bases(context).isNotEmpty()) com.example.wristai.RemoteTalk.startPresence(context) }
     val talkCalls by com.example.wristai.RemoteTalk.calls.collectAsState()
     val ringing = talkCalls.firstOrNull { it.live }?.room
-    LaunchedEffect(ringing) { if (ringing != null && route != "talk" && route != "onboarding") route = "talk" }
+    LaunchedEffect(ringing) { if (ringing != null && route != Tab.TALK.route && route != "onboarding") go(Tab.TALK.route) }
     // 小工具点最新报告 → 打开那份报告
     LaunchedEffect(PendingOpen.meetingId) {
         PendingOpen.meetingId?.let { id -> PendingOpen.meetingId = null; route = "detail:$id" }
@@ -234,6 +234,7 @@ private fun App() {
     // 旧版本存下来的路由（档案分页、单独的翻译页、档案管理）→ 现在都在主轴分页里
     if (route == "tab:files" || route == "files") { com.example.wristai.ui.Hubs.records = 2; route = Tab.RECORDS.route }
     if (route == "translate") route = Tab.TRANSLATE.route
+    if (route == "talk") route = Tab.TALK.route
     val tab = Tab.entries.firstOrNull { it.route == route }
     // 返回键：详情 → 原分页；其他分页 → 主页
     if (route.startsWith("detail:")) BackHandler { route = lastTab }
@@ -278,7 +279,7 @@ private fun App() {
                     onOpen = { route = "detail:${it}" },
                     onOpenSettings = { go(Tab.SETTINGS.route) },
                 )
-                r == "talk" -> com.example.wristai.ui.TalkScreen(onBack = { route = lastTab })
+                r == Tab.TALK.route -> com.example.wristai.ui.TalkScreen(onBack = { go(Tab.HOME.route) }, asTab = true)
                 r.startsWith("detail:") -> DetailScreen(
                     id = r.removePrefix("detail:"),
                     onBack = { route = lastTab },

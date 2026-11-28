@@ -145,7 +145,7 @@ private fun RoundAction(glyph: String, label: String?, color: Color, size: Dp = 
  * - 來電：整頁的來電畫面（接聽 / 拒接）。通話中：對方頭像、計時、對話泡泡、下方三顆圓鈕（原聲、麥克風、掛斷）。
  */
 @Composable
-fun TalkScreen(onBack: () -> Unit) {
+fun TalkScreen(onBack: () -> Unit, asTab: Boolean = false) {
     val context = LocalContext.current
     val s by RemoteTalk.state.collectAsState()
     val calls by RemoteTalk.calls.collectAsState()
@@ -158,13 +158,13 @@ fun TalkScreen(onBack: () -> Unit) {
     when {
         s.connected -> CallScreen(onMinimize = onBack)
         ringing != null && !s.busy -> IncomingCall(ringing)
-        else -> TalkHome(onBack) { replaying = it }
+        else -> TalkHome(onBack, showBack = !asTab) { replaying = it }
     }
 }
 
 // ---------------- 首頁：我的 ID＋好友｜最近｜我的 ----------------
 @Composable
-private fun TalkHome(onBack: () -> Unit, onReplay: (TalkStore.Talk) -> Unit) {
+private fun TalkHome(onBack: () -> Unit, showBack: Boolean, onReplay: (TalkStore.Talk) -> Unit) {
     val context = LocalContext.current
     val s by RemoteTalk.state.collectAsState()
     val myUid by TalkFriends.myUid.collectAsState()
@@ -177,8 +177,8 @@ private fun TalkHome(onBack: () -> Unit, onReplay: (TalkStore.Talk) -> Unit) {
     Column(Modifier.fillMaxSize()) {
         // ---------- 頁首 ----------
         Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconCircle(Icons.AutoMirrored.Filled.ArrowBack, "返回".tr, onBack)
-            Spacer(Modifier.width(14.dp))
+            // 底部分頁的「對話」：不用返回鍵
+            if (showBack) { IconCircle(Icons.AutoMirrored.Filled.ArrowBack, "返回".tr, onBack); Spacer(Modifier.width(14.dp)) }
             Column(Modifier.weight(1f)) {
                 Text("遠距對話".tr, style = MaterialTheme.typography.headlineSmall, color = Brand.Text)
                 Text("各說各的語言，即時翻譯".tr, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)

@@ -62,13 +62,15 @@ import kotlin.math.sin
 
 /**
  * 底部分页（依排布）。三大主轴（錄音報告、飲食記錄、即時翻譯）各一个分页，档案管理在「錄音」的「管理」。
- * 快錄：今天｜錄音｜（中间录音键）｜飲食｜翻譯（設定在「今天」右上的齿轮）；總覽：主頁｜錄音｜飲食｜翻譯｜設定。
+ * 快錄：今天｜錄音｜（中间录音键）｜飲食｜翻譯｜對話（設定在「今天」右上的齿轮）；總覽：主頁｜錄音｜飲食｜翻譯｜對話｜設定。
+ * 對話 = 遠距對話（獨立的功能，有來電、未接、好友邀請時圖示加紅點）。
  */
 enum class Tab(val route: String, private val quickLabel: String, private val overviewLabel: String) {
     HOME("tab:home", "今天".tr, "主頁".tr),
     RECORDS("tab:records", "錄音".tr, "錄音".tr),
     FOOD("tab:food", "飲食".tr, "飲食".tr),
     TRANSLATE("tab:translate", "翻譯".tr, "翻譯".tr),
+    TALK("tab:talk", "對話".tr, "對話".tr),
     SETTINGS("tab:settings", "設定".tr, "設定".tr);
 
     val label get() = when (AppTheme.layout) {
@@ -93,6 +95,7 @@ fun BottomNav(current: Tab, onSelect: (Tab) -> Unit) {
             Box(Modifier.weight(1f), contentAlignment = Alignment.Center) { RecordKey { onSelect(Tab.HOME) } }
             NavItem(Tab.FOOD, current == Tab.FOOD, Modifier.weight(1f)) { onSelect(Tab.FOOD) }
             NavItem(Tab.TRANSLATE, current == Tab.TRANSLATE, Modifier.weight(1f)) { onSelect(Tab.TRANSLATE) }
+            NavItem(Tab.TALK, current == Tab.TALK, Modifier.weight(1f)) { onSelect(Tab.TALK) }
         }
     }
 }
@@ -157,6 +160,7 @@ private fun NavItem(tab: Tab, selected: Boolean, modifier: Modifier = Modifier, 
                 Tab.RECORDS -> ListGlyph(tint)
                 Tab.FOOD -> BowlGlyph(tint)
                 Tab.TRANSLATE -> TranslateGlyph(tint)
+                Tab.TALK -> TalkGlyph(tint)
                 Tab.SETTINGS -> Icon(Icons.Outlined.Settings, null, tint = tint, modifier = Modifier.size(20.dp))
             }
         }
@@ -193,6 +197,7 @@ private fun OverviewBottomNav(current: Tab, onSelect: (Tab) -> Unit) {
                             Tab.RECORDS -> Waveform(Modifier.size(width = 20.dp, height = 16.dp), tint)
                             Tab.FOOD -> BowlGlyph(tint)
                             Tab.TRANSLATE -> TranslateGlyph(tint)
+                            Tab.TALK -> TalkGlyph(tint)
                             Tab.SETTINGS -> Icon(Icons.Filled.Settings, null, tint = tint, modifier = Modifier.size(20.dp))
                         }
                     }
@@ -202,6 +207,27 @@ private fun OverviewBottomNav(current: Tab, onSelect: (Tab) -> Unit) {
                 }
             }
         }
+    }
+}
+
+/** 對話：兩個對話泡泡（跟「通話」錄音的電話圖示分開）；有來電、未接或好友邀請時右上紅點。 */
+@Composable
+internal fun TalkGlyph(color: Color, size: androidx.compose.ui.unit.Dp = 20.dp, badge: Boolean = true) {
+    val calls by com.example.wristai.RemoteTalk.calls.collectAsState()
+    val requests by com.example.wristai.TalkFriends.requests.collectAsState()
+    Box {
+        Canvas(Modifier.size(size)) {
+            val w = this.size.width; val h = this.size.height; val s = 1.7.dp.toPx()
+            // 左上的泡泡（實線）＋尾巴
+            drawRoundRect(color, Offset(w * 0.04f, h * 0.10f), Size(w * 0.60f, h * 0.44f), CornerRadius(w * 0.14f), style = Stroke(s))
+            drawLine(color, Offset(w * 0.18f, h * 0.54f), Offset(w * 0.12f, h * 0.70f), s, StrokeCap.Round)
+            drawLine(color, Offset(w * 0.12f, h * 0.70f), Offset(w * 0.32f, h * 0.54f), s, StrokeCap.Round)
+            // 右下的泡泡（實心）＋尾巴
+            drawRoundRect(color, Offset(w * 0.40f, h * 0.40f), Size(w * 0.56f, h * 0.40f), CornerRadius(w * 0.13f))
+            drawLine(color, Offset(w * 0.80f, h * 0.78f), Offset(w * 0.88f, h * 0.94f), s, StrokeCap.Round)
+        }
+        if (badge && (calls.isNotEmpty() || requests.isNotEmpty()))
+            Box(Modifier.align(Alignment.TopEnd).size(8.dp).clip(CircleShape).background(Brand.Error))
     }
 }
 

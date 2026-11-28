@@ -66,7 +66,6 @@ fun TranslateHub(onOpen: (String) -> Unit, onOpenSettings: () -> Unit) {
         sections = listOf("翻譯".tr, "記錄".tr, "分析".tr, "設定".tr),
         selected = Hubs.translate,
         onSelect = { Hubs.translate = it },
-        actions = { GhostButton("遠距對話".tr, { TalkPage.open = true }, tint = Brand.Cyan) },
     ) { s ->
         when (s) {
             0 -> LiveTranslateScreen()

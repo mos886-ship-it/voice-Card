@@ -169,9 +169,6 @@ fun DashboardScreen(
                 }
                 // 商用模式：手表只在有连线时显示
                 if (watch != null || UiMode.tech) WatchPill(watch, onOpenSettings)
-                // 遠距對話（獨立一頁）：有來電、未接、好友邀請時有紅色數字
-                Spacer(Modifier.width(8.dp))
-                TalkEntryButton { TalkPage.open = true }
                 // 快錄的分页列没有「設定」（三大主轴各占一格）：放在这里
                 Spacer(Modifier.width(8.dp))
                 IconCircle(Icons.Outlined.Settings, "設定".tr, onOpenSettings)
@@ -308,6 +305,8 @@ private fun CaptureCard(error: String?, record: () -> Unit, food: () -> Unit, ca
             Mini("通話".tr, call) { Icon(Icons.Filled.Call, null, tint = Brand.Cyan, modifier = Modifier.size(16.dp)) }
             Mini("匯入".tr, importFile) { Icon(Icons.Filled.Add, null, tint = Brand.Cyan, modifier = Modifier.size(18.dp)) }
             Mini("翻譯".tr, { TranslatePage.open() }) { Text("文A", color = Brand.Cyan, style = MaterialTheme.typography.labelMedium) }
+            // 遠距對話：跟翻譯一樣是獨立的功能
+            Mini("對話".tr, { TalkPage.open = true }) { TalkGlyph(Brand.Cyan, 18.dp) }
         }
     }
 }
