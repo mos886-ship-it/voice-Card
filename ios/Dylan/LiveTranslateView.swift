@@ -256,7 +256,7 @@ enum SFSpeechRecognizerCache {
 }
 
 /// 選語言的面板：搜尋、最近使用、全部（說的：地區口音、手機上／線上；翻成：Apple 翻譯支援的）。
-private struct LangSheet: View {
+struct LangSheet: View {
     let side: LiveTranslateView.Side
     let current: String
     let pick: (String) -> Void

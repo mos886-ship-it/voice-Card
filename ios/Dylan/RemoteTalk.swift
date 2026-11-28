@@ -1,3 +1,4 @@
+import PhotosUI
 import SwiftUI
 import Combine
 #if canImport(Translation)
@@ -42,6 +43,8 @@ final class RemoteTalk: ObservableObject {
     @Published private(set) var calling: String?
     /// 對方加入的時間（通話計時從這裡開始）
     @Published private(set) var joinedAt: Date?
+    /// 通話縮小了（按返回或從左邊滑）：回到好友清單，通話繼續；上方綠條點了回到通話
+    @Published var minimized = false
     /// 收到的邀請連結（dylan://talk）：對話頁看到就問要不要加入
     @Published var pendingInvite: String?
     /// 要翻成自己語言的句子（TalkTranslateHost 拿去翻）
@@ -60,7 +63,7 @@ final class RemoteTalk: ObservableObject {
 
     /// 連上的位址、主機記住身分用的代表位址、家裡網路的位址
     private var base: String?
-    private var canon: String?
+    private(set) var canon: String?
     private var lan: String?
     private var token: String?
     private var pollTask: Task<Void, Never>?
@@ -88,11 +91,12 @@ final class RemoteTalk: ObservableObject {
     // MARK: HTTP
 
     func http(_ method: String, _ url: String, body: [String: Any]? = nil, auth: String? = nil, talkToken: String? = nil,
-                      contactToken: String? = nil, raw: Data? = nil, timeout: TimeInterval = 15) async throws -> (Int, [String: Any]) {
+                      contactToken: String? = nil, raw: Data? = nil, contentType: String = "audio/mp4",
+                      timeout: TimeInterval = 15) async throws -> (Int, [String: Any]) {
         guard let u = URL(string: url) else { throw URLError(.badURL) }
         var r = URLRequest(url: u, timeoutInterval: timeout)
         r.httpMethod = method
-        r.setValue(raw != nil ? "audio/mp4" : "application/json; charset=utf-8", forHTTPHeaderField: "Content-Type")
+        r.setValue(raw != nil ? contentType : "application/json; charset=utf-8", forHTTPHeaderField: "Content-Type")
         if let auth { r.setValue("Bearer \(auth)", forHTTPHeaderField: "Authorization") }
         if let talkToken { r.setValue(talkToken, forHTTPHeaderField: "X-Talk-Token") }
         if let contactToken { r.setValue(contactToken, forHTTPHeaderField: "X-Contact-Token") }
@@ -122,6 +126,7 @@ final class RemoteTalk: ObservableObject {
     /// 進房：b 代表位址、connectedURL 實際連上的位址。
     private func enter(_ b: String, lan l: String?, _ j: [String: Any], link lk: String?, calling who: String? = nil, connectedURL: String? = nil) {
         resetState()
+        minimized = false
         canon = b; base = connectedURL ?? b; lan = l; token = j["token"] as? String
         keepIdentity(b, j)
         room = j["room"] as? String; link = lk; me = j["member"] as? String
@@ -194,6 +199,7 @@ final class RemoteTalk: ObservableObject {
 
     /// 接來電。
     func answer(_ call: Call) {
+        TalkRing.stop()
         calls.removeAll { $0.room == call.room }
         let k = TalkStore.shared.contacts.first { $0.id == call.from && $0.base == call.base }
         joinRoom(call.base, lan: k?.lan, room: call.room, code: call.code)
@@ -201,6 +207,7 @@ final class RemoteTalk: ObservableObject {
 
     /// 拒接／看過的未接來電拿掉。
     func dismiss(_ call: Call) {
+        TalkRing.stop()
         calls.removeAll { $0.room == call.room }
         guard let id = TalkStore.identity(call.base) else { return }
         Task { _ = try? await http("POST", "\(call.base)/v1/talk/dismiss", body: ["room": call.room], contactToken: id.token) }
@@ -224,6 +231,7 @@ final class RemoteTalk: ObservableObject {
                                                    contactToken: id.token, timeout: 6)
                     guard code == 200 else { error = errorText(code, j); return }
                     enter(k.base, lan: k.lan, j, link: nil, calling: k.name, connectedURL: url)
+                    TalkRing.startRingback()   // 等對方接：回鈴音
                     return
                 } catch { last = error.localizedDescription }
             }
@@ -236,6 +244,7 @@ final class RemoteTalk: ObservableObject {
         pollTask?.cancel(); pollTask = nil
         captionSub = nil
         stopMic()
+        TalkRing.stop()
         TalkPlayer.shared.stopAll()
         if let b, let t, let r { Task { _ = try? await http("DELETE", "\(b)/v1/talk/\(r)", talkToken: t) } }
         base = nil; canon = nil; token = nil; talk = nil
@@ -256,6 +265,13 @@ final class RemoteTalk: ObservableObject {
         TalkClip.enabled = true
         lastEnd = TalkClip.samples
         lc.start(sourceId: mySource, targetId: target)
+    }
+
+    /// 換我說的語言（通話中上方「我說」、我的）：存成翻譯的「說的」，麥克風開著就用新語言重新聽。
+    func changeLanguage(_ id: String) {
+        TranslateLangs.source = id
+        objectWillChange.send()
+        if LiveCaptions.shared.running { stopMic(); toggleMic() }
     }
 
     private func stopMic() {
@@ -292,8 +308,11 @@ final class RemoteTalk: ObservableObject {
                                                       contactToken: id.token, timeout: 8) else { continue }
                 if code != 200 { break }
                 var pendingIds = Set<String>()
+                let avatars = TalkAvatars.shared
+                avatars.pushIfMissing(base: b, serverAv: (j["av"] as? NSNumber)?.int64Value ?? -1)
                 for (k, v) in (j["peers"] as? [String: [String: Any]]) ?? [:] {
                     on["\(k)@\(b)"] = v["online"] as? Bool ?? false
+                    avatars.sync(base: b, id: k, av: (v["av"] as? NSNumber)?.int64Value ?? 0)
                     if v["pending"] as? Bool == true { pendingIds.insert(k) }
                     if let old = watch.first(where: { $0.id == k }) {
                         let n = v["name"] as? String ?? "", uid = (v["uid"] as? String).flatMap { $0.isEmpty ? nil : $0 }
@@ -305,6 +324,12 @@ final class RemoteTalk: ObservableObject {
                             store.upsert(c)
                         }
                     }
+                }
+                for r in (j["requests"] as? [[String: Any]]) ?? [] {
+                    avatars.sync(base: b, id: r["id"] as? String ?? "", av: (r["av"] as? NSNumber)?.int64Value ?? 0)
+                }
+                for c in (j["calls"] as? [[String: Any]]) ?? [] {
+                    avatars.sync(base: b, id: c["from"] as? String ?? "", av: (c["av"] as? NSNumber)?.int64Value ?? 0)
                 }
                 let reqs = ((j["requests"] as? [[String: Any]]) ?? []).map {
                     TalkFriends.Request(base: b, id: $0["id"] as? String ?? "", name: $0["name"] as? String ?? "",
@@ -433,7 +458,7 @@ final class RemoteTalk: ObservableObject {
             members = a.map { Member(id: $0["id"] as? String ?? "", name: $0["name"] as? String ?? "",
                                      lang: $0["lang"] as? String ?? "", owner: $0["owner"] as? Bool ?? false,
                                      contact: ($0["contact"] as? String).flatMap { $0.isEmpty ? nil : $0 }) }
-            if members.count > 1 { calling = nil; if joinedAt == nil { joinedAt = Date() } }
+            if members.count > 1 { if calling != nil { TalkRing.stop() }; calling = nil; if joinedAt == nil { joinedAt = Date() } }
             // 記住通話對象（記在這台主機的代表位址下）
             if let host = canon {
                 for m in members where m.id != me {
@@ -593,9 +618,20 @@ struct TalkView: View {
     @ObservedObject private var talk = RemoteTalk.shared
 
     var body: some View {
-        let back: (() -> Void)? = asTab ? nil : { dismiss() }
+        // 好友清單的返回：分頁裡回到「今天」，推進來的頁面關掉
+        let back: () -> Void = asTab ? { NotificationCenter.default.post(name: WidgetBridge.showHome, object: nil) } : { dismiss() }
         Group {
-            if talk.connected { InCallView(back: back) } else { TalkHome(back: back) }
+            if talk.connected && !talk.minimized {
+                // 通話中返回（或從左邊滑）＝縮小：回到好友清單，通話繼續
+                InCallView(back: { withAnimation { talk.minimized = true } })
+                    .gesture(DragGesture(minimumDistance: 20).onEnded { g in
+                        if g.startLocation.x < 30 && g.translation.width > 80 && abs(g.translation.height) < 80 {
+                            withAnimation { talk.minimized = true }
+                        }
+                    })
+            } else {
+                TalkHome(back: back)
+            }
         }
         .background { if !asTab { AppBackdrop() } }
         .background(TalkTranslateHost())
@@ -603,10 +639,14 @@ struct TalkView: View {
     }
 }
 
-/// 頭像：名字第一個字，顏色依名字固定。
+/// 頭像：有頭貼就用頭貼，沒有就是名字第一個字（顏色依名字固定）。me = 自己的頭貼。
 struct TalkAvatar: View {
     let name: String
     var size: CGFloat = 40
+    var base: String? = nil
+    var id: String? = nil
+    var me = false
+    @ObservedObject private var avatars = TalkAvatars.shared
     static func color(_ name: String) -> Color {
         let colors = [Brand.cyan, Brand.violet, Brand.pink, Brand.success, Brand.warning, Brand.blue]
         let h = name.unicodeScalars.reduce(0) { ($0 &* 31 &+ Int($1.value)) & 0xFFFF }
@@ -614,11 +654,17 @@ struct TalkAvatar: View {
     }
     var body: some View {
         let c = Self.color(name)
-        Text(name.first.map { String($0) } ?? "?")
-            .font(.system(size: size * 0.42, weight: .semibold)).foregroundStyle(c)
-            .frame(width: size, height: size)
-            .background(Circle().fill(c.opacity(0.16)))
-            .overlay(Circle().stroke(c.opacity(0.5), lineWidth: 1))
+        if let img = me ? avatars.mine() : avatars.image(base: base, id: id) {
+            Image(uiImage: img).resizable().scaledToFill()
+                .frame(width: size, height: size).clipShape(Circle())
+                .overlay(Circle().stroke(c.opacity(0.5), lineWidth: 1))
+        } else {
+            Text(name.first.map { String($0) } ?? "?")
+                .font(.system(size: size * 0.42, weight: .semibold)).foregroundStyle(c)
+                .frame(width: size, height: size)
+                .background(Circle().fill(c.opacity(0.16)))
+                .overlay(Circle().stroke(c.opacity(0.5), lineWidth: 1))
+        }
     }
 }
 
@@ -663,6 +709,22 @@ private struct TalkHome: View {
     var body: some View {
         VStack(spacing: 0) {
             header
+            if talk.connected {
+                // 通話縮小中：點了回到通話
+                Button { withAnimation { talk.minimized = false } } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "phone.fill")
+                        Text("通話中".tr + "：" + (talk.members.first { $0.id != talk.me }?.name ?? talk.calling ?? "")).lineLimit(1)
+                        Spacer()
+                        Text("回到通話".tr + " →").fontWeight(.semibold)
+                    }
+                    .font(.labelLarge).foregroundStyle(.white)
+                    .padding(.horizontal, 14).padding(.vertical, 10)
+                    .background(RoundedRectangle(cornerRadius: 12).fill(Brand.success))
+                }
+                .buttonStyle(.plain)
+                .pageColumn().padding(.top, 8)
+            }
             SegmentTabs(selection: $tab, labels: ["好友".tr, "最近".tr, "我的".tr]).pageColumn().padding(.vertical, 8)
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
@@ -733,7 +795,7 @@ private struct TalkHome: View {
         ForEach(friends.requests) { r in
             GlassCard {
                 HStack(spacing: 10) {
-                    TalkAvatar(name: r.name)
+                    TalkAvatar(name: r.name, base: r.base, id: r.id)
                     VStack(alignment: .leading, spacing: 2) {
                         Text("{0} 想加你為好友".trf(r.name)).font(.titleSmall).foregroundStyle(Brand.text)
                         Text(r.uid + " · " + TranslateLangs.name(r.lang)).font(.labelMedium).foregroundStyle(Brand.textMuted)
@@ -775,7 +837,7 @@ private struct TalkHome: View {
                 let pending = friends.isPending(k)
                 HStack(spacing: 12) {
                     ZStack(alignment: .bottomTrailing) {
-                        TalkAvatar(name: k.name)
+                        TalkAvatar(name: k.name, base: k.base, id: k.id)
                         if talk.isOnline(k) {
                             Circle().fill(Brand.success).frame(width: 11, height: 11).overlay(Circle().stroke(Brand.surface, lineWidth: 2))
                         }
@@ -813,7 +875,7 @@ private struct TalkHome: View {
         let missed = talk.calls.filter { !$0.live }
         ForEach(missed) { c in
             HStack(spacing: 12) {
-                TalkAvatar(name: c.name)
+                TalkAvatar(name: c.name, base: c.base, id: c.from)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("未接 · ".tr + c.name).font(.titleSmall).foregroundStyle(Brand.warning)
                     Text(Fmt.stamp(c.at, "M/d HH:mm")).font(.labelMedium).foregroundStyle(Brand.textMuted)
@@ -841,7 +903,8 @@ private struct TalkHome: View {
                 ForEach(Array(list.enumerated()), id: \.element.id) { i, t in
                     Button { openTalk = t } label: {
                         HStack(spacing: 12) {
-                            TalkAvatar(name: t.partners.first ?? "?")
+                            let k = store.contacts.first { $0.name == t.partners.first }   // 依名字對到好友（有頭貼就顯示）
+                            TalkAvatar(name: t.partners.first ?? "?", base: k?.base, id: k?.id)
                             VStack(alignment: .leading, spacing: 2) {
                                 HStack {
                                     Text(t.partners.isEmpty ? "遠距對話".tr : t.partners.joined(separator: "、"))
@@ -872,6 +935,10 @@ private struct TalkHome: View {
 
 /// 我的：大字 ID、名字、說的語言、通話時的開關。
 private struct TalkMeTab: View {
+    @ObservedObject private var avatars = TalkAvatars.shared
+    @State private var photo: PhotosPickerItem?
+    @State private var pickingLang = false
+    @State private var avatarNote: String?
     @ObservedObject private var friends = TalkFriends.shared
     @ObservedObject private var talk = RemoteTalk.shared
     @AppStorage(RemoteTalk.readAloudKey) private var speak = true
@@ -882,6 +949,28 @@ private struct TalkMeTab: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            GlassCard {
+                HStack(spacing: 14) {
+                    PhotosPicker(selection: $photo, matching: .images) {
+                        TalkAvatar(name: name, size: 72, me: true)
+                            .overlay(alignment: .bottomTrailing) {
+                                Image(systemName: "pencil").font(.system(size: 12, weight: .bold)).foregroundStyle(.white)
+                                    .frame(width: 24, height: 24).background(Circle().fill(Brand.cyan))
+                            }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("頭貼".tr)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("頭貼".tr).font(.titleSmall).foregroundStyle(Brand.text)
+                        Text("選一張照片，會裁成圓形；好友的清單和來電畫面都看得到。".tr).font(.bodySmall).foregroundStyle(Brand.textMuted)
+                        if let n = avatarNote { Text(n).font(.labelMedium).foregroundStyle(Brand.cyan) }
+                        if avatars.hasMine {
+                            Button("移除頭貼".tr) { Task { avatarNote = await avatars.setMine(nil) ?? "已移除頭貼".tr } }
+                                .font(.labelLarge).tint(Brand.warning)
+                        }
+                    }
+                }
+            }
             GlassCard {
                 Text("我的 ID".tr).font(.labelMedium).foregroundStyle(Brand.textMuted)
                 if let uid = friends.myUid, !uid.isEmpty {
@@ -914,8 +1003,24 @@ private struct TalkMeTab: View {
                 Text("你的名字（對方會看到）".tr).font(.titleSmall).foregroundStyle(Brand.text)
                 TextField("你的名字（對方會看到）".tr, text: $name).textFieldStyle(.roundedBorder).padding(.top, 4)
                     .onChange(of: name) { RemoteTalk.myName = $0 }
-                Text("你說的語言：{0}（在「翻譯」頁的「說的」可以改）".trf(TranslateLangs.name(talk.mySource)))
-                    .font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 6)
+                Button { pickingLang = true } label: {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("我說的語言".tr).font(.bodyMedium).foregroundStyle(Brand.text)
+                            Text(TranslateLangs.name(talk.mySource)).font(.titleSmall).foregroundStyle(Brand.cyan)
+                        }
+                        Spacer()
+                        Text("更改 ▾".tr).font(.labelLarge).foregroundStyle(Brand.cyan)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 10)
+                Text("對方說的話也會翻成這個語言；通話中點上方的語言也可以換。".tr)
+                    .font(.bodySmall).foregroundStyle(Brand.textMuted).padding(.top, 4)
+            }
+            .sheet(isPresented: $pickingLang) {
+                LangSheet(side: .source, current: talk.mySource) { talk.changeLanguage($0) }
             }
             GlassCard {
                 Text("通話時".tr).font(.titleSmall).foregroundStyle(Brand.text)
@@ -937,6 +1042,15 @@ private struct TalkMeTab: View {
             Text("文字和原聲經過你的大D的主機轉送，主機不存對話內容；對話記錄只存在你的手機。建議戴有麥克風的耳機。".tr)
                 .font(.bodySmall).foregroundStyle(Brand.textFaint)
         }
+        .onChange(of: photo) { item in
+                guard let item else { return }
+                Task {
+                    defer { photo = nil }
+                    guard let d = try? await item.loadTransferable(type: Data.self), let img = UIImage(data: d),
+                          let jpg = TalkAvatars.square(img) else { avatarNote = "讀不到照片".tr; return }
+                    avatarNote = await avatars.setMine(jpg) ?? "頭貼已更新".tr
+                }
+            }
     }
 }
 
@@ -1015,6 +1129,7 @@ private struct InviteSheet: View {
 
 private struct InCallView: View {
     let back: (() -> Void)?
+    @State private var pickingLang = false
     @ObservedObject private var talk = RemoteTalk.shared
     @ObservedObject private var captions = LiveCaptions.shared
     @AppStorage(RemoteTalk.playOriginalKey) private var playOriginal = true
@@ -1025,7 +1140,7 @@ private struct InCallView: View {
         VStack(spacing: 0) {
             HStack(spacing: 12) {
                 if let back { IconCircle(systemImage: "chevron.left", label: "返回".tr, action: back) }
-                TalkAvatar(name: other?.name ?? talk.calling ?? "?", size: 40)
+                TalkAvatar(name: other?.name ?? talk.calling ?? "?", size: 40, base: talk.canon, id: other?.contact)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(other?.name ?? talk.calling ?? "遠距對話".tr).font(.titleSmall).foregroundStyle(Brand.text).lineLimit(1)
                     HStack(spacing: 6) {
@@ -1041,6 +1156,14 @@ private struct InCallView: View {
                     .font(.labelMedium).foregroundStyle(Brand.textMuted)
                 }
                 Spacer()
+                // 換我說的語言
+                Button { pickingLang = true } label: {
+                    VStack(alignment: .trailing, spacing: 0) {
+                        Text("我說".tr).font(.labelSmall).foregroundStyle(Brand.textFaint)
+                        Text(TranslateLangs.name(talk.mySource) + " ▾").font(.labelLarge).foregroundStyle(Brand.cyan).lineLimit(1)
+                    }
+                }
+                .buttonStyle(.plain)
             }
             .pageColumn().padding(.top, 8)
 
@@ -1098,6 +1221,9 @@ private struct InCallView: View {
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity)
             .background(Brand.surface.opacity(0.95))
+        }
+        .sheet(isPresented: $pickingLang) {
+            LangSheet(side: .source, current: talk.mySource) { talk.changeLanguage($0) }
         }
     }
 
@@ -1186,7 +1312,7 @@ struct IncomingCallView: View {
                 ZStack {
                     Circle().fill(TalkAvatar.color(c.name).opacity(0.18)).frame(width: 170, height: 170)
                         .scaleEffect(pulse ? 1.15 : 0.9).opacity(pulse ? 0.3 : 0.9)
-                    TalkAvatar(name: c.name, size: 110)
+                    TalkAvatar(name: c.name, size: 110, base: c.base, id: c.from)
                 }
                 .onAppear { withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) { pulse = true } }
                 Text(c.name).font(.system(size: 30, weight: .bold)).foregroundStyle(Brand.text)
@@ -1216,6 +1342,9 @@ struct IncomingCallView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(AppBackdrop())
             .transition(.opacity)
+            .onAppear { TalkRing.startRinging() }   // 鈴聲＋震動（靜音開關照系統）
+            .onDisappear { TalkRing.stop() }
+            .id(c.room)   // 新的來電（新房間）重新響
         }
     }
 }

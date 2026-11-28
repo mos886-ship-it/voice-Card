@@ -211,7 +211,7 @@ private struct NavItem: View {
         case .records: Image(systemName: "list.bullet.rectangle").font(.system(size: 17)).foregroundStyle(tint)
         case .food: BowlGlyph(color: tint).frame(width: 20, height: 20)
         case .translate: Image(systemName: "character.bubble").font(.system(size: 17)).foregroundStyle(tint)
-        case .talk: TalkGlyph(tint: tint, filled: false)
+        case .talk: TalkGlyph(tint: tint, filled: false, selected: selected)
         case .settings: Image(systemName: "gearshape").font(.system(size: 17)).foregroundStyle(tint)
         }
     }
@@ -270,7 +270,7 @@ private struct OverviewNavItem: View {
         case .records: Waveform(color: tint).frame(width: 20, height: 16)
         case .food: BowlGlyph(color: tint).frame(width: 20, height: 20)
         case .translate: Image(systemName: "character.bubble.fill").font(.system(size: 17)).foregroundStyle(tint)
-        case .talk: TalkGlyph(tint: tint, filled: true)
+        case .talk: TalkGlyph(tint: tint, filled: true, selected: selected)
         case .settings: Image(systemName: "gearshape.fill").font(.system(size: 17)).foregroundStyle(tint)
         }
     }
@@ -280,13 +280,16 @@ private struct OverviewNavItem: View {
 struct TalkGlyph: View {
     let tint: Color
     var filled = false
+    var selected = false
     @ObservedObject private var talk = RemoteTalk.shared
     @ObservedObject private var friends = TalkFriends.shared
     var body: some View {
         Image(systemName: filled ? "bubble.left.and.bubble.right.fill" : "bubble.left.and.bubble.right")
             .font(.system(size: 16)).foregroundStyle(tint)
             .overlay(alignment: .topTrailing) {
-                if !talk.calls.isEmpty || !friends.requests.isEmpty {
+                if talk.connected && !selected {   // 通話中、在別的分頁：綠點
+                    Circle().fill(Brand.success).frame(width: 8, height: 8).offset(x: 4, y: -2)
+                } else if !talk.calls.isEmpty || !friends.requests.isEmpty {
                     Circle().fill(Brand.error).frame(width: 8, height: 8).offset(x: 4, y: -2)
                 }
             }
