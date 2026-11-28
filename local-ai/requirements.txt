@@ -9,3 +9,5 @@ opencc-python-reimplemented==0.1.7
 torch==2.8.0
 torchaudio==2.8.0
 qrcode==8.2
+# 從連結匯入（YouTube 等）；網站常改所以不固定版本。抓不到時更新：~/dylan-local/venv/bin/pip install -U yt-dlp
+yt-dlp

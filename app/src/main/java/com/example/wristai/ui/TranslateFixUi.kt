@@ -45,6 +45,9 @@ fun FixLineDialog(s: TranslationStore.Session, index: Int, onDismiss: () -> Unit
     var text by remember { mutableStateOf(line.translated.orEmpty()) }
     var wrong by remember { mutableStateOf("") }
     var right by remember { mutableStateOf("") }
+    // 回報給大D的主機（存在主機的 feedback.jsonl，改進翻譯用）；有設定主機才顯示
+    val canReport = remember { com.example.wristai.ai.LocalHost.configured(context) }
+    var report by remember { mutableStateOf(canReport) }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("更正翻譯".tr) },
@@ -63,6 +66,10 @@ fun FixLineDialog(s: TranslationStore.Session, index: Int, onDismiss: () -> Unit
                 Spacer(Modifier.height(6.dp))
                 OutlinedTextField(right, { right = it.take(60) }, Modifier.fillMaxWidth(), singleLine = true,
                     label = { Text("正確的詞".tr) }, colors = fieldColors())
+                if (canReport) {
+                    Spacer(Modifier.height(8.dp))
+                    ToggleChip("也回報給大D的主機".tr, report) { report = it }
+                }
             }
         },
         confirmButton = {
@@ -71,6 +78,19 @@ fun FixLineDialog(s: TranslationStore.Session, index: Int, onDismiss: () -> Unit
                 if (wrong.isNotBlank()) TranslateFixes.add(context, s.target, wrong, right)
                 val lines = s.lines.toMutableList().also { it[index] = line.copy(translated = fixed.ifBlank { null }) }
                 TranslationStore.save(context, s.copy(lines = lines))
+                if (report && fixed != line.translated) {
+                    val app = context.applicationContext
+                    val body = org.json.JSONObject().put("kind", "translation").put("source", s.source).put("target", s.target)
+                        .put("original", line.original).put("translated", line.translated.orEmpty()).put("corrected", fixed)
+                        .put("app", runCatching { app.packageManager.getPackageInfo(app.packageName, 0).versionName }.getOrNull().orEmpty())
+                    Thread {
+                        val r = runCatching { com.example.wristai.ai.LocalHost.sendFeedback(app, body) }
+                        android.os.Handler(android.os.Looper.getMainLooper()).post {
+                            android.widget.Toast.makeText(app, r.fold({ "已回報給大D的主機".tr }, { it.message ?: "回報失敗".tr }),
+                                android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                    }.start()
+                }
                 onDismiss()
             }) { Text("儲存".tr) }
         },

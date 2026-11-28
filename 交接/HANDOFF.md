@@ -706,3 +706,11 @@ Locmodel 先前產生的 `shared` 程式碼無法編譯（用了不存在的 API
 - 翻譯更正（`TranslateFixes`）：翻譯記錄長按一句 → 改譯文，也可以存「翻錯的詞 → 正確的詞」（依翻成的語言）。之後的即時翻譯、遠距對話、情境片語都會自動換掉。翻譯 → 設定 有清單可以刪。
 - 手錶電量：手錶 App 打開時送 `/wristai/battery`（"百分比,充電中"），手機「今天」的手錶標籤顯示（6 小時內的才顯示，低於 20% 變色）。手機 manifest 有加這個路徑。
 - 測試：SeekAndFixesTest。
+
+## 第四批：對話自動換邊、從連結匯入、存到 Notion、翻譯錯誤回報
+- 對話模式（即時翻譯工具列「⇄ 自動換邊」，`Settings.conversationMode`）：一句說完、譯文念完、安靜 1.6 秒（`LiveCaptions.TURN_MS`）就自動對調方向；還在說（有新的部分結果）就不換。沒有用語言偵測（各家辨識器支援不一），靠輪流說。
+- 從連結匯入（`LinkImport`、`ui/ImportChooser`）：「匯入」改成選單——選檔案（音檔、影片）或貼連結（剪貼簿有連結會先填好）。直接的媒體檔連結手機自己下載（最多 300 MB）；其他網頁（YouTube 等）請大D的主機抓：`POST /v1/fetch_url`（`local-ai/fetchurl.py`，用 yt-dlp 只抓音訊、不轉檔，回傳檔案＋X-Title）。也可以從別的 App 分享連結（text/plain）或影片給大D。
+- 存到 Notion（`NotionExport`）：錄音 → 設定 填 Notion 內部整合金鑰＋頁面連結；分享報告 →「存到 Notion」，存成子頁面（標題、條列、表格、段落；超過 90 個區塊分批加）。
+- 翻譯錯誤回報：更正翻譯時「也回報給大D的主機」→ `POST /v1/feedback`，主機存到 `~/dylan-local/feedback.jsonl`（只留原文、譯文、更正、語言、版本、裝置 id）。
+- 主機：requirements 加 yt-dlp（不固定版本；抓不到時 `~/dylan-local/venv/bin/pip install -U yt-dlp`），setup.sh 複製 fetchurl.py。測試：`python local-ai/fetchurl_test.py`。
+- 測試：LinkAndNotionTest（SeekAndFixesTest.kt 裡）。

@@ -54,6 +54,24 @@ fun ExportDialog(title: String, markdown: () -> String, onDismiss: () -> Unit, f
                 GhostButton("PDF", { if (!busy) file(ReportExport.Format.PDF) }, Modifier.fillMaxWidth(), tint = Brand.Cyan)
                 GhostButton("Word（.docx）", { if (!busy) file(ReportExport.Format.WORD) }, Modifier.fillMaxWidth(), tint = Brand.Cyan)
                 GhostButton("Markdown（Notion、Obsidian）".tr, { if (!busy) file(ReportExport.Format.MARKDOWN) }, Modifier.fillMaxWidth())
+                // 直接存到 Notion（要先在 錄音 → 設定 填 Notion 金鑰與頁面）
+                GhostButton("存到 Notion".tr, {
+                    if (busy) return@GhostButton
+                    if (!com.example.wristai.NotionExport.configured(context)) {
+                        Toast.makeText(context, "請先到 錄音 → 設定 →「存到 Notion」填金鑰與頁面連結".tr, Toast.LENGTH_LONG).show()
+                        return@GhostButton
+                    }
+                    busy = true
+                    scope.launch {
+                        val r = runCatching { withContext(Dispatchers.IO) { com.example.wristai.NotionExport.save(context, title, markdown()) } }
+                        busy = false
+                        r.onSuccess { url ->
+                            Toast.makeText(context, "已存到 Notion".tr, Toast.LENGTH_SHORT).show()
+                            if (url.isNotBlank()) runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))) }
+                            onDismiss()
+                        }.onFailure { Toast.makeText(context, it.message ?: "Notion 失敗".tr, Toast.LENGTH_LONG).show() }
+                    }
+                }, Modifier.fillMaxWidth())
                 if (busy) Text("產生中…".tr, style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
             }
         },

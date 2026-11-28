@@ -41,3 +41,23 @@ class SeekAndFixesTest {
         assertNull(WatchBattery.parse("150,0"))
     }
 }
+
+class LinkAndNotionTest {
+    @Test fun linkNormalize() {
+        org.junit.Assert.assertEquals("https://youtu.be/abc", LinkImport.normalize("看這個 https://youtu.be/abc"))
+        assertNull(LinkImport.normalize("沒有連結"))
+        org.junit.Assert.assertTrue(LinkImport.isDirectMedia("https://x.com/ep1.MP3?x=1"))
+        org.junit.Assert.assertFalse(LinkImport.isDirectMedia("https://www.youtube.com/watch?v=abc"))
+    }
+
+    @Test fun notionPageIdAndBlocks() {
+        assertEquals("1a2b3c4d-1a2b-3c4d-1a2b-3c4d1a2b3c4d",
+            NotionExport.pageId("https://www.notion.so/My-Page-1a2b3c4d1a2b3c4d1a2b3c4d1a2b3c4d"))
+        assertNull(NotionExport.pageId("https://www.notion.so/nothing"))
+        val b = NotionExport.blocks("## 重點\n- **甲** 乙\n| a | b |\n|---|---|\n| 1 | 2 |\n" + "長".repeat(4000))
+        assertEquals(listOf("heading_2", "bulleted_list_item", "table", "paragraph", "paragraph", "paragraph"), b.map { it.getString("type") })
+        assertEquals(true, b[1].getJSONObject("bulleted_list_item").getJSONArray("rich_text").getJSONObject(0)
+            .getJSONObject("annotations").getBoolean("bold"))
+        assertEquals(2, b[2].getJSONObject("table").getJSONArray("children").length())
+    }
+}

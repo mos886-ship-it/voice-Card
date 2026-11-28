@@ -7050,5 +7050,129 @@
  "長按一句可以更正翻譯。": {
   "en": "Long-press a line to correct its translation.",
   "ko": "문장을 길게 눌러 번역을 수정할 수 있어요."
+ },
+ "請貼上 http 或 https 開頭的連結": {
+  "en": "Paste a link starting with http or https",
+  "ko": "http 또는 https로 시작하는 링크를 붙여 넣으세요"
+ },
+ "下載中…": {
+  "en": "Downloading…",
+  "ko": "다운로드 중…"
+ },
+ "這個連結要請大D的主機抓（設定 → AI 引擎 → 私有主機）；直接的音檔連結（.mp3、.m4a…）手機可以自己下載": {
+  "en": "This link needs Dylan Host to fetch it (Settings → AI engine → Private host); direct audio links (.mp3, .m4a…) download on the phone",
+  "ko": "이 링크는 Dylan Host가 가져와야 합니다 (설정 → AI 엔진 → 개인 호스트). 직접 오디오 링크(.mp3, .m4a…)는 휴대폰에서 받을 수 있어요"
+ },
+ "大D的主機抓取中…（影片長的話要幾分鐘）": {
+  "en": "Dylan Host is fetching… (long videos take a few minutes)",
+  "ko": "Dylan Host가 가져오는 중… (긴 영상은 몇 분 걸려요)"
+ },
+ "下載失敗（HTTP {0}）": {
+  "en": "Download failed (HTTP {0})",
+  "ko": "다운로드 실패 (HTTP {0})"
+ },
+ "檔案太大（超過 300 MB）": {
+  "en": "File too large (over 300 MB)",
+  "ko": "파일이 너무 큽니다 (300MB 초과)"
+ },
+ "分享的文字裡沒有連結": {
+  "en": "No link in the shared text",
+  "ko": "공유한 텍스트에 링크가 없습니다"
+ },
+ "Notion 金鑰不對": {
+  "en": "Notion key is wrong",
+  "ko": "Notion 키가 올바르지 않습니다"
+ },
+ "找不到頁面：請在 Notion 頁面右上 ⋯ → 連結，把它連結給你的整合": {
+  "en": "Page not found: in Notion open the page's ⋯ menu → Connections and add your integration",
+  "ko": "페이지를 찾을 수 없습니다: Notion 페이지 오른쪽 위 ⋯ → 연결에서 통합을 추가하세요"
+ },
+ "Notion 回應錯誤（{0}）：{1}": {
+  "en": "Notion error ({0}): {1}",
+  "ko": "Notion 오류 ({0}): {1}"
+ },
+ "請先在設定填 Notion 頁面連結": {
+  "en": "Add the Notion page link in Settings first",
+  "ko": "먼저 설정에서 Notion 페이지 링크를 입력하세요"
+ },
+ "大D的主機版本太舊，還不能從連結匯入：請在主機上重新部署": {
+  "en": "Dylan Host is too old to import links: redeploy it on the host",
+  "ko": "Dylan Host 버전이 오래되어 링크를 가져올 수 없습니다: 호스트에서 다시 배포하세요"
+ },
+ "大D的主機版本太舊，還不能收回報：請在主機上重新部署": {
+  "en": "Dylan Host is too old to receive reports: redeploy it on the host",
+  "ko": "Dylan Host 버전이 오래되어 신고를 받을 수 없습니다: 호스트에서 다시 배포하세요"
+ },
+ "存到 Notion": {
+  "en": "Save to Notion",
+  "ko": "Notion에 저장"
+ },
+ "請先到 錄音 → 設定 →「存到 Notion」填金鑰與頁面連結": {
+  "en": "First add the key and page link in Recordings → Settings → Save to Notion",
+  "ko": "먼저 녹음 → 설정 → 'Notion에 저장'에서 키와 페이지 링크를 입력하세요"
+ },
+ "已存到 Notion": {
+  "en": "Saved to Notion",
+  "ko": "Notion에 저장했습니다"
+ },
+ "Notion 失敗": {
+  "en": "Notion failed",
+  "ko": "Notion 실패"
+ },
+ "選檔案（音檔、影片）": {
+  "en": "Choose a file (audio, video)",
+  "ko": "파일 선택 (오디오, 동영상)"
+ },
+ "或貼上連結": {
+  "en": "Or paste a link",
+  "ko": "또는 링크 붙여 넣기"
+ },
+ "音檔連結（.mp3、.m4a…）手機直接下載；YouTube 等網頁由大D的主機抓音訊。請只匯入你有權使用的內容。": {
+  "en": "Audio links (.mp3, .m4a…) download on the phone; YouTube and other pages are fetched by Dylan Host. Only import content you have the right to use.",
+  "ko": "오디오 링크(.mp3, .m4a…)는 휴대폰에서 받고, YouTube 등은 Dylan Host가 가져옵니다. 사용할 권리가 있는 콘텐츠만 가져오세요."
+ },
+ "從連結匯入": {
+  "en": "Import from link",
+  "ko": "링크에서 가져오기"
+ },
+ "自動換邊": {
+  "en": "Auto switch",
+  "ko": "자동 전환"
+ },
+ "對話模式：一句說完、譯文念完會自動換成對方的語言。建議打開「朗讀」。": {
+  "en": "Conversation mode: after each sentence is translated and read aloud, it switches to the other person's language. Turning on Read aloud is recommended.",
+  "ko": "대화 모드: 한 문장이 번역되어 읽히면 자동으로 상대 언어로 바뀝니다. '읽기'를 켜 두는 것이 좋아요."
+ },
+ "① 到 notion.so/my-integrations 建一個「內部整合」，複製金鑰貼在下面。② 打開要放報告的頁面，右上 ⋯ → 連結 → 選這個整合，再把頁面連結貼在下面。之後分享報告就能選「Notion」。": {
+  "en": "① Create an internal integration at notion.so/my-integrations and paste its key below. ② Open the page for your reports, choose ⋯ → Connections → your integration, then paste the page link below. Then pick Notion when sharing a report.",
+  "ko": "① notion.so/my-integrations에서 '내부 통합'을 만들고 키를 아래에 붙여 넣으세요. ② 리포트를 둘 페이지에서 ⋯ → 연결 → 이 통합을 선택한 뒤 페이지 링크를 아래에 붙여 넣으세요. 이후 리포트 공유에서 'Notion'을 고를 수 있어요."
+ },
+ "Notion 整合金鑰": {
+  "en": "Notion integration key",
+  "ko": "Notion 통합 키"
+ },
+ "頁面連結": {
+  "en": "Page link",
+  "ko": "페이지 링크"
+ },
+ "看不出頁面 id，請貼完整的頁面連結": {
+  "en": "Can't find the page id; paste the full page link",
+  "ko": "페이지 ID를 찾을 수 없습니다. 전체 페이지 링크를 붙여 넣으세요"
+ },
+ "金鑰只存在這支手機，只用來把報告寫進你的 Notion。": {
+  "en": "The key stays on this phone and is only used to write reports to your Notion.",
+  "ko": "키는 이 휴대폰에만 저장되며 리포트를 내 Notion에 쓰는 데만 사용됩니다."
+ },
+ "也回報給大D的主機": {
+  "en": "Also report to Dylan Host",
+  "ko": "Dylan Host에도 신고"
+ },
+ "已回報給大D的主機": {
+  "en": "Reported to Dylan Host",
+  "ko": "Dylan Host에 신고했습니다"
+ },
+ "回報失敗": {
+  "en": "Report failed",
+  "ko": "신고 실패"
  }
 }

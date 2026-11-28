@@ -155,6 +155,31 @@ fun VocabCard() {
     }
 }
 
+/** 存到 Notion：自己的整合金鑰＋要放報告的頁面連結。 */
+@Composable
+fun NotionCard() {
+    val context = LocalContext.current
+    var token by remember { mutableStateOf(com.example.wristai.NotionExport.token(context)) }
+    var page by remember { mutableStateOf(com.example.wristai.NotionExport.parent(context)) }
+    GlassCard {
+        Text("存到 Notion".tr, style = MaterialTheme.typography.titleSmall, color = Brand.Text)
+        Text("① 到 notion.so/my-integrations 建一個「內部整合」，複製金鑰貼在下面。② 打開要放報告的頁面，右上 ⋯ → 連結 → 選這個整合，再把頁面連結貼在下面。之後分享報告就能選「Notion」。".tr,
+            style = MaterialTheme.typography.bodySmall, color = Brand.TextMuted)
+        Spacer(Modifier.height(8.dp))
+        androidx.compose.material3.OutlinedTextField(token, { token = it; com.example.wristai.NotionExport.setToken(context, it) },
+            Modifier.fillMaxWidth(), singleLine = true, label = { Text("Notion 整合金鑰".tr) },
+            visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+            shape = RoundedCornerShape(14.dp), colors = brandFieldColors())
+        Spacer(Modifier.height(8.dp))
+        androidx.compose.material3.OutlinedTextField(page, { page = it; com.example.wristai.NotionExport.setParent(context, it) },
+            Modifier.fillMaxWidth(), singleLine = true, label = { Text("頁面連結".tr) },
+            shape = RoundedCornerShape(14.dp), colors = brandFieldColors())
+        if (page.isNotBlank() && com.example.wristai.NotionExport.pageId(page) == null)
+            Text("看不出頁面 id，請貼完整的頁面連結".tr, style = MaterialTheme.typography.bodySmall, color = Brand.Warning)
+        Text("金鑰只存在這支手機，只用來把報告寫進你的 Notion。".tr, style = MaterialTheme.typography.bodySmall, color = Brand.TextFaint)
+    }
+}
+
 /** 领域专家模式：报告用哪个专业领域的角度整理（自动判断 / 关闭 / 法律、医疗…）。 */
 @Composable
 fun ReportDomainCard() {

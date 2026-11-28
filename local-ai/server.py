@@ -850,9 +850,13 @@ def lan_url():
 # 防猜存取碼：同一個來源 IP 錯 10 次就封 1 小時（服務透過固定 IP 對外開放，誰都連得到）
 MAX_FAILS = 10
 BLOCK_SECONDS = 3600
+import shutil  # noqa: E402
+from urllib.parse import urlparse  # noqa: E402
+import fetchurl  # noqa: E402  從連結抓音訊、翻譯錯誤回報
 import talk  # noqa: E402  遠距對話（兩地即時翻譯）的中繼
 
 TALK = talk.Rooms(contacts_path=os.path.join(HERE, "talk_contacts.json"))   # 通話對象（只有名字、語言、雜湊）
+FEEDBACK_PATH = os.path.join(HERE, "feedback.jsonl")   # App 送來的翻譯錯誤回報（只存在這台主機）
 
 FAILS = {}   # ip → [錯幾次, 封到何時]
 FAILS_LOCK = threading.Lock()
@@ -907,6 +911,38 @@ class Handler(BaseHTTPRequestHandler):
 
     def _dev(self):
         return getattr(self, "device_id", None)
+
+    def _fetch_url(self):
+        """從連結抓音訊（yt-dlp），整個檔案回傳給 App 匯入。"""
+        try:
+            url = str(self._body().get("url", ""))
+        except ValueError:
+            return self._json(400, {"error": "格式不對"})
+        log(f"fetch_url {urlparse(url).netloc}")
+        busy(1)
+        try:
+            path, title, mime, tmp = fetchurl.fetch(url)
+        except ValueError as e:
+            return self._json(400, {"error": str(e)})
+        except FileNotFoundError as e:
+            return self._json(501, {"error": str(e)})
+        except RuntimeError as e:
+            return self._json(422, {"error": str(e)})
+        finally:
+            busy(-1)
+        try:
+            size = os.path.getsize(path)
+            self.send_response(200)
+            self.send_header("Content-Type", mime)
+            self.send_header("Content-Length", str(size))
+            self.send_header("X-Title", fetchurl.title_header(title))
+            self.end_headers()
+            with open(path, "rb") as f:
+                shutil.copyfileobj(f, self.wfile, 256 * 1024)
+        except (ConnectionError, OSError) as e:
+            log(f"  fetch_url send failed: {e}")
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
 
     def _admin_only(self):
         """只有管理者能做的事（換模型、改配對密碼、管別台裝置）。不是 → 回 403。"""
@@ -1189,6 +1225,16 @@ class Handler(BaseHTTPRequestHandler):
                                                             audio=b.get("audio")))(self._body()))
         if self.path == "/v1/chat/completions":
             return self._chat() if self._authorized() else None
+        if self.path == "/v1/fetch_url":
+            return self._fetch_url() if self._authorized() else None
+        if self.path == "/v1/feedback":
+            if not self._authorized():
+                return
+            try:
+                fetchurl.save_feedback(FEEDBACK_PATH, self._body(), self._dev())
+            except ValueError as e:
+                return self._json(400, {"error": str(e)})
+            return self._json(200, {"ok": True})
         if self.path == "/v1/pair":
             return self._pair()
         if self.path in ("/v1/password", "/v1/devices/revoke", "/v1/devices/admin"):

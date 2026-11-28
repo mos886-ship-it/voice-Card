@@ -202,6 +202,36 @@ object LocalHost {
         } finally { conn.disconnect() }
     } catch (e: Exception) { throw Unreachable(unreachable(e).message!!) }
 
+    /** 請主機從連結抓音訊（yt-dlp），寫到 [out]，回傳標題（沒有 = null）。阻塞執行，最多等 16 分鐘。 */
+    fun fetchUrl(c: Context, link: String, out: java.io.File): String? {
+        val conn = try {
+            open(c, url(c), token(c), "/v1/fetch_url", "POST", 16 * 60_000).apply {
+                doOutput = true
+                setRequestProperty("Content-Type", "application/json")
+                outputStream.use { it.write(JSONObject().put("url", link).toString().toByteArray(Charsets.UTF_8)) }
+            }
+        } catch (e: Exception) { throw unreachable(e) }
+        try {
+            val code = try { conn.responseCode } catch (e: Exception) { throw unreachable(e) }
+            if (code == 404) throw AiException("大D的主機版本太舊，還不能從連結匯入：請在主機上重新部署".tr)
+            if (code !in 200..299) {
+                val body = conn.errorStream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }.orEmpty()
+                throw AiException(jsonError(body, errorOf(code, body)))
+            }
+            conn.inputStream.use { input -> out.outputStream().use { input.copyTo(it, 256 * 1024) } }
+            return conn.getHeaderField("X-Title")?.let { h ->
+                runCatching { String(android.util.Base64.decode(h, android.util.Base64.DEFAULT), Charsets.UTF_8) }.getOrNull()
+            }?.takeIf { it.isNotBlank() }
+        } finally { conn.disconnect() }
+    }
+
+    /** 翻譯錯誤回報送到主機（存在主機的 feedback.jsonl）。 */
+    fun sendFeedback(c: Context, body: JSONObject) {
+        val (code, text) = try { postJson(c, url(c), token(c), "/v1/feedback", body) } catch (e: Unreachable) { throw AiException(e.message!!) }
+        if (code == 404) throw AiException("大D的主機版本太舊，還不能收回報：請在主機上重新部署".tr)
+        if (code != 200) throw AiException(jsonError(text, errorOf(code, text)))
+    }
+
     /** 换模型：主机存起来并在背景载入（第一次要下载），之后用 [models] 看 state 何时变回 ready。 */
     fun select(c: Context, asr: String, llm: String) {
         val (code, body) = try { postJson(c, url(c), token(c), "/v1/config", JSONObject().put("asr", asr).put("llm", llm)) }

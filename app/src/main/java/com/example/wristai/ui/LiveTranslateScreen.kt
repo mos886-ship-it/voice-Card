@@ -99,6 +99,7 @@ fun LiveTranslateScreen(onBack: (() -> Unit)? = null) {
     var size by remember { mutableIntStateOf(Settings.captionSize(context).coerceIn(0, 3)) }
     var original by remember { mutableStateOf(Settings.showOriginal(context)) }
     var speak by remember { mutableStateOf(Settings.autoSpeak(context)) }
+    var conversation by remember { mutableStateOf(Settings.conversationMode(context)) }
     var withRec by remember { mutableStateOf(Settings.translateWithRecording(context)) }
     var picking by remember { mutableStateOf<Boolean?>(null) }   // true = 说的、false = 翻成的
     var big by remember { mutableStateOf(false) }
@@ -168,6 +169,11 @@ fun LiveTranslateScreen(onBack: (() -> Unit)? = null) {
             ToolChip("A+", size < 3) { size = (size + 1).coerceAtMost(3); Settings.setCaptionSize(context, size) }
             ToggleChip("原文".tr, original) { original = it; Settings.setShowOriginal(context, it) }
             ToggleChip("朗讀".tr, speak) { speak = it; Settings.setAutoSpeak(context, it); if (!it) Speaker.stop() }
+            // 對話模式：一句說完、譯文念完就自動換邊，兩個人輪流說不用按 ⇄
+            ToggleChip("⇄ " + "自動換邊".tr, conversation) {
+                conversation = it; Settings.setConversationMode(context, it)
+                if (it) Toast.makeText(context, "對話模式：一句說完、譯文念完會自動換成對方的語言。建議打開「朗讀」。".tr, Toast.LENGTH_LONG).show()
+            }
             ToolChip("⛶ " + "放大".tr, s.lines.isNotEmpty()) { big = true }
             ToolChip("清除".tr, s.lines.isNotEmpty() && !s.running) { LiveCaptions.clear() }
         }

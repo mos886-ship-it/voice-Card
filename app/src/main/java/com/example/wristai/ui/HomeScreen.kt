@@ -226,9 +226,7 @@ fun HomeScreen(onOpen: (String) -> Unit, onOpenSettings: () -> Unit, onImport: (
     val context = LocalContext.current
     val all by MeetingStore.meetings.collectAsState()
     val meetings = remember(all) { all.filter { it.origin() != Origin.FOOD } }
-    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) onImport(context, uri)
-    }
+    val chooseImport = rememberImportChooser(onImport)
     LaunchedEffect(Unit) { MeetingStore.reload(context) }
 
     // 搜寻（SearchIndex：标题、日期、地点、说话者、报告、逐字稿；关键字空白分隔、全部都要出现）
@@ -276,7 +274,7 @@ fun HomeScreen(onOpen: (String) -> Unit, onOpenSettings: () -> Unit, onImport: (
                     GhostButton("管理".tr, onManage, tint = Brand.Cyan)
                     Spacer(Modifier.width(8.dp))
                 }
-                GhostButton("匯入".tr, { picker.launch(arrayOf("audio/*")) }, icon = Icons.Filled.Add, tint = Brand.Cyan)
+                GhostButton("匯入".tr, chooseImport, icon = Icons.Filled.Add, tint = Brand.Cyan)
             }
         }
 

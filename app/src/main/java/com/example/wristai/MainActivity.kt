@@ -169,8 +169,15 @@ class MainActivity : ComponentActivity() {
         }
         if (intent?.action != Intent.ACTION_SEND) return
         @Suppress("DEPRECATION")
-        val uri = intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM) ?: return
-        importAudio(this, uri)
+        val uri = intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
+        val text = intent.getStringExtra(Intent.EXTRA_TEXT)
+        when {
+            uri != null -> importAudio(this, uri)
+            // 分享來的連結（YouTube 等）：從連結匯入
+            text != null && LinkImport.normalize(text) != null -> com.example.wristai.ui.importLink(this, text)
+            text != null -> Toast.makeText(this, "分享的文字裡沒有連結".tr, Toast.LENGTH_SHORT).show()
+            else -> return
+        }
         setIntent(Intent(this, MainActivity::class.java))
     }
 

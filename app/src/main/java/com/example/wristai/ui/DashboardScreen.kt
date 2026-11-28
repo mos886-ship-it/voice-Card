@@ -138,9 +138,8 @@ fun DashboardScreen(
     }
 
     val starter = rememberRecordStarter()
-    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) importAudio(context, uri)
-    }
+    // 匯入：選檔案（音檔、影片）或貼連結
+    val chooseImport = rememberImportChooser { c, uri -> importAudio(c, uri) }
 
     LazyColumn(
         Modifier.fillMaxSize(),
@@ -202,7 +201,7 @@ fun DashboardScreen(
                         Toast.makeText(context, "通話錄音會自動整理，新的通話結束後幾分鐘內出現在資料庫".tr, Toast.LENGTH_LONG).show()
                     } else onOpenSettings()   // 到设定打开「自动整理通话录音」
                 },
-                importFile = { picker.launch(arrayOf("audio/*")) },
+                importFile = chooseImport,
             )
         }
 

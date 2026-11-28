@@ -65,6 +65,10 @@ object Settings {
     /** 翻好自动朗读、朗读速度。 */
     fun autoSpeak(context: Context): Boolean = prefs(context).getBoolean("translate_speak", false)
     fun setAutoSpeak(context: Context, v: Boolean) = prefs(context).edit().putBoolean("translate_speak", v).apply()
+    /** 對話模式：一句說完自動換邊（即時翻譯）。 */
+    fun conversationMode(context: Context): Boolean = prefs(context).getBoolean("translate_conversation", false)
+    fun setConversationMode(context: Context, v: Boolean) = prefs(context).edit().putBoolean("translate_conversation", v).apply()
+
     fun speakRate(context: Context): Float = prefs(context).getFloat("translate_rate", 1.0f)
     fun setSpeakRate(context: Context, v: Float) = prefs(context).edit().putFloat("translate_rate", v).apply()
     /** 字幕显示原文、翻译时萤幕保持亮着、开始翻译时同时录音（录完产生报告）。 */

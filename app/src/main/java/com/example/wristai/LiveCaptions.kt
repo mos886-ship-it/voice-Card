@@ -182,6 +182,26 @@ object LiveCaptions {
         } else update { it.copy(source = newSource, target = newTarget) }
     }
 
+    // ---------- 對話模式：一句說完、譯文念完、安靜一下 → 自動換邊（不用按 ⇄） ----------
+    private var turnJob: kotlinx.coroutines.Job? = null
+    /** 說完多久沒再說就換邊（毫秒）。 */
+    const val TURN_MS = 1600L
+
+    private fun scheduleTurn() {
+        val c = appContext ?: return
+        if (!Settings.conversationMode(c)) return
+        turnJob?.cancel()
+        turnJob = scope.launch {
+            kotlinx.coroutines.delay(TURN_MS)
+            // 等譯文念完（念的時候辨識器聽到的是自己的朗讀）
+            var waited = 0
+            while (Speaker.speaking && waited < 30_000) { kotlinx.coroutines.delay(200); waited += 200 }
+            kotlinx.coroutines.delay(300)
+            val st = _state.value
+            if (st.running && st.lines.lastOrNull()?.partial != true) swap(c)
+        }
+    }
+
     fun stop() {
         pauseJob?.cancel()
         update { it.copy(running = false, status = null) }
@@ -288,6 +308,7 @@ object LiveCaptions {
             override fun onPartialResults(b: Bundle?) {
                 val t = text(b); if (t.isEmpty() || Speaker.speaking) return
                 heard = true; errorsInRow = 0
+                turnJob?.cancel()   // 還在說：不換邊
                 // 已经切出去的前段拿掉；还在说的这段太长就先切一句出去翻
                 var rest = Chunker.remainder(t, cut)
                 Chunker.split(rest)?.let { (piece, after) ->
@@ -449,6 +470,7 @@ object LiveCaptions {
         if (t.isEmpty()) return
         val line = _state.value.lines.lastOrNull { !it.partial && it.original == t } ?: return
         translate(line.id, t)
+        scheduleTurn()
     }
 
     private fun translate(id: Long, text: String) {

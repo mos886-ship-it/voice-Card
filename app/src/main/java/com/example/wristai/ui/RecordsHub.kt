@@ -53,9 +53,7 @@ fun RecordsHub(
     val context = LocalContext.current
     val all by MeetingStore.meetings.collectAsState()
     val meetings = remember(all) { all.filter { it.origin() != Origin.FOOD } }
-    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) onImport(context, uri)
-    }
+    val chooseImport = rememberImportChooser(onImport)
     HubScaffold(
         title = "錄音報告".tr,
         subtitle = if (meetings.isEmpty()) "會議、課堂、訪談、通話、靈感筆記".tr
@@ -63,7 +61,7 @@ fun RecordsHub(
         sections = listOf("錄音".tr, "分析".tr, "管理".tr, "設定".tr),
         selected = Hubs.records,
         onSelect = { Hubs.records = it },
-        actions = { GhostButton("匯入".tr, { picker.launch(arrayOf("audio/*")) }, icon = Icons.Filled.Add, tint = Brand.Cyan) },
+        actions = { GhostButton("匯入".tr, chooseImport, icon = Icons.Filled.Add, tint = Brand.Cyan) },
     ) { s ->
         when (s) {
             0 -> HomeScreen(onOpen = onOpen, onOpenSettings = onOpenSettings, onImport = onImport, overview = overview, embedded = true)
@@ -73,6 +71,7 @@ fun RecordsHub(
                 RecordingLanguageCard()
                 ReportDomainCard()
                 VocabCard()
+                NotionCard()
                 EngineSummaryCard(onOpenSettings)
                 SectionLabel("自動整理".tr)
                 CallRecordingCard()
