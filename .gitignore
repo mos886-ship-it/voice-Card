@@ -31,3 +31,8 @@ build/
 # --- iOS (Xcode) ---
 xcuserdata/
 *.xcuserstate
+
+# 主機本機產生的檔案（不要進版本庫）
+local-ai/config.json
+__pycache__/
+*.pyc
